@@ -1,11 +1,18 @@
 <script setup lang="ts">
+import ThemeMenu from '@/components/ThemeMenu.vue';
+import { useThemeStore } from '@/stores/theme';
 import { RouterView } from 'vue-router';
+
 const year = new Date().getFullYear();
+
+// this forces the theme refresh when the app loads
+useThemeStore();
 </script>
 
 <template>
-  <header class="shadow p-4 pl-8 fixed top-0 left-0 right-0 z-10">
+  <header class="p-4 pl-8 fixed top-0 left-0 right-0 z-10 flex justify-between">
     <h1 class="text-2xl font-bold">Gateway</h1>
+    <ThemeMenu />
   </header>
 
   <main class="p-8">
@@ -23,9 +30,10 @@ const year = new Date().getFullYear();
         >Wormhole</a
       >
     </p>
-    <p class="hidden sm:block mx-4 text-stone-300 dark:text-slate-500">|</p>
+    <p class="hidden font-bold sm:block mx-4" style="color: var(--shadow)">|</p>
     <div
-      class="h-px bg-stone-300 dark:bg-slate-500 mx-auto w-3/5 my-3 sm:hidden"
+      class="h-0.5 mx-auto w-3/5 my-3 sm:hidden"
+      style="background: var(--shadow)"
     ></div>
     <p>All Rights Reserved &copy; {{ year }}</p>
   </footer>
@@ -33,12 +41,16 @@ const year = new Date().getFullYear();
 
 <style scoped>
 header {
+  background-color: var(--app-bg);
+  box-shadow:
+    0 1px 3px 0 var(--shadow),
+    0 1px 2px -1px var(--shadow);
   height: 64px;
 }
 
 footer {
   box-shadow:
-    0 -1px 3px 0 rgb(0 0 0 / 0.1),
-    0 -1px 2px -1px rgb(0 0 0 / 0.1);
+    0 -1px 3px 0 var(--shadow),
+    0 -1px 2px -1px var(--shadow);
 }
 </style>

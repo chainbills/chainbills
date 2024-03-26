@@ -2,9 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --app-bg: #fff;
+  --shadow: rgb(0 0 0 / 0.1);
+  --text: #1a1a1a;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--text);
+}
+
+body.dark {
+  --app-bg: #000;
+  --shadow: rgb(255 255 255 / 0.1);
+  --text: #fff;
+}
+
+body.dark #theme-menu {
+  box-shadow:
+    0 4px 6px -1px var(--shadow),
+    0 2px 4px -2px var(--shadow);
+}
+
+body.dark #theme-menu .p-menuitem-content:hover {
+  background-color: #222;
+}
+
 #app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   padding-top: 64px;
+}
+
+#theme-menu {
+  background-color: var(--app-bg);
+}
+
+#theme-menu [menu-item] {
+  color: var(--text);
 }

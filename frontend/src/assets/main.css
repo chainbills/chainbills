@@ -3,10 +3,6 @@
 @tailwind utilities;
 
 :root {
-  --blue-100: rgb(219 234 254);
-  --blue-300: rgb(147 197 253);
-  --blue-800: rgb(30 64 175);
-  --blue-900: rgb(30 58 138);
   --app-bg: #fff;
   --shadow: rgb(0 0 0 / 0.1);
   --text: #1a1a1a;
@@ -21,6 +17,10 @@ body.dark {
   --app-bg: #000;
   --shadow: rgb(255 255 255 / 0.1);
   --text: #fff;
+}
+
+body.dark .p-component-overlay.p-sidebar-mask {
+  background-color: #fff6 !important;
 }
 
 body.dark #theme-menu {
@@ -45,5 +45,16 @@ body.dark #theme-menu .p-menuitem-content:hover {
 }
 
 #theme-menu [menu-item] {
+  color: var(--text);
+}
+
+.p-sidebar {
+  background-color: var(--app-bg);
+  border: none;
+  color: var(--text);
+  padding: 1rem;
+}
+
+.p-sidebar-close {
   color: var(--text);
 }

@@ -6,6 +6,7 @@ import AOS from 'aos';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import { createApp } from 'vue';
+import VueGtag from 'vue-gtag';
 import VueWriter from 'vue-writer';
 
 import App from './App.vue';
@@ -17,6 +18,14 @@ app.use(createPinia());
 app.use(PrimeVue, { ripple: true });
 app.use(router);
 app.use(VueWriter);
+
+if (!import.meta.env.DEV) {
+  app.use(
+    VueGtag,
+    { config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID } },
+    router,
+  );
+}
 
 app.mount('#app');
 

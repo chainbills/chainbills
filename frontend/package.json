@@ -17,6 +17,7 @@
     "pinia": "^2.1.7",
     "primevue": "^3.50.0",
     "vue": "^3.4.15",
+    "vue-gtag": "^2.0.1",
     "vue-router": "^4.2.5",
     "vue-writer": "^1.2.0"
   },

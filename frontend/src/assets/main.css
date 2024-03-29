@@ -58,3 +58,13 @@ body.dark #theme-menu .p-menuitem-content:hover {
 .p-sidebar-close {
   color: var(--text);
 }
+
+.p-inputswitch:not(.p-disabled):has(.p-inputswitch-input:hover).p-highlight
+  .p-inputswitch-slider,
+.p-inputswitch.p-highlight .p-inputswitch-slider {
+  background: var(--blue-500);
+}
+
+.p-dropdown.p-component {
+  outline-color: var(--blue-500);
+}

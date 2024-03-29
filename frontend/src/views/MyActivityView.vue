@@ -1,0 +1,1 @@
+<template>My Activity</template>

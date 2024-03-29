@@ -25,8 +25,10 @@ import Button from 'primevue/button';
       >
     </h2>
     <p class="text-center">
-      <Button class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
-        >Get Started</Button
+      <router-link to="/start">
+        <Button class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
+          >Get Started</Button
+        ></router-link
       >
     </p>
   </section>
@@ -36,16 +38,20 @@ import Button from 'primevue/button';
       How it Works
     </h2>
     <ol class="text-2xl max-w-96 mx-auto mb-8">
-      <li class="mb-4" data-aos="fade-up">1. Create a Payable (public invoice)</li>
+      <li class="mb-4" data-aos="fade-up">
+        1. Create a Payable (public invoice)
+      </li>
       <li class="mb-4" data-aos="fade-up">2. Share the link</li>
       <li class="mb-4" data-aos="fade-up">3. Get Paid</li>
       <li class="mb-4" data-aos="fade-up">4. Withdraw at anytime</li>
     </ol>
     <p class="text-center">
-      <Button
-        class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
-        data-aos="fade-up"
-        >Get Started</Button
+      <router-link to="/start">
+        <Button
+          class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
+          data-aos="fade-up"
+          >Get Started</Button
+        ></router-link
       >
     </p>
   </section>
@@ -61,10 +67,12 @@ import Button from 'primevue/button';
       * We charge 2% on every withdrawal
     </p>
     <p class="text-center">
-      <Button
-        class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
-        data-aos="fade-up"
-        >Dashboard</Button
+      <router-link to="/dashboard">
+        <Button
+          class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
+          data-aos="fade-up"
+          >Dashboard</Button
+        ></router-link
       >
     </p>
   </section>
@@ -78,10 +86,12 @@ import Button from 'primevue/button';
       <span class="font-bold text-blue-500">Chainbills</span>.
     </p>
     <p class="text-center">
-      <Button
-        class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
-        data-aos="fade-up"
-        >My Activity</Button
+      <router-link to="/activity">
+        <Button
+          class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
+          data-aos="fade-up"
+          >My Activity</Button
+        ></router-link
       >
     </p>
   </section>
@@ -90,10 +100,12 @@ import Button from 'primevue/button';
       Start Receiving Payments Today!
     </h2>
     <p>
-      <Button
-        class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
-        data-aos="fade-up"
-        >Get Started</Button
+      <router-link to="/start">
+        <Button
+          class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
+          data-aos="fade-up"
+          >Get Started</Button
+        ></router-link
       >
     </p>
   </section>

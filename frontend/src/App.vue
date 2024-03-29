@@ -11,7 +11,9 @@ useThemeStore();
 
 <template>
   <header class="p-4 pl-8 fixed top-0 left-0 right-0 z-10 flex justify-between">
-    <h1 class="text-2xl font-bold">Chainbills</h1>
+    <h1 class="text-2xl font-bold">
+      <router-link to="/">Chainbills</router-link>
+    </h1>
     <ThemeMenu />
   </header>
 

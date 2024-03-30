@@ -68,3 +68,8 @@ body.dark #theme-menu .p-menuitem-content:hover {
 .p-dropdown.p-component {
   outline-color: var(--blue-500);
 }
+
+.swv-modal {
+  position: relative;
+  z-index: 10000;
+}

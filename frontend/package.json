@@ -13,9 +13,11 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@solana/wallet-adapter-wallets": "^0.19.32",
     "aos": "^3.0.0-beta.6",
     "pinia": "^2.1.7",
     "primevue": "^3.50.0",
+    "solana-wallets-vue": "^0.6.1",
     "vue": "^3.4.15",
     "vue-gtag": "^2.0.1",
     "vue-router": "^4.2.5",

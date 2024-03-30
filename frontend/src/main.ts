@@ -1,10 +1,17 @@
 import 'aos/dist/aos.css';
 import 'primevue/resources/themes/aura-light-green/theme.css';
+import 'solana-wallets-vue/styles.css';
 import './assets/main.css';
 
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from '@solana/wallet-adapter-wallets';
 import AOS from 'aos';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
+import SolanaWallets from 'solana-wallets-vue';
 import { createApp } from 'vue';
 import VueGtag from 'vue-gtag';
 import VueWriter from 'vue-writer';
@@ -12,11 +19,20 @@ import VueWriter from 'vue-writer';
 import App from './App.vue';
 import router from './router';
 
+const walletOptions = {
+  wallets: [
+    new PhantomWalletAdapter(),
+    new SolflareWalletAdapter({ network: WalletAdapterNetwork.Devnet }),
+  ],
+  autoConnect: true,
+};
+
 const app = createApp(App);
 
 app.use(createPinia());
 app.use(PrimeVue, { ripple: true });
 app.use(router);
+app.use(SolanaWallets, walletOptions);
 app.use(VueWriter);
 
 if (!import.meta.env.DEV) {

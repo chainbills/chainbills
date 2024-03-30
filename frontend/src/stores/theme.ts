@@ -9,7 +9,6 @@ const isThemeMode = (value: any): value is ThemeMode => themes.includes(value);
 
 export const useThemeStore = defineStore('theme', () => {
   const icon = ref<ThemeMode>('Dark Theme');
-  const html = document.querySelector('html');
   const mode = ref<ThemeMode>('System Mode');
 
   const css = () => {

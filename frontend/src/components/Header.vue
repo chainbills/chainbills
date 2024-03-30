@@ -3,6 +3,7 @@ import ThemeMenu from '@/components/ThemeMenu.vue';
 import IconMenu from '@/icons/IconMenu.vue';
 import { useSidebarStore } from '@/stores/sidebar';
 import Button from 'primevue/button';
+import ConnectWalletButton from './ConnectWalletButton.vue';
 
 const sidebar = useSidebarStore();
 </script>
@@ -15,13 +16,14 @@ const sidebar = useSidebarStore();
 
     <div class="hidden sm:flex items-center">
       <nav>
-        <ul class="flex">
+        <ul class="flex items-center">
           <li class="mr-6">
             <router-link to="/dashboard">Dashboard</router-link>
           </li>
           <li class="mr-6">
             <router-link to="/activity">My Activity</router-link>
-          </li class="mr-4">
+          </li class="mr-6">
+         <li class="hidden sm:inline mr-4"><ConnectWalletButton /></li>
           <li><ThemeMenu :full="false" /></li>
         </ul>
       </nav>

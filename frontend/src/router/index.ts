@@ -32,6 +32,9 @@ const router = createRouter({
     },
     // TODO: Create a 404
   ],
+  scrollBehavior(to, from, savedPosition) {
+    return { top: 0 };
+  },
 });
 
 router.beforeEach((to, _, next) => {

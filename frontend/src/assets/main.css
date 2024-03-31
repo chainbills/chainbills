@@ -29,7 +29,8 @@ body.dark #theme-menu {
     0 2px 4px -2px var(--shadow);
 }
 
-body.dark #theme-menu .p-menuitem-content:hover {
+body.dark #theme-menu .p-menuitem-content:hover,
+body.dark .p-dropdown-panel .p-dropdown-item:hover {
   background-color: #222;
 }
 
@@ -72,4 +73,19 @@ body.dark #theme-menu .p-menuitem-content:hover {
 .swv-modal {
   position: relative;
   z-index: 10000;
+}
+
+.p-dropdown {
+  background-color: transparent;
+  border: 1px solid var(--shadow)
+}
+
+.p-dropdown-panel {
+  background-color: var(--app-bg);
+  border: 1px solid var(--shadow);
+  box-shadow: 0 4px 6px -1px var(--shadow), 0 2px 4px -2px var(--shadow);
+}
+
+.p-dropdown-panel .p-dropdown-item {
+  color: var(--text)
 }

@@ -30,6 +30,11 @@ const router = createRouter({
       component: () => import('../views/MyActivityView.vue'),
       meta: { title: `My Activity | ${baseTitle}` },
     },
+    {
+      path: '/payable/:address',
+      name: 'payable',
+      component: () => import('../views/PayableView.vue'),
+    },
     // TODO: Create a 404
   ],
   scrollBehavior(to, from, savedPosition) {

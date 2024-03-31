@@ -11,6 +11,7 @@ import {
 import AOS from 'aos';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
 import SolanaWallets from 'solana-wallets-vue';
 import { createApp } from 'vue';
 import VueGtag from 'vue-gtag';
@@ -33,6 +34,7 @@ app.use(createPinia());
 app.use(PrimeVue, { ripple: true });
 app.use(router);
 app.use(SolanaWallets, walletOptions);
+app.use(ToastService);
 app.use(VueWriter);
 
 if (!import.meta.env.DEV) {

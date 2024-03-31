@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
+import { tokens, useSolanaProgram } from '@/stores/solana-program';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
 import { onMounted, ref, watch, type Ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 const isCreating = ref(false);
 const allowAnyToken = ref(false);
@@ -14,27 +16,19 @@ const descriptionError = ref('');
 const emailInput = ref(null) as unknown as Ref<HTMLInputElement>;
 const email = ref('');
 const emailError = ref('');
-const tokens = ref([
-  {
-    name: 'USDC',
-    address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-    decimals: 6,
-  },
-  {
-    name: 'SOL',
-    address: 'So11111111111111111111111111111111111111112',
-    decimals: 9,
-  },
-]);
 const configError = ref('');
 const selectedTokens = ref<any[]>([]);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
+const solanaProgram = useSolanaProgram();
+const router = useRouter();
+
 const selectToken = (token: any) => {
   selectedTokens.value = [...selectedTokens.value, token];
   amounts.value.push(ref(0));
   amountErrors.value.push(ref(''));
 };
+
 const removeToken = (index: number) => {
   selectedTokens.value.splice(index, 1);
   selectedTokens.value = [...selectedTokens.value];
@@ -90,16 +84,16 @@ const create = async () => {
       });
   }
 
-  isCreating.value = true
-  await new Promise((resolve) => setTimeout(resolve, 5000));
-  isCreating.value = false
-
-  console.log({
-    email: DomPurify.sanitize(email.value),
-    description: description.value,
-    allowAnyToken: allowAnyToken.value,
+  isCreating.value = true;
+  const address = await solanaProgram.initializePayable(
+    email.value,
+    DomPurify.sanitize(description.value),
     tokensAndAmounts,
-  });
+    allowAnyToken.value,
+  );
+  isCreating.value = false;
+
+  if (address) router.push(`/payable/${address}`);
 };
 
 onMounted(() => {

@@ -15,6 +15,7 @@
   "dependencies": {
     "@solana/wallet-adapter-wallets": "^0.19.32",
     "aos": "^3.0.0-beta.6",
+    "dompurify": "^3.0.11",
     "pinia": "^2.1.7",
     "primevue": "^3.50.0",
     "solana-wallets-vue": "^0.6.1",

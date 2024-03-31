@@ -1,24 +1,107 @@
 <script setup lang="ts">
 import IconClose from '@/icons/IconClose.vue';
+import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
-import { ref, type Ref } from 'vue';
+import { onMounted, ref, watch, type Ref } from 'vue';
 
 const allowAnyToken = ref(false);
 const description = ref('');
+const descriptionError = ref('');
+const emailInput = ref(null) as unknown as Ref<HTMLInputElement>;
 const email = ref('');
-const tokens = ref(['USDC', 'SOL', 'ETH']);
-const selectedTokens = ref<string[]>([]);
+const emailError = ref('');
+const tokens = ref([
+  {
+    name: 'USDC',
+    address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+    decimals: 6,
+  },
+  {
+    name: 'SOL',
+    address: 'So11111111111111111111111111111111111111112',
+    decimals: 9,
+  },
+]);
+const configError = ref('');
+const selectedTokens = ref<any[]>([]);
 const amounts = ref<Ref[]>([]);
-const selectToken = (token: string) => {
-  selectedTokens.value.push(token);
+const amountErrors = ref<Ref[]>([]);
+const selectToken = (token: any) => {
+  selectedTokens.value = [...selectedTokens.value, token];
   amounts.value.push(ref(0));
+  amountErrors.value.push(ref(''));
 };
 const removeToken = (index: number) => {
   selectedTokens.value.splice(index, 1);
+  selectedTokens.value = [...selectedTokens.value];
   amounts.value.splice(index, 1);
+  amountErrors.value.splice(index, 1);
 };
+
+const validateDescription = () => {
+  const v = description.value;
+  if (v.length == 0) descriptionError.value = 'Required';
+  else if (v.length < 15) descriptionError.value = 'At least 15 characters';
+  // From MAX_PAYABLES_DESCRIPTION_LENGTH in the solana program
+  else if (v.length > 10000)
+    descriptionError.value = 'At most 10000 characters';
+  else descriptionError.value = '';
+};
+
+const validateEmail = () => {
+  const { typeMismatch, valid, valueMissing } = emailInput.value.validity;
+  if (valueMissing) emailError.value = 'Required';
+  else if (typeMismatch) emailError.value = 'Invalid Email';
+  else if (valid) emailError.value = '';
+  else emailError.value = emailInput.value.validationMessage;
+};
+
+const validateConfig = () => {
+  configError.value =
+    !allowAnyToken.value && selectedTokens.value.length == 0
+      ? 'Either allow payments in any token or specify at least one accepted token.'
+      : '';
+};
+
+const validateAmount = (v: any) => {
+  if (Number.isNaN(v) || +v == 0) return 'Required';
+  else if (v <= 0) return 'Should be positive';
+  else return '';
+};
+
+const create = () => {
+  validateEmail();
+  validateDescription();
+  validateConfig();
+  if (emailError.value || descriptionError.value || configError.value) return;
+
+  const tokensAndAmounts = [];
+  for (let i = 0; i < amounts.value.length; i++) {
+    amountErrors.value[i].value = validateAmount(amounts.value[i].value);
+    if (amountErrors.value[i].value) return;
+    else
+      tokensAndAmounts.push({
+        token: selectedTokens.value[i].address,
+        amount: amounts.value[i].value * 10 ** selectedTokens.value[i].decimals,
+      });
+  }
+
+  console.log({
+    email: DomPurify.sanitize(email.value),
+    description: description.value,
+    allowAnyToken: allowAnyToken.value,
+    tokensAndAmounts,
+  });
+};
+
+onMounted(() => {
+  watch(() => email.value, validateEmail);
+  watch(() => description.value, validateDescription);
+  watch(() => allowAnyToken.value, validateConfig);
+  watch(() => selectedTokens.value, validateConfig);
+});
 </script>
 
 <template>
@@ -28,27 +111,48 @@ const removeToken = (index: number) => {
     >
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
-    <form class="max-w-sm mx-auto" novalidate>
-      <label for="email" class="text-sm">Email * </label>
-      <small class="text-xs text-gray-500 block mb-2">For Notifications</small>
-      <input
-        id="email"
-        type="email"
-        v-model="email"
-        class="block w-full pb-1 border-b-2 mb-12 focus:outline-none focus:valid:border-blue-500 invalid:border-red-500 bg-transparent"
-        required
-      />
+    <form class="max-w-sm mx-auto" @submit.prevent="create">
+      <label
+        :class="
+          'text-sm focus-within:text-blue-500 ' +
+          (emailError ? 'text-red-500 focus-within:text-red-500' : '')
+        "
+        ><span>Email *</span>
+        <small class="text-xs text-gray-500 block mb-2"
+          >For Notifications</small
+        >
+        <input
+          type="email"
+          v-model="email"
+          ref="emailInput"
+          autocomplete="email"
+          class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-blue-500 bg-transparent"
+          :style="{ color: 'var(--text)' }"
+          required
+        />
+        <small class="text-xs block mb-10">{{ emailError }}</small>
+      </label>
 
-      <label for="description" class="text-sm">Description * </label>
-      <small class="text-xs text-gray-500 block mb-2"
-        >What users see when paying</small
+      <label
+        :class="
+          'text-sm focus-within:text-blue-500 ' +
+          (descriptionError ? 'text-red-500 focus-within:text-red-500' : '')
+        "
       >
-      <textarea
-        id="description"
-        class="block w-full pb-1 border-b-2 mb-12 focus:outline-none focus:valid:border-blue-500 invalid:border-red-500 bg-transparent"
-        required
-        v-model="description"
-      ></textarea>
+        <span>Description *</span>
+        <small class="text-xs text-gray-500 block mb-2"
+          >What others see when they are paying</small
+        >
+        <textarea
+          class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-blue-500 bg-transparent"
+          :style="{ color: 'var(--text)' }"
+          required
+          @input="() => (description = DomPurify.sanitize(description))"
+          v-model="description"
+          rows="5"
+        ></textarea>
+        <small class="text-xs block mb-10">{{ descriptionError }}</small>
+      </label>
 
       <div class="mb-12">
         <label for="allow-any-token" class="mb-2 inline-block"
@@ -61,37 +165,48 @@ const removeToken = (index: number) => {
         </p>
       </div>
 
-      <p class="mb-2">Accepted Tokens</p>
-      <label
-        v-for="(token, i) of selectedTokens"
-        class="flex items-center mb-4"
-      >
-        <input
-          class="w-36 pb-1 border-b-2 mr-4 focus:outline-none focus:valid:border-blue-500 invalid:border-red-500 bg-transparent"
-          placeholder="Amount"
-          :v-model="amounts[i]"
-          type="number"
-          required
-          :min="0"
-          :step="10 ** -9"
-        />
-        <span class="px-2 py-1 border mr-2 rounded">{{ token }}</span>
+      <p class="mb-2">Accepted Tokens and Amounts</p>
+      <label v-for="(token, i) of selectedTokens" class="flex items-start mb-4">
+        <div class="w-36 flex flex-col mr-4">
+          <input
+            class="pb-1 border-b-2 mb-1 focus:outline-none focus:border-blue-500 bg-transparent"
+            placeholder="Amount"
+            v-model="amounts[i].value"
+            required
+            :min="0"
+            :step="10 ** (-1 * 18)"
+            type="number"
+            @input="
+              () => (amountErrors[i].value = validateAmount(amounts[i].value))
+            "
+          />
+          <small class="text-xs block text-red-500">{{
+            amountErrors[i].value
+          }}</small>
+        </div>
+        <span class="px-2 py-1 border mr-2 rounded">{{ token.name }}</span>
         <Button
           @click="() => removeToken(i)"
+          type="button"
           :aria-label="'Remove Selected ' + token"
-          ><IconClose
-        /></Button>
+        >
+          <IconClose />
+        </Button>
       </label>
       <Dropdown
         :options="tokens.filter((t) => !selectedTokens.includes(t))"
+        optionLabel="name"
         v-if="tokens.length > selectedTokens.length"
         @change="(e) => selectToken(e.value)"
         placeholder="Select a Token"
-        class="mb-4"
+        class="mb-2"
       />
+      <small class="text-xs block mb-2 text-red-500">{{ configError }}</small>
 
       <p class="mt-12 sm:mt-20 mb-24 text-right sm:text-center">
-        <Button class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
+        <Button
+          type="submit"
+          class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
           >Create</Button
         >
       </p>

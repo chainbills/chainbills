@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { WalletMultiButton } from 'solana-wallets-vue';
 
 const isDark = () => document.body.classList.contains('dark');

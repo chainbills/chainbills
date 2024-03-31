@@ -7,7 +7,7 @@ use anchor_lang::prelude::*;
 use crate::state::TokenAndAmount;
 use instructions::*;
 
-declare_id!("3kDZC1eGL7vTTtALmUks48HLu7JcxVpPENzxFomDpM3z");
+declare_id!("4BTSkx71TpMMScc4QpVPr5ebH1rfsQojPSmcCALsq45d");
 
 #[program]
 pub mod chainbills {

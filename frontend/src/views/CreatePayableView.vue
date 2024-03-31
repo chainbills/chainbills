@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import IconClose from '@/icons/IconClose.vue';
+import IconSpinner from '@/icons/IconSpinner.vue';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
 import { onMounted, ref, watch, type Ref } from 'vue';
 
+const isCreating = ref(false);
 const allowAnyToken = ref(false);
 const description = ref('');
 const descriptionError = ref('');
@@ -71,7 +73,7 @@ const validateAmount = (v: any) => {
   else return '';
 };
 
-const create = () => {
+const create = async () => {
   validateEmail();
   validateDescription();
   validateConfig();
@@ -87,6 +89,10 @@ const create = () => {
         amount: amounts.value[i].value * 10 ** selectedTokens.value[i].decimals,
       });
   }
+
+  isCreating.value = true
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  isCreating.value = false
 
   console.log({
     email: DomPurify.sanitize(email.value),
@@ -111,7 +117,25 @@ onMounted(() => {
     >
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
-    <form class="max-w-sm mx-auto" @submit.prevent="create">
+
+    <div class="text-center" v-if="isCreating">
+      <p class="mb-12">Creating ...</p>
+      <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
+      <p class="pb-24">
+        <Button
+          @click="isCreating = false"
+          class="border border-blue-500 text-blue-500 text-sm px-3 py-1 mr-6"
+          >Cancel</Button
+        >
+        <Button
+          @click="isCreating = false"
+          class="border border-blue-500 text-blue-500 text-sm px-3 py-1"
+          >Retry</Button
+        >
+      </p>
+    </div>
+
+    <form class="max-w-sm mx-auto" @submit.prevent="create" v-else>
       <label
         :class="
           'text-sm focus-within:text-blue-500 ' +

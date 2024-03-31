@@ -30,6 +30,7 @@ pub fn initialize_global_stats_handler(ctx: Context<InitializeGlobalStats>) -> R
     let global_stats = ctx.accounts.global_stats.as_mut();
     global_stats.initialize();
 
+    msg!("Initialized global_stats.");
     emit!(InitializedGlobalStatsEvent {});
     Ok(())
 }

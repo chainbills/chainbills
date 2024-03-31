@@ -131,8 +131,14 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         amount: amount,
     };
 
+    msg!(
+        "Withdrawal was made with global_count: {}, payable_count: {}, and host_count: {}.",
+        withdrawal.global_count,
+        withdrawal.payable_count,
+        withdrawal.host_count
+    );
     emit!(WithdrawalEvent {
-        global_count: global_stats.withdrawals_count,
+        global_count: withdrawal.global_count,
         payable_count: withdrawal.payable_count,
         host_count: withdrawal.host_count,
     });

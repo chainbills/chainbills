@@ -53,6 +53,7 @@ pub fn admin_withdraw_handler(ctx: Context<AdminWithdraw>, amount: u64) -> Resul
     let cpi_program = token_program.to_account_info();
     token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
 
+    msg!("Admin made a withdrawal.");
     emit!(AdminWithdrawalEvent {});
     Ok(())
 }

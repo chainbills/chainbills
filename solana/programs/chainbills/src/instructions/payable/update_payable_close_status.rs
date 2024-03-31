@@ -19,6 +19,7 @@ pub fn close_payable(ctx: Context<UpdatePayableCloseStatus>) -> Result<()> {
     let payable = ctx.accounts.payable.as_mut();
     payable.is_closed = true;
 
+    msg!("Closed Payable.");
     emit!(ClosePayableEvent {});
     Ok(())
 }
@@ -29,6 +30,7 @@ pub fn reopen_payable(ctx: Context<UpdatePayableCloseStatus>) -> Result<()> {
     let payable = ctx.accounts.payable.as_mut();
     payable.is_closed = false;
 
+    msg!("Reopened Payable.");
     emit!(ReopenPayableEvent {});
     Ok(())
 }

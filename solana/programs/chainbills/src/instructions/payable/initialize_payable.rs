@@ -95,9 +95,14 @@ pub fn initialize_payable_handler(
     payable.withdrawals_count = 0;
     payable.is_closed = false;
 
+    msg!(
+        "Initialized payable with global_count: {} and host_count: {}.",
+        payable.global_count,
+        payable.host_count
+    );
     emit!(InitializedPayableEvent {
-        global_count: global_stats.payables_count,
-        host_count: host.payables_count,
+        global_count: payable.global_count,
+        host_count: payable.host_count,
     });
     Ok(())
 }

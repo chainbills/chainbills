@@ -37,6 +37,7 @@ pub fn update_payable_description_handler(ctx: Context<UpdatePayableDescription>
     let payable = ctx.accounts.payable.as_mut();
     payable.description = description;
 
+    msg!("Updated Payable Description.");
     emit!(UpdatePayableDescriptionEvent {});
     Ok(())
 }

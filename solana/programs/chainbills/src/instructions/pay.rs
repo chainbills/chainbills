@@ -161,8 +161,14 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
         amount: amount,
     };
 
+    msg!(
+        "Payment was made with global_count: {}, payable_count: {}, and payer_count: {}.",
+        payment.global_count,
+        payment.payable_count,
+        payment.payer_count
+    );
     emit!(PayEvent {
-        global_count: global_stats.payments_count,
+        global_count: payment.global_count,
         payable_count: payment.payable_count,
         payer_count: payment.payer_count,
     });

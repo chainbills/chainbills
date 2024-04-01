@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { tokens, useSolanaProgramStore } from '@/stores/solana-program';
@@ -6,6 +7,7 @@ import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
+import { useAnchorWallet } from 'solana-wallets-vue';
 import { onMounted, ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -22,6 +24,7 @@ const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
 const solanaProgram = useSolanaProgramStore();
 const router = useRouter();
+const wallet = useAnchorWallet();
 
 const selectToken = (token: any) => {
   selectedTokens.value = [...selectedTokens.value, token];
@@ -111,7 +114,12 @@ onMounted(() => {
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
 
-    <div class="text-center" v-if="isCreating">
+    <div class="text-center pb-20" v-if="!wallet">
+      <p class="mb-8">Please connect your wallet to continue.</p>
+      <p class="mx-auto w-fit"><ConnectWalletButton /></p>
+    </div>
+
+    <div class="text-center" v-else-if="isCreating">
       <p class="mb-12">Creating ...</p>
       <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
       <p class="pb-24">

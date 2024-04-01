@@ -60,7 +60,10 @@ app.get('/payable/:address/:email', async (req: Request, res: Response) => {
     createdAt
   };
 
-  await firestore.collection('payables').doc(address).set(data);
+  await firestore
+    .collection('payables')
+    .doc(address)
+    .set(data, { merge: true });
   return res.json({ success: true });
 });
 

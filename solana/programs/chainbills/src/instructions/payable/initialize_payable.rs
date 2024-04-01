@@ -7,7 +7,7 @@ use crate::state::{ GlobalStats, Payable, TokenAndAmount, User };
 #[instruction(
     description: String, 
     tokens_and_amounts: Vec<TokenAndAmount>, 
-    allows_any_token: bool
+    allows_free_payments: bool
 )]
 pub struct InitializePayable<'info> {
     #[account(
@@ -41,13 +41,13 @@ pub struct InitializePayable<'info> {
 /// * description<String>: what users see when they want to make payment.
 /// * tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens
 ///         (and their amounts) on this payable.
-/// * allows_any_token<bool>: Whether this payable should allow payments in
-///         any token.
+/// * allows_free_payments<bool>: Whether this payable should allow payments of
+///         any amount in any token.
 pub fn initialize_payable_handler(
     ctx: Context<InitializePayable>,
     description: String,
     tokens_and_amounts: Vec<TokenAndAmount>,
-    allows_any_token: bool
+    allows_free_payments: bool
 ) -> Result<()> {
     /* ----- CHECKS ----- */
     // Ensure that the description doesn't exceed the set maximum
@@ -63,10 +63,12 @@ pub fn initialize_payable_handler(
         ChainbillsError::MaxPayableTokensCapacityReached
     );
 
-    // Ensure that the payable either accepts any tokens or it specifies
-    // the tokens (and their amounts) that can be paid to it.
+    // Ensure that the payable either accepts payments of any amounts in any tokens
+    // or it specifies the tokens (and their amounts) that can be paid to it
+    // and not both.
     require!(
-        allows_any_token || (!allows_any_token && tokens_and_amounts.len() > 0),
+        (allows_free_payments && tokens_and_amounts.len() == 0) ||
+            (!allows_free_payments && tokens_and_amounts.len() > 0),
         ChainbillsError::ImproperPayablesConfiguration
     );
 
@@ -75,7 +77,7 @@ pub fn initialize_payable_handler(
         require!(taa.amount > 0, ChainbillsError::ZeroAmountSpecified);
     }
 
-    
+
     /* ----- STATE UPDATES ----- */
     // Increment the global stats for payables_count.
     let global_stats = ctx.accounts.global_stats.as_mut();
@@ -93,7 +95,7 @@ pub fn initialize_payable_handler(
     payable.description = description;
     payable.tokens_and_amounts = tokens_and_amounts;
     payable.balances = Vec::<TokenAndAmount>::new();
-    payable.allows_any_token = allows_any_token;
+    payable.allows_free_payments = allows_free_payments;
     payable.created_at = clock::Clock::get()?.unix_timestamp as u64;
     payable.payments_count = 0;
     payable.withdrawals_count = 0;

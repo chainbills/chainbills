@@ -38,19 +38,19 @@ pub mod chainbills {
     /// * description<String>: what users see when they want to make payment.
     /// * tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens
     ///         (and their amounts) on this payable.
-    /// * allows_any_token<bool>: Whether this payable should allow payments in
-    ///         any token.
+    /// * allows_free_payments<bool>: Whether this payable should allow payments of
+    ///         any amounts of any token.
     pub fn initialize_payable(
         ctx: Context<InitializePayable>,
         description: String,
         tokens_and_amounts: Vec<TokenAndAmount>,
-        allows_any_token: bool
+        allows_free_payments: bool
     ) -> Result<()> {
         instructions::initialize_payable_handler(
             ctx,
             description,
             tokens_and_amounts,
-            allows_any_token
+            allows_free_payments,
         )
     }
 

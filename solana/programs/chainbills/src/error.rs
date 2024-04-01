@@ -8,7 +8,7 @@ pub enum ChainbillsError {
     #[msg("payable description maximum characters has exceeded")]
     MaxPayableDescriptionReached,
 
-    #[msg("either accept allows_any_token or specify tokens_and_amounts or both")]
+    #[msg("either allows_free_payments or specify tokens_and_amounts")]
     ImproperPayablesConfiguration,
 
     #[msg("payable amount must be greater than zero")]

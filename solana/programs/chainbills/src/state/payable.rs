@@ -26,8 +26,8 @@ pub struct Payable {
     /* TokenAndAmount::SPACE * MAX_PAYABLES_TOKENS */
     pub balances: Vec<TokenAndAmount>,
 
-    /// Whether this payable allows payments in any token.
-    pub allows_any_token: bool, // 1 byte
+    /// Whether this payable allows payments any amount in any token.
+    pub allows_free_payments: bool, // 1 byte
 
     /// The timestamp of when this payable was created.
     pub created_at: u64, // 8 bytes

@@ -73,7 +73,7 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
     // Ensure that the payable can still accept new tokens, if this
     // payable allows any token
     let mint = &ctx.accounts.mint;
-    if payable.allows_any_token && payable.balances.len() >= MAX_PAYABLES_TOKENS {
+    if payable.allows_free_payments && payable.balances.len() >= MAX_PAYABLES_TOKENS {
         let mut bals_it = payable.balances.iter().peekable();
         while let Some(balance) = bals_it.next() {
             if balance.token == mint.key() {
@@ -88,7 +88,7 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
     // Ensure that the specified token to be transferred (the mint) is an
     // allowed token for this payable, if this payable
     // doesn't allow any token outside those it specified
-    if !payable.allows_any_token {
+    if !payable.allows_free_payments {
         let mut taas_it = payable.tokens_and_amounts.iter().peekable();
         while let Some(taa) = taas_it.next() {
             if taa.token == mint.key() && taa.amount == amount {

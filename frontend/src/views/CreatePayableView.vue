@@ -15,19 +15,19 @@ import { useAnchorWallet } from 'solana-wallets-vue';
 import { onMounted, ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
+const allowsFreePayments = ref(false);
+const amounts = ref<Ref[]>([]);
+const amountErrors = ref<Ref[]>([]);
+const configError = ref('');
 const isCreating = ref(false);
-const allowAnyToken = ref(false);
 const description = ref('');
 const descriptionError = ref('');
 const emailInput = ref(null) as unknown as Ref<HTMLInputElement>;
 const email = ref('');
 const emailError = ref('');
-const configError = ref('');
-const selectedTokens = ref<any[]>([]);
-const amounts = ref<Ref[]>([]);
-const amountErrors = ref<Ref[]>([]);
 const payable = usePayableStore();
 const router = useRouter();
+const selectedTokens = ref<any[]>([]);
 const wallet = useAnchorWallet();
 
 const selectToken = (token: any) => {
@@ -62,8 +62,9 @@ const validateEmail = () => {
 
 const validateConfig = () => {
   configError.value =
-    !allowAnyToken.value && selectedTokens.value.length == 0
-      ? 'Either allow payments in any token or specify at least one accepted token or both.'
+    !allowsFreePayments.value && selectedTokens.value.length == 0
+      ? 'Either allow payments of any amount in any token OR ' +
+        'specify at least one accepted token and its amount.'
       : '';
 };
 
@@ -80,14 +81,16 @@ const create = async () => {
   if (emailError.value || descriptionError.value || configError.value) return;
 
   const tokensAndAmounts: TokenAndAmountOffChain[] = [];
-  for (let i = 0; i < amounts.value.length; i++) {
-    amountErrors.value[i].value = validateAmount(amounts.value[i].value);
-    if (amountErrors.value[i].value) return;
-    else
-      tokensAndAmounts.push({
-        amount: amounts.value[i].value,
-        ...selectedTokens.value[i],
-      });
+  if (!allowsFreePayments.value) {
+    for (let i = 0; i < amounts.value.length; i++) {
+      amountErrors.value[i].value = validateAmount(amounts.value[i].value);
+      if (amountErrors.value[i].value) return;
+      else
+        tokensAndAmounts.push({
+          amount: amounts.value[i].value,
+          ...selectedTokens.value[i],
+        });
+    }
   }
 
   isCreating.value = true;
@@ -95,7 +98,7 @@ const create = async () => {
     email.value,
     DomPurify.sanitize(description.value),
     tokensAndAmounts,
-    allowAnyToken.value,
+    allowsFreePayments.value,
   );
   isCreating.value = false;
 
@@ -105,7 +108,7 @@ const create = async () => {
 onMounted(() => {
   watch(() => email.value, validateEmail);
   watch(() => description.value, validateDescription);
-  watch(() => allowAnyToken.value, validateConfig);
+  watch(() => allowsFreePayments.value, validateConfig);
   watch(() => selectedTokens.value, validateConfig);
 });
 </script>
@@ -185,57 +188,67 @@ onMounted(() => {
 
       <div class="mb-12">
         <label for="allow-any-token" class="inline-block"
-          >Allow Payments in any Token ?
+          >Allow Free Payments ?
         </label>
         <small class="text-xs text-gray-500 block mb-4"
-          >Permanent. You can't change this after creating.</small
+          >Do you want to accept any token and any amount? This is Permanent.
+          You can't change this after creating.</small
         >
         <p class="flex items-center">
-          <span :class="'mr-2 ' + (allowAnyToken ? '' : 'font-bold')">No</span>
-          <InputSwitch inputId="allow-any-token" v-model="allowAnyToken" />
-          <span :class="'ml-2 ' + (allowAnyToken ? 'font-bold' : '')">Yes</span>
+          <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')"
+            >No</span
+          >
+          <InputSwitch inputId="allow-any-token" v-model="allowsFreePayments" />
+          <span :class="'ml-2 ' + (allowsFreePayments ? 'font-bold' : '')"
+            >Yes</span
+          >
         </p>
       </div>
 
-      <p>Accepted Tokens and Amounts</p>
-      <small class="text-xs text-gray-500 block mb-4"
-        >Permanent. You can't change this after creating.</small
-      >
-      <label v-for="(token, i) of selectedTokens" class="flex items-start mb-4">
-        <div class="w-36 flex flex-col mr-4">
-          <input
-            class="pb-1 border-b-2 mb-1 focus:outline-none focus:border-blue-500 bg-transparent"
-            placeholder="Amount"
-            v-model="amounts[i].value"
-            required
-            :min="0"
-            :step="10 ** (-1 * 18)"
-            type="number"
-            @input="
-              () => (amountErrors[i].value = validateAmount(amounts[i].value))
-            "
-          />
-          <small class="text-xs block text-red-500">{{
-            amountErrors[i].value
-          }}</small>
-        </div>
-        <span class="px-2 py-1 border mr-2 rounded">{{ token.name }}</span>
-        <Button
-          @click="() => removeToken(i)"
-          type="button"
-          :aria-label="'Remove Selected ' + token"
+      <template v-if="!allowsFreePayments">
+        <p>Accepted Tokens and Amounts</p>
+        <small class="text-xs text-gray-500 block mb-4"
+          >Permanent. You can't change this after creating.</small
         >
-          <IconClose />
-        </Button>
-      </label>
-      <Dropdown
-        :options="tokens.filter((t) => !selectedTokens.includes(t))"
-        optionLabel="name"
-        v-if="tokens.length > selectedTokens.length"
-        @change="(e) => selectToken(e.value)"
-        placeholder="Select a Token"
-        class="mb-2"
-      />
+        <label
+          v-for="(token, i) of selectedTokens"
+          class="flex items-start mb-4"
+        >
+          <div class="w-36 flex flex-col mr-4">
+            <input
+              class="pb-1 border-b-2 mb-1 focus:outline-none focus:border-blue-500 bg-transparent"
+              placeholder="Amount"
+              v-model="amounts[i].value"
+              required
+              :min="0"
+              :step="10 ** (-1 * 18)"
+              type="number"
+              @input="
+                () => (amountErrors[i].value = validateAmount(amounts[i].value))
+              "
+            />
+            <small class="text-xs block text-red-500">{{
+              amountErrors[i].value
+            }}</small>
+          </div>
+          <span class="px-2 py-1 border mr-2 rounded">{{ token.name }}</span>
+          <Button
+            @click="() => removeToken(i)"
+            type="button"
+            :aria-label="'Remove Selected ' + token"
+          >
+            <IconClose />
+          </Button>
+        </label>
+        <Dropdown
+          :options="tokens.filter((t) => !selectedTokens.includes(t))"
+          optionLabel="name"
+          v-if="tokens.length > selectedTokens.length"
+          @change="(e) => selectToken(e.value)"
+          placeholder="Select a Token"
+          class="mb-2"
+        />
+      </template>
       <small class="text-xs block mb-2 text-red-500">{{ configError }}</small>
 
       <p class="mt-12 sm:mt-20 mb-24 text-right sm:text-center">

@@ -46,7 +46,7 @@ export default {
           name: 'tokensAndAmounts',
           type: { vec: { defined: 'TokenAndAmount' } }
         },
-        { name: 'allowsAnyToken', type: 'bool' }
+        { name: 'allowsFreePayments', type: 'bool' }
       ]
     },
     {
@@ -151,7 +151,7 @@ export default {
             type: { vec: { defined: 'TokenAndAmount' } }
           },
           { name: 'balances', type: { vec: { defined: 'TokenAndAmount' } } },
-          { name: 'allowsAnyToken', type: 'bool' },
+          { name: 'allowsFreePayments', type: 'bool' },
           { name: 'createdAt', type: 'u64' },
           { name: 'paymentsCount', type: 'u64' },
           { name: 'withdrawalsCount', type: 'u64' },
@@ -263,7 +263,7 @@ export default {
     {
       code: 6002,
       name: 'ImproperPayablesConfiguration',
-      msg: 'either accept allows_any_token or specify tokens_and_amounts or both'
+      msg: 'either allows_free_payments or specify tokens_and_amounts'
     },
     {
       code: 6003,

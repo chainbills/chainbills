@@ -46,7 +46,7 @@ app.get('/payable/:address/:email', async (req: Request, res: Response) => {
   const tokensAndAmounts = convertTokens(
     payable.tokensAndAmounts as TokenAndAmountOnChain[]
   );
-  const allowsAnyToken = payable.allowsAnyToken as boolean;
+  const allowsFreePayments = payable.allowsFreePayments as boolean;
   const createdAt = (payable.createdAt as BN).toNumber();
 
   const data = {
@@ -56,7 +56,7 @@ app.get('/payable/:address/:email', async (req: Request, res: Response) => {
     hostCount,
     hostEmail,
     tokensAndAmounts,
-    allowsAnyToken,
+    allowsFreePayments,
     createdAt
   };
 

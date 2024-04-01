@@ -24,9 +24,11 @@ export const usePayableStore = defineStore('payable', () => {
     email: string,
     description: string,
     tokensAndAmounts: TokenAndAmountOffChain[],
-    allowsAnyToken: boolean,
+    allowsFreePayments: boolean,
   ): Promise<string | null> => {
     if (!wallet.value) return null;
+
+    if (allowsFreePayments) tokensAndAmounts = [];
 
     const isExistingUser = await user.isInitialized();
     let hostCount = 1;
@@ -44,7 +46,7 @@ export const usePayableStore = defineStore('payable', () => {
       .methods.initializePayable(
         description,
         convertTokensForOnChain(tokensAndAmounts),
-        allowsAnyToken,
+        allowsFreePayments,
       )
       .accounts({
         payable,

@@ -3,7 +3,6 @@ import 'primevue/resources/themes/aura-light-green/theme.css';
 import 'solana-wallets-vue/styles.css';
 import './assets/main.css';
 
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
@@ -21,10 +20,7 @@ import App from './App.vue';
 import router from './router';
 
 const walletOptions = {
-  wallets: [
-    new PhantomWalletAdapter(),
-    new SolflareWalletAdapter({ network: WalletAdapterNetwork.Devnet }),
-  ],
+  wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
   autoConnect: true,
 };
 
@@ -35,7 +31,7 @@ app.use(PrimeVue, { ripple: true });
 app.use(router);
 app.use(SolanaWallets, walletOptions);
 app.use(ToastService);
-app.use(VueWriter);
+app.use(VueWriter as any);
 
 if (!import.meta.env.DEV) {
   app.use(

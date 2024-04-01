@@ -39,10 +39,9 @@ const removeToken = (index: number) => {
 const validateDescription = () => {
   const v = description.value;
   if (v.length == 0) descriptionError.value = 'Required';
-  else if (v.length < 15) descriptionError.value = 'At least 15 characters';
+  else if (v.length < 15) descriptionError.value = 'Min. 15 characters';
   // From MAX_PAYABLES_DESCRIPTION_LENGTH in the solana program
-  else if (v.length > 10000)
-    descriptionError.value = 'At most 10000 characters';
+  else if (v.length > 3000) descriptionError.value = 'Max. 3000 characters';
   else descriptionError.value = '';
 };
 
@@ -57,7 +56,7 @@ const validateEmail = () => {
 const validateConfig = () => {
   configError.value =
     !allowAnyToken.value && selectedTokens.value.length == 0
-      ? 'Either allow payments in any token or specify at least one accepted token.'
+      ? 'Either allow payments in any token or specify at least one accepted token or both.'
       : '';
 };
 
@@ -173,9 +172,12 @@ onMounted(() => {
       </label>
 
       <div class="mb-12">
-        <label for="allow-any-token" class="mb-2 inline-block"
+        <label for="allow-any-token" class="inline-block"
           >Allow Payments in any Token ?
         </label>
+        <small class="text-xs text-gray-500 block mb-4"
+          >Permanent. You can't change this after creating.</small
+        >
         <p class="flex items-center">
           <span :class="'mr-2 ' + (allowAnyToken ? '' : 'font-bold')">No</span>
           <InputSwitch inputId="allow-any-token" v-model="allowAnyToken" />
@@ -183,7 +185,10 @@ onMounted(() => {
         </p>
       </div>
 
-      <p class="mb-2">Accepted Tokens and Amounts</p>
+      <p>Accepted Tokens and Amounts</p>
+      <small class="text-xs text-gray-500 block mb-4"
+        >Permanent. You can't change this after creating.</small
+      >
       <label v-for="(token, i) of selectedTokens" class="flex items-start mb-4">
         <div class="w-36 flex flex-col mr-4">
           <input

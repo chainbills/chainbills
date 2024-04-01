@@ -84,6 +84,7 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
         }
     }
 
+
     /* ----- TRANSFER ----- */
     let destination = &ctx.accounts.host_token_account;
     let source = &ctx.accounts.this_program_token_account;
@@ -98,6 +99,7 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     let amount_minus_fees = amount.checked_mul(98).unwrap().checked_div(100).unwrap();
     token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount_minus_fees)?;
 
+    
     /* ----- STATE UPDATES ----- */
     // Increment the global_stats for withdrawals_count.
     let global_stats = ctx.accounts.global_stats.as_mut();

@@ -5,12 +5,12 @@
     {
       "name": "MAX_PAYABLES_DESCRIPTION_LENGTH",
       "type": { "defined": "usize" },
-      "value": "10000"
+      "value": "3000"
     },
     {
       "name": "MAX_PAYABLES_TOKENS",
       "type": { "defined": "usize" },
-      "value": "100"
+      "value": "20"
     }
   ],
   "instructions": [
@@ -54,16 +54,6 @@
       ]
     },
     {
-      "name": "updatePayableDescription",
-      "accounts": [
-        { "name": "payable", "isMut": true, "isSigner": false },
-        { "name": "host", "isMut": false, "isSigner": false },
-        { "name": "signer", "isMut": true, "isSigner": true },
-        { "name": "systemProgram", "isMut": false, "isSigner": false }
-      ],
-      "args": [{ "name": "description", "type": "string" }]
-    },
-    {
       "name": "closePayable",
       "accounts": [
         { "name": "payable", "isMut": true, "isSigner": false },
@@ -80,6 +70,15 @@
         { "name": "signer", "isMut": true, "isSigner": true }
       ],
       "args": []
+    },
+    {
+      "name": "updatePayableDescription",
+      "accounts": [
+        { "name": "payable", "isMut": true, "isSigner": false },
+        { "name": "host", "isMut": false, "isSigner": false },
+        { "name": "signer", "isMut": true, "isSigner": true }
+      ],
+      "args": [{ "name": "description", "type": "string" }]
     },
     {
       "name": "pay",

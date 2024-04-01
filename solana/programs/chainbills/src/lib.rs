@@ -54,17 +54,6 @@ pub mod chainbills {
         )
     }
 
-    /// Allows a payable's host to update the payable's description.
-    ///
-    /// ### args
-    /// * description: the new description of the payable.
-    pub fn update_payable_description(
-        ctx: Context<UpdatePayableDescription>,
-        description: String
-    ) -> Result<()> {
-        instructions::update_payable_description_handler(ctx, description)
-    }
-
     /// Stop a payable from accepting payments. Can be called only
     /// by the host (user) that owns the payable.
     pub fn close_payable(ctx: Context<UpdatePayableCloseStatus>) -> Result<()> {
@@ -75,6 +64,17 @@ pub mod chainbills {
     /// Can be called only by the host (user) that owns the payable.
     pub fn reopen_payable(ctx: Context<UpdatePayableCloseStatus>) -> Result<()> {
         instructions::reopen_payable(ctx)
+    }
+
+    /// Allows a payable's host to update the payable's description.
+    ///
+    /// ### args
+    /// * description: the new description of the payable.
+    pub fn update_payable_description(
+        ctx: Context<UpdatePayableDescription>,
+        description: String
+    ) -> Result<()> {
+        instructions::update_payable_description(ctx, description)
     }
 
     /// Transfers the amount of tokens from a payer to a payable

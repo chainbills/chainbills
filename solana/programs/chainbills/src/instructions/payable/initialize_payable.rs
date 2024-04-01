@@ -55,23 +55,27 @@ pub fn initialize_payable_handler(
         description.len() <= MAX_PAYABLES_DESCRIPTION_LENGTH,
         ChainbillsError::MaxPayableDescriptionReached
     );
+
     // Ensure that the number of specified acceptable tokens (and their amounts)
     // for payments don't exceed the set maximum.
     require!(
         tokens_and_amounts.len() <= MAX_PAYABLES_TOKENS,
         ChainbillsError::MaxPayableTokensCapacityReached
     );
+
     // Ensure that the payable either accepts any tokens or it specifies
     // the tokens (and their amounts) that can be paid to it.
     require!(
         allows_any_token || (!allows_any_token && tokens_and_amounts.len() > 0),
         ChainbillsError::ImproperPayablesConfiguration
     );
+
     // Ensure that all specified acceptable amounts are greater than zero.
     for taa in tokens_and_amounts.iter() {
         require!(taa.amount > 0, ChainbillsError::ZeroAmountSpecified);
     }
 
+    
     /* ----- STATE UPDATES ----- */
     // Increment the global stats for payables_count.
     let global_stats = ctx.accounts.global_stats.as_mut();

@@ -5,9 +5,9 @@ export default {
     {
       name: 'MAX_PAYABLES_DESCRIPTION_LENGTH',
       type: { defined: 'usize' },
-      value: '10000'
+      value: '3000'
     },
-    { name: 'MAX_PAYABLES_TOKENS', type: { defined: 'usize' }, value: '100' }
+    { name: 'MAX_PAYABLES_TOKENS', type: { defined: 'usize' }, value: '20' }
   ],
   instructions: [
     {
@@ -41,7 +41,6 @@ export default {
         { name: 'systemProgram', isMut: false, isSigner: false }
       ],
       args: [
-        { name: 'count', type: 'u64' },
         { name: 'description', type: 'string' },
         {
           name: 'tokensAndAmounts',
@@ -49,16 +48,6 @@ export default {
         },
         { name: 'allowsAnyToken', type: 'bool' }
       ]
-    },
-    {
-      name: 'updatePayableDescription',
-      accounts: [
-        { name: 'payable', isMut: true, isSigner: false },
-        { name: 'host', isMut: false, isSigner: false },
-        { name: 'signer', isMut: true, isSigner: true },
-        { name: 'systemProgram', isMut: false, isSigner: false }
-      ],
-      args: [{ name: 'description', type: 'string' }]
     },
     {
       name: 'closePayable',
@@ -79,6 +68,15 @@ export default {
       args: []
     },
     {
+      name: 'updatePayableDescription',
+      accounts: [
+        { name: 'payable', isMut: true, isSigner: false },
+        { name: 'host', isMut: false, isSigner: false },
+        { name: 'signer', isMut: true, isSigner: true }
+      ],
+      args: [{ name: 'description', type: 'string' }]
+    },
+    {
       name: 'pay',
       accounts: [
         { name: 'payment', isMut: true, isSigner: false },
@@ -93,10 +91,7 @@ export default {
         { name: 'tokenProgram', isMut: false, isSigner: false },
         { name: 'systemProgram', isMut: false, isSigner: false }
       ],
-      args: [
-        { name: 'count', type: 'u64' },
-        { name: 'amount', type: 'u64' }
-      ]
+      args: [{ name: 'amount', type: 'u64' }]
     },
     {
       name: 'withdraw',
@@ -113,10 +108,7 @@ export default {
         { name: 'tokenProgram', isMut: false, isSigner: false },
         { name: 'systemProgram', isMut: false, isSigner: false }
       ],
-      args: [
-        { name: 'count', type: 'u64' },
-        { name: 'amount', type: 'u64' }
-      ]
+      args: [{ name: 'amount', type: 'u64' }]
     },
     {
       name: 'adminWithdraw',
@@ -260,49 +252,43 @@ export default {
   errors: [
     {
       code: 6000,
-      name: 'WrongUserCountForEntity',
-      msg: 'wrong user count for entity'
-    },
-    {
-      code: 6001,
       name: 'MaxPayableTokensCapacityReached',
       msg: 'payable tokens capacity has exceeded'
     },
     {
-      code: 6002,
+      code: 6001,
       name: 'MaxPayableDescriptionReached',
       msg: 'payable description maximum characters has exceeded'
     },
     {
-      code: 6003,
+      code: 6002,
       name: 'ImproperPayablesConfiguration',
       msg: 'either accept allows_any_token or specify tokens_and_amounts or both'
     },
     {
-      code: 6004,
+      code: 6003,
       name: 'ZeroAmountSpecified',
       msg: 'payable amount must be greater than zero'
     },
     {
-      code: 6005,
+      code: 6004,
       name: 'PayableIsClosed',
       msg: 'payable is currently not accepting payments'
     },
     {
-      code: 6006,
+      code: 6005,
       name: 'MatchingTokenAndAccountNotFound',
       msg: 'specified payment token and amount is not allowed on this payable'
     },
     {
-      code: 6007,
+      code: 6006,
       name: 'InsufficientWithdrawAmount',
       msg: 'withdraw amount should be less than or equal to balance'
     },
     {
-      code: 6008,
+      code: 6007,
       name: 'NoBalanceForWithdrawalToken',
       msg: 'no balance found for withdrawal token'
     }
   ]
 };
- 

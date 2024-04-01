@@ -2,7 +2,11 @@
 import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { tokens, useSolanaProgramStore } from '@/stores/solana-program';
+import {
+  tokens,
+  type TokenAndAmountOffChain,
+} from '@/schemas/tokens-and-amounts';
+import { usePayableStore } from '@/stores/payable';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
@@ -22,7 +26,7 @@ const configError = ref('');
 const selectedTokens = ref<any[]>([]);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
-const solanaProgram = useSolanaProgramStore();
+const payable = usePayableStore();
 const router = useRouter();
 const wallet = useAnchorWallet();
 
@@ -75,19 +79,19 @@ const create = async () => {
   validateConfig();
   if (emailError.value || descriptionError.value || configError.value) return;
 
-  const tokensAndAmounts = [];
+  const tokensAndAmounts: TokenAndAmountOffChain[] = [];
   for (let i = 0; i < amounts.value.length; i++) {
     amountErrors.value[i].value = validateAmount(amounts.value[i].value);
     if (amountErrors.value[i].value) return;
     else
       tokensAndAmounts.push({
-        token: selectedTokens.value[i].address,
-        amount: amounts.value[i].value * 10 ** selectedTokens.value[i].decimals,
+        amount: amounts.value[i].value,
+        ...selectedTokens.value[i],
       });
   }
 
   isCreating.value = true;
-  const address = await solanaProgram.initializePayable(
+  const address = await payable.initialize(
     email.value,
     DomPurify.sanitize(description.value),
     tokensAndAmounts,

@@ -34,8 +34,14 @@ const router = createRouter({
       path: '/payable/:address',
       name: 'payable',
       component: () => import('../views/PayableView.vue'),
+      meta: { title: `Payable Details | ${baseTitle}` },
     },
-    // TODO: Create a 404
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue'),
+      meta: { title: baseTitle },
+    },
   ],
   scrollBehavior(to, from, savedPosition) {
     return { top: 0 };

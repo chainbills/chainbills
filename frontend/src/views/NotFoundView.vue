@@ -19,7 +19,7 @@ import Button from 'primevue/button';
         >
       </router-link>
       <router-link to="/start">
-        <Button class="-mt-1 bg-blue-500 text-white px-3 py-2"
+        <Button class="-mt-1 bg-blue-500 text-white dark:text-black px-3 py-2"
           >Get Started</Button
         >
       </router-link>

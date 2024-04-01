@@ -34,3 +34,22 @@ export const convertTokensForOnChain = (
     token: new PublicKey(taa.address),
   }));
 };
+
+export const convertTokensToOffChain = (
+  taasOnC: TokenAndAmountOnChain[],
+): TokenAndAmountOffChain[] => {
+  return taasOnC.map((taa) => {
+    const address = taa.token.toBase58();
+    const found = tokens.find((t) => t.address == address);
+    if (!found) console.warn(`Couldn't find token details for ${address}`);
+    const name = found ? found.name : address;
+    const amount = found
+      ? parseFloat(
+          (taa.amount.toNumber() / 10 ** found.decimals).toFixed(18),
+          // 18 is max decimals
+        )
+      : taa.amount.toNumber();
+    const decimals = found ? found.decimals : 1;
+    return { address, amount, decimals, name };
+  });
+};

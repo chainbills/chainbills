@@ -33,6 +33,10 @@ export const useUserStore = defineStore('user', () => {
     return new User(addr, await program().account.user.fetch(addr));
   };
 
+  const get = async (addr: string): Promise<User> => {
+    return new User(addr, await program().account.user.fetch(addr));
+  };
+
   const initializeInstruction =
     async (): Promise<TransactionInstruction | null> => {
       if (!wallet.value) return null;
@@ -47,5 +51,5 @@ export const useUserStore = defineStore('user', () => {
         .instruction();
     };
 
-  return { address, data, isInitialized, initializeInstruction };
+  return { address, data, get, isInitialized, initializeInstruction };
 });

@@ -1,7 +1,34 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { useAppLoadingStore } from '@/stores/app-loading';
+import { usePayableStore } from '@/stores/payable';
+import {
+  createRouter,
+  createWebHistory,
+  type RouteLocationNormalized,
+} from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 
 const baseTitle = 'Chainbills';
+
+const beforeEnterPayableDetails = async (to: RouteLocationNormalized) => {
+  const appLoading = useAppLoadingStore();
+  const payable = usePayableStore();
+
+  appLoading.show();
+  const details = await payable.get(to.params['address'] as string);
+  appLoading.hide();
+
+  if (details) {
+    to.meta.details = details;
+    return true;
+  } else {
+    return {
+      name: 'not-found',
+      params: { pathMatch: to.path.substring(1).split('/') },
+      query: to.query,
+      hash: to.hash,
+    };
+  }
+};
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -34,7 +61,8 @@ const router = createRouter({
       path: '/payable/:address',
       name: 'payable',
       component: () => import('../views/PayableView.vue'),
-      meta: { title: `Payable Details | ${baseTitle}` },
+      meta: { title: `Payable's Details | ${baseTitle}` },
+      beforeEnter: beforeEnterPayableDetails,
     },
     {
       path: '/:pathMatch(.*)*',
@@ -43,7 +71,7 @@ const router = createRouter({
       meta: { title: baseTitle },
     },
   ],
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior() {
     return { top: 0 };
   },
 });

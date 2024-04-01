@@ -4,7 +4,7 @@ import { useToast } from 'primevue/usetoast';
 export const useServerStore = defineStore('server', () => {
   const toast = useToast();
   const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 5000 });
+    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const call = async (path: string): Promise<any> => {
     return new Promise(async (resolve, _) => {

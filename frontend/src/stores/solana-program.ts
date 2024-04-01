@@ -122,7 +122,7 @@ export const useSolanaProgramStore = defineStore('solana-program', () => {
     try {
       const txHash = await call.rpc();
       console.log(
-        `Create Payable Transaction Details: https://solscan.io/tx/${txHash}?cluster=devnet`,
+        `Create Payable Transaction Details: https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
       );
       await server.createdPayable(payable.toBase58(), email);
       return payable.toBase58();

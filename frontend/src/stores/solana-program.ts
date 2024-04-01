@@ -1,3 +1,4 @@
+import { User } from '@/schemas/user';
 import {
   AnchorProvider,
   BN,
@@ -10,12 +11,13 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet } from 'solana-wallets-vue';
 import idl from './idl.json';
+import { useServerStore } from './server';
 
 export const PROGRAM_ID = '4BTSkx71TpMMScc4QpVPr5ebH1rfsQojPSmcCALsq45d';
-export const PROGRAM_DATA = 'GiVtohYpN6u1ZYeLQMvExghnHk2Dk1xtPNpJqh1GYWXK';
+
 export interface TokenAndAmount {
-  token: string;
-  amount: number;
+  token: string | PublicKey;
+  amount: number | BN;
 }
 export const tokens = [
   {
@@ -30,8 +32,9 @@ export const tokens = [
   },
 ];
 
-export const useSolanaProgram = defineStore('solana-program', () => {
+export const useSolanaProgramStore = defineStore('solana-program', () => {
   const connection = new Connection(clusterApiUrl('devnet'));
+  const server = useServerStore();
   const toast = useToast();
   const wallet = useAnchorWallet();
 
@@ -61,8 +64,10 @@ export const useSolanaProgram = defineStore('solana-program', () => {
     }
   };
 
-  const userData = async (): Promise<any> =>
-    await program().account.user.fetch(userAccountPublicKey());
+  const userData = async (): Promise<User> => {
+    const address = userAccountPublicKey().toBase58();
+    return new User(address, await program().account.user.fetch(address));
+  };
 
   const initializeUserInstruction = () =>
     program()
@@ -81,26 +86,27 @@ export const useSolanaProgram = defineStore('solana-program', () => {
     tokensAndAmounts: TokenAndAmount[],
     allowsAnyToken: boolean,
   ): Promise<string | null> => {
+    if (!wallet.value) return null;
+
+    tokensAndAmounts.forEach((taa) => {
+      taa.amount = new BN(taa.amount);
+      taa.token = new PublicKey(taa.token);
+    });
+
     const isExistingUser = await isUserInitialized();
     let hostCount = 1;
-    if (isExistingUser) {
-      hostCount = (await userData()).payablesCount.toNumber() + 1;
-    }
+    if (isExistingUser) hostCount = (await userData()).payablesCount + 1;
 
     const payable = PublicKey.findProgramAddressSync(
       [
         wallet.value!.publicKey.toBuffer(),
         Buffer.from('payable'),
-        new BN(hostCount).toArrayLike(Buffer, 'le', 2),
+        new BN(hostCount).toArrayLike(Buffer, 'le', 8),
       ],
       new PublicKey(PROGRAM_ID),
     )[0];
     const call = program()
-      .methods.initializePayable({
-        description,
-        tokensAndAmounts,
-        allowsAnyToken,
-      })
+      .methods.initializePayable(description, tokensAndAmounts, allowsAnyToken)
       .accounts({
         payable,
         host: userAccountPublicKey(),
@@ -114,10 +120,14 @@ export const useSolanaProgram = defineStore('solana-program', () => {
     }
 
     try {
-      // TODO: Remove the console.log
-      console.log(await call.rpc());
+      const txHash = await call.rpc();
+      console.log(
+        `Create Payable Transaction Details: https://solscan.io/tx/${txHash}?cluster=devnet`,
+      );
+      await server.createdPayable(payable.toBase58(), email);
       return payable.toBase58();
     } catch (e) {
+      console.error(e);
       toast.add({
         severity: 'error',
         summary: 'Error',

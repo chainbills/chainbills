@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { tokens, useSolanaProgram } from '@/stores/solana-program';
+import { tokens, useSolanaProgramStore } from '@/stores/solana-program';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
@@ -20,7 +20,7 @@ const configError = ref('');
 const selectedTokens = ref<any[]>([]);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
-const solanaProgram = useSolanaProgram();
+const solanaProgram = useSolanaProgramStore();
 const router = useRouter();
 
 const selectToken = (token: any) => {

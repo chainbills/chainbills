@@ -75,6 +75,12 @@ export const usePayableStore = defineStore('payable', () => {
       // TODO: Replace this 3 seconds wait with when the txHash was finalized
       await new Promise((resolve) => setTimeout(resolve, 3000));
       await server.createdPayable(payable.toBase58(), email);
+      toast.add({
+        severity: 'success',
+        summary: 'Successful Payable Creation',
+        detail: 'You have successfully created a Payable.',
+        life: 12000,
+      });
       return payable.toBase58();
     } catch (e) {
       console.error(e);

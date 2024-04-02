@@ -86,6 +86,11 @@ body.dark .p-dropdown-panel .p-dropdown-item:hover {
   box-shadow: 0 4px 6px -1px var(--shadow), 0 2px 4px -2px var(--shadow);
 }
 
-.p-dropdown-panel .p-dropdown-item {
+.p-dropdown-panel .p-dropdown-item,
+.p-inputtext {
   color: var(--text)
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight.p-focus {
+  background: var(--shadow);
 }

@@ -22,19 +22,23 @@ app.use(morgan('combined'));
 initializeApp();
 const firestore = getFirestore();
 
+const program = () =>
+  new Program(
+    idl as Idl,
+    PROGRAM_ID,
+    new AnchorProvider(
+      new Connection(clusterApiUrl('devnet')),
+      new Wallet(Keypair.generate()),
+      {}
+    )
+  );
+
 app.get('/payable/:address/:email', async (req: Request, res: Response) => {
   const { address, email: hostEmail } = req.params;
 
-  const connection = new Connection(clusterApiUrl('devnet'));
-  const program = new Program(
-    idl as Idl,
-    PROGRAM_ID,
-    new AnchorProvider(connection, new Wallet(Keypair.generate()), {})
-  );
-
   let payable;
   try {
-    payable = await program.account.payable.fetch(new PublicKey(address));
+    payable = await program().account.payable.fetch(new PublicKey(address));
   } catch (e) {
     console.error(e);
     return res.json({ success: false, message: `${e}` });
@@ -62,6 +66,44 @@ app.get('/payable/:address/:email', async (req: Request, res: Response) => {
 
   await firestore
     .collection('payables')
+    .doc(address)
+    .set(data, { merge: true });
+  return res.json({ success: true });
+});
+
+app.get('/payment/:address/:email', async (req: Request, res: Response) => {
+  const { address, email: payerEmail } = req.params;
+
+  let payment;
+  try {
+    payment = await program().account.payment.fetch(new PublicKey(address));
+  } catch (e) {
+    console.error(e);
+    return res.json({ success: false, message: `${e}` });
+  }
+
+  const globalCount = (payment.globalCount as BN).toNumber();
+  const payer = (payment.payer as PublicKey).toBase58();
+  const payerCount = (payment.payerCount as BN).toNumber();
+  const payable = (payment.payable as PublicKey).toBase58();
+  const payableCount = (payment.payableCount as BN).toNumber();
+  const details = convertTokens([payment.details as TokenAndAmountOnChain])[0];
+  const timestamp = (payment.timestamp as BN).toNumber();
+
+  const data = {
+    address,
+    globalCount,
+    payer,
+    payerCount,
+    payerEmail,
+    payable,
+    payableCount,
+    details,
+    timestamp
+  };
+
+  await firestore
+    .collection('payments')
     .doc(address)
     .set(data, { merge: true });
   return res.json({ success: true });

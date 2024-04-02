@@ -44,30 +44,30 @@ export const usePayableStore = defineStore('payable', () => {
 
     if (allowsFreePayments) tokensAndAmounts = [];
 
-    const isExistingUser = await user.isInitialized();
-    let hostCount = 1;
-    if (isExistingUser) hostCount = (await user.data())!.payablesCount + 1;
-
-    const payable = address(hostCount)!;
-    const call = program()
-      .methods.initializePayable(
-        description,
-        convertTokensForOnChain(tokensAndAmounts),
-        allowsFreePayments,
-      )
-      .accounts({
-        payable,
-        host: user.address()!,
-        globalStats,
-        signer: wallet.value?.publicKey,
-        systemProgram,
-      });
-
-    if (!isExistingUser) {
-      call.preInstructions([(await user.initializeInstruction())!]);
-    }
-
     try {
+      const isExistingUser = await user.isInitialized();
+      let hostCount = 1;
+      if (isExistingUser) hostCount = (await user.data())!.payablesCount + 1;
+
+      const payable = address(hostCount)!;
+      const call = program()
+        .methods.initializePayable(
+          description,
+          convertTokensForOnChain(tokensAndAmounts),
+          allowsFreePayments,
+        )
+        .accounts({
+          payable,
+          host: user.address()!,
+          globalStats,
+          signer: wallet.value?.publicKey,
+          systemProgram,
+        });
+
+      if (!isExistingUser) {
+        call.preInstructions([(await user.initializeInstruction())!]);
+      }
+
       const txHash = await call.rpc();
       console.log(
         `Create Payable Transaction Details: https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
@@ -84,7 +84,7 @@ export const usePayableStore = defineStore('payable', () => {
       return payable.toBase58();
     } catch (e) {
       console.error(e);
-      toastError(`${e}`);
+      if (!`${e}`.includes('User rejected the request.')) toastError(`${e}`);
       return null;
     }
   };

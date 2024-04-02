@@ -58,12 +58,14 @@ export const useUserStore = defineStore('user', () => {
       return address()!.toBase58();
     } catch (e) {
       console.error(e);
-      toast.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: `${e}`,
-        life: 12000,
-      });
+      if (!`${e}`.includes('User rejected the request.')) {
+        toast.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: `${e}`,
+          life: 12000,
+        });
+      }
       return null;
     }
   };

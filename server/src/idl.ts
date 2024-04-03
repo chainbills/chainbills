@@ -7,7 +7,11 @@ export default {
       type: { defined: 'usize' },
       value: '3000'
     },
-    { name: 'MAX_PAYABLES_TOKENS', type: { defined: 'usize' }, value: '20' }
+    {
+      name: 'MAX_PAYABLES_TOKENS',
+      type: { defined: 'usize' },
+      value: '20'
+    }
   ],
   instructions: [
     {
@@ -151,7 +155,10 @@ export default {
             name: 'tokensAndAmounts',
             type: { vec: { defined: 'TokenAndAmount' } }
           },
-          { name: 'balances', type: { vec: { defined: 'TokenAndAmount' } } },
+          {
+            name: 'balances',
+            type: { vec: { defined: 'TokenAndAmount' } }
+          },
           { name: 'allowsFreePayments', type: 'bool' },
           { name: 'createdAt', type: 'u64' },
           { name: 'paymentsCount', type: 'u64' },
@@ -290,6 +297,12 @@ export default {
       code: 6007,
       name: 'NoBalanceForWithdrawalToken',
       msg: 'no balance found for withdrawal token'
-    }
+    },
+    {
+      code: 6008,
+      name: 'ProgramDataUnauthorized',
+      msg: 'wrong program data account provided'
+    },
+    { code: 6009, name: 'AdminUnauthorized', msg: 'you are not an admin' }
   ]
 };

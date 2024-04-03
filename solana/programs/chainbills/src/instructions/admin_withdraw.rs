@@ -14,11 +14,11 @@ pub struct AdminWithdraw<'info> {
 
     #[account(
         address = crate::ID,
-        constraint = this_program.programdata_address()? == Some(this_program_data.key())
+        constraint = this_program.programdata_address()? == Some(this_program_data.key()) @ ChainbillsError::ProgramDataUnauthorized
     )]
     pub this_program: Program<'info, Chainbills>,
 
-    #[account(constraint = this_program_data.upgrade_authority_address == Some(admin.key()))]
+    #[account(constraint = this_program_data.upgrade_authority_address == Some(admin.key()) @ ChainbillsError::AdminUnauthorized)]
     pub this_program_data: Box<Account<'info, ProgramData>>,
 
     #[account(

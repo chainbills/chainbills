@@ -25,4 +25,10 @@ pub enum ChainbillsError {
 
     #[msg("no balance found for withdrawal token")]
     NoBalanceForWithdrawalToken,
+
+    #[msg("wrong program data account provided")]
+    ProgramDataUnauthorized,
+
+    #[msg("you are not an admin")]
+    AdminUnauthorized,
 }

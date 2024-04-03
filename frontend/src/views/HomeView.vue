@@ -95,6 +95,42 @@ import Button from 'primevue/button';
       >
     </p>
   </section>
+
+  <section class="py-20">
+    <h2 class="text-5xl text-center font-bold mb-8" data-aos="fade-up">
+      Wormhole Magic
+    </h2>
+    <p class="text-2xl max-w-96 mx-auto mb-6 text-center" data-aos="fade-up">
+      Paying and Receiving seamlessly across any chain is powered by
+      <a
+        class="font-bold text-blue-500"
+        href="https://wormhole.com"
+        rel="noreferrer noopener"
+        target="_blank"
+        >Wormhole</a
+      >.
+    </p>
+    <p class="text-2xl max-w-96 mx-auto mb-12 text-center" data-aos="fade-up">
+      <a
+        class="font-bold text-blue-500"
+        href="https://wormhole.com"
+        rel="noreferrer noopener"
+        target="_blank"
+        >Wormhole</a
+      >
+      makes this possible through cross-chain assets and cross-chain messaging.
+    </p>
+    <p class="text-center">
+      <a href="https://wormhole.com" rel="noreferrer noopener" target="_blank">
+        <Button
+          class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
+          data-aos="fade-up"
+          >Learn More</Button
+        ></a
+      >
+    </p>
+  </section>
+
   <section class="pt-20 pb-32 md:flex justify-between max-w-screen-md mx-auto">
     <h2 class="text-4xl font-bold mb-8 basis-3/5" data-aos="fade-up">
       Start Receiving Payments Today!

@@ -72,8 +72,6 @@ export const usePayableStore = defineStore('payable', () => {
       console.log(
         `Create Payable Transaction Details: https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
       );
-      // TODO: Replace this 3 seconds wait with when the txHash was finalized
-      await new Promise((resolve) => setTimeout(resolve, 3000));
       await server.createdPayable(payable.toBase58(), email);
       toast.add({
         severity: 'success',

@@ -15,7 +15,7 @@ export const PROGRAM_ID = '4BTSkx71TpMMScc4QpVPr5ebH1rfsQojPSmcCALsq45d';
 
 export const useSolanaStore = defineStore('solana', () => {
   const wallet = useAnchorWallet();
-  const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+  const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
   const toast = useToast();
   const balance = async (
     tokenAccount: PublicKey,

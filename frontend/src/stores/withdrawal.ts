@@ -88,8 +88,6 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       console.log(
         `Withdrawal Transaction Details: https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
       );
-      // TODO: Replace this 3 seconds wait with when the txHash was finalized
-      await new Promise((resolve) => setTimeout(resolve, 3000));
       await server.withdrew(withdrawal.toBase58());
       toast.add({
         severity: 'success',

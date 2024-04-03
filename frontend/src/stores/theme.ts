@@ -9,6 +9,7 @@ const isThemeMode = (value: any): value is ThemeMode => themes.includes(value);
 
 export const useThemeStore = defineStore('theme', () => {
   const icon = ref<ThemeMode>('Dark Theme');
+  const isDisplayDark = ref(false);
   const mode = ref<ThemeMode>('System Mode');
 
   const css = () => {
@@ -28,6 +29,7 @@ export const useThemeStore = defineStore('theme', () => {
     icon.value = document.body.classList.contains('dark')
       ? 'Light Theme'
       : 'Dark Theme';
+    isDisplayDark.value = document.body.classList.contains('dark');
   };
 
   const isSystemDark = () =>
@@ -53,5 +55,5 @@ export const useThemeStore = defineStore('theme', () => {
       });
   });
 
-  return { icon, mode, isSystemDark, set };
+  return { icon, isDisplayDark, isSystemDark, mode, set };
 });

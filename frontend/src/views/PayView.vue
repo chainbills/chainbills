@@ -48,7 +48,7 @@ const validateAmount = () => {
 
 const validateBalance = async () => {
   if (!wallet.value) return;
-  
+
   balanceError.value == '';
   if (selectedConfig.value) {
     const { amount: amt, address, name } = selectedConfig.value;
@@ -104,9 +104,9 @@ const pay = async () => {
     details.address,
     selectedConfig.value,
   );
-  isPaying.value = false;
 
   if (address) router.push(`/receipt/${address}`);
+  else isPaying.value = false;
 };
 
 onMounted(() => {

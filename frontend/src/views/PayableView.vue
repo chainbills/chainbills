@@ -93,8 +93,11 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
   } else {
     appLoading.show('Withdrawing');
     const result = await withdrawal.withdraw(details.address, balance);
-    if (result) window.location.reload();
-    else appLoading.hide();
+    if (result) {
+      // this waiting for the user to see the toast of success
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      window.location.reload();
+    } else appLoading.hide();
   }
 };
 </script>

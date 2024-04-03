@@ -92,7 +92,8 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       toast.add({
         severity: 'success',
         summary: 'Successfully Withdrew',
-        detail: 'You have successfully made a Withdrawal.',
+        detail:
+          'You have successfully made a Withdrawal. Check your wallet for your increments.',
         life: 12000,
       });
       return withdrawal.toBase58();

@@ -1,8 +1,8 @@
-import { Payment } from '@/schemas/payment';
 import {
   convertTokensForOnChain,
   type TokenAndAmountOffChain,
 } from '@/schemas/tokens-and-amounts';
+import { Withdrawal } from '@/schemas/withdrawal';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
@@ -12,7 +12,7 @@ import { useServerStore } from './server';
 import { PROGRAM_ID, useSolanaStore } from './solana';
 import { useUserStore } from './user';
 
-export const usePaymentStore = defineStore('payment', () => {
+export const useWithdrawalStore = defineStore('withdrawal', () => {
   const server = useServerStore();
   const toast = useToast();
   const wallet = useAnchorWallet();
@@ -34,86 +34,78 @@ export const usePaymentStore = defineStore('payment', () => {
     return PublicKey.findProgramAddressSync(
       [
         wallet.value!.publicKey.toBuffer(),
-        Buffer.from('payment'),
+        Buffer.from('withdrawal'),
         new BN(count).toArrayLike(Buffer, 'le', 8),
       ],
       new PublicKey(PROGRAM_ID),
     )[0];
   };
 
-  const pay = async (
-    email: string,
+  const withdraw = async (
     payable: string,
     details: TokenAndAmountOffChain,
   ): Promise<string | null> => {
     if (!wallet.value) return null;
 
     try {
-      const isExistingUser = await user.isInitialized();
-      let paymentCount = 1;
-      if (isExistingUser) paymentCount = (await user.data())!.paymentsCount + 1;
-
+      const withdrawalCount = (await user.data())!.withdrawalsCount + 1;
       const { amount, token: mint } = convertTokensForOnChain([details])[0];
-      const payment = address(paymentCount)!;
-      const payer = user.address()!;
+      const withdrawal = address(withdrawalCount)!;
+      const host = user.address()!;
       const signer = wallet.value!.publicKey;
       const thisProgram = new PublicKey(PROGRAM_ID);
 
-      const { account: payerTokenAccount, exists: payerTAExists } =
+      const { account: hostTokenAccount, exists: hostTAExists } =
         await getATAAndExists(mint, signer);
-      const { account: globalTokenAccount, exists: thisProgramTAExists } =
-        await getATAAndExists(mint, globalStats);
+      const globalTokenAccount = (await getATAAndExists(mint, globalStats))
+        .account;
 
-      const call = program().methods.pay(amount).accounts({
-        payment,
+      const call = program().methods.withdraw(amount).accounts({
+        withdrawal,
         payable,
-        payer,
+        host,
         globalStats,
         thisProgram,
         mint,
-        payerTokenAccount,
+        hostTokenAccount,
         globalTokenAccount,
         signer,
         tokenProgram,
         systemProgram,
       });
 
-      call.preInstructions([
-        ...(!isExistingUser ? [(await user.initializeInstruction())!] : []),
-        ...(!payerTAExists
-          ? [createATAInstruction(payerTokenAccount, signer, mint)]
-          : []),
-        ...(!thisProgramTAExists
-          ? [createATAInstruction(globalTokenAccount, globalStats, mint)]
-          : []),
-      ]);
+      if (!hostTAExists) {
+        call.preInstructions([
+          createATAInstruction(hostTokenAccount, signer, mint),
+        ]);
+      }
 
       const txHash = await call.rpc();
       console.log(
-        `Payment Transaction Details: https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
+        `Withdrawal Transaction Details: https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
       );
       // TODO: Replace this 3 seconds wait with when the txHash was finalized
       await new Promise((resolve) => setTimeout(resolve, 3000));
-      await server.paid(payment.toBase58(), email);
+      await server.withdrew(withdrawal.toBase58());
       toast.add({
         severity: 'success',
-        summary: 'Successfully Paid',
-        detail: 'You have successfully made a Payment.',
+        summary: 'Successfully Withdrew',
+        detail: 'You have successfully made a Withdrawal.',
         life: 12000,
       });
-      return payment.toBase58();
-    } catch (e) {
+      return withdrawal.toBase58();
+    } catch (e: any) {
       console.error(e);
       if (!`${e}`.includes('rejected')) toastError(`${e}`);
       return null;
     }
   };
 
-  const get = async (addr: string): Promise<Payment | null> => {
+  const get = async (addr: string): Promise<Withdrawal | null> => {
     try {
-      const data = await program().account.payment.fetch(addr);
-      const userData = await user.get(data.payer);
-      return new Payment(addr, userData.wallet, data);
+      const data = await program().account.withdrawal.fetch(addr);
+      const userData = await user.get(data.host);
+      return new Withdrawal(addr, userData.wallet, data);
     } catch (e) {
       console.error(e);
       toastError(`${e}`);
@@ -121,7 +113,7 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const mines = async (): Promise<Payment[] | null> => {
+  const mines = async (): Promise<Withdrawal[] | null> => {
     if (!wallet.value) return null;
 
     if (!(await user.isInitialized())) {
@@ -133,13 +125,13 @@ export const usePaymentStore = defineStore('payment', () => {
       const { paymentsCount: count } = (await user.data())!;
       if (count == 0) return [];
 
-      const payments: Payment[] = [];
+      const payments: Withdrawal[] = [];
       // TODO: Implement pagination instead of this set maximum of 25
       for (let i = Math.min(count, 25); i >= 1; i--) {
         const addr = address(i)!.toBase58();
-        const data = await program().account.payment.fetch(addr);
-        const userData = await user.get(data.payer);
-        payments.push(new Payment(addr, userData.wallet, data));
+        const data = await program().account.withdrawal.fetch(addr);
+        const userData = await user.get(data.host);
+        payments.push(new Withdrawal(addr, userData.wallet, data));
       }
       return payments;
     } catch (e) {
@@ -149,5 +141,5 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  return { address, get, pay, mines };
+  return { address, get, mines, withdraw };
 });

@@ -50,19 +50,19 @@ pub mod chainbills {
             ctx,
             description,
             tokens_and_amounts,
-            allows_free_payments,
+            allows_free_payments
         )
     }
 
     /// Stop a payable from accepting payments. Can be called only
     /// by the host (user) that owns the payable.
-    pub fn close_payable(ctx: Context<UpdatePayableCloseStatus>) -> Result<()> {
+    pub fn close_payable(ctx: Context<UpdatePayable>) -> Result<()> {
         instructions::close_payable(ctx)
     }
 
     /// Allow a closed payable to continue accepting payments.
     /// Can be called only by the host (user) that owns the payable.
-    pub fn reopen_payable(ctx: Context<UpdatePayableCloseStatus>) -> Result<()> {
+    pub fn reopen_payable(ctx: Context<UpdatePayable>) -> Result<()> {
         instructions::reopen_payable(ctx)
     }
 
@@ -71,7 +71,7 @@ pub mod chainbills {
     /// ### args
     /// * description: the new description of the payable.
     pub fn update_payable_description(
-        ctx: Context<UpdatePayableDescription>,
+        ctx: Context<UpdatePayable>,
         description: String
     ) -> Result<()> {
         instructions::update_payable_description(ctx, description)
@@ -95,6 +95,9 @@ pub mod chainbills {
 
     /// Withdraws fees from this program.
     /// Should be called only by upgrade authority holder of this program.
+    ///
+    /// ### args
+    /// * amount<u64>: The amount to be withdrawn
     pub fn admin_withdraw(ctx: Context<AdminWithdraw>, amount: u64) -> Result<()> {
         instructions::admin_withdraw_handler(ctx, amount)
     }

@@ -58,7 +58,7 @@ export const useUserStore = defineStore('user', () => {
       return address()!.toBase58();
     } catch (e) {
       console.error(e);
-      if (!`${e}`.includes('User rejected the request.')) {
+      if (!`${e}`.includes('rejected')) {
         toast.add({
           severity: 'error',
           summary: 'Error',

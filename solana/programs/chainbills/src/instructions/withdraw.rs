@@ -44,9 +44,9 @@ pub struct Withdraw<'info> {
     #[account(
         mut,
         associated_token::mint = mint,
-        associated_token::authority = this_program,
+        associated_token::authority = global_stats,
     )]
-    pub this_program_token_account: Box<Account<'info, TokenAccount>>,
+    pub global_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -87,9 +87,9 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
     /* ----- TRANSFER ----- */
     let destination = &ctx.accounts.host_token_account;
-    let source = &ctx.accounts.this_program_token_account;
+    let source = &ctx.accounts.global_token_account;
     let token_program = &ctx.accounts.token_program;
-    let authority = &ctx.accounts.this_program;
+    let authority = &ctx.accounts.global_stats;
     let cpi_accounts = SplTransfer {
         from: source.to_account_info().clone(),
         to: destination.to_account_info().clone(),
@@ -97,9 +97,15 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     };
     let cpi_program = token_program.to_account_info();
     let amount_minus_fees = amount.checked_mul(98).unwrap().checked_div(100).unwrap();
-    token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount_minus_fees)?;
+    token::transfer(
+        CpiContext::new_with_signer(
+            cpi_program,
+            cpi_accounts,
+            &[&[b"global", &[ctx.bumps.global_stats]]]
+        ),
+        amount_minus_fees
+    )?;
 
-    
     /* ----- STATE UPDATES ----- */
     // Increment the global_stats for withdrawals_count.
     let global_stats = ctx.accounts.global_stats.as_mut();

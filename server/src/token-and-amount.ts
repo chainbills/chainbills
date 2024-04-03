@@ -8,7 +8,7 @@ export const tokens = [
     decimals: 6
   },
   {
-    name: 'SOL',
+    name: 'wSOL',
     address: 'So11111111111111111111111111111111111111112',
     decimals: 9
   }

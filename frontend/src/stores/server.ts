@@ -42,12 +42,13 @@ export const useServerStore = defineStore('server', () => {
     return await call(`/payable/${payable}/${email}`);
   };
 
-  const madePayment = async (
-    payment: string,
-    email: string,
-  ): Promise<boolean> => {
+  const paid = async (payment: string, email: string): Promise<boolean> => {
     return await call(`/payment/${payment}/${email}`);
   };
 
-  return { createdPayable, madePayment };
+  const withdrew = async (withdrawal: string): Promise<boolean> => {
+    return await call(`/withdrawal/${withdrawal}`);
+  };
+
+  return { createdPayable, paid, withdrew };
 });

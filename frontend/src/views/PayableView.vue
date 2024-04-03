@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
 import { Payable } from '@/schemas/payable';
+import type { TokenAndAmountOffChain } from '@/schemas/tokens-and-amounts';
+import { useAppLoadingStore } from '@/stores/app-loading';
 import { useTimeStore } from '@/stores/time';
+import { useWithdrawalStore } from '@/stores/withdrawal';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet } from 'solana-wallets-vue';
 import { useRoute } from 'vue-router';
 
+const appLoading = useAppLoadingStore();
 const route = useRoute();
 const details = route.meta.details as Payable;
 const time = useTimeStore();
@@ -14,6 +18,7 @@ const toast = useToast();
 const { origin } = window.location;
 const link = `${origin}/pay/${details.address}`;
 const wallet = useAnchorWallet();
+const withdrawal = useWithdrawalStore();
 
 const {
   paymentsCount,
@@ -61,16 +66,37 @@ const comingSoon = () => {
 const getBalsDisplay = () => {
   const all = [];
   if (allowsFreePayments) {
-    for (let bal of balances) all.push(`${bal.amount} ${bal.name}`);
+    for (let bal of balances) {
+      all.push({ display: `${bal.amount} ${bal.name}`, value: bal });
+    }
   } else {
     for (let taa of tokensAndAmounts) {
       const found = balances.find((b) => b.address == taa.address);
-      all.push(`${found ? found.amount : '0'} ${taa.name}`);
+      all.push({
+        display: `${found ? found.amount : 0} ${taa.name}`,
+        value: found ?? { ...taa, amount: 0 },
+      });
     }
   }
   return all;
 };
 const balsDisplay = getBalsDisplay();
+
+const withdraw = async (balance: TokenAndAmountOffChain) => {
+  if (balance.amount == 0) {
+    toast.add({
+      severity: 'info',
+      summary: 'Zero Balance',
+      detail: 'You cannot withdraw an empty balance.',
+      life: 12000,
+    });
+  } else {
+    appLoading.show('Withdrawing');
+    const result = await withdrawal.withdraw(details.address, balance);
+    if (result) window.location.reload();
+    else appLoading.hide();
+  }
+};
 </script>
 
 <template>
@@ -138,15 +164,20 @@ const balsDisplay = getBalsDisplay();
       <h2 class="text-3xl mb-4 font-bold">
         Your Balance{{ balsDisplay.length == 1 ? '' : 's' }}
       </h2>
+      <small class="text-xs text-gray-500 block mb-4"
+        >We charge 2% on every withdrawal.</small
+      >
       <p v-if="balsDisplay.length == 0" class="mb-12">
         You have no balances yet. To withdraw, share your payable's link and
         receive payments.
       </p>
       <div v-else-if="balsDisplay.length == 1" class="mb-12 flex items-end">
         <p class="text-4xl mr-6">
-          {{ balsDisplay[0] }}
+          {{ balsDisplay[0].display }}
         </p>
-        <Button class="bg-blue-500 text-white dark:text-white text-sm px-3 py-1"
+        <Button
+          @click="withdraw(balsDisplay[0].value)"
+          class="bg-blue-500 text-white dark:text-white text-sm px-3 py-1"
           >Withdraw</Button
         >
       </div>
@@ -155,11 +186,13 @@ const balsDisplay = getBalsDisplay();
         class="grid grid-cols-2 gap-6 sm:flex pb-12 flex-wrap content-start"
       >
         <div
-          v-for="bal of balsDisplay"
+          v-for="{ display, value } of balsDisplay"
           class="p-4 bg-blue-50 sm:w-44 dark:bg-slate-900 text-center rounded-md shadow-inner"
         >
-          <p class="font-bold text-lg mb-3">{{ bal }}</p>
-          <Button class="border border-blue-500 text-blue-500 text-sm px-3 py-1"
+          <p class="font-bold text-lg mb-3">{{ display }}</p>
+          <Button
+            class="border border-blue-500 text-blue-500 text-sm px-3 py-1"
+            @click="withdraw(value)"
             >Withdraw</Button
           >
         </div>

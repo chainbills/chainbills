@@ -52,7 +52,7 @@ export const useSolanaStore = defineStore('solana', () => {
     mint: PublicKey,
     owner: PublicKey,
   ): Promise<{ account: PublicKey; exists: boolean }> => {
-    const account = getAssociatedTokenAddressSync(mint, owner);
+    const account = getAssociatedTokenAddressSync(mint, owner, true);
     let exists = false;
     try {
       exists = !!(await getAccount(connection, account));

@@ -45,9 +45,9 @@ pub struct Pay<'info> {
     #[account(
         mut,
         associated_token::mint = mint,
-        associated_token::authority = this_program,
+        associated_token::authority = global_stats,
     )]
-    pub this_program_token_account: Box<Account<'info, TokenAccount>>,
+    pub global_token_account: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -102,7 +102,7 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
 
 
     /* ----- TRANSFER ----- */
-    let destination = &ctx.accounts.this_program_token_account;
+    let destination = &ctx.accounts.global_token_account;
     let source = &ctx.accounts.payer_token_account;
     let token_program = &ctx.accounts.token_program;
     let authority = &ctx.accounts.signer;
@@ -114,7 +114,7 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
     let cpi_program = token_program.to_account_info();
     token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
 
-    
+
     /* ----- STATE UPDATES ----- */
     // Increment the global stats for payments_count.
     let global_stats = ctx.accounts.global_stats.as_mut();

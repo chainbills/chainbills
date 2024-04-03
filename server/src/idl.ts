@@ -86,7 +86,7 @@ export default {
         { name: 'thisProgram', isMut: false, isSigner: false },
         { name: 'mint', isMut: false, isSigner: false },
         { name: 'payerTokenAccount', isMut: true, isSigner: false },
-        { name: 'thisProgramTokenAccount', isMut: true, isSigner: false },
+        { name: 'globalTokenAccount', isMut: true, isSigner: false },
         { name: 'signer', isMut: true, isSigner: true },
         { name: 'tokenProgram', isMut: false, isSigner: false },
         { name: 'systemProgram', isMut: false, isSigner: false }
@@ -103,7 +103,7 @@ export default {
         { name: 'thisProgram', isMut: false, isSigner: false },
         { name: 'mint', isMut: false, isSigner: false },
         { name: 'hostTokenAccount', isMut: true, isSigner: false },
-        { name: 'thisProgramTokenAccount', isMut: true, isSigner: false },
+        { name: 'globalTokenAccount', isMut: true, isSigner: false },
         { name: 'signer', isMut: true, isSigner: true },
         { name: 'tokenProgram', isMut: false, isSigner: false },
         { name: 'systemProgram', isMut: false, isSigner: false }
@@ -114,9 +114,10 @@ export default {
       name: 'adminWithdraw',
       accounts: [
         { name: 'mint', isMut: false, isSigner: false },
+        { name: 'globalStats', isMut: false, isSigner: false },
         { name: 'thisProgram', isMut: false, isSigner: false },
         { name: 'thisProgramData', isMut: false, isSigner: false },
-        { name: 'thisProgramTokenAccount', isMut: true, isSigner: false },
+        { name: 'globalTokenAccount', isMut: true, isSigner: false },
         { name: 'adminTokenAccount', isMut: true, isSigner: false },
         { name: 'admin', isMut: false, isSigner: true },
         { name: 'tokenProgram', isMut: false, isSigner: false }

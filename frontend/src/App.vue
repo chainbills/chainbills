@@ -20,7 +20,7 @@ useThemeStore();
     <Sidebar />
 
     <div v-if="appLoading.status" class="py-20">
-      <p class="text-center mb-12">Loading ...</p>
+      <p class="text-center text-xl mb-12">{{ appLoading.text }} ...</p>
       <IconSpinner height="144" width="144" class="mx-auto" />
     </div>
 

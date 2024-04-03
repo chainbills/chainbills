@@ -109,6 +109,47 @@ app.get('/payment/:address/:email', async (req: Request, res: Response) => {
   return res.json({ success: true });
 });
 
+app.get('/withdrawal/:address', async (req: Request, res: Response) => {
+  const { address } = req.params;
+
+  let withdrawal;
+  try {
+    withdrawal = await program().account.withdrawal.fetch(
+      new PublicKey(address)
+    );
+  } catch (e) {
+    console.error(e);
+    return res.json({ success: false, message: `${e}` });
+  }
+
+  const globalCount = (withdrawal.globalCount as BN).toNumber();
+  const host = (withdrawal.host as PublicKey).toBase58();
+  const hostCount = (withdrawal.hostCount as BN).toNumber();
+  const payable = (withdrawal.payable as PublicKey).toBase58();
+  const payableCount = (withdrawal.payableCount as BN).toNumber();
+  const details = convertTokens([
+    withdrawal.details as TokenAndAmountOnChain
+  ])[0];
+  const timestamp = (withdrawal.timestamp as BN).toNumber();
+
+  const data = {
+    address,
+    globalCount,
+    host,
+    hostCount,
+    payable,
+    payableCount,
+    details,
+    timestamp
+  };
+
+  await firestore
+    .collection('withdrawals')
+    .doc(address)
+    .set(data, { merge: true });
+  return res.json({ success: true });
+});
+
 app.use('**', (_: Request, res: Response) => res.json({ success: true }));
 
 export const server = onRequest({ cors: true }, app);

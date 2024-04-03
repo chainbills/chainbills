@@ -48,6 +48,8 @@ const validateAmount = () => {
 
 const validateBalance = async () => {
   if (!wallet.value) return;
+  
+  balanceError.value == '';
   if (selectedConfig.value) {
     const { amount: amt, address, name } = selectedConfig.value;
     const { account: tokenAccount } = await solana.getATAAndExists(
@@ -55,14 +57,14 @@ const validateBalance = async () => {
       wallet.value.publicKey,
     );
     const balance = await solana.balance(tokenAccount, name);
-    if (balance === null) balanceError.value == '';
+    if (balance === null) balanceError.value = '';
     else if (amt && balance < amt) {
       balanceError.value =
         balance === 0
           ? `You have no ${name} and can't pay.`
           : `You have only ${balance} ${name} and it is less than ` +
             `the required ${amt} ${name}.`;
-    } else balanceError.value == '';
+    } else balanceError.value = '';
   }
 };
 

@@ -84,7 +84,7 @@ export const usePayableStore = defineStore('payable', () => {
       return payable.toBase58();
     } catch (e) {
       console.error(e);
-      if (!`${e}`.includes('User rejected the request.')) toastError(`${e}`);
+      if (!`${e}`.includes('rejected')) toastError(`${e}`);
       return null;
     }
   };

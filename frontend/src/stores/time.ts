@@ -5,7 +5,7 @@ export const useTimeStore = defineStore('time', () => {
     const timeStr = when.toTimeString().split(':').slice(0, 2).join(':');
 
     const now = Math.round(Date.now() / 1000);
-    const then = Math.round(Date.now() / 1000);
+    const then = Math.round(when.getTime() / 1000);
     if (now - 24 * 60 * 60 < then) return timeStr;
 
     const dateParts = when.toDateString().split(' ');

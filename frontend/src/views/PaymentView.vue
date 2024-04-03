@@ -3,12 +3,14 @@ import type { Payable } from '@/schemas/payable';
 import type { Payment } from '@/schemas/payment';
 import { useTimeStore } from '@/stores/time';
 import Button from 'primevue/button';
+import { useWallet } from 'solana-wallets-vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
 const time = useTimeStore();
+const wallet = useWallet();
 </script>
 
 <template>
@@ -43,7 +45,19 @@ const time = useTimeStore();
 
     <p class="mb-8 leading-tight">
       <span>Payable ID:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ payment.payable }}</span>
+      <router-link
+        :to="`/payable/${payment.payable}`"
+        class="text-xs break-all text-gray-500 underline"
+        v-if="
+          wallet &&
+          wallet.publicKey.value?.toBase58() == payableDetails.hostWallet
+        "
+      >
+        {{ payment.payable }}
+      </router-link>
+      <span class="text-xs break-all text-gray-500" v-else>{{
+        payment.payable
+      }}</span>
     </p>
 
     <div class="max-w-lg" v-if="payableDetails">

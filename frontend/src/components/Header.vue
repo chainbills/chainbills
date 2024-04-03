@@ -2,16 +2,21 @@
 import ThemeMenu from '@/components/ThemeMenu.vue';
 import IconMenu from '@/icons/IconMenu.vue';
 import { useSidebarStore } from '@/stores/sidebar';
+import { useThemeStore } from '@/stores/theme';
 import Button from 'primevue/button';
 import ConnectWalletButton from './ConnectWalletButton.vue';
 
 const sidebar = useSidebarStore();
+const theme = useThemeStore()
 </script>
 
 <template>
   <header class="p-4 pl-8 fixed top-0 left-0 right-0 z-10 flex justify-between">
     <h1 class="text-2xl font-bold">
-      <router-link to="/">Chainbills</router-link>
+      <router-link to="/" class="flex items-center">
+        <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark': 'light'}.png`" logo class="mr-1"/>
+        <span>Chainbills</span>
+      </router-link>
     </h1>
 
     <div class="hidden sm:flex items-center">
@@ -39,6 +44,11 @@ header {
     0 1px 3px 0 var(--shadow),
     0 1px 2px -1px var(--shadow);
   height: 64px;
+}
+
+[logo] {
+  height: 2rem;
+  width: 2rem;
 }
 
 nav .router-link-active::after {

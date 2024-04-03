@@ -54,6 +54,10 @@ export const usePaymentStore = defineStore('payment', () => {
       if (isExistingUser) paymentCount = (await user.data())!.paymentsCount + 1;
 
       const { amount, token: mint } = convertTokensForOnChain([details])[0];
+      if (amount == 0) {
+        toastError('Cannot withdraw zero');
+        return null;
+      }
       const payment = address(paymentCount)!;
       const payer = user.address()!;
       const signer = wallet.value!.publicKey;

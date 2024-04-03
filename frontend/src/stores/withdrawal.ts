@@ -50,6 +50,10 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     try {
       const withdrawalCount = (await user.data())!.withdrawalsCount + 1;
       const { amount, token: mint } = convertTokensForOnChain([details])[0];
+      if (amount == 0) {
+        toastError('Cannot withdraw zero');
+        return null;
+      }
       const withdrawal = address(withdrawalCount)!;
       const host = user.address()!;
       const signer = wallet.value!.publicKey;

@@ -22,11 +22,12 @@ const beforeEnterPayableDetails = async (to: RouteLocationNormalized) => {
   const payable = usePayableStore();
   appLoading.show();
   const details = await payable.get(to.params['address'] as string);
-  appLoading.hide();
   if (details) {
     to.meta.details = details;
+    appLoading.hide();
     return true;
   } else {
+    appLoading.hide();
     return _notFound(to);
   }
 };
@@ -37,12 +38,13 @@ const beforeEnterPaymentDetails = async (to: RouteLocationNormalized) => {
   const payment = usePaymentStore();
   appLoading.show();
   const result = await payment.get(to.params['address'] as string);
-  appLoading.hide();
   if (result) {
     to.meta.payment = result;
-    to.meta.payable = await payable.get(result.payable)
+    to.meta.payable = await payable.get(result.payable);
+    appLoading.hide();
     return true;
   } else {
+    appLoading.hide();
     return _notFound(to);
   }
 };

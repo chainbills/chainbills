@@ -31,4 +31,7 @@ pub enum ChainbillsError {
 
     #[msg("you are not an admin")]
     AdminUnauthorized,
+
+    #[msg("please provide a valid description")]
+    EmptyDescriptionProvided,
 }

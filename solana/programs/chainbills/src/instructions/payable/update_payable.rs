@@ -42,13 +42,14 @@ pub fn reopen_payable(ctx: Context<UpdatePayable>) -> Result<()> {
 /// ### args
 /// * description: the new description of the payable.
 pub fn update_payable_description(ctx: Context<UpdatePayable>, description: String) -> Result<()> {
+    require!(!description.trim().is_empty(), ChainbillsError::EmptyDescriptionProvided);
     require!(
         description.len() <= MAX_PAYABLES_DESCRIPTION_LENGTH,
         ChainbillsError::MaxPayableDescriptionReached
     );
 
     let payable = ctx.accounts.payable.as_mut();
-    payable.description = description;
+    payable.description = description.trim().to_owned();
 
     msg!("Updated Payable Description.");
     emit!(UpdatePayableDescriptionEvent {});

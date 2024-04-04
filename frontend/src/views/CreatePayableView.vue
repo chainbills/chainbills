@@ -44,7 +44,7 @@ const removeToken = (index: number) => {
 };
 
 const validateDescription = () => {
-  const v = description.value;
+  const v = description.value.trim();
   if (v.length == 0) descriptionError.value = 'Required';
   else if (v.length < 15) descriptionError.value = 'Min. 15 characters';
   // From MAX_PAYABLES_DESCRIPTION_LENGTH in the solana program
@@ -95,8 +95,8 @@ const create = async () => {
 
   isCreating.value = true;
   const address = await payable.initialize(
-    email.value,
-    DomPurify.sanitize(description.value),
+    email.value.trim(),
+    DomPurify.sanitize(description.value.trim()),
     tokensAndAmounts,
     allowsFreePayments.value,
   );

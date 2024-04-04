@@ -303,6 +303,11 @@ export default {
       name: 'ProgramDataUnauthorized',
       msg: 'wrong program data account provided'
     },
-    { code: 6009, name: 'AdminUnauthorized', msg: 'you are not an admin' }
+    { code: 6009, name: 'AdminUnauthorized', msg: 'you are not an admin' },
+    {
+      code: 6010,
+      name: 'EmptyDescriptionProvided',
+      msg: 'please provide a valid description'
+    }
   ]
 };

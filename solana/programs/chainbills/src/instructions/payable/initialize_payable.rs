@@ -50,6 +50,9 @@ pub fn initialize_payable_handler(
     allows_free_payments: bool
 ) -> Result<()> {
     /* ----- CHECKS ----- */
+    // Ensure that the description is not an empty string or filled with whitespace
+    require!(!description.trim().is_empty(), ChainbillsError::EmptyDescriptionProvided);
+
     // Ensure that the description doesn't exceed the set maximum
     require!(
         description.len() <= MAX_PAYABLES_DESCRIPTION_LENGTH,
@@ -92,7 +95,7 @@ pub fn initialize_payable_handler(
     payable.global_count = global_stats.payables_count;
     payable.host = host.key();
     payable.host_count = host.payables_count;
-    payable.description = description;
+    payable.description = description.trim().to_owned();
     payable.tokens_and_amounts = tokens_and_amounts;
     payable.balances = Vec::<TokenAndAmount>::new();
     payable.allows_free_payments = allows_free_payments;

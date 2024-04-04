@@ -102,10 +102,7 @@ export const usePayableStore = defineStore('payable', () => {
   const mines = async (): Promise<Payable[] | null> => {
     if (!wallet.value) return null;
 
-    if (!(await user.isInitialized())) {
-      const result = await user.initialize();
-      if (!result) return null;
-    }
+    if (!(await user.isInitialized())) return [];
 
     try {
       const { payablesCount: count } = (await user.data())!;

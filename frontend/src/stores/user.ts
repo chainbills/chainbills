@@ -39,48 +39,24 @@ export const useUserStore = defineStore('user', () => {
     return new User(addr, await program().account.user.fetch(addr));
   };
 
-  const initializeStarter = program().methods.initializeUser().accounts({
-    user: address()!,
-    signer: wallet.value?.publicKey,
-    globalStats,
-    systemProgram,
-  });
-
-  const initialize = async (): Promise<string | null> => {
-    if (!wallet.value) return null;
-    try {
-      const txHash = await initializeStarter.rpc();
-      // TODO: Replace this 3 seconds wait with when the txHash was finalized
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      console.log(
-        `Create Payable Transaction Details: https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
-      );
-      return address()!.toBase58();
-    } catch (e) {
-      console.error(e);
-      if (!`${e}`.includes('rejected')) {
-        toast.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: `${e}`,
-          life: 12000,
-        });
-      }
-      return null;
-    }
-  };
-
   const initializeInstruction =
     async (): Promise<TransactionInstruction | null> => {
       if (!wallet.value) return null;
-      return initializeStarter.instruction();
+      return program()
+        .methods.initializeUser()
+        .accounts({
+          user: address()!,
+          signer: wallet.value!.publicKey,
+          globalStats,
+          systemProgram,
+        })
+        .instruction();
     };
 
   return {
     address,
     data,
     get,
-    initialize,
     isInitialized,
     initializeInstruction,
   };

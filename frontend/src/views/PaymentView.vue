@@ -3,14 +3,14 @@ import type { Payable } from '@/schemas/payable';
 import type { Payment } from '@/schemas/payment';
 import { useTimeStore } from '@/stores/time';
 import Button from 'primevue/button';
-import { useWallet } from 'solana-wallets-vue';
+import { useAnchorWallet } from 'solana-wallets-vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
 const time = useTimeStore();
-const wallet = useWallet();
+const wallet = useAnchorWallet();
 </script>
 
 <template>
@@ -49,8 +49,7 @@ const wallet = useWallet();
         :to="`/payable/${payment.payable}`"
         class="text-xs break-all text-gray-500 underline"
         v-if="
-          wallet &&
-          wallet.publicKey.value?.toBase58() == payableDetails.hostWallet
+          wallet && wallet.publicKey.toBase58() == payableDetails.hostWallet
         "
       >
         {{ payment.payable }}

@@ -69,7 +69,7 @@ onMounted(async () => {
         You haven't created any payables.
       </p>
       <p class="text-lg text-center max-w-md mx-auto mb-8">
-        Get Started with us today by Creating a Payable.
+        Get Started with us today by Creating a Payable today.
       </p>
       <p class="text-center">
         <router-link to="/start">

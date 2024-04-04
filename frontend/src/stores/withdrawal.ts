@@ -119,10 +119,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const mines = async (): Promise<Withdrawal[] | null> => {
     if (!wallet.value) return null;
 
-    if (!(await user.isInitialized())) {
-      const result = await user.initialize();
-      if (!result) return null;
-    }
+    if (!(await user.isInitialized())) return [];
 
     try {
       const { paymentsCount: count } = (await user.data())!;

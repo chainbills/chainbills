@@ -16,12 +16,14 @@ import { createApp } from 'vue';
 import VueGtag from 'vue-gtag';
 import VueWriter from 'vue-writer';
 
+import type { WalletStoreProps } from 'node_modules/solana-wallets-vue/dist/types';
 import App from './App.vue';
 import router from './router';
 
-const walletOptions = {
+const walletOptions: WalletStoreProps = {
   wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
   autoConnect: true,
+  cluster: 'devnet',
 };
 
 const app = createApp(App);

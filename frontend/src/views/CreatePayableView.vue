@@ -19,6 +19,7 @@ const allowsFreePayments = ref(false);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
 const configError = ref('');
+const displayedConfig = ref<any>(null);
 const isCreating = ref(false);
 const description = ref('');
 const descriptionError = ref('');
@@ -43,6 +44,26 @@ const removeToken = (index: number) => {
   amountErrors.value.splice(index, 1);
 };
 
+const updateDisplayedConfig = () => {
+  const tokensAndAmounts: TokenAndAmountOffChain[] = [];
+  if (!allowsFreePayments.value) {
+    for (let i = 0; i < amounts.value.length; i++) {
+      amountErrors.value[i].value = validateAmount(amounts.value[i].value);
+      if (amountErrors.value[i].value) {
+        displayedConfig.value = null;
+        return;
+      } else {
+        tokensAndAmounts.push({
+          amount: amounts.value[i].value,
+          ...selectedTokens.value[i],
+        });
+      }
+    }
+    displayedConfig.value =
+      tokensAndAmounts.length == 0 ? null : tokensAndAmounts;
+  }
+};
+
 const validateDescription = () => {
   const v = description.value.trim();
   if (v.length == 0) descriptionError.value = 'Required';
@@ -63,8 +84,8 @@ const validateEmail = () => {
 const validateConfig = () => {
   configError.value =
     !allowsFreePayments.value && selectedTokens.value.length == 0
-      ? 'Either allow payments of any amount in any token OR ' +
-        'specify at least one accepted token and its amount.'
+      ? 'Either allow free payments OR specify at least one accepted ' +
+        'token and its amount.'
       : '';
 };
 
@@ -105,11 +126,16 @@ const create = async () => {
   if (address) router.push(`/payable/${address}`);
 };
 
+const reviewConfig = () => {
+  updateDisplayedConfig();
+  validateConfig();
+};
+
 onMounted(() => {
   watch(() => email.value, validateEmail);
   watch(() => description.value, validateDescription);
-  watch(() => allowsFreePayments.value, validateConfig);
-  watch(() => selectedTokens.value, validateConfig);
+  watch(() => allowsFreePayments.value, reviewConfig);
+  watch(() => selectedTokens.value, reviewConfig);
 });
 </script>
 
@@ -192,7 +218,7 @@ onMounted(() => {
         </label>
         <small class="text-xs text-gray-500 block mb-4"
           >Do you want to accept any token and any amount? This is Permanent.
-          You can't change this after creating.</small
+          You can't change this after creating this payable.</small
         >
         <p class="flex items-center">
           <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')"
@@ -208,7 +234,7 @@ onMounted(() => {
       <template v-if="!allowsFreePayments">
         <p>Accepted Tokens and Amounts</p>
         <small class="text-xs text-gray-500 block mb-4"
-          >Permanent. You can't change this after creating.</small
+          >Permanent. You can't change this after creating this payable.</small
         >
         <label
           v-for="(token, i) of selectedTokens"
@@ -224,7 +250,10 @@ onMounted(() => {
               :step="10 ** (-1 * 18)"
               type="number"
               @input="
-                () => (amountErrors[i].value = validateAmount(amounts[i].value))
+                () => {
+                  amountErrors[i].value = validateAmount(amounts[i].value);
+                  updateDisplayedConfig();
+                }
               "
             />
             <small class="text-xs block text-red-500">{{
@@ -241,7 +270,11 @@ onMounted(() => {
           </Button>
         </label>
         <Dropdown
-          :options="tokens.filter((t) => !selectedTokens.includes(t))"
+          :options="
+            tokens.filter(
+              (t) => !selectedTokens.find((st) => st.address == t.address),
+            )
+          "
           optionLabel="name"
           v-if="tokens.length > selectedTokens.length"
           @change="(e) => selectToken(e.value)"
@@ -251,7 +284,36 @@ onMounted(() => {
       </template>
       <small class="text-xs block mb-2 text-red-500">{{ configError }}</small>
 
-      <p class="mt-12 sm:mt-20 mb-24 text-right sm:text-center">
+      <p v-if="allowsFreePayments" class="text-xl mb-2">
+        This payable will accept payments of any amounts of any token.
+      </p>
+      <div v-else-if="displayedConfig">
+        <p v-if="displayedConfig.length == 1">
+          This payable will accept
+          <span class="font-bold text-2xl"
+            >{{ displayedConfig[0].amount }}&nbsp;{{
+              displayedConfig[0].name
+            }}</span
+          >
+        </p>
+        <div class="pt-4" v-else>
+          <p class="mb-2 text-lg">
+            This payable will accept <span class="font-bold">any</span> of the
+            following
+          </p>
+          <div class="flex gap-4 flex-wrap">
+            <span
+              v-for="config of displayedConfig"
+              class="border rounded-md px-3 py-2 font-medium text-xl"
+              style="border-color: var(--shadow)"
+            >
+              {{ config.amount }}&nbsp;{{ config.name }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <p class="mt-20 text-right sm:text-center">
         <Button
           type="submit"
           class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"

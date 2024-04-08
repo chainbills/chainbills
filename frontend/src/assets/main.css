@@ -23,13 +23,13 @@ body.dark .p-component-overlay.p-sidebar-mask {
   background-color: #fff6 !important;
 }
 
-body.dark #theme-menu {
+body.dark .p-menu.p-component {
   box-shadow:
     0 4px 6px -1px var(--shadow),
     0 2px 4px -2px var(--shadow);
 }
 
-body.dark #theme-menu .p-menuitem-content:hover,
+body.dark .p-menu.p-component .p-menuitem-content:hover,
 body.dark .p-dropdown-panel .p-dropdown-item:hover {
   background-color: #222;
 }
@@ -41,11 +41,12 @@ body.dark .p-dropdown-panel .p-dropdown-item:hover {
   padding-top: 64px;
 }
 
-#theme-menu {
+.p-menu.p-component {
   background-color: var(--app-bg);
 }
 
-#theme-menu [menu-item] {
+.p-menu.p-component [menu-item],
+.p-menu.p-component .p-menuitem-text {
   color: var(--text);
 }
 
@@ -77,20 +78,26 @@ body.dark .p-dropdown-panel .p-dropdown-item:hover {
 
 .p-dropdown {
   background-color: transparent;
-  border: 1px solid var(--shadow)
+  border: 1px solid var(--shadow);
 }
 
 .p-dropdown-panel {
   background-color: var(--app-bg);
   border: 1px solid var(--shadow);
-  box-shadow: 0 4px 6px -1px var(--shadow), 0 2px 4px -2px var(--shadow);
+  box-shadow:
+    0 4px 6px -1px var(--shadow),
+    0 2px 4px -2px var(--shadow);
 }
 
 .p-dropdown-panel .p-dropdown-item,
 .p-inputtext {
-  color: var(--text)
+  color: var(--text);
 }
 
 .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight.p-focus {
   background: var(--shadow);
+}
+
+.web3-avatar {
+  /* height: 24px; */
 }

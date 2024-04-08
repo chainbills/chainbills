@@ -4,13 +4,27 @@ import Header from '@/components/Header.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { useAppLoadingStore } from '@/stores/app-loading';
+import { useChainStore } from '@/stores/chain';
 import { useThemeStore } from '@/stores/theme';
 import Toast from 'primevue/toast';
+import { useAnchorWallet } from 'solana-wallets-vue';
+import { onMounted, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
 const appLoading = useAppLoadingStore();
-// this forces the theme refresh when the app loads
-useThemeStore();
+const chain = useChainStore();
+const anchorWallet = useAnchorWallet();
+
+onMounted(() => {
+  // this forces the theme refresh when the app loads
+  useThemeStore();
+  watch(
+    () => anchorWallet.value,
+    (v) => {
+      if (!v) chain.setChain(null);
+    },
+  );
+});
 </script>
 
 <template>

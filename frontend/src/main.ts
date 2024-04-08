@@ -1,6 +1,7 @@
 import 'aos/dist/aos.css';
 import 'primevue/resources/themes/aura-light-green/theme.css';
 import 'solana-wallets-vue/styles.css';
+import 'web3-avatar-vue/dist/style.css';
 import './assets/main.css';
 
 import {
@@ -8,6 +9,7 @@ import {
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import AOS from 'aos';
+import { Chains, createWeb3Auth } from '@kolirt/vue-web3-auth';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
@@ -34,6 +36,12 @@ app.use(router);
 app.use(SolanaWallets, walletOptions);
 app.use(ToastService);
 app.use(VueWriter as any);
+app.use(
+  createWeb3Auth({
+    projectId: import.meta.env.VITE_WC_PROJECT_ID,
+    chains: [Chains.sepolia]
+  })
+);
 
 if (!import.meta.env.DEV) {
   app.use(

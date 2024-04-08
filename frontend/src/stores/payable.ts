@@ -15,7 +15,7 @@ import { useUserStore } from './user';
 export const usePayableStore = defineStore('payable', () => {
   const server = useServerStore();
   const toast = useToast();
-  const wallet = useAnchorWallet();
+  const anchorWallet = useAnchorWallet();
   const user = useUserStore();
   const solana = useSolanaStore();
   const { systemProgram, program, globalStats } = solana;
@@ -23,10 +23,10 @@ export const usePayableStore = defineStore('payable', () => {
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const address = (count: number): PublicKey | null => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
     return PublicKey.findProgramAddressSync(
       [
-        wallet.value!.publicKey.toBuffer(),
+        anchorWallet.value!.publicKey.toBuffer(),
         Buffer.from('payable'),
         new BN(count).toArrayLike(Buffer, 'le', 8),
       ],
@@ -40,7 +40,7 @@ export const usePayableStore = defineStore('payable', () => {
     tokensAndAmounts: TokenAndAmountOffChain[],
     allowsFreePayments: boolean,
   ): Promise<string | null> => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
 
     if (allowsFreePayments) tokensAndAmounts = [];
 
@@ -60,7 +60,7 @@ export const usePayableStore = defineStore('payable', () => {
           payable,
           host: user.address()!,
           globalStats,
-          signer: wallet.value?.publicKey,
+          signer: anchorWallet.value?.publicKey,
           systemProgram,
         });
 
@@ -100,7 +100,7 @@ export const usePayableStore = defineStore('payable', () => {
   };
 
   const mines = async (): Promise<Payable[] | null> => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
 
     if (!(await user.isInitialized())) return [];
 

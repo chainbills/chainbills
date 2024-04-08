@@ -28,7 +28,7 @@ const router = useRouter();
 const solana = useSolanaStore();
 const selectedConfig = ref();
 const selectedToken = ref();
-const wallet = useAnchorWallet();
+const anchorWallet = useAnchorWallet();
 
 const selectToken = (token: any) => {
   selectedConfig.value = allowsFreePayments
@@ -47,14 +47,14 @@ const validateAmount = () => {
 };
 
 const validateBalance = async () => {
-  if (!wallet.value) return;
+  if (!anchorWallet.value) return;
 
   balanceError.value == '';
   if (selectedConfig.value) {
     const { amount: amt, address, name } = selectedConfig.value;
     const { account: tokenAccount } = await solana.getATAAndExists(
       new PublicKey(address),
-      wallet.value.publicKey,
+      anchorWallet.value.publicKey,
     );
     const balance = await solana.balance(tokenAccount, name);
     if (balance === null) balanceError.value = '';
@@ -119,7 +119,7 @@ onMounted(() => {
       await validateBalance();
     },
   );
-  watch(() => wallet.value, validateBalance);
+  watch(() => anchorWallet.value, validateBalance);
 
   if (!allowsFreePayments && tokensAndAmounts.length == 1) {
     selectedConfig.value = tokensAndAmounts[0];
@@ -228,7 +228,7 @@ onMounted(() => {
         <small class="text-xs block text-red-500">{{ configError }}</small>
       </div>
 
-      <template v-if="wallet">
+      <template v-if="anchorWallet">
         <p
           v-if="
             (allowsFreePayments ||
@@ -255,9 +255,9 @@ onMounted(() => {
       </template>
     </form>
 
-    <template v-if="!wallet">
+    <template v-if="!anchorWallet">
       <p class="my-12 text-center text-xl">
-        Please connect your wallet to continue
+        Please connect your anchorWallet to continue
       </p>
       <p class="mx-auto w-fit"><ConnectWalletButton /></p>
     </template>

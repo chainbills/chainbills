@@ -15,7 +15,7 @@ import { useUserStore } from './user';
 export const usePaymentStore = defineStore('payment', () => {
   const server = useServerStore();
   const toast = useToast();
-  const wallet = useAnchorWallet();
+  const anchorWallet = useAnchorWallet();
   const user = useUserStore();
   const solana = useSolanaStore();
   const {
@@ -30,10 +30,10 @@ export const usePaymentStore = defineStore('payment', () => {
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const address = (count: number): PublicKey | null => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
     return PublicKey.findProgramAddressSync(
       [
-        wallet.value!.publicKey.toBuffer(),
+        anchorWallet.value!.publicKey.toBuffer(),
         Buffer.from('payment'),
         new BN(count).toArrayLike(Buffer, 'le', 8),
       ],
@@ -46,7 +46,7 @@ export const usePaymentStore = defineStore('payment', () => {
     payable: string,
     details: TokenAndAmountOffChain,
   ): Promise<string | null> => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
 
     try {
       const isExistingUser = await user.isInitialized();
@@ -60,7 +60,7 @@ export const usePaymentStore = defineStore('payment', () => {
       }
       const payment = address(paymentCount)!;
       const payer = user.address()!;
-      const signer = wallet.value!.publicKey;
+      const signer = anchorWallet.value!.publicKey;
       const thisProgram = new PublicKey(PROGRAM_ID);
 
       const { account: payerTokenAccount, exists: payerTAExists } =
@@ -124,7 +124,7 @@ export const usePaymentStore = defineStore('payment', () => {
   };
 
   const mines = async (): Promise<Payment[] | null> => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
 
     if (!(await user.isInitialized())) return [];
 

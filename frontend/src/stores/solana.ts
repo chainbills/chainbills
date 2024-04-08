@@ -14,7 +14,7 @@ import idl from './idl.json';
 export const PROGRAM_ID = '4BTSkx71TpMMScc4QpVPr5ebH1rfsQojPSmcCALsq45d';
 
 export const useSolanaStore = defineStore('solana', () => {
-  const wallet = useAnchorWallet();
+  const anchorWallet = useAnchorWallet();
   const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
   const toast = useToast();
   const balance = async (
@@ -42,7 +42,7 @@ export const useSolanaStore = defineStore('solana', () => {
     mint: PublicKey,
   ) =>
     createAssociatedTokenAccountInstruction(
-      wallet.value!.publicKey,
+      anchorWallet.value!.publicKey,
       ata,
       owner,
       mint,
@@ -68,7 +68,7 @@ export const useSolanaStore = defineStore('solana', () => {
     new Program(
       idl as Idl,
       PROGRAM_ID,
-      new AnchorProvider(connection, wallet.value!, {}),
+      new AnchorProvider(connection, anchorWallet.value!, {}),
     );
   const systemProgram = new PublicKey(web3.SystemProgram.programId);
   const tokenProgram = new PublicKey(TOKEN_PROGRAM_ID);

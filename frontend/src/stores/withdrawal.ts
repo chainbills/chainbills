@@ -15,7 +15,7 @@ import { useUserStore } from './user';
 export const useWithdrawalStore = defineStore('withdrawal', () => {
   const server = useServerStore();
   const toast = useToast();
-  const wallet = useAnchorWallet();
+  const anchorWallet = useAnchorWallet();
   const user = useUserStore();
   const solana = useSolanaStore();
   const {
@@ -30,10 +30,10 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const address = (count: number): PublicKey | null => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
     return PublicKey.findProgramAddressSync(
       [
-        wallet.value!.publicKey.toBuffer(),
+        anchorWallet.value!.publicKey.toBuffer(),
         Buffer.from('withdrawal'),
         new BN(count).toArrayLike(Buffer, 'le', 8),
       ],
@@ -45,7 +45,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     payable: string,
     details: TokenAndAmountOffChain,
   ): Promise<string | null> => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
 
     try {
       const withdrawalCount = (await user.data())!.withdrawalsCount + 1;
@@ -56,7 +56,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       }
       const withdrawal = address(withdrawalCount)!;
       const host = user.address()!;
-      const signer = wallet.value!.publicKey;
+      const signer = anchorWallet.value!.publicKey;
       const thisProgram = new PublicKey(PROGRAM_ID);
 
       const { account: hostTokenAccount, exists: hostTAExists } =
@@ -117,7 +117,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   };
 
   const mines = async (): Promise<Withdrawal[] | null> => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
 
     if (!(await user.isInitialized())) return [];
 

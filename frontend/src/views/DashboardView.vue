@@ -12,16 +12,16 @@ const isLoading = ref(false);
 const mines = ref<Payable[] | null>();
 const payable = usePayableStore();
 const time = useTimeStore();
-const wallet = useAnchorWallet();
+const anchorWallet = useAnchorWallet();
 const getMines = async () => {
   isLoading.value = true;
   mines.value = await payable.mines();
   isLoading.value = false;
 };
 onMounted(async () => {
-  if (wallet.value) await getMines();
+  if (anchorWallet.value) await getMines();
   watch(
-    () => wallet.value,
+    () => anchorWallet.value,
     async (connected) => {
       if (connected) await getMines();
       else mines.value = null;
@@ -41,7 +41,7 @@ onMounted(async () => {
       </router-link>
     </div>
 
-    <template v-if="!wallet">
+    <template v-if="!anchorWallet">
       <p class="pt-8 mb-8 text-center text-xl">
         Please connect your wallet to continue
       </p>

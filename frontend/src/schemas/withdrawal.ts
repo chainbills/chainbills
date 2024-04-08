@@ -10,16 +10,16 @@ export class Withdrawal {
   payableCount: number;
   host: string;
   hostCount: number;
-  hostWallet: string;
+  hostanchorWallet: string;
   timestamp: Date;
   details: TokenAndAmountOffChain;
 
-  constructor(address: string, hostWallet: string, onChainData: any) {
+  constructor(address: string, hostanchorWallet: string, onChainData: any) {
     this.address = address;
     this.globalCount = onChainData.globalCount.toNumber();
     this.host = onChainData.host.toBase58();
     this.hostCount = onChainData.hostCount.toNumber();
-    this.hostWallet = hostWallet;
+    this.hostanchorWallet = hostanchorWallet;
     this.payable = onChainData.payable.toBase58();
     this.payableCount = onChainData.payableCount.toNumber();
     this.details = convertTokensToOffChain([onChainData.details])[0];

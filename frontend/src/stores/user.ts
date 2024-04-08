@@ -7,20 +7,20 @@ import { PROGRAM_ID, useSolanaStore } from './solana';
 
 export const useUserStore = defineStore('user', () => {
   const toast = useToast();
-  const wallet = useAnchorWallet();
+  const anchorWallet = useAnchorWallet();
   const solana = useSolanaStore();
   const { systemProgram, program, globalStats } = solana;
 
   const address = (): PublicKey | null => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
     return PublicKey.findProgramAddressSync(
-      [wallet.value!.publicKey.toBuffer()],
+      [anchorWallet.value!.publicKey.toBuffer()],
       new PublicKey(PROGRAM_ID),
     )[0];
   };
 
   const isInitialized = async (): Promise<boolean> => {
-    if (!wallet.value) return false;
+    if (!anchorWallet.value) return false;
     try {
       await program().account.user.fetch(address()!);
       return true;
@@ -30,7 +30,7 @@ export const useUserStore = defineStore('user', () => {
   };
 
   const data = async (): Promise<User | null> => {
-    if (!wallet.value) return null;
+    if (!anchorWallet.value) return null;
     const addr = address()!.toBase58();
     return new User(addr, await program().account.user.fetch(addr));
   };
@@ -41,12 +41,12 @@ export const useUserStore = defineStore('user', () => {
 
   const initializeInstruction =
     async (): Promise<TransactionInstruction | null> => {
-      if (!wallet.value) return null;
+      if (!anchorWallet.value) return null;
       return program()
         .methods.initializeUser()
         .accounts({
           user: address()!,
-          signer: wallet.value!.publicKey,
+          signer: anchorWallet.value!.publicKey,
           globalStats,
           systemProgram,
         })

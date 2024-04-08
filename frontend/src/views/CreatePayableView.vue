@@ -29,7 +29,7 @@ const emailError = ref('');
 const payable = usePayableStore();
 const router = useRouter();
 const selectedTokens = ref<any[]>([]);
-const wallet = useAnchorWallet();
+const anchorWallet = useAnchorWallet();
 
 const selectToken = (token: any) => {
   selectedTokens.value = [...selectedTokens.value, token];
@@ -147,7 +147,7 @@ onMounted(() => {
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
 
-    <div class="text-center pb-20" v-if="!wallet">
+    <div class="text-center pb-20" v-if="!anchorWallet">
       <p class="mb-8">Please connect your wallet to continue.</p>
       <p class="mx-auto w-fit"><ConnectWalletButton /></p>
     </div>

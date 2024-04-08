@@ -10,7 +10,7 @@ const route = useRoute();
 const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
 const time = useTimeStore();
-const wallet = useAnchorWallet();
+const anchorWallet = useAnchorWallet();
 </script>
 
 <template>
@@ -49,7 +49,8 @@ const wallet = useAnchorWallet();
         :to="`/payable/${payment.payable}`"
         class="text-xs break-all text-gray-500 underline"
         v-if="
-          wallet && wallet.publicKey.toBase58() == payableDetails.hostWallet
+          anchorWallet &&
+          anchorWallet.publicKey.toBase58() == payableDetails.hostWallet
         "
       >
         {{ payment.payable }}

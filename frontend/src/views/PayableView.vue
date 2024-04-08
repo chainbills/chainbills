@@ -17,7 +17,7 @@ const time = useTimeStore();
 const toast = useToast();
 const { origin } = window.location;
 const link = `${origin}/pay/${details.address}`;
-const wallet = useAnchorWallet();
+const anchorWallet = useAnchorWallet();
 const withdrawal = useWithdrawalStore();
 
 const {
@@ -95,7 +95,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
     const result = await withdrawal.withdraw(details.address, balance);
     if (result) {
       // this waiting for the user to see the toast of success
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       window.location.reload();
     } else appLoading.hide();
   }
@@ -104,7 +104,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
 
 <template>
   <section class="max-w-screen-lg mx-auto pb-20">
-    <template v-if="!wallet">
+    <template v-if="!anchorWallet">
       <p class="my-12 text-center text-xl">
         Please connect your wallet to continue
       </p>
@@ -113,7 +113,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
 
     <template
       class=""
-      v-else-if="wallet.publicKey.toBase58() != details.hostWallet"
+      v-else-if="anchorWallet.publicKey.toBase58() != details.hostWallet"
     >
       <h2 class="text-3xl text-center mb-8 pt-8 font-bold">Unauthorized</h2>
       <p class="text-lg text-center max-w-sm mx-auto mb-4">

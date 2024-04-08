@@ -61,25 +61,29 @@ After a successful payment, Chainbills generates a receipt with the payment's de
 
 ## Cross-Chain Architecture
 
-Chainbills allows payments from multiple chains.
+Chainbills permits the same activity set across multiple chains.
 
 For now, only Ethereum and Solana are supported. More chains will be added.
 
 Our mission is to provide a seamless payment-receiving experience to content creators, merchants, and foundations. To enable them receive money for donations, products, and services from a large user base (across multiple chains).
 
-Chainbills does this by allowing users to create payables and make withdrawals on Solana while accepting payments from all chain networks (Ethereum and Solana for now). Solana is the choice central data and assets store because of its performance and inexpensiveness.
+Chainbills does this by allowing users to create payables and make payments and withdrawals from all chain networks (Ethereum and Solana for now). However, Solana is the choice central data and assets store because of its performance and inexpensiveness.
 
-In effect, Chainbills is built as a hub-and-spoke model with Solana as the hub. All payments can come from all chains (the spokes). These payments get forwarded to the respective Payable on Solana.
+In other words, while anyone can carry out the same set of actions from any chain, data and assets are stored on Solana. In effect, Chainbills is built as a hub-and-spoke model with Solana as the hub.
 
-Bridging tokens at payment time is made possible by Wormhole.
+Sending action data across contract calls and bridging tokens at payment and withdrawal times is made possible by Wormhole.
 
 ### Wormhole
 
 [Wormhole](https://wormhole.com) is an open source blockchain development platform connecting the decentralized web.
 
-Wormhole powers by Chainbills by any cross-chain payments through the [Wormhole TokenBridge](). If a payer connects a Solana wallet, they can directly pay into the Payable on Solana. On the other hand, if the payer connects with an Ethereum wallet, they can still make payment, but this time, it routes through Wormhole into the Solana program.
+Wormhole powers Chainbills by enabling [cross-chain messaging](https://wormhole.com/messaging/) and with the [Token Bridge](https://docs.wormhole.com/wormhole/explore-wormhole/core-contracts#token-bridge).
 
-Chainbills' EVM contract and Solana program both integrate the Wormhole SDK to achieve [contract-controlled]() transfers. Chainbills also maintains a [Specialized Relayer](#relayer) for submitting the VAAs from Wormhole [Guardians]() to the Solana program.
+If a user connects a Solana wallet, they can directly create payables and make payments and withdrawals with the Solana program.
+
+If on the other hand, a given user connects but an Ethereum wallet, while they can still carry out all those actions, their Ethereum-activity (contract calls) will be forwarded to the Solana program through Wormhole.
+
+Chainbills' EVM contract and Solana program both integrate the Wormhole SDK to achieve messaging [contract-controlled transfers](https://docs.wormhole.com/wormhole/explore-wormhole/vaa#token--message). Chainbills also maintains a [Specialized Relayer](#relayer) for submitting the VAAs from Wormhole [Guardians](https://docs.wormhole.com/wormhole/explore-wormhole/guardian) to the EVM contract or Solana program.
 
 ## Solana
 

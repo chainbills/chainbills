@@ -1,18 +1,21 @@
 use anchor_lang::prelude::*;
 
-/// A combination of token mints and associated amounts with
-/// that this program uses to constrain how much of a token
-/// a payable can accept and also to record details of
-/// payments and withdrawals.
+/// A combination of a Wormhole-normalized token address and its
+/// Wormhole-normalized associated amount.
+///
+/// This combination is used to constrain how much of a token
+/// a payable can accept. It is also used to record the details
+/// of a payment or a withdrawal.
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy)]
 pub struct TokenAndAmount {
-    /// The address of the token mint of the associated token.
-    pub token: Pubkey,
+  /// The Wormhole-normalized address of the associated token mint.
+  /// This should be the bridged address on Solana.
+  pub token: [u8; 32],
 
-    /// The amount (with decimals) associated with the token.
-    pub amount: u64,
+  /// The Wormhole-normalized (with 8 decimals) amount of the token.
+  pub amount: u64,
 }
 
 impl TokenAndAmount {
-    pub const SPACE: usize = 32 + 8;
+  pub const SPACE: usize = 32 + 8;
 }

@@ -98,6 +98,14 @@ const router = createRouter({
       beforeEnter: beforeEnterPaymentDetails,
     },
     {
+      path: '/pitch',
+      name: 'pitch',
+      redirect: (to) => {
+        window.location.replace('https://youtu.be/wlaqP9U_d4k');
+        return to;
+      },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue'),

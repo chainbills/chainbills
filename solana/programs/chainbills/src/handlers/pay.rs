@@ -189,6 +189,10 @@ pub fn pay_received_handler(
 
   let payer = ctx.accounts.payer.as_mut();
   if payer.to_account_info().data_is_empty() {
+    // increment global count for users
+    let global_stats = ctx.accounts.global_stats.as_mut();
+    global_stats.users_count = global_stats.users_count.checked_add(1).unwrap();
+
     // initialize the payer if that has not yet been done
     payer.owner_wallet = vaa.data().caller;
     payer.chain_id = vaa.emitter_chain();

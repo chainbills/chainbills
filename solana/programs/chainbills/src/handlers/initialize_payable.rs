@@ -134,6 +134,10 @@ pub fn initialize_payable_received_handler(
 
   let host = ctx.accounts.host.as_mut();
   if host.to_account_info().data_is_empty() {
+    // increment global count for users
+    let global_stats = ctx.accounts.global_stats.as_mut();
+    global_stats.users_count = global_stats.users_count.checked_add(1).unwrap();
+
     // initialize the host if that has not yet been done
     host.owner_wallet = vaa.data().caller;
     host.chain_id = vaa.emitter_chain();

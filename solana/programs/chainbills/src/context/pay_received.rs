@@ -131,7 +131,7 @@ pub struct PayReceived<'info> {
     )]
   /// Verified Wormhole message account. The Wormhole program verified
   /// signatures and posted the account data here. Read-only.
-  pub vaa: Box<Account<'info, wormhole::PostedVaa<CbPayloadMessage>>>,
+  pub vaa: Box<Account<'info, token_bridge::PostedTransferWith<CbPayloadMessage>>>,
 
   #[account(
         init,

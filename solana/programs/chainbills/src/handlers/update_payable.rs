@@ -1,4 +1,4 @@
-use crate::{constants::*, context::*, error::ChainbillsError, events::*};
+use crate::{constants::*, context::*, error::ChainbillsError, events::*, payload::*};
 use anchor_lang::prelude::*;
 
 /// Stop a payable from accepting payments. Can be called only
@@ -64,6 +64,7 @@ fn check_received_inputs(
   wormhole_received.vaa_hash = vaa_hash;
 
   // Ensure matching chain id and user wallet address
+  let host = ctx.accounts.host;
   require!(
     host.owner_wallet == caller && host.chain_id == vaa.emitter_chain(),
     ChainbillsError::UnauthorizedCallerAddress
@@ -94,9 +95,12 @@ pub fn close_payable_received(
     ChainbillsError::InvalidActionId
   );
 
+  // ensure provided payable matches what was expected
   let payable = ctx.accounts.payable.as_mut();
-  // TODO: check the payableId in the vaa.data()... whenever you decode
-  // to match the payable's key from accounts
+  require!(
+    payable.key().to_bytes() == vaa.data().extract(),
+    ChainbillsError::NotMatchingPayableId
+  );
 
   payable.is_closed = true;
 
@@ -121,15 +125,18 @@ pub fn reopen_payable_received(
 ) -> Result<()> {
   check_received_inputs(ctx, vaa_hash, caller);
 
-  // ensure the actionId is as expected
+  // ensure the action_id is as expected
   require!(
     ctx.accounts.vaa.data().action_id = ACTION_ID_REOPEN_PAYABLE,
     ChainbillsError::InvalidActionId
   );
 
+  // ensure provided payable matches what was expected
   let payable = ctx.accounts.payable.as_mut();
-  // TODO: check the payableId in the vaa.data()... whenever you decode
-  // to match the payable's key from accounts
+  require!(
+    payable.key().to_bytes() == vaa.data().extract(),
+    ChainbillsError::NotMatchingPayableId
+  );
 
   payable.is_closed = false;
 
@@ -160,21 +167,28 @@ pub fn update_payable_description_received(
   );
 
   let payable = ctx.accounts.payable.as_mut();
-  // TODO: check the payableId in the vaa.data()... whenever you decode
-  // to match the payable's key from accounts
 
-  // TODO: Obtain new description from decoded vaa.data().bytes and uncomment
-  // the following checks and assignment
-  // require!(
-  //   !description.trim().is_empty(),
-  //   ChainbillsError::EmptyDescriptionProvided
-  // );
-  // require!(
-  //   description.len() <= MAX_PAYABLES_DESCRIPTION_LENGTH,
-  //   ChainbillsError::MaxPayableDescriptionReached
-  // );
-  //
-  // payable.description = description.trim().to_owned();
+  let CbUpdatePayableDescription {
+    payable_id,
+    description,
+  } = vaa.data().extract();
+
+
+  // ensure provided payable matches what was expected
+  require!(
+    payable.key().to_bytes() == payable_id,
+    ChainbillsError::NotMatchingPayableId
+  );
+  require!(
+    !description.trim().is_empty(),
+    ChainbillsError::EmptyDescriptionProvided
+  );
+  require!(
+    description.len() <= MAX_PAYABLES_DESCRIPTION_LENGTH,
+    ChainbillsError::MaxPayableDescriptionReached
+  );
+
+  payable.description = description.trim().to_owned();
 
   msg!("Updated Payable Description.");
   emit!(UpdatePayableDescriptionEvent {});

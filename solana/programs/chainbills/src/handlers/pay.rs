@@ -1,4 +1,4 @@
-use crate::{constants::*, context::*, error::ChainbillsError, events::*, state::*};
+use crate::{constants::*, context::*, error::ChainbillsError, events::*, payload::*, state::*};
 use anchor_lang::{prelude::*, solana_program::clock};
 use anchor_spl::token::{self, Transfer as SplTransfer};
 
@@ -156,10 +156,11 @@ pub fn pay_received_handler(
   host_count: u64,
 ) -> Result<()> {
   let vaa = &ctx.accounts.vaa;
+  let payload = vaa.data().data();
 
   // ensure the caller was expected and is valid
   require!(
-    vaa.data().caller == caller && !caller.iter().all(|&x| x == 0),
+    payload.caller == caller && !caller.iter().all(|&x| x == 0),
     ChainbillsError::InvalidCallerAddress
   );
 
@@ -183,7 +184,7 @@ pub fn pay_received_handler(
 
   // ensure the actionId is as expected
   require!(
-    vaa.data().action_id = ACTION_ID_PAY,
+    payload.action_id = ACTION_ID_PAY,
     ChainbillsError::InvalidActionId
   );
 
@@ -194,7 +195,7 @@ pub fn pay_received_handler(
     global_stats.users_count = global_stats.users_count.checked_add(1).unwrap();
 
     // initialize the payer if that has not yet been done
-    payer.owner_wallet = vaa.data().caller;
+    payer.owner_wallet = payload.caller;
     payer.chain_id = vaa.emitter_chain();
     payer.global_count = global_stats.users_count;
     payer.payables_count = 0;
@@ -224,13 +225,30 @@ pub fn pay_received_handler(
 
   let token_bridge_wrapped_mint = ctx.accounts.token_bridge_wrapped_mint;
   let payable = ctx.accounts.payable.as_mut();
+  let amount = vaa.data().amount();
+  let CbTransaction {
+    payable_id,
+    details,
+  } = payload.extract();
 
-  // TODO: Decode vaa.data().data and obtain the payable and token and amount
-  // TODO: Ensure the decoded payable matches the account payable
-  // TODO: Ensure the decoded token mint matches the token_bridge_wrapped_mint.key().to_bytes
+  // Ensure the decoded payable matches the account payable
+  require!(
+    payable.key().to_bytes() == payable_id,
+    ChainbillsError::NotMatchingPayableId
+  );
 
-  // TODO: Check other inputs
-  // check_pay_inputs(amount, token_bridge_wrapped_mint, payable);
+  // Ensure matching token and amount
+  require!(
+    details.token == token_bridge_wrapped_mint.key().to_bytes(),
+    ChainbillsError::NotMatchingTransactionToken
+  );
+  require!(
+    details.amount == amount,
+    ChainbillsError::NotMatchingTransactionAmount
+  );
+
+  // Check pay inputs
+  check_pay_inputs(amount, token_bridge_wrapped_mint, payable);
 
   // TRANSFER
   token_bridge::complete_transfer_wrapped_with_payload(CpiContext::new_with_signer(
@@ -254,11 +272,8 @@ pub fn pay_received_handler(
     &[&[GlobalStats::SEED_PREFIX, &[ctx.bumps.global_stats]]],
   ))?;
 
-  // TODO: Complete payment
-  // // STATE UPDATES
-  // let global_stats = ctx.accounts.global_stats.as_mut();
-  // let payment = ctx.accounts.payment.as_mut();
-  // update_state_for_payment(amount, global_stats, payable, payer, payment)
-
-  Ok(())
+  // STATE UPDATES
+  let global_stats = ctx.accounts.global_stats.as_mut();
+  let payment = ctx.accounts.payment.as_mut();
+  update_state_for_payment(amount, global_stats, payable, payer, payment)
 }

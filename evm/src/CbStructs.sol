@@ -78,9 +78,9 @@ contract CbStructs {
     uint8 actionId;
     /// The Wormhole-normalized wallet address that made the contract call.
     bytes32 caller;
-    /// The abi.encoded equivalent of the necessary data for action.
+    /// The abi.encoded equivalent of the necessary input for action.
     ///
-    /// The abi.decoded result of data should match the following data types
+    /// The abi.decoded result of input should match the following input types
     /// for the corresponding actionId:
     /// 1: {CbPayableInputs}
     /// 2: {bytes32} // The Wormhole-normalized address of a payable.
@@ -88,6 +88,6 @@ contract CbStructs {
     /// 4: {CbUpdatePayableDescription}
     /// 5: {CbTransaction}
     /// 6: {CbTransaction}
-    bytes data;
+    bytes input;
   }
 }

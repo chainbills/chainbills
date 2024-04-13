@@ -1,4 +1,6 @@
-use crate::{constants::*, context::*, error::ChainbillsError, events::*, state::TokenAndAmount};
+use crate::{
+  constants::*, context::*, error::ChainbillsError, events::*, payload::*, state::TokenAndAmount,
+};
 use anchor_lang::{prelude::*, solana_program::clock};
 
 fn check_payable_inputs(
@@ -164,13 +166,13 @@ pub fn initialize_payable_received_handler(
     ChainbillsError::WrongPayablesHostCountProvided
   );
 
-  // TODO: Obtain payable inputs from decoded vaa.data().data and check them
-  // check_payable_inputs(description, tokens_and_amounts, allows_free_payments);
+  let CbPayableInputs {
+    description,
+    tokens_and_amounts,
+    allows_free_payments,
+  } = vaa.data().extract();
 
-  // TODO: Complete the payable initialization
-  // complete_payable_initialization(ctx, description, tokens_and_amounts, allows_free_payments)
+  check_payable_inputs(description, tokens_and_amounts, allows_free_payments);
 
-  // TODO: Remove this Ok(()) after extracting payable inputs and completing
-  // initialization
-  Ok(())
+  complete_payable_initialization(ctx, description, tokens_and_amounts, allows_free_payments)
 }

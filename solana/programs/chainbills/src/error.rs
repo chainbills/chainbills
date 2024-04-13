@@ -133,4 +133,16 @@ pub enum ChainbillsError {
   #[msg("InvalidTokenBridgeMintAuthority")]
   /// Specified Token Bridge mint authority PDA is wrong.
   InvalidTokenBridgeMintAuthority,
+
+  #[msg("NotMatchingPayableId")]
+  /// Specified payableId in input doesn't match payable account.
+  NotMatchingPayableId,
+
+  #[msg("NotMatchingTransactionAmount")]
+  /// Specified transaction amount in input doesn't match what is been used.
+  NotMatchingTransactionAmount,
+
+  #[msg("NotMatchingTransactionToken")]
+  /// Specified transaction token in input doesn't match what is been used.
+  NotMatchingTransactionToken
 }

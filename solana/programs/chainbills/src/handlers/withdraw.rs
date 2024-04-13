@@ -1,10 +1,4 @@
-use crate::{
-  constants::{ACTION_ID_WITHDRAW, SEED_PREFIX_SENDING},
-  context::*,
-  error::ChainbillsError,
-  events::*,
-  state::*,
-};
+use crate::{constants::*, context::*, error::ChainbillsError, events::*, payload::*, state::*};
 use anchor_lang::{prelude::*, solana_program::clock};
 use anchor_spl::token::{self, Transfer as SplTransfer};
 use wormhole_anchor_sdk::token_bridge::SEED_PREFIX_SENDER;
@@ -176,16 +170,32 @@ pub fn withdraw_received_handler(
 
   let token_bridge_wrapped_mint = ctx.accounts.token_bridge_wrapped_mint;
   let payable = ctx.accounts.payable.as_mut();
+  let CbTransaction {
+    payable_id,
+    details,
+  } = payload.extract();
 
-  // TODO: Decode vaa.data().data and obtain the payable and token and amount
-  // TODO: Ensure the decoded payable matches the account payable
-  // TODO: Ensure the decoded token mint matches the token_bridge_wrapped_mint.key().to_bytes
+  // Ensure the decoded payable matches the account payable
+  require!(
+    payable.key().to_bytes() == payable_id,
+    ChainbillsError::NotMatchingPayableId
+  );
 
-  // TODO: Do Wormhole normalise on amount before substracting fees and sending
+  // Ensure matching token and amount
+  require!(
+    details.token == token_bridge_wrapped_mint.key().to_bytes(),
+    ChainbillsError::NotMatchingTransactionToken
+  );
+  require!(
+    details.amount == amount,
+    ChainbillsError::NotMatchingTransactionAmount
+  );
+
+  // Check other inputs
+  check_withdraw_inputs(details.amount, token_bridge_wrapped_mint, payable);
+
+  // TODO: Do Wormhole de/normalise on amount before substracting fees and sending
   let amount_minus_fees = amount.checked_mul(98).unwrap().checked_div(100).unwrap();
-
-  // TODO: Check other inputs
-  // check_withdraw_inputs(amount, token_bridge_wrapped_mint, payable);
 
   // TRANSFER
   // Approve spending by token bridge
@@ -201,9 +211,6 @@ pub fn withdraw_received_handler(
     ),
     amount_minus_fees,
   )?;
-
-  // Set the payload message as what was originally received.
-  let payload = vaa.payload;
 
   // Bridge wrapped token with encoded payload.
   token_bridge::transfer_wrapped_with_payload(
@@ -242,15 +249,12 @@ pub fn withdraw_received_handler(
     amount_minus_fees,
     ctx.accounts.foreign_contract.address,
     vaa.emitter_chain(),
-    payload,
-    &ctx.program_id.key()
+    vaa.payload.1, // Send the payload message as what was originally received.
+    &ctx.program_id.key(),
   )?;
 
-  // TODO: Complete withdrawal
-  // // STATE UPDATES
-  // let global_stats = ctx.accounts.global_stats.as_mut();
-  // let withdrawal = ctx.accounts.withdrawal.as_mut();
-  // update_state_for_withdrawal(amount, global_stats, payable, host, withdrawal)
-
-  Ok(())
+  // STATE UPDATES
+  let global_stats = ctx.accounts.global_stats.as_mut();
+  let withdrawal = ctx.accounts.withdrawal.as_mut();
+  update_state_for_withdrawal(details.amount, global_stats, payable, host, withdrawal)
 }

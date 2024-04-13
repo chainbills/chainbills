@@ -106,6 +106,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/slidedeck',
+      name: 'slidedeck',
+      redirect: (to) => {
+        window.location.replace(
+          'https://docs.google.com/presentation/d/1QAAfjjkM5ob5ziftZE-bpjUHTT5lWYR7',
+        );
+        return to;
+      },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue'),

@@ -1,8 +1,4 @@
-use crate::{
-  constants::SEED_PREFIX_SENDING,
-  error::ChainbillsError,
-  state::*,
-};
+use crate::{constants::*, error::ChainbillsError, payload::*, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use wormhole_anchor_sdk::{token_bridge, wormhole};
@@ -60,10 +56,7 @@ pub struct WithdrawReceived<'info> {
             &vaa_hash
         ],
         bump,
-        seeds::program = wormhole_program,
-        constraint = vaa.data().to() == crate::ID @ ChainbillsError::InvalidTransferToAddress,
-        constraint = vaa.data().to_chain() == wormhole::CHAIN_ID_SOLANA @ ChainbillsError::InvalidTransferToChain,
-        constraint = vaa.data().token_chain() != wormhole::CHAIN_ID_SOLANA @ ChainbillsError::InvalidTransferTokenChain
+        seeds::program = wormhole_program
     )]
   /// Verified Wormhole message account. The Wormhole program verified
   /// signatures and posted the account data here. Read-only.
@@ -181,7 +174,6 @@ pub struct WithdrawReceived<'info> {
   pub system_program: Program<'info, System>,
 
   pub clock: Sysvar<'info, Clock>,
-  
+
   pub rent: Sysvar<'info, Rent>,
 }
-

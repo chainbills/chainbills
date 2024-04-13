@@ -43,10 +43,7 @@ pub struct InitializePayableReceived<'info> {
             &vaa_hash
         ],
         bump,
-        seeds::program = wormhole_program,
-        constraint = vaa.data().to() == crate::ID @ ChainbillsError::InvalidTransferToAddress,
-        constraint = vaa.data().to_chain() == wormhole::CHAIN_ID_SOLANA @ ChainbillsError::InvalidTransferToChain,
-        constraint = vaa.data().token_chain() != wormhole::CHAIN_ID_SOLANA @ ChainbillsError::InvalidTransferTokenChain
+        seeds::program = wormhole_program
     )]
   /// Verified Wormhole message account. The Wormhole program verified
   /// signatures and posted the account data here. Read-only.

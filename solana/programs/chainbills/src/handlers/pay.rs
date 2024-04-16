@@ -111,11 +111,13 @@ fn update_state_for_payment(
 /// Transfers the amount of tokens to a payable
 ///
 /// ### args
-/// * amount<u64>: The amount to be paid
+/// * amount<u64>: The Wormhole-normalized amount to be paid
 pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
   // CHECKS
   let mint = &ctx.accounts.mint;
   let payable = ctx.accounts.payable.as_mut();
+  let denormalized = token_bridge::denormalize_amount(amount, mint.decimals);
+
   check_pay_inputs(amount, mint.key().to_bytes(), payable)?;
 
   // TRANSFER
@@ -129,8 +131,7 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
     authority: authority.to_account_info().clone(),
   };
   let cpi_program = token_program.to_account_info();
-  // TODO: Do Wormhole normalise amount here
-  token::transfer(CpiContext::new(cpi_program, cpi_accounts), amount)?;
+  token::transfer(CpiContext::new(cpi_program, cpi_accounts), denormalized)?;
 
   // STATE UPDATES
   let global_stats = ctx.accounts.global_stats.as_mut();
@@ -239,18 +240,24 @@ pub fn pay_received_handler(
     ChainbillsError::NotMatchingPayableId
   );
 
+  let normalized = token_bridge::normalize_amount(amount, token_bridge_wrapped_mint.decimals);
+
   // Ensure matching token and amount
   require!(
     payload.token == token_bridge_wrapped_mint.key().to_bytes(),
     ChainbillsError::NotMatchingTransactionToken
   );
   require!(
-    payload.amount == amount,
+    payload.amount == normalized,
     ChainbillsError::NotMatchingTransactionAmount
   );
 
   // Check pay inputs
-  check_pay_inputs(amount, token_bridge_wrapped_mint.key().to_bytes(), payable)?;
+  check_pay_inputs(
+    normalized,
+    token_bridge_wrapped_mint.key().to_bytes(),
+    payable,
+  )?;
 
   // TRANSFER
   token_bridge::complete_transfer_wrapped_with_payload(CpiContext::new_with_signer(
@@ -278,7 +285,7 @@ pub fn pay_received_handler(
   let global_stats = ctx.accounts.global_stats.as_mut();
   let payment = ctx.accounts.payment.as_mut();
   update_state_for_payment(
-    amount,
+    normalized,
     token_bridge_wrapped_mint.key().to_bytes(),
     global_stats,
     payable,

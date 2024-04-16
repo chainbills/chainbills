@@ -81,11 +81,13 @@ fn update_state_for_withdrawal(
 /// Transfers the amount of tokens from a payable to a host
 ///
 /// ### args
-/// * amount<u64>: The amount to be withdrawn
+/// * amount<u64>: The Wormhole-normalized amount to be withdrawn
 pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   // CHECKS
   let payable = ctx.accounts.payable.as_mut();
   let mint = &ctx.accounts.mint;
+  let denormalized = token_bridge::denormalize_amount(amount, mint.decimals);
+
   check_withdraw_inputs(amount, mint.key().to_bytes(), payable)?;
 
   // TRANSFER
@@ -100,8 +102,11 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   };
   let cpi_program = token_program.to_account_info();
 
-  // TODO: Do Wormhole normalise on amount before substracting fees and sending
-  let amount_minus_fees = amount.checked_mul(98).unwrap().checked_div(100).unwrap();
+  let amount_minus_fees = denormalized
+    .checked_mul(98)
+    .unwrap()
+    .checked_div(100)
+    .unwrap();
   token::transfer(
     CpiContext::new_with_signer(
       cpi_program,
@@ -188,17 +193,14 @@ pub fn withdraw_received_handler(
     ChainbillsError::NotMatchingTransactionToken
   );
 
+  let amount = vaa.data().amount;
+  let denormalized = token_bridge::denormalize_amount(amount, token_bridge_wrapped_mint.decimals);
+
   // Check other inputs
-  check_withdraw_inputs(
-    vaa.data().amount,
-    token_bridge_wrapped_mint.key().to_bytes(),
-    payable,
-  )?;
+  check_withdraw_inputs(amount, token_bridge_wrapped_mint.key().to_bytes(), payable)?;
 
   // TODO: Do Wormhole de/normalise on amount before substracting fees and sending
-  let amount_minus_fees = vaa
-    .data()
-    .amount
+  let amount_minus_fees = denormalized
     .checked_mul(98)
     .unwrap()
     .checked_div(100)
@@ -264,7 +266,7 @@ pub fn withdraw_received_handler(
   let global_stats = ctx.accounts.global_stats.as_mut();
   let withdrawal = ctx.accounts.withdrawal.as_mut();
   update_state_for_withdrawal(
-    vaa.data().amount,
+    amount,
     token_bridge_wrapped_mint.key().to_bytes(),
     global_stats,
     payable,

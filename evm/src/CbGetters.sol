@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.20;
 
-import 'wormhole/interfaces/ITokenBridge.sol';
+import './ITokenBridge.sol';
 
 import './CbSetters.sol';
 

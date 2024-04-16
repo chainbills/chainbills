@@ -1,6 +1,6 @@
 use crate::{context::RegisterForeignContract, error::ChainbillsError, events::*};
 use anchor_lang::prelude::*;
-use wormhole_anchor_sdk::{token_bridge, wormhole};
+use wormhole_anchor_sdk::wormhole;
 
 /// This instruction registers a new foreign contract (from another network)
 /// and saves the contract information in a ForeignContract account. This

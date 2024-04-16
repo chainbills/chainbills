@@ -55,7 +55,7 @@ pub struct InitializePayableReceived<'info> {
             &vaa.emitter_chain().to_le_bytes()[..]
         ],
         bump,
-        constraint = foreign_contract.verify(&vaa) @ ChainbillsError::InvalidForeignContract
+        constraint = foreign_contract.verify(vaa.clone()) @ ChainbillsError::InvalidForeignContract
     )]
   /// Foreign contract account. The vaa's `emitter_address` must
   /// agree with the one we have registered for this message's `emitter_chain`

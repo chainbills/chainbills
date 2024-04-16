@@ -1,4 +1,3 @@
-pub mod withdraw_received;
 pub mod initialize;
 pub mod initialize_payable;
 pub mod initialize_payable_received;
@@ -12,7 +11,6 @@ pub mod update_payable_received;
 pub mod withdraw;
 pub mod withdraw_received;
 
-pub use withdraw_received::*;
 pub use initialize::*;
 pub use initialize_payable::*;
 pub use initialize_payable_received::*;

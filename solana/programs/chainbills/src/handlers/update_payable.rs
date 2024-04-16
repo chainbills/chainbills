@@ -1,4 +1,4 @@
-use crate::{constants::*, context::*, error::ChainbillsError, events::*, payload::*};
+use crate::{constants::*, context::*, error::ChainbillsError, events::*};
 use anchor_lang::prelude::*;
 
 /// Stop a payable from accepting payments. Can be called only
@@ -45,34 +45,6 @@ pub fn update_payable_description(ctx: Context<UpdatePayable>, description: Stri
   Ok(())
 }
 
-fn check_received_inputs(
-  ctx: Context<UpdatePayableReceived>,
-  vaa_hash: [u8; 32],
-  caller: [u8; 32],
-) -> Result<()> {
-  let vaa = &ctx.accounts.vaa;
-
-  // ensure the caller was expected and is valid
-  require!(
-    vaa.data().caller == caller && !caller.iter().all(|&x| x == 0),
-    ChainbillsError::InvalidCallerAddress
-  );
-
-
-  let wormhole_received = ctx.accounts.wormhole_received.as_mut();
-  wormhole_received.batch_id = posted_message.batch_id();
-  wormhole_received.vaa_hash = vaa_hash;
-
-  // Ensure matching chain id and user wallet address
-  let host = ctx.accounts.host;
-  require!(
-    host.owner_wallet == caller && host.chain_id == vaa.emitter_chain(),
-    ChainbillsError::UnauthorizedCallerAddress
-  );
-
-  Ok(())
-}
-
 /// Stop a payable from accepting payments from contract call on
 /// another chain. Should be called only by the host (user) that created
 /// the payable.
@@ -87,18 +59,28 @@ pub fn close_payable_received(
   vaa_hash: [u8; 32],
   caller: [u8; 32],
 ) -> Result<()> {
-  check_received_inputs(ctx, vaa_hash, caller);
-
   // ensure the actionId is as expected
+  let vaa = &ctx.accounts.vaa;
   require!(
-    ctx.accounts.vaa.data().action_id = ACTION_ID_CLOSE_PAYABLE,
+    ctx.accounts.vaa.data().action_id == ACTION_ID_CLOSE_PAYABLE,
     ChainbillsError::InvalidActionId
   );
+
+  // ensure the caller was expected and is valid
+  require!(
+    vaa.data().caller == caller && !caller.iter().all(|&x| x == 0),
+    ChainbillsError::InvalidCallerAddress
+  );
+
+  // save received info to prevent replay attacks
+  let wormhole_received = ctx.accounts.wormhole_received.as_mut();
+  wormhole_received.batch_id = vaa.batch_id();
+  wormhole_received.vaa_hash = vaa_hash;
 
   // ensure provided payable matches what was expected
   let payable = ctx.accounts.payable.as_mut();
   require!(
-    payable.key().to_bytes() == vaa.data().extract(),
+    payable.key().to_bytes() == vaa.data().payable_id,
     ChainbillsError::NotMatchingPayableId
   );
 
@@ -123,18 +105,28 @@ pub fn reopen_payable_received(
   vaa_hash: [u8; 32],
   caller: [u8; 32],
 ) -> Result<()> {
-  check_received_inputs(ctx, vaa_hash, caller);
-
   // ensure the action_id is as expected
+  let vaa = &ctx.accounts.vaa;
   require!(
-    ctx.accounts.vaa.data().action_id = ACTION_ID_REOPEN_PAYABLE,
+    ctx.accounts.vaa.data().action_id == ACTION_ID_REOPEN_PAYABLE,
     ChainbillsError::InvalidActionId
   );
+
+  // ensure the caller was expected and is valid
+  require!(
+    vaa.data().caller == caller && !caller.iter().all(|&x| x == 0),
+    ChainbillsError::InvalidCallerAddress
+  );
+
+  // save received info to prevent replay attacks
+  let wormhole_received = ctx.accounts.wormhole_received.as_mut();
+  wormhole_received.batch_id = vaa.batch_id();
+  wormhole_received.vaa_hash = vaa_hash;
 
   // ensure provided payable matches what was expected
   let payable = ctx.accounts.payable.as_mut();
   require!(
-    payable.key().to_bytes() == vaa.data().extract(),
+    payable.key().to_bytes() == vaa.data().payable_id,
     ChainbillsError::NotMatchingPayableId
   );
 
@@ -158,27 +150,33 @@ pub fn update_payable_description_received(
   vaa_hash: [u8; 32],
   caller: [u8; 32],
 ) -> Result<()> {
-  check_received_inputs(ctx, vaa_hash, caller);
-
   // ensure the actionId is as expected
+  let vaa = &ctx.accounts.vaa;
   require!(
-    ctx.accounts.vaa.data().action_id = ACTION_ID_UPDATE_PAYABLE_DESCRIPTION,
+    ctx.accounts.vaa.data().action_id == ACTION_ID_UPDATE_PAYABLE_DESCRIPTION,
     ChainbillsError::InvalidActionId
   );
 
-  let payable = ctx.accounts.payable.as_mut();
+  // ensure the caller was expected and is valid
+  require!(
+    vaa.data().caller == caller && !caller.iter().all(|&x| x == 0),
+    ChainbillsError::InvalidCallerAddress
+  );
 
-  let CbUpdatePayableDescription {
-    payable_id,
-    description,
-  } = vaa.data().extract();
-
+  // save received info to prevent replay attacks
+  let wormhole_received = ctx.accounts.wormhole_received.as_mut();
+  wormhole_received.batch_id = vaa.batch_id();
+  wormhole_received.vaa_hash = vaa_hash;
 
   // ensure provided payable matches what was expected
+  let payable = ctx.accounts.payable.as_mut();
   require!(
-    payable.key().to_bytes() == payable_id,
+    payable.key().to_bytes() == vaa.data().payable_id,
     ChainbillsError::NotMatchingPayableId
   );
+
+  // Carry out checks on string
+  let description = vaa.data().description().clone();
   require!(
     !description.trim().is_empty(),
     ChainbillsError::EmptyDescriptionProvided

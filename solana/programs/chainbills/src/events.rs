@@ -1,4 +1,4 @@
-use anchor_lang::prelude::event;
+use anchor_lang::prelude::*;
 
 #[event]
 pub struct InitializedEvent {}

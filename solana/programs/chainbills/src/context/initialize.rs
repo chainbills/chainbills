@@ -1,4 +1,4 @@
-use crate::{constants::*, error::ChainbillsError, program::Chainbills, state::*};
+use crate::{error::ChainbillsError, program::Chainbills, state::*};
 use anchor_lang::prelude::*;
 use wormhole_anchor_sdk::{token_bridge, wormhole};
 

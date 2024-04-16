@@ -8,7 +8,7 @@ pub struct UpdatePayableReceived<'info> {
   #[account(mut, has_one = host)]
   pub payable: Box<Account<'info, Payable>>,
 
-  #[account(seeds = [&caller], bump)]
+  #[account(seeds = [&caller], constraint = host.owner_wallet == caller && host.chain_id == vaa.emitter_chain() @ ChainbillsError::UnauthorizedCallerAddress, bump)]
   pub host: Box<Account<'info, User>>,
 
   #[account(mut)]
@@ -40,7 +40,7 @@ pub struct UpdatePayableReceived<'info> {
             &vaa.emitter_chain().to_le_bytes()[..]
         ],
         bump,
-        constraint = foreign_contract.verify(&vaa) @ ChainbillsError::InvalidForeignContract
+        constraint = foreign_contract.verify(vaa.clone()) @ ChainbillsError::InvalidForeignContract
     )]
   /// Foreign contract account. The vaa's `emitter_address` must
   /// agree with the one we have registered for this message's `emitter_chain`
@@ -51,12 +51,12 @@ pub struct UpdatePayableReceived<'info> {
         init,
         payer = signer,
         seeds = [
-            Received::SEED_PREFIX,
+            WormholeReceived::SEED_PREFIX,
             &vaa.emitter_chain().to_le_bytes()[..],
             &vaa.sequence().to_le_bytes()[..]
         ],
         bump,
-        space = Received::SPACE
+        space = WormholeReceived::SPACE
     )]
   /// Received account. [`wormhole_received`](crate::wormhole_received) will
   /// deserialize the Wormhole message's payload and save it to this account.

@@ -17,4 +17,5 @@ contract CbErrors {
   error EmitterNotRegistered();
   error TokenNotAttested();
   error InvalidCallerAddress();
+  error InvalidPayloadMessage();
 }

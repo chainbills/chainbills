@@ -1,11 +1,9 @@
-use crate::{
-  constants::*, context::*, error::ChainbillsError, events::*, payload::*, state::TokenAndAmount,
-};
+use crate::{constants::*, context::*, error::ChainbillsError, events::*, state::*};
 use anchor_lang::{prelude::*, solana_program::clock};
 
 fn check_payable_inputs(
-  description: String,
-  tokens_and_amounts: Vec<TokenAndAmount>,
+  description: &String,
+  tokens_and_amounts: &Vec<TokenAndAmount>,
   allows_free_payments: bool,
 ) -> Result<()> {
   // Ensure that the description is not an empty string or filled with whitespace
@@ -45,21 +43,20 @@ fn check_payable_inputs(
 }
 
 fn complete_payable_initialization(
-  ctx: Context<InitializePayable>,
+  global_stats: &mut Account<GlobalStats>,
+  host: &mut Account<User>,
+  payable: &mut Account<Payable>,
   description: String,
   tokens_and_amounts: Vec<TokenAndAmount>,
   allows_free_payments: bool,
 ) -> Result<()> {
   // Increment the global stats for payables_count.
-  let global_stats = ctx.accounts.global_stats.as_mut();
   global_stats.payables_count = global_stats.payables_count.checked_add(1).unwrap();
 
   // Increment payables_count on the host initializing this payable.
-  let host = ctx.accounts.host.as_mut();
   host.payables_count = host.payables_count.checked_add(1).unwrap();
 
   // Initialize the payable.
-  let payable = ctx.accounts.payable.as_mut();
   payable.global_count = global_stats.payables_count;
   payable.host = host.key();
   payable.host_count = host.payables_count;
@@ -98,8 +95,20 @@ pub fn initialize_payable_handler(
   tokens_and_amounts: Vec<TokenAndAmount>,
   allows_free_payments: bool,
 ) -> Result<()> {
-  check_payable_inputs(description, tokens_and_amounts, allows_free_payments);
-  complete_payable_initialization(ctx, description, tokens_and_amounts, allows_free_payments)
+  check_payable_inputs(&description, &tokens_and_amounts, allows_free_payments)?;
+
+  let global_stats = ctx.accounts.global_stats.as_mut();
+  let host = ctx.accounts.host.as_mut();
+  let payable = ctx.accounts.payable.as_mut();
+
+  complete_payable_initialization(
+    global_stats,
+    host,
+    payable,
+    description,
+    tokens_and_amounts,
+    allows_free_payments,
+  )
 }
 
 /// Initialize a Payable from another chain network
@@ -130,7 +139,7 @@ pub fn initialize_payable_received_handler(
 
   // ensure the actionId is as expected
   require!(
-    vaa.data().action_id = ACTION_ID_INITIALIZE_PAYABLE,
+    vaa.data().action_id == ACTION_ID_INITIALIZE_PAYABLE,
     ChainbillsError::InvalidActionId
   );
 
@@ -166,13 +175,23 @@ pub fn initialize_payable_received_handler(
     ChainbillsError::WrongPayablesHostCountProvided
   );
 
-  let CbPayableInputs {
-    description,
-    tokens_and_amounts,
-    allows_free_payments,
-  } = vaa.data().extract();
+  let p = vaa.data();
 
-  check_payable_inputs(description, tokens_and_amounts, allows_free_payments);
+  check_payable_inputs(
+    &p.description(),
+    &p.tokens_and_amounts(),
+    p.allows_free_payments,
+  )?;
 
-  complete_payable_initialization(ctx, description, tokens_and_amounts, allows_free_payments)
+  let global_stats = ctx.accounts.global_stats.as_mut();
+  let payable = ctx.accounts.payable.as_mut();
+
+  complete_payable_initialization(
+    global_stats,
+    host,
+    payable,
+    p.description().clone(),
+    p.tokens_and_amounts().clone(),
+    p.allows_free_payments,
+  )
 }

@@ -1,12 +1,9 @@
-use crate::{constants::*, context::*, error::ChainbillsError, events::*, payload::*, state::*};
+use crate::{constants::*, context::*, error::ChainbillsError, events::*, state::*};
 use anchor_lang::{prelude::*, solana_program::clock};
 use anchor_spl::token::{self, Transfer as SplTransfer};
+use wormhole_anchor_sdk::token_bridge;
 
-fn check_pay_inputs(
-  amount: u64,
-  mint: Account<'info, Mint>,
-  payable: Account<'info, Payable>,
-) -> Result<()> {
+fn check_pay_inputs(amount: u64, mint: [u8; 32], payable: &Account<Payable>) -> Result<()> {
   // Ensure that amount is greater than zero
   require!(amount > 0, ChainbillsError::ZeroAmountSpecified);
 
@@ -18,7 +15,7 @@ fn check_pay_inputs(
   if payable.allows_free_payments && payable.balances.len() >= MAX_PAYABLES_TOKENS {
     let mut bals_it = payable.balances.iter().peekable();
     while let Some(balance) = bals_it.next() {
-      if balance.token == mint.key().to_bytes() {
+      if balance.token == mint {
         break;
       }
       if bals_it.peek().is_none() {
@@ -33,7 +30,7 @@ fn check_pay_inputs(
   if !payable.allows_free_payments {
     let mut taas_it = payable.tokens_and_amounts.iter().peekable();
     while let Some(taa) = taas_it.next() {
-      if taa.token == mint.key().to_bytes() && taa.amount == amount {
+      if taa.token == mint && taa.amount == amount {
         break;
       }
       if taas_it.peek().is_none() {
@@ -47,10 +44,11 @@ fn check_pay_inputs(
 
 fn update_state_for_payment(
   amount: u64,
-  global_stats: Account<'info, GlobalStats>,
-  payable: Account<'info, Payable>,
-  payer: Account<'info, User>,
-  payment: Account<'info, Payment>,
+  mint: [u8; 32],
+  global_stats: &mut Account<GlobalStats>,
+  payable: &mut Account<Payable>,
+  payer: &mut Account<User>,
+  payment: &mut Account<Payment>,
 ) -> Result<()> {
   // Increment the global stats for payments_count.
   global_stats.payments_count = global_stats.payments_count.checked_add(1).unwrap();
@@ -65,7 +63,7 @@ fn update_state_for_payment(
   let mut was_matching_balance_updated = false;
   {
     for balance in payable.balances.iter_mut() {
-      if balance.token == mint.key().to_bytes() {
+      if balance.token == mint {
         balance.amount = balance.amount.checked_add(amount).unwrap();
         was_matching_balance_updated = true;
         break;
@@ -75,7 +73,7 @@ fn update_state_for_payment(
   {
     if !was_matching_balance_updated {
       payable.balances.push(TokenAndAmount {
-        token: mint.key().to_bytes(),
+        token: mint,
         amount: amount,
       });
     }
@@ -92,7 +90,7 @@ fn update_state_for_payment(
   payment.payable_count = payable.payments_count;
   payment.timestamp = clock::Clock::get()?.unix_timestamp as u64;
   payment.details = TokenAndAmount {
-    token: mint.key().to_bytes(),
+    token: mint,
     amount: amount,
   };
 
@@ -118,7 +116,7 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
   // CHECKS
   let mint = &ctx.accounts.mint;
   let payable = ctx.accounts.payable.as_mut();
-  check_pay_inputs(amount, mint, payable);
+  check_pay_inputs(amount, mint.key().to_bytes(), payable)?;
 
   // TRANSFER
   let destination = &ctx.accounts.global_token_account;
@@ -138,7 +136,14 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
   let global_stats = ctx.accounts.global_stats.as_mut();
   let payer = ctx.accounts.payer.as_mut();
   let payment = ctx.accounts.payment.as_mut();
-  update_state_for_payment(amount, global_stats, payable, payer, payment)
+  update_state_for_payment(
+    amount,
+    mint.key().to_bytes(),
+    global_stats,
+    payable,
+    payer,
+    payment,
+  )
 }
 
 /// Transfers the amount of tokens from another chain network to a payable
@@ -153,7 +158,7 @@ pub fn pay_received_handler(
   ctx: Context<PayReceived>,
   vaa_hash: [u8; 32],
   caller: [u8; 32],
-  host_count: u64,
+  payer_count: u64,
 ) -> Result<()> {
   let vaa = &ctx.accounts.vaa;
   let payload = vaa.data().data();
@@ -178,13 +183,14 @@ pub fn pay_received_handler(
     ChainbillsError::AlreadyRedeemed
   );
 
+  // save received info to prevent replay attacks
   let wormhole_received = ctx.accounts.wormhole_received.as_mut();
   wormhole_received.batch_id = vaa.batch_id();
   wormhole_received.vaa_hash = vaa_hash;
 
   // ensure the actionId is as expected
   require!(
-    payload.action_id = ACTION_ID_PAY,
+    payload.action_id == ACTION_ID_PAY,
     ChainbillsError::InvalidActionId
   );
 
@@ -220,35 +226,31 @@ pub fn pay_received_handler(
   // Ensure that the payer count is that which is expected
   require!(
     payer_count == payer.next_payment(),
-    ChainbillsError::WrongPayablesHostCountProvided
+    ChainbillsError::WrongPaymentPayerCountProvided
   );
 
-  let token_bridge_wrapped_mint = ctx.accounts.token_bridge_wrapped_mint;
+  let token_bridge_wrapped_mint = &ctx.accounts.token_bridge_wrapped_mint;
   let payable = ctx.accounts.payable.as_mut();
   let amount = vaa.data().amount();
-  let CbTransaction {
-    payable_id,
-    details,
-  } = payload.extract();
 
   // Ensure the decoded payable matches the account payable
   require!(
-    payable.key().to_bytes() == payable_id,
+    payable.key().to_bytes() == payload.payable_id,
     ChainbillsError::NotMatchingPayableId
   );
 
   // Ensure matching token and amount
   require!(
-    details.token == token_bridge_wrapped_mint.key().to_bytes(),
+    payload.token == token_bridge_wrapped_mint.key().to_bytes(),
     ChainbillsError::NotMatchingTransactionToken
   );
   require!(
-    details.amount == amount,
+    payload.amount == amount,
     ChainbillsError::NotMatchingTransactionAmount
   );
 
   // Check pay inputs
-  check_pay_inputs(amount, token_bridge_wrapped_mint, payable);
+  check_pay_inputs(amount, token_bridge_wrapped_mint.key().to_bytes(), payable)?;
 
   // TRANSFER
   token_bridge::complete_transfer_wrapped_with_payload(CpiContext::new_with_signer(
@@ -275,5 +277,12 @@ pub fn pay_received_handler(
   // STATE UPDATES
   let global_stats = ctx.accounts.global_stats.as_mut();
   let payment = ctx.accounts.payment.as_mut();
-  update_state_for_payment(amount, global_stats, payable, payer, payment)
+  update_state_for_payment(
+    amount,
+    token_bridge_wrapped_mint.key().to_bytes(),
+    global_stats,
+    payable,
+    payer,
+    payment,
+  )
 }

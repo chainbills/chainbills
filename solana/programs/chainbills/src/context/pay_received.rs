@@ -1,6 +1,7 @@
 use crate::{error::ChainbillsError, payload::CbPayloadMessage, state::*};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{Token, TokenAccount};
 use wormhole_anchor_sdk::{token_bridge, wormhole};
 
 #[derive(Accounts)]
@@ -49,7 +50,7 @@ pub struct PayReceived<'info> {
             &vaa.emitter_chain().to_le_bytes()[..]
         ],
         bump,
-        constraint = foreign_contract.verify(&vaa) @ ChainbillsError::InvalidForeignContract
+        constraint = foreign_contract.chain == vaa.emitter_chain() && foreign_contract.address == *vaa.emitter_address() @ ChainbillsError::InvalidForeignContract
     )]
   /// Foreign Contract account. The registered contract specified in this
   /// account must agree with the target address for the Token Bridge's token

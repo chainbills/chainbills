@@ -23,7 +23,7 @@ impl ForeignContract {
 
   /// Convenience method to check whether an address equals the one saved in
   /// this account.
-  pub fn verify(&self, vaa: PostedVaa<CbPayloadMessage>) -> bool {
-    vaa.emitter_chain() == self.chain && *vaa.data().from_address() == self.address
+  pub fn verify(&self, vaa: Box<Account<PostedVaa<CbPayloadMessage>>>) -> bool {
+    vaa.emitter_chain() == self.chain && *vaa.emitter_address() == self.address
   }
 }

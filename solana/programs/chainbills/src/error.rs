@@ -81,6 +81,14 @@ pub enum ChainbillsError {
   /// provided host_count is not host.next_payable()
   WrongPayablesHostCountProvided,
 
+  #[msg("WrongPaymentPayerCountProvided")]
+  /// provided payer_count is not payer.next_payment()
+  WrongPaymentPayerCountProvided,
+
+  #[msg("WrongWithdrawalsHostCountProvided")]
+  /// provided host_count is not host.next_withdrawal()
+  WrongWithdrawalsHostCountProvided,
+
   #[msg("ZeroBridgeAmount")]
   /// Nothing to transfer if amount is zero.
   ZeroBridgeAmount,
@@ -144,5 +152,5 @@ pub enum ChainbillsError {
 
   #[msg("NotMatchingTransactionToken")]
   /// Specified transaction token in input doesn't match what is been used.
-  NotMatchingTransactionToken
+  NotMatchingTransactionToken,
 }

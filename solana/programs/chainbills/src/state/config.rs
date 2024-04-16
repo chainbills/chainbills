@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use wormhole_anchor_sdk::{token_bridge, wormhole};
 
 #[account]
 #[derive(Default)]

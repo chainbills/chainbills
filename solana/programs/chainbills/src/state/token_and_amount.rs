@@ -13,9 +13,10 @@ pub struct TokenAndAmount {
   pub token: [u8; 32],
 
   /// The Wormhole-normalized (with 8 decimals) amount of the token.
-  pub amount: u64,
+  /// u128 is used instead of u64 for compatibility with other chains.
+  pub amount: u128,
 }
 
 impl TokenAndAmount {
-  pub const SPACE: usize = 32 + 8;
+  pub const SPACE: usize = 32 + 16;
 }

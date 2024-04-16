@@ -1,6 +1,7 @@
 use crate::{constants::*, error::ChainbillsError, payload::*, state::*};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{Token, TokenAccount};
 use wormhole_anchor_sdk::{token_bridge, wormhole};
 
 #[derive(Accounts)]
@@ -43,7 +44,7 @@ pub struct WithdrawReceived<'info> {
             &vaa.emitter_chain().to_le_bytes()[..]
         ],
         bump,
-        constraint = foreign_contract.verify(&vaa) @ ChainbillsError::InvalidForeignContract
+        constraint = foreign_contract.verify(vaa.clone()) @ ChainbillsError::InvalidForeignContract
     )]
   /// Foreign contract account. The vaa's `emitter_address` must
   /// agree with the one we have registered for this message's `emitter_chain`
@@ -122,7 +123,7 @@ pub struct WithdrawReceived<'info> {
 
   #[account(
         mut,
-        address = config.wormhole_bridge @ HelloTokenError::InvalidWormholeBridge,
+        address = config.wormhole_bridge @ ChainbillsError::InvalidWormholeBridge,
     )]
   /// Wormhole bridge data. Mutable.
   pub wormhole_bridge: Box<Account<'info, wormhole::BridgeData>>,
@@ -141,21 +142,21 @@ pub struct WithdrawReceived<'info> {
 
   #[account(
         mut,
-        address = config.emitter @ HelloTokenError::InvalidTokenBridgeEmitter
+        address = config.emitter @ ChainbillsError::InvalidWormholeEmitter
     )]
   /// CHECK: Token Bridge emitter. Read-only.
   pub emitter: UncheckedAccount<'info>,
 
   #[account(
         mut,
-        address = config.sequence @ HelloTokenError::InvalidTokenBridgeSequence
+        address = config.sequence @ ChainbillsError::InvalidWormholeSequence
     )]
   /// CHECK: Token Bridge sequence. Mutable.
   pub sequence: Box<Account<'info, wormhole::SequenceTracker>>,
 
   #[account(
         mut,
-        address = config.fee_collector @ HelloTokenError::InvalidWormholeFeeCollector
+        address = config.fee_collector @ ChainbillsError::InvalidWormholeFeeCollector
     )]
   /// Wormhole fee collector. Mutable.
   pub fee_collector: Box<Account<'info, wormhole::FeeCollector>>,

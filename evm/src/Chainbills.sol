@@ -48,96 +48,161 @@ contract Chainbills is
   }
 
   /// Initialize a Payable.
-  /// @param input The CbPayableInputs struct for initializing.
+  ///
+  /// @param description Displayed to payers when paying to and on receipts of
+  /// a payable.
+  /// @param allowsFreePayments Whether a payable allows payments of any amount
+  /// of any token.
+  /// @param tokensAndAmounts The accepted tokens (and their amounts) on a
+  /// payable.
+  /// @return messageSequence Wormhole message sequence for the Wormhole token
+  /// bridge contract. This sequence is incremented (per message) for each
+  /// message emitter.
   function initializePayable(
-    CbPayableInputs memory input
+    string calldata description,
+    bool allowsFreePayments,
+    CbTokenAndAmount[] calldata tokensAndAmounts
   ) public payable returns (uint64 messageSequence) {
-    // Perform Checks on input properties.
-    bytes memory desBytes = bytes(input.description);
-    if (desBytes.length == 0) revert EmptyDescriptionProvided();
-    else if (desBytes.length > MAX_PAYABLES_DESCRIPTION_LENGTH) {
+    bytes memory descBytes = bytes(description);
+    if (descBytes.length == 0) revert EmptyDescriptionProvided();
+    else if (descBytes.length > MAX_PAYABLES_DESCRIPTION_LENGTH) {
       revert MaxPayableDescriptionReached();
-    } else if (input.tokensAndAmounts.length > MAX_PAYABLES_TOKENS) {
+    } else if (tokensAndAmounts.length > MAX_PAYABLES_TOKENS) {
       revert MaxPayableTokensCapacityReached();
     } else if (
-      (input.allowsFreePayments && input.tokensAndAmounts.length > 0) ||
-      (!input.allowsFreePayments && input.tokensAndAmounts.length == 0)
+      (allowsFreePayments && tokensAndAmounts.length > 0) ||
+      (!allowsFreePayments && tokensAndAmounts.length == 0)
     ) {
       revert ImproperPayablesConfiguration();
     } else {
-      for (uint16 i = 0; i < input.tokensAndAmounts.length; i++) {
-        address token = fromWormholeFormat(input.tokensAndAmounts[i].token);
+      for (uint16 i = 0; i < tokensAndAmounts.length; i++) {
+        address token = fromWormholeFormat(tokensAndAmounts[i].token);
         if (token == address(0)) revert InvalidTokenAddress();
 
         uint8 decimals = getDecimals(token);
-        uint256 amount = input.tokensAndAmounts[i].amount;
+        uint256 amount = tokensAndAmounts[i].amount;
         uint256 denormalized = denormalizeAmount(amount, decimals);
-        if (amount = 0 || denormalized == 0) revert ZeroAmountSpecified();
+        if (amount == 0 || denormalized == 0) revert ZeroAmountSpecified();
       }
     }
 
     messageSequence = sendPayloadMessage(
-      ACTION_ID_INITIALIZE_PAYABLE,
-      abi.encode(input)
+      CbPayloadMessage({
+        actionId: ACTION_ID_INITIALIZE_PAYABLE,
+        caller: toWormholeFormat(msg.sender),
+        payableId: toWormholeFormat(address(0)),
+        token: toWormholeFormat(address(0)),
+        amount: 0,
+        allowsFreePayments: allowsFreePayments,
+        tokensAndAmounts: tokensAndAmounts,
+        description: description
+      })
     );
   }
 
   /// Stop a payable from accepting payments.
   /// @dev Should be called only by the host (user) that owns the payable.
   /// otherwise the Solana will reject the update.
+  ///
+  /// @param payableId The payable's Wormhole-normalized address to be closed.
+  /// @return messageSequence Wormhole message sequence for the Wormhole token
+  /// bridge contract. This sequence is incremented (per message) for each
+  /// message emitter.
   function closePayable(
     bytes32 payableId
   ) public payable returns (uint64 messageSequence) {
     messageSequence = sendPayloadMessage(
-      ACTION_ID_CLOSE_PAYABLE,
-      abi.encode(payableId)
+      CbPayloadMessage({
+        actionId: ACTION_ID_CLOSE_PAYABLE,
+        caller: toWormholeFormat(msg.sender),
+        payableId: payableId,
+        token: toWormholeFormat(address(0)),
+        amount: 0,
+        allowsFreePayments: false,
+        tokensAndAmounts: new CbTokenAndAmount[](0),
+        description: ''
+      })
     );
   }
 
   /// Allow a closed payable to continue accepting payments.
   /// @dev Should be called only by the host (user) that owns the payable.
   /// otherwise the Solana will reject the update.
+  ///
+  /// @param payableId The payable's Wormhole-normalized address to re-open
+  /// @return messageSequence Wormhole message sequence for the Wormhole token
+  /// bridge contract. This sequence is incremented (per message) for each
+  /// message emitter.
   function reopenPayable(
     bytes32 payableId
   ) public payable returns (uint64 messageSequence) {
     messageSequence = sendPayloadMessage(
-      ACTION_ID_REOPEN_PAYABLE,
-      abi.encode(payableId)
+      CbPayloadMessage({
+        actionId: ACTION_ID_REOPEN_PAYABLE,
+        caller: toWormholeFormat(msg.sender),
+        payableId: payableId,
+        token: toWormholeFormat(address(0)),
+        amount: 0,
+        allowsFreePayments: false,
+        tokensAndAmounts: new CbTokenAndAmount[](0),
+        description: ''
+      })
     );
   }
 
   /// Allows a payable's host to update the payable's description.
-  /// @param input details for the update.
+  ///
+  /// @param payableId The payable's Wormhole-normalized address to re-open
+  /// @param description The new description to update with
+  /// @return messageSequence Wormhole message sequence for the Wormhole token
+  /// bridge contract. This sequence is incremented (per message) for each
+  /// message emitter.
   function updatePayableDescription(
-    CbUpdatePayableDescription memory input
+    bytes32 payableId,
+    string calldata description
   ) public payable returns (uint64 messageSequence) {
-    bytes memory desBytes = bytes(input.description);
-    if (desBytes.length == 0) revert EmptyDescriptionProvided();
-    else if (desBytes.length > MAX_PAYABLES_DESCRIPTION_LENGTH) {
+    bytes memory descBytes = bytes(description);
+    if (descBytes.length == 0) revert EmptyDescriptionProvided();
+    else if (descBytes.length > MAX_PAYABLES_DESCRIPTION_LENGTH) {
       revert MaxPayableDescriptionReached();
     }
     messageSequence = sendPayloadMessage(
-      ACTION_ID_UPDATE_PAYABLE_DESCRIPTION,
-      abi.encode(input)
+      CbPayloadMessage({
+        actionId: ACTION_ID_UPDATE_PAYABLE_DESCRIPTION,
+        caller: toWormholeFormat(msg.sender),
+        payableId: payableId,
+        description: description,
+        token: toWormholeFormat(address(0)),
+        amount: 0,
+        allowsFreePayments: false,
+        tokensAndAmounts: new CbTokenAndAmount[](0)
+      })
     );
   }
 
   /// Transfers the amount of tokens from a payer to a payable.
-  /// @param input necessary info for the payment.
+  ///
+  /// @param payableId The payable's Wormhole-normalized address to pay into.
+  /// @param token The Wormhole-normalized address of the token been paid.
+  /// Provide the address of this token as bridged on Solana.
+  /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
+  /// token.
   /// @return messageSequence Wormhole message sequence for the Wormhole token
   /// bridge contract. This sequence is incremented (per message) for each
   /// message emitter.
   function pay(
-    CbTransaction memory input
+    bytes32 payableId,
+    bytes32 token,
+    uint128 amount
   ) public payable nonReentrant returns (uint64 messageSequence) {
     // Perform necessary checks
     uint16 targetChain = CHAIN_ID_SOLANA;
-    token = tokenBridge().wrappedAsset(targetChain, input.details.token);
-    if (token == address(0)) revert TokenNotAttested();
+    address localToken = tokenBridge().wrappedAsset(targetChain, token);
+    if (localToken == address(0)) revert TokenNotAttested();
 
-    uint8 decimals = getDecimals(token);
-    uint256 amount = denormalizeAmount(input.details.amount, decimals);
-    if (amount == 0 || inputs.details.amount) revert ZeroAmountSpecified();
+    uint8 decimals = getDecimals(localToken);
+    uint256 denormalized = denormalizeAmount(amount, decimals);
+    if (amount == 0 || denormalized == 0) revert ZeroAmountSpecified();
 
     bytes32 targetContract = getRegisteredEmitter(targetChain);
     if (targetContract == bytes32(0)) revert EmitterNotRegistered();
@@ -149,18 +214,19 @@ contract Chainbills is
 
     // transfer tokens from user to the this contract and
     // approve the token bridge to spend the specified tokens
-    uint256 amountReceived = custodyTokens(token, amount);
+    uint256 amountReceived = custodyTokens(localToken, denormalized);
     ITokenBridge bridge = tokenBridge();
-    SafeERC20.safeApprove(IERC20(token), address(bridge), amountReceived);
+    SafeERC20.safeIncreaseAllowance(
+      IERC20(localToken),
+      address(bridge),
+      amountReceived
+    );
 
-    /**
-     * Call `transferTokensWithPayload`method on the token bridge and pay
-     * the Wormhole network fee. The token bridge will emit a Wormhole
-     * message with an encoded `TransferWithPayload` struct (see the
-     * ITokenBridge.sol interface file in this repo).
-     */
+    // Call `transferTokensWithPayload`method on the token bridge and pay
+    // the Wormhole network fee. The token bridge will emit a Wormhole
+    // message with an encoded `TransferWithPayload` struct
     messageSequence = bridge.transferTokensWithPayload{value: wormholeFee}(
-      token,
+      localToken,
       amountReceived,
       targetChain,
       targetContract,
@@ -169,7 +235,12 @@ contract Chainbills is
         CbPayloadMessage({
           actionId: ACTION_ID_PAY,
           caller: toWormholeFormat(msg.sender),
-          input: abi.encode(input)
+          payableId: payableId,
+          token: token,
+          amount: amount,
+          allowsFreePayments: false,
+          tokensAndAmounts: new CbTokenAndAmount[](0),
+          description: ''
         })
       )
     );
@@ -179,9 +250,33 @@ contract Chainbills is
   /// @dev Should be called only by the host (user) that owns the payable.
   /// otherwise the Solana will reject the payload message. Also, the
   /// details should have positive balances in the payable.
-  /// @param input necessary info for the withdrawal.
-  function withdraw(CbTransaction memory inpu) public payable {
-    sendPayloadMessage(ACTION_ID_WITHDRAW, abi.encode(input));
+  ///
+  /// @param payableId The payable's Wormhole-normalized address to withdraw
+  /// from.
+  /// @param token The Wormhole-normalized address of the token been paid.
+  /// Provide the address of this token as bridged on Solana.
+  /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
+  /// token.
+  /// @return messageSequence Wormhole message sequence for the Wormhole token
+  /// bridge contract. This sequence is incremented (per message) for each
+  /// message emitter.
+  function withdraw(
+    bytes32 payableId,
+    bytes32 token,
+    uint128 amount
+  ) public payable returns (uint64 messageSequence) {
+    messageSequence = sendPayloadMessage(
+      CbPayloadMessage({
+        actionId: ACTION_ID_WITHDRAW,
+        caller: toWormholeFormat(msg.sender),
+        payableId: payableId,
+        token: token,
+        amount: amount,
+        allowsFreePayments: false,
+        tokensAndAmounts: new CbTokenAndAmount[](0),
+        description: ''
+      })
+    );
   }
 
   /// Completes the withdrawal from Solana that was initiated by the {withdraw}
@@ -193,26 +288,26 @@ contract Chainbills is
   /// @param encoded Encoded `TransferWithPayload` message
   function completeWithdrawal(bytes memory encoded) public {
     // Parse the encoded Wormhole message
-    // SECURITY: This message must first be verified by the Wormhole core layer
-    // before it can be used.
+    // SECURITY: Just parseVM is called instead of parseAndVerifyVM since
+    // consequent calls to the TokenBridge will verify the encoded message.
     IWormhole.VM memory parsed = wormhole().parseVM(encoded);
 
     // Obtain the previously saved token address for this transfer
-    address token = tokenBridge().wrappedAsset(
-      payload.toUint16(65),
-      payload.toBytes32(33)
-    );
+    uint256 _payloadIndex = 33;
+    bytes32 sourceAddress;
+    uint16 sourceChain;
+    (sourceAddress, _payloadIndex) = parsed.payload.asBytes32(_payloadIndex);
+    (sourceChain, _payloadIndex) = parsed.payload.asUint16(_payloadIndex);
+    address token = tokenBridge().wrappedAsset(sourceChain, sourceAddress);
     if (token == address(0)) revert TokenNotAttested();
 
     // check balance before completing the transfer
     uint256 balanceBefore = getBalance(token);
 
     ITokenBridge bridge = tokenBridge();
-    /**
-     * Call `completeTransferWithPayload` on the token bridge. This
-     * method acts as a reentrancy protection since it does not allow
-     * transfers to be redeemed more than once.
-     */
+    // Call `completeTransferWithPayload` on the token bridge. This
+    // method acts as a reentrancy protection since it does not allow
+    // transfers to be redeemed more than once.
     bytes memory transferPayload = bridge.completeTransferWithPayload(encoded);
 
     // compute and save the balance difference after completing the transfer
@@ -236,8 +331,7 @@ contract Chainbills is
   }
 
   function sendPayloadMessage(
-    uint8 actionId,
-    bytes memory input
+    CbPayloadMessage memory payload
   ) internal returns (uint64 messageSequence) {
     // Ensure sufficient fee was provided.
     IWormhole wh = wormhole();
@@ -248,13 +342,7 @@ contract Chainbills is
 
     messageSequence = wh.publishMessage(
       0, // batchId. 0 for no batching.
-      encodePayloadMessage(
-        CbPayloadMessage({
-          actionId: actionId,
-          caller: toWormholeFormat(msg.sender),
-          input: input
-        })
-      ),
+      encodePayloadMessage(payload),
       wormholeFinality()
     );
   }

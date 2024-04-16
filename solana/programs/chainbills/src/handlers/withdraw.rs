@@ -1,13 +1,9 @@
-use crate::{constants::*, context::*, error::ChainbillsError, events::*, payload::*, state::*};
+use crate::{constants::*, context::*, error::ChainbillsError, events::*, state::*};
 use anchor_lang::{prelude::*, solana_program::clock};
 use anchor_spl::token::{self, Transfer as SplTransfer};
-use wormhole_anchor_sdk::token_bridge::SEED_PREFIX_SENDER;
+use wormhole_anchor_sdk::token_bridge;
 
-fn check_withdraw_inputs(
-  amount: u64,
-  mint: Account<'info, Mint>,
-  payable: Account<'info, Payable>,
-) -> Result<()> {
+fn check_withdraw_inputs(amount: u64, mint: [u8; 32], payable: &Account<Payable>) -> Result<()> {
   // Ensure that amount is greater than zero
   require!(amount > 0, ChainbillsError::ZeroAmountSpecified);
 
@@ -16,7 +12,7 @@ fn check_withdraw_inputs(
   //   payable's balances.
   let mut bals_it = payable.balances.iter().peekable();
   while let Some(balance) = bals_it.next() {
-    if balance.token == mint.key().to_bytes() {
+    if balance.token == mint {
       if balance.amount < amount {
         return err!(ChainbillsError::InsufficientWithdrawAmount);
       } else {
@@ -33,10 +29,11 @@ fn check_withdraw_inputs(
 
 fn update_state_for_withdrawal(
   amount: u64,
-  global_stats: Account<'info, GlobalStats>,
-  payable: Account<'info, Payable>,
-  host: Account<'info, User>,
-  withdrawal: Account<'info, Withdrawal>,
+  mint: [u8; 32],
+  global_stats: &mut Account<GlobalStats>,
+  payable: &mut Account<Payable>,
+  host: &mut Account<User>,
+  withdrawal: &mut Account<Withdrawal>,
 ) -> Result<()> {
   // Increment the global_stats for withdrawals_count.
   global_stats.withdrawals_count = global_stats.withdrawals_count.checked_add(1).unwrap();
@@ -46,7 +43,7 @@ fn update_state_for_withdrawal(
 
   // Deduct the balances on the involved payable.
   for balance in payable.balances.iter_mut() {
-    if balance.token == mint.key().to_bytes() {
+    if balance.token == mint {
       balance.amount = balance.amount.checked_sub(amount).unwrap();
       break;
     }
@@ -63,7 +60,7 @@ fn update_state_for_withdrawal(
   withdrawal.host_count = host.withdrawals_count;
   withdrawal.timestamp = clock::Clock::get()?.unix_timestamp as u64;
   withdrawal.details = TokenAndAmount {
-    token: mint.key().to_bytes(),
+    token: mint,
     amount: amount,
   };
 
@@ -89,7 +86,7 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   // CHECKS
   let payable = ctx.accounts.payable.as_mut();
   let mint = &ctx.accounts.mint;
-  check_withdraw_inputs(amount, mint, payable);
+  check_withdraw_inputs(amount, mint.key().to_bytes(), payable)?;
 
   // TRANSFER
   let destination = &ctx.accounts.host_token_account;
@@ -119,7 +116,14 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   let withdrawal = ctx.accounts.withdrawal.as_mut();
 
   // STATE UPDATES
-  update_state_for_withdrawal(amount, global_stats, payable, host, withdrawal)
+  update_state_for_withdrawal(
+    amount,
+    mint.key().to_bytes(),
+    global_stats,
+    payable,
+    host,
+    withdrawal,
+  )
 }
 
 /// Transfers the amount of tokens from a payable to its host on another
@@ -139,21 +143,22 @@ pub fn withdraw_received_handler(
 ) -> Result<()> {
   let vaa = &ctx.accounts.vaa;
 
+  // ensure the actionId is as expected
+  require!(
+    vaa.data().action_id == ACTION_ID_WITHDRAW,
+    ChainbillsError::InvalidActionId
+  );
+
   // ensure the caller was expected and is valid
   require!(
     vaa.data().caller == caller && !caller.iter().all(|&x| x == 0),
     ChainbillsError::InvalidCallerAddress
   );
 
+  // save received info to prevent replay attacks
   let wormhole_received = ctx.accounts.wormhole_received.as_mut();
   wormhole_received.batch_id = vaa.batch_id();
   wormhole_received.vaa_hash = vaa_hash;
-
-  // ensure the actionId is as expected
-  require!(
-    vaa.data().action_id = ACTION_ID_WITHDRAW,
-    ChainbillsError::InvalidActionId
-  );
 
   let host = ctx.accounts.host.as_mut();
   // Ensure matching chain id and user wallet address
@@ -168,34 +173,36 @@ pub fn withdraw_received_handler(
     ChainbillsError::WrongWithdrawalsHostCountProvided
   );
 
-  let token_bridge_wrapped_mint = ctx.accounts.token_bridge_wrapped_mint;
+  let token_bridge_wrapped_mint = &ctx.accounts.token_bridge_wrapped_mint;
   let payable = ctx.accounts.payable.as_mut();
-  let CbTransaction {
-    payable_id,
-    details,
-  } = payload.extract();
 
   // Ensure the decoded payable matches the account payable
   require!(
-    payable.key().to_bytes() == payable_id,
+    payable.key().to_bytes() == vaa.data().payable_id,
     ChainbillsError::NotMatchingPayableId
   );
 
-  // Ensure matching token and amount
+  // Ensure matching token
   require!(
-    details.token == token_bridge_wrapped_mint.key().to_bytes(),
+    vaa.data().token == token_bridge_wrapped_mint.key().to_bytes(),
     ChainbillsError::NotMatchingTransactionToken
-  );
-  require!(
-    details.amount == amount,
-    ChainbillsError::NotMatchingTransactionAmount
   );
 
   // Check other inputs
-  check_withdraw_inputs(details.amount, token_bridge_wrapped_mint, payable);
+  check_withdraw_inputs(
+    vaa.data().amount,
+    token_bridge_wrapped_mint.key().to_bytes(),
+    payable,
+  )?;
 
   // TODO: Do Wormhole de/normalise on amount before substracting fees and sending
-  let amount_minus_fees = amount.checked_mul(98).unwrap().checked_div(100).unwrap();
+  let amount_minus_fees = vaa
+    .data()
+    .amount
+    .checked_mul(98)
+    .unwrap()
+    .checked_div(100)
+    .unwrap();
 
   // TRANSFER
   // Approve spending by token bridge
@@ -241,7 +248,7 @@ pub fn withdraw_received_handler(
         &[
           SEED_PREFIX_SENDING,
           &ctx.accounts.sequence.next_value().to_le_bytes()[..],
-          &[*ctx.bumps.wormhole_message],
+          &[ctx.bumps.wormhole_message],
         ],
       ],
     ),
@@ -249,12 +256,19 @@ pub fn withdraw_received_handler(
     amount_minus_fees,
     ctx.accounts.foreign_contract.address,
     vaa.emitter_chain(),
-    vaa.payload.1, // Send the payload message as what was originally received.
+    vaa.payload.1.try_to_vec()?, // Send the payload message as what was originally received.
     &ctx.program_id.key(),
   )?;
 
   // STATE UPDATES
   let global_stats = ctx.accounts.global_stats.as_mut();
   let withdrawal = ctx.accounts.withdrawal.as_mut();
-  update_state_for_withdrawal(details.amount, global_stats, payable, host, withdrawal)
+  update_state_for_withdrawal(
+    vaa.data().amount,
+    token_bridge_wrapped_mint.key().to_bytes(),
+    global_stats,
+    payable,
+    host,
+    withdrawal,
+  )
 }

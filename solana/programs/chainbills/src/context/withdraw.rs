@@ -7,7 +7,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 pub struct Withdraw<'info> {
   #[account(
         init,
-        seeds = [key().to_bytes().as_ref(),
+        seeds = [signer.key().to_bytes().as_ref(),
             Withdrawal::SEED_PREFIX,
             &host.next_withdrawal().to_le_bytes()[..]],
         bump,

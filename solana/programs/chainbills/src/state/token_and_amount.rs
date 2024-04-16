@@ -10,13 +10,12 @@ use anchor_lang::prelude::*;
 pub struct TokenAndAmount {
   /// The Wormhole-normalized address of the associated token mint.
   /// This should be the bridged address on Solana.
-  pub token: [u8; 32],
+  pub token: [u8; 32], // 32 bytes
 
   /// The Wormhole-normalized (with 8 decimals) amount of the token.
-  /// u128 is used instead of u64 for compatibility with other chains.
-  pub amount: u128,
+  pub amount: u64, // 8 bytes
 }
 
 impl TokenAndAmount {
-  pub const SPACE: usize = 32 + 16;
+  pub const SPACE: usize = 32 + 8;
 }

@@ -193,7 +193,7 @@ contract Chainbills is
   function pay(
     bytes32 payableId,
     bytes32 token,
-    uint128 amount
+    uint256 amount
   ) public payable nonReentrant returns (uint64 messageSequence) {
     // Perform necessary checks
     uint16 targetChain = CHAIN_ID_SOLANA;
@@ -263,7 +263,7 @@ contract Chainbills is
   function withdraw(
     bytes32 payableId,
     bytes32 token,
-    uint128 amount
+    uint256 amount
   ) public payable returns (uint64 messageSequence) {
     messageSequence = sendPayloadMessage(
       CbPayloadMessage({

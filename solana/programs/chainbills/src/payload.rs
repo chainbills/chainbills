@@ -31,7 +31,7 @@ pub struct CbPayloadMessage {
   /// Necessary when the `action_id` is 5 or 6. That is, for "Pay" and
   /// "Withdraw" methods. Essentially, this is the amount involved in
   /// the transaction.
-  pub amount: u128,
+  pub amount: u64,
   /// Whether a payable allows payments of any amount of any token.
   ///
   /// Necesary when the `action_id` is 1.
@@ -71,9 +71,9 @@ impl CbPayloadMessage {
       };
       index += 32;
       let _amount = {
-        let mut out = [0u8; 16];
+        let mut out = [0u8; 8];
         out.copy_from_slice(&buf[index..(index + 17)]);
-        u128::from_be_bytes(out) as u128
+        u64::from_be_bytes(out) as u64
       };
       index += 16;
       taas.push(TokenAndAmount {
@@ -157,7 +157,7 @@ impl AnchorDeserialize for CbPayloadMessage {
 
     let mut payable_id = [0u8; 32];
     let mut token = [0u8; 32];
-    let mut amount = 0u128;
+    let mut amount = 0u64;
     let mut allows_free_payments = false;
     let mut tokens_and_amounts_serialized = [0u8; 1 + MAX_PAYABLES_TOKENS * TokenAndAmount::SPACE];
     let mut description_serialized = [0u8; 2 + MAX_PAYABLES_DESCRIPTION_LENGTH];

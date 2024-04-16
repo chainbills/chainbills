@@ -41,7 +41,7 @@ contract CbStructs {
     /// This should be the bridged address on Solana.
     bytes32 token;
     /// The Wormhole-normalized (with 8 decimals) amount of the token.
-    uint128 amount;
+    uint256 amount;
   }
 
   /// Details of the payload being sent to Wormhole.
@@ -77,7 +77,7 @@ contract CbStructs {
     /// Necessary when the `actionId` is 5 or 6. That is, for "Pay" and
     /// "Withdraw" methods. Essentially, this is the amount involved in
     /// the transaction.
-    uint128 amount;
+    uint256 amount;
     /// Whether a payable allows payments of any amount of any token.
     ///
     /// Necesary when the `actionId` is 1. That is, when initializing a

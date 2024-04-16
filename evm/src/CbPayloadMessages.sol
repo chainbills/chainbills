@@ -36,7 +36,7 @@ contract CbPayloadMessages is CbStructs, CbErrors {
           encoded = abi.encodePacked(
             encoded,
             parsed.tokensAndAmounts[i].token,
-            parsed.tokensAndAmounts[i].amount
+            uint64(parsed.tokensAndAmounts[i].amount)
           );
         }
       }
@@ -60,7 +60,11 @@ contract CbPayloadMessages is CbStructs, CbErrors {
       }
 
       if (parsed.actionId == 5 || parsed.actionId == 6) {
-        encoded = abi.encodePacked(encoded, parsed.token, parsed.amount);
+        encoded = abi.encodePacked(
+          encoded,
+          parsed.token,
+          uint64(parsed.amount)
+        );
       }
     } else {
       revert InvalidPayloadMessage();

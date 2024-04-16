@@ -66,13 +66,13 @@ impl CbPayloadMessage {
     for _i in 0..taas_length {
       let _token = {
         let mut out = [0u8; 32];
-        out.copy_from_slice(&buf[index..(index + 33)]);
+        out.copy_from_slice(&buf[index..(index + 32)]);
         out
       };
       index += 32;
       let _amount = {
         let mut out = [0u8; 8];
-        out.copy_from_slice(&buf[index..(index + 17)]);
+        out.copy_from_slice(&buf[index..(index + 16)]);
         u64::from_be_bytes(out) as u64
       };
       index += 16;
@@ -150,7 +150,7 @@ impl AnchorDeserialize for CbPayloadMessage {
 
     let caller = {
       let mut out = [0u8; 32];
-      out.copy_from_slice(&buf[index..33]);
+      out.copy_from_slice(&buf[index..(index + 32)]);
       out
     };
     index += 32;
@@ -191,39 +191,103 @@ impl AnchorDeserialize for CbPayloadMessage {
         let _start: &[u8] = &[taas_length];
         let taas_bytes_length = (taas_length as usize) * TokenAndAmount::SPACE;
         tokens_and_amounts_serialized
-          .copy_from_slice(&[_start, &buf[index..(index + 1 + taas_bytes_length)]].concat());
+          .copy_from_slice(&[_start, &buf[index..(index + taas_bytes_length)]].concat());
         index += taas_bytes_length;
       }
+
+      let desc_length = {
+        let mut out = [0u8; 2];
+        out.copy_from_slice(&buf[index..(index + 2)]);
+        u16::from_be_bytes(out) as u16
+      };
+      index += 2;
+
+      if (desc_length as usize) > MAX_PAYABLES_DESCRIPTION_LENGTH {
+        return Err(io::Error::new(
+          io::ErrorKind::InvalidInput,
+          "InvalidPayloadMessage",
+        ));
+      }
+
+      let _start: &[u8] = desc_length.to_be_bytes().as_slice();
+      description_serialized.copy_from_slice(
+        &[
+          desc_length.to_be_bytes().as_slice(),
+          &buf[index..(index + (desc_length as usize))],
+        ]
+        .concat(),
+      );
+      index += desc_length as usize;
+
+      // confirm that the message was the payload has ended
+      if index != buf.len() {
+        return Err(io::Error::new(
+          io::ErrorKind::InvalidInput,
+          "InvalidPayloadMessage",
+        ));
+      }
     } else if action_id > 1 && action_id <= 6 {
+      payable_id = {
+        let mut out = [0u8; 32];
+        out.copy_from_slice(&buf[index..(index + 32)]);
+        out
+      };
+      index += 32;
+
+      if action_id == 4 {
+        let desc_length = {
+          let mut out = [0u8; 2];
+          out.copy_from_slice(&buf[index..(index + 2)]);
+          u16::from_be_bytes(out) as u16
+        };
+        index += 2;
+
+        if (desc_length as usize) > MAX_PAYABLES_DESCRIPTION_LENGTH {
+          return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "InvalidPayloadMessage",
+          ));
+        }
+
+        let _start: &[u8] = desc_length.to_be_bytes().as_slice();
+        description_serialized.copy_from_slice(
+          &[
+            desc_length.to_be_bytes().as_slice(),
+            &buf[index..(index + (desc_length as usize))],
+          ]
+          .concat(),
+        );
+        index += desc_length as usize;
+      }
+
+      if action_id == 5 || action_id == 6 {
+        token = {
+          let mut out = [0u8; 32];
+          out.copy_from_slice(&buf[index..(index + 32)]);
+          out
+        };
+        index += 32;
+        amount = {
+          let mut out = [0u8; 8];
+          out.copy_from_slice(&buf[index..(index + 16)]);
+          u64::from_be_bytes(out) as u64
+        };
+        index += 16;
+      }
+
+      // confirm that the message was the payload has ended
+      if index != buf.len() {
+        return Err(io::Error::new(
+          io::ErrorKind::InvalidInput,
+          "InvalidPayloadMessage",
+        ));
+      }
     } else {
       return Err(io::Error::new(
         io::ErrorKind::InvalidInput,
         "InvalidPayloadMessage",
       ));
     }
-
-    // match buf[0] {
-
-    // PAYLOAD_ID_ALIVE => Ok(HelloWorldMessage::Alive {
-    //   program_id: Pubkey::try_from(&buf[1..33]).unwrap(),
-    // }),
-    // PAYLOAD_ID_HELLO => {
-    //   let length = {
-    //     let mut out = [0u8; 2];
-    //     out.copy_from_slice(&buf[1..3]);
-    //     u16::from_be_bytes(out) as usize
-    //   };
-    //   if length > HELLO_MESSAGE_MAX_LENGTH {
-    //     Err(io::Error::new(
-    //       io::ErrorKind::InvalidInput,
-    //       format!("message exceeds {HELLO_MESSAGE_MAX_LENGTH} bytes"),
-    //     ))
-    //   } else {
-    //     Ok(HelloWorldMessage::Hello {
-    //       message: buf[3..(3 + length)].to_vec(),
-    //     })
-    //   }
-    // }
 
     Ok(CbPayloadMessage {
       action_id,

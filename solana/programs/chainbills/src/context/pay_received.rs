@@ -44,6 +44,9 @@ pub struct PayReceived<'info> {
     )]
   pub config: Box<Account<'info, Config>>,
 
+  #[account(mut, seeds = [ChainStats::SEED_PREFIX, &vaa.emitter_chain().to_le_bytes()[..]], bump)]
+  pub chain_stats: Box<Account<'info, ChainStats>>,
+
   #[account(
         seeds = [
             ForeignContract::SEED_PREFIX,
@@ -61,7 +64,7 @@ pub struct PayReceived<'info> {
         mut,
         seeds = [
             token_bridge::WrappedMint::SEED_PREFIX,
-            &vaa.data().token_chain().to_be_bytes(),
+            &vaa.data().token_chain().to_le_bytes(),
             vaa.data().token_address()
         ],
         bump,

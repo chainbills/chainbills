@@ -7,6 +7,10 @@ pub struct Withdrawal {
   /// withdrawal was made.
   pub global_count: u64, // 8 bytes
 
+  /// The nth count of withdrawals on the calling chain at the point
+  /// this withdrawal was made.
+  pub chain_count: u64, // 8 bytes
+
   /// The address of the Payable from which this Withdrawal was made.
   pub payable: Pubkey, // 32 bytes
 
@@ -30,8 +34,8 @@ pub struct Withdrawal {
 }
 
 impl Withdrawal {
-  // discrimator first
-  pub const SPACE: usize = 8 + 8 + 32 + 32 + 8 + 8 + 8 + TokenAndAmount::SPACE;
+  // discriminator (8) included
+  pub const SPACE: usize = (6 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
   /// AKA `b"withdrawal"`.
   #[constant]

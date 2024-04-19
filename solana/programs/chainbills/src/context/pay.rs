@@ -1,6 +1,7 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
+use wormhole_anchor_sdk::wormhole;
 
 #[derive(Accounts)]
 #[instruction(amount: u64)]
@@ -26,6 +27,9 @@ pub struct Pay<'info> {
 
   #[account(mut, seeds=[GlobalStats::SEED_PREFIX], bump)]
   pub global_stats: Box<Account<'info, GlobalStats>>,
+
+  #[account(mut, seeds = [ChainStats::SEED_PREFIX, &wormhole::CHAIN_ID_SOLANA.to_le_bytes()[..]], bump)]
+  pub chain_stats: Box<Account<'info, ChainStats>>,
 
   pub mint: Box<Account<'info, Mint>>,
 

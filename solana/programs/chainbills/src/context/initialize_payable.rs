@@ -1,5 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use wormhole_anchor_sdk::wormhole;
 
 #[derive(Accounts)]
 #[instruction(
@@ -26,6 +27,9 @@ pub struct InitializePayable<'info> {
 
   #[account(mut, seeds = [GlobalStats::SEED_PREFIX], bump)]
   pub global_stats: Box<Account<'info, GlobalStats>>,
+
+  #[account(mut, seeds = [ChainStats::SEED_PREFIX, &wormhole::CHAIN_ID_SOLANA.to_le_bytes()[..]], bump)]
+  pub chain_stats: Box<Account<'info, ChainStats>>,
 
   #[account(mut)]
   pub signer: Signer<'info>,

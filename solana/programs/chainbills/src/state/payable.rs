@@ -1,4 +1,3 @@
-
 use crate::constants::*;
 use crate::state::TokenAndAmount;
 use anchor_lang::prelude::*;
@@ -7,6 +6,10 @@ use anchor_lang::prelude::*;
 pub struct Payable {
   /// The nth count of global payables at the point this payable was created.
   pub global_count: u64, // 8 bytes
+
+  /// The nth count of payables on the calling chain at the point this payable
+  /// was created.
+  pub chain_count: u64, // 8 bytes
 
   /// The address of the User account that owns this Payable.
   pub host: Pubkey, // 32 bytes
@@ -44,19 +47,12 @@ pub struct Payable {
 }
 
 impl Payable {
-  // discriminator first
-  pub const SPACE: usize = 8
-    + 8
+  // discriminator (8) included
+  pub const SPACE: usize = (2 * 1)
+    + (7 * 8)
     + 32
-    + 8
     + MAX_PAYABLES_DESCRIPTION_LENGTH
-    + MAX_PAYABLES_TOKENS * TokenAndAmount::SPACE
-    + MAX_PAYABLES_TOKENS * TokenAndAmount::SPACE
-    + 1
-    + 8
-    + 8
-    + 8
-    + 1;
+    + (2 * MAX_PAYABLES_TOKENS * TokenAndAmount::SPACE);
 
   /// AKA `b"payable"`.
   #[constant]

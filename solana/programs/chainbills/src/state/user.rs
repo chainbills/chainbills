@@ -11,6 +11,10 @@ pub struct User {
   /// The nth count of global users at the point this user was initialized.
   pub global_count: u64, // 8 bytes
 
+  /// The nth count of users on the calling chain at the point this user was 
+  /// initialized.
+  pub chain_count: u64, // 8 bytes
+
   /// Total number of payables that this user has ever created.
   pub payables_count: u64, // 8 bytes
 
@@ -22,7 +26,8 @@ pub struct User {
 }
 
 impl User {
-  pub const SPACE: usize = 32 + 2 + (4 * 8);
+  // discriminator (8) included
+  pub const SPACE: usize = 32 + 2 + (6 * 8);
 
   pub fn next_payable(&self) -> u64 {
     self.payables_count.checked_add(1).unwrap()

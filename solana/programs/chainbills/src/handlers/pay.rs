@@ -46,12 +46,16 @@ fn update_state_for_payment(
   amount: u64,
   mint: [u8; 32],
   global_stats: &mut Account<GlobalStats>,
+  chain_stats: &mut Account<ChainStats>,
   payable: &mut Account<Payable>,
   payer: &mut Account<User>,
   payment: &mut Account<Payment>,
 ) -> Result<()> {
   // Increment the global stats for payments_count.
   global_stats.payments_count = global_stats.payments_count.checked_add(1).unwrap();
+
+  // Increment the chain stats for payables_count.
+  chain_stats.payables_count = chain_stats.payables_count.checked_add(1).unwrap();
 
   // Increment payments_count on involved payable.
   payable.payments_count = payable.payments_count.checked_add(1).unwrap();
@@ -84,6 +88,7 @@ fn update_state_for_payment(
 
   // Initialize the payment.
   payment.global_count = global_stats.payments_count;
+  payment.chain_count = chain_stats.payables_count;
   payment.payable = payable.key();
   payment.payer = payer.key();
   payment.payer_count = payer.payments_count;
@@ -95,13 +100,15 @@ fn update_state_for_payment(
   };
 
   msg!(
-    "Payment was made with global_count: {}, payable_count: {}, and payer_count: {}.",
+    "Payment was made with global_count: {}, chain_count: {}, payable_count: {}, and payer_count: {}.",
     payment.global_count,
+    payment.chain_count,
     payment.payable_count,
     payment.payer_count
   );
   emit!(PayEvent {
     global_count: payment.global_count,
+    chain_count: payment.chain_count,
     payable_count: payment.payable_count,
     payer_count: payment.payer_count,
   });
@@ -135,12 +142,14 @@ pub fn pay_handler(ctx: Context<Pay>, amount: u64) -> Result<()> {
 
   // STATE UPDATES
   let global_stats = ctx.accounts.global_stats.as_mut();
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
   let payer = ctx.accounts.payer.as_mut();
   let payment = ctx.accounts.payment.as_mut();
   update_state_for_payment(
     amount,
     mint.key().to_bytes(),
     global_stats,
+    chain_stats,
     payable,
     payer,
     payment,
@@ -201,20 +210,27 @@ pub fn pay_received_handler(
     let global_stats = ctx.accounts.global_stats.as_mut();
     global_stats.users_count = global_stats.users_count.checked_add(1).unwrap();
 
+    // increment chain count for users
+    let chain_stats = ctx.accounts.chain_stats.as_mut();
+    chain_stats.users_count = chain_stats.users_count.checked_add(1).unwrap();
+
     // initialize the payer if that has not yet been done
     payer.owner_wallet = payload.caller;
     payer.chain_id = vaa.emitter_chain();
     payer.global_count = global_stats.users_count;
+    payer.chain_count = global_stats.users_count;
     payer.payables_count = 0;
     payer.payments_count = 0;
     payer.withdrawals_count = 0;
 
     msg!(
-      "Initialized user with global_count: {}.",
-      payer.global_count
+      "Initialized user with global_count: {} and chain_count: {}.",
+      payer.global_count,
+      payer.chain_count
     );
     emit!(InitializedUserEvent {
       global_count: payer.global_count,
+      chain_count: payer.chain_count
     });
   } else {
     // Ensure matching chain id and user wallet address
@@ -283,11 +299,13 @@ pub fn pay_received_handler(
 
   // STATE UPDATES
   let global_stats = ctx.accounts.global_stats.as_mut();
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
   let payment = ctx.accounts.payment.as_mut();
   update_state_for_payment(
     normalized,
     token_bridge_wrapped_mint.key().to_bytes(),
     global_stats,
+    chain_stats,
     payable,
     payer,
     payment,

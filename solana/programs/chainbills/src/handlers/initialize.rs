@@ -25,7 +25,11 @@ pub fn initialize_handler(ctx: Context<Initialize>) -> Result<()> {
   let global_stats = ctx.accounts.global_stats.as_mut();
   global_stats.initialize();
 
-  msg!("Initialized config and global_stats.");
+  // Initialize Solana's chain_stats account.
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
+  chain_stats.initialize(wormhole::CHAIN_ID_SOLANA);
+
+  msg!("Initialized Config, GlobalStats, and Solana's ChainStats.");
   emit!(InitializedEvent {});
   Ok(())
 }

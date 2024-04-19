@@ -16,7 +16,7 @@ pub mod chainbills {
   use super::*;
 
   /// Initialize the program. Specifically initialize the program's
-  /// Config, GlobalStats, and SequenceTracker.
+  /// Config, GlobalStats, and Solana's ChainStats.
   ///
   /// Config holds addresses and infos that this program will use to interact
   /// with Wormhole. Other method handlers would reference properties of
@@ -27,18 +27,14 @@ pub mod chainbills {
   /// Initializing any other entity must increment the appropriate count in
   /// GlobalStats.
   ///
-  /// The SequenceTracker is managed by Wormhole to ensure that this program
-  /// doesn't become a victim of replay attacks. That is, the program will
-  /// auto-fail a resend of an already parsed/executed VAA if the
-  /// PDA that matches a given sequence has already been initialized (or used).
-  /// For this replay-prevention to work, SequenceTracker should be initialized
-  /// in this first program call. It is initialized by posting an arbitrary
-  /// message to Wormhole.
+  /// ChainStats is like GlobalStats but just for each BlockChain Network 
+  /// involved in Chainbills. Solana's ChainStats also gets initialized here.
   pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
     handlers::initialize_handler(ctx)
   }
 
-  /// Register a trusted contract or Wormhole emitter from another chain
+  /// Register (or update) a trusted contract or Wormhole emitter from another 
+  /// chain. Also register that chain's ChainStats if need be.
   ///
   /// ### Arguments
   /// * `ctx`     - `RegisterForeignEmitter` context

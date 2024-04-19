@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[account]
+/// Keeps track of all activity accounts across Chainbills.
 pub struct GlobalStats {
   /// Total number of users that have ever been initialized.
   pub users_count: u64, // 8 bytes
@@ -16,8 +17,8 @@ pub struct GlobalStats {
 }
 
 impl GlobalStats {
-  // discriminator first
-  pub const SPACE: usize = 8 + (4 * 8);
+  // discriminator (8) included
+  pub const SPACE: usize = 5 * 8;
 
   /// AKA `b"global"`.
   #[constant]

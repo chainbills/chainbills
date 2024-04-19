@@ -4,7 +4,7 @@ use wormhole_anchor_sdk::{token_bridge, wormhole};
 
 #[derive(Accounts)]
 /// Context used to Initialize core program data (Config, GlobalStats,
-/// SequenceTracker).
+/// Solana's ChainStats).
 pub struct Initialize<'info> {
   #[account(mut)]
   /// Whoever initializes the config will be the owner of the program. Signer
@@ -37,6 +37,17 @@ pub struct Initialize<'info> {
   /// and Withdrawals) in Chainbills. It is also the signer PDA for the holding
   /// balances in this program.
   pub global_stats: Box<Account<'info, GlobalStats>>,
+
+  #[account(
+      init,
+      payer = owner,
+      seeds = [ChainStats::SEED_PREFIX, &wormhole::CHAIN_ID_SOLANA.to_le_bytes()[..]],
+      bump,
+      space = ChainStats::SPACE
+  )]
+  /// Keeps track of the counts of all entities (Users, Payables, Payments,
+  /// and Withdrawals) initialized on Solana Chain in Chainbills.
+  pub chain_stats: Box<Account<'info, ChainStats>>,
 
   #[account(
         init,

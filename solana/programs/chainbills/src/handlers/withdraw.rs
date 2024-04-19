@@ -31,12 +31,16 @@ fn update_state_for_withdrawal(
   amount: u64,
   mint: [u8; 32],
   global_stats: &mut Account<GlobalStats>,
+  chain_stats: &mut Account<ChainStats>,
   payable: &mut Account<Payable>,
   host: &mut Account<User>,
   withdrawal: &mut Account<Withdrawal>,
 ) -> Result<()> {
   // Increment the global_stats for withdrawals_count.
   global_stats.withdrawals_count = global_stats.withdrawals_count.checked_add(1).unwrap();
+
+  // Increment the chain stats for payables_count.
+  chain_stats.payables_count = chain_stats.payables_count.checked_add(1).unwrap();
 
   // Increment withdrawals_count on the involved payable.
   payable.withdrawals_count = payable.withdrawals_count.checked_add(1).unwrap();
@@ -54,6 +58,7 @@ fn update_state_for_withdrawal(
 
   // Initialize the withdrawal.
   withdrawal.global_count = global_stats.withdrawals_count;
+  withdrawal.chain_count = chain_stats.payables_count;
   withdrawal.payable = payable.key();
   withdrawal.payable_count = payable.withdrawals_count;
   withdrawal.host = host.key();
@@ -65,13 +70,15 @@ fn update_state_for_withdrawal(
   };
 
   msg!(
-    "Withdrawal was made with global_count: {}, payable_count: {}, and host_count: {}.",
+    "Withdrawal was made with global_count: {}, chain_count: {}, payable_count: {}, and host_count: {}.",
     withdrawal.global_count,
+    withdrawal.chain_count,
     withdrawal.payable_count,
     withdrawal.host_count
   );
   emit!(WithdrawalEvent {
     global_count: withdrawal.global_count,
+    chain_count: withdrawal.chain_count,
     payable_count: withdrawal.payable_count,
     host_count: withdrawal.host_count,
   });
@@ -117,6 +124,7 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   )?;
 
   let global_stats = ctx.accounts.global_stats.as_mut();
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
   let host = ctx.accounts.host.as_mut();
   let withdrawal = ctx.accounts.withdrawal.as_mut();
 
@@ -125,6 +133,7 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     amount,
     mint.key().to_bytes(),
     global_stats,
+    chain_stats,
     payable,
     host,
     withdrawal,
@@ -199,7 +208,6 @@ pub fn withdraw_received_handler(
   // Check other inputs
   check_withdraw_inputs(amount, token_bridge_wrapped_mint.key().to_bytes(), payable)?;
 
-  // TODO: Do Wormhole de/normalise on amount before substracting fees and sending
   let amount_minus_fees = denormalized
     .checked_mul(98)
     .unwrap()
@@ -264,11 +272,13 @@ pub fn withdraw_received_handler(
 
   // STATE UPDATES
   let global_stats = ctx.accounts.global_stats.as_mut();
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
   let withdrawal = ctx.accounts.withdrawal.as_mut();
   update_state_for_withdrawal(
     amount,
     token_bridge_wrapped_mint.key().to_bytes(),
     global_stats,
+    chain_stats,
     payable,
     host,
     withdrawal,

@@ -153,4 +153,7 @@ pub enum ChainbillsError {
   #[msg("NotMatchingTransactionToken")]
   /// Specified transaction token in input doesn't match what is been used.
   NotMatchingTransactionToken,
+
+  #[msg("WrongChainStatsProvided")]
+  WrongChainStatsProvided
 }

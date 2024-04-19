@@ -26,6 +26,9 @@ pub struct InitializePayableReceived<'info> {
   #[account(mut, seeds = [GlobalStats::SEED_PREFIX], bump)]
   pub global_stats: Box<Account<'info, GlobalStats>>,
 
+  #[account(mut, seeds = [ChainStats::SEED_PREFIX, &vaa.emitter_chain().to_le_bytes()[..]], bump)]
+  pub chain_stats: Box<Account<'info, ChainStats>>,
+
   #[account(mut)]
   pub signer: Signer<'info>,
 

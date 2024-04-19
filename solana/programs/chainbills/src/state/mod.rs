@@ -1,3 +1,4 @@
+pub mod chain_stats;
 pub mod config;
 pub mod foreign_contract;
 pub mod global_stats;
@@ -8,6 +9,7 @@ pub mod user;
 pub mod withdrawal;
 pub mod wormhole_received;
 
+pub use chain_stats::*;
 pub use config::*;
 pub use foreign_contract::*;
 pub use global_stats::*;

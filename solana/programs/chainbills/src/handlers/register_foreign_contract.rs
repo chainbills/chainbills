@@ -29,7 +29,19 @@ pub fn register_foreign_contract_handler(
   contract.address = address;
   contract.token_bridge_foreign_endpoint = ctx.accounts.token_bridge_foreign_endpoint.key();
 
-  msg!("Registered Foreign Contract");
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
+  if chain_stats.to_account_info().data_is_empty() {
+    // Initialize the chain_stats for this new contract's chain if not done b4.
+    chain_stats.initialize(chain);
+  } else {
+    // Else, Ensure the right chain_stats was provided
+    require!(
+      chain_stats.chain_id == chain,
+      ChainbillsError::WrongChainStatsProvided
+    );
+  }
+
+  msg!("Registered Foreign Contract and its ChainStats");
   emit!(RegisteredForeignContractEvent {});
   Ok(())
 }

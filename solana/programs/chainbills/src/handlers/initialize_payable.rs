@@ -44,6 +44,7 @@ fn check_payable_inputs(
 
 fn complete_payable_initialization(
   global_stats: &mut Account<GlobalStats>,
+  chain_stats: &mut Account<ChainStats>,
   host: &mut Account<User>,
   payable: &mut Account<Payable>,
   description: String,
@@ -53,11 +54,15 @@ fn complete_payable_initialization(
   // Increment the global stats for payables_count.
   global_stats.payables_count = global_stats.payables_count.checked_add(1).unwrap();
 
+  // Increment the chain stats for payables_count.
+  chain_stats.payables_count = chain_stats.payables_count.checked_add(1).unwrap();
+
   // Increment payables_count on the host initializing this payable.
   host.payables_count = host.payables_count.checked_add(1).unwrap();
 
   // Initialize the payable.
   payable.global_count = global_stats.payables_count;
+  payable.chain_count = chain_stats.payables_count;
   payable.host = host.key();
   payable.host_count = host.payables_count;
   payable.description = description.trim().to_owned();
@@ -70,12 +75,14 @@ fn complete_payable_initialization(
   payable.is_closed = false;
 
   msg!(
-    "Initialized payable with global_count: {} and host_count: {}.",
+    "Initialized Payable with global_count: {}, chain_count: {}, and host_count: {}.",
     payable.global_count,
+    payable.chain_count,
     payable.host_count
   );
   emit!(InitializedPayableEvent {
     global_count: payable.global_count,
+    chain_count: payable.chain_count,
     host_count: payable.host_count,
   });
   Ok(())
@@ -98,11 +105,13 @@ pub fn initialize_payable_handler(
   check_payable_inputs(&description, &tokens_and_amounts, allows_free_payments)?;
 
   let global_stats = ctx.accounts.global_stats.as_mut();
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
   let host = ctx.accounts.host.as_mut();
   let payable = ctx.accounts.payable.as_mut();
 
   complete_payable_initialization(
     global_stats,
+    chain_stats,
     host,
     payable,
     description,
@@ -149,17 +158,27 @@ pub fn initialize_payable_received_handler(
     let global_stats = ctx.accounts.global_stats.as_mut();
     global_stats.users_count = global_stats.users_count.checked_add(1).unwrap();
 
+    // increment chain count for users
+    let chain_stats = ctx.accounts.chain_stats.as_mut();
+    chain_stats.users_count = chain_stats.users_count.checked_add(1).unwrap();
+
     // initialize the host if that has not yet been done
     host.owner_wallet = vaa.data().caller;
     host.chain_id = vaa.emitter_chain();
     host.global_count = global_stats.users_count;
+    host.chain_count = chain_stats.users_count;
     host.payables_count = 0;
     host.payments_count = 0;
     host.withdrawals_count = 0;
 
-    msg!("Initialized user with global_count: {}.", host.global_count);
+    msg!(
+      "Initialized User with global_count: {} and chain_count: {}.",
+      host.global_count,
+      host.chain_count
+    );
     emit!(InitializedUserEvent {
       global_count: host.global_count,
+      chain_count: host.chain_count,
     });
   } else {
     // Ensure matching chain id and user wallet address
@@ -184,10 +203,12 @@ pub fn initialize_payable_received_handler(
   )?;
 
   let global_stats = ctx.accounts.global_stats.as_mut();
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
   let payable = ctx.accounts.payable.as_mut();
 
   complete_payable_initialization(
     global_stats,
+    chain_stats,
     host,
     payable,
     p.description().clone(),

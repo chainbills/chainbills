@@ -38,6 +38,9 @@ pub struct WithdrawReceived<'info> {
     )]
   pub config: Box<Account<'info, Config>>,
 
+  #[account(mut, seeds = [ChainStats::SEED_PREFIX, &vaa.emitter_chain().to_le_bytes()[..]], bump)]
+  pub chain_stats: Box<Account<'info, ChainStats>>,
+
   #[account(
         seeds = [
             ForeignContract::SEED_PREFIX,
@@ -84,7 +87,7 @@ pub struct WithdrawReceived<'info> {
         mut,
         seeds = [
             token_bridge::WrappedMint::SEED_PREFIX,
-            &token_bridge_wrapped_meta.chain.to_be_bytes(),
+            &token_bridge_wrapped_meta.chain.to_le_bytes(),
             &token_bridge_wrapped_meta.token_address
         ],
         bump,

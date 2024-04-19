@@ -3,9 +3,12 @@ use anchor_lang::prelude::*;
 
 #[account]
 pub struct Payment {
-  /// The nth count of global payments at the point this
-  /// payment was made.
+  /// The nth count of global payments at the point this payment was made.
   pub global_count: u64, // 8 bytes
+
+  /// The nth count of payments on the calling chain at the point this payment
+  /// was made.
+  pub chain_count: u64, // 8 bytes
 
   /// The address of the Payable to which this Payment was made.
   pub payable: Pubkey, // 32 bytes
@@ -29,8 +32,8 @@ pub struct Payment {
 }
 
 impl Payment {
-  // discriminator first
-  pub const SPACE: usize = 8 + 8 + 32 + 32 + 8 + 8 + 8 + TokenAndAmount::SPACE;
+  // discriminator (8) included
+  pub const SPACE: usize = (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
   /// AKA `b"payment"`.
   #[constant]

@@ -52,13 +52,13 @@ fn complete_payable_initialization(
   allows_free_payments: bool,
 ) -> Result<()> {
   // Increment the global stats for payables_count.
-  global_stats.payables_count = global_stats.payables_count.checked_add(1).unwrap();
+  global_stats.payables_count = global_stats.next_payable();
 
   // Increment the chain stats for payables_count.
-  chain_stats.payables_count = chain_stats.payables_count.checked_add(1).unwrap();
+  chain_stats.payables_count = chain_stats.next_payable();
 
   // Increment payables_count on the host initializing this payable.
-  host.payables_count = host.payables_count.checked_add(1).unwrap();
+  host.payables_count = host.next_payable();
 
   // Initialize the payable.
   payable.global_count = global_stats.payables_count;
@@ -156,11 +156,11 @@ pub fn initialize_payable_received_handler(
   if host.to_account_info().data_is_empty() {
     // increment global count for users
     let global_stats = ctx.accounts.global_stats.as_mut();
-    global_stats.users_count = global_stats.users_count.checked_add(1).unwrap();
+    global_stats.users_count = global_stats.next_user();
 
     // increment chain count for users
     let chain_stats = ctx.accounts.chain_stats.as_mut();
-    chain_stats.users_count = chain_stats.users_count.checked_add(1).unwrap();
+    chain_stats.users_count = chain_stats.next_user();
 
     // initialize the host if that has not yet been done
     host.owner_wallet = vaa.data().caller;

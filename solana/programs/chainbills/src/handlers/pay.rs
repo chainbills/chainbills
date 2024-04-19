@@ -52,13 +52,16 @@ fn update_state_for_payment(
   payment: &mut Account<Payment>,
 ) -> Result<()> {
   // Increment the global stats for payments_count.
-  global_stats.payments_count = global_stats.payments_count.checked_add(1).unwrap();
+  global_stats.payments_count = global_stats.next_payment();
 
-  // Increment the chain stats for payables_count.
-  chain_stats.payables_count = chain_stats.payables_count.checked_add(1).unwrap();
+  // Increment the chain stats for payments_count.
+  chain_stats.payments_count = chain_stats.next_payment();
+
+  // Increment payments_count in the payer that just paid.
+  payer.payments_count = payer.next_payment();
 
   // Increment payments_count on involved payable.
-  payable.payments_count = payable.payments_count.checked_add(1).unwrap();
+  payable.payments_count = payable.next_payment();
 
   // Update payable's balances to add this token and its amount.
   //
@@ -78,13 +81,10 @@ fn update_state_for_payment(
     if !was_matching_balance_updated {
       payable.balances.push(TokenAndAmount {
         token: mint,
-        amount: amount,
+        amount,
       });
     }
   }
-
-  // Increment payments_count in the payer that just paid.
-  payer.payments_count = payer.payments_count.checked_add(1).unwrap();
 
   // Initialize the payment.
   payment.global_count = global_stats.payments_count;
@@ -96,7 +96,7 @@ fn update_state_for_payment(
   payment.timestamp = clock::Clock::get()?.unix_timestamp as u64;
   payment.details = TokenAndAmount {
     token: mint,
-    amount: amount,
+    amount,
   };
 
   msg!(
@@ -208,17 +208,17 @@ pub fn pay_received_handler(
   if payer.to_account_info().data_is_empty() {
     // increment global count for users
     let global_stats = ctx.accounts.global_stats.as_mut();
-    global_stats.users_count = global_stats.users_count.checked_add(1).unwrap();
+    global_stats.users_count = global_stats.next_user();
 
     // increment chain count for users
     let chain_stats = ctx.accounts.chain_stats.as_mut();
-    chain_stats.users_count = chain_stats.users_count.checked_add(1).unwrap();
+    chain_stats.users_count = chain_stats.next_user();
 
     // initialize the payer if that has not yet been done
     payer.owner_wallet = payload.caller;
     payer.chain_id = vaa.emitter_chain();
     payer.global_count = global_stats.users_count;
-    payer.chain_count = global_stats.users_count;
+    payer.chain_count = chain_stats.users_count;
     payer.payables_count = 0;
     payer.payments_count = 0;
     payer.withdrawals_count = 0;

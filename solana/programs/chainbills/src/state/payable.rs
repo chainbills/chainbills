@@ -57,4 +57,12 @@ impl Payable {
   /// AKA `b"payable"`.
   #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"payable";
+
+  pub fn next_payment(&self) -> u64 {
+    self.payments_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_withdrawal(&self) -> u64 {
+    self.withdrawals_count.checked_add(1).unwrap()
+  }
 }

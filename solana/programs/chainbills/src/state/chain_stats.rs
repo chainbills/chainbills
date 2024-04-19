@@ -34,4 +34,20 @@ impl ChainStats {
     self.payments_count = 0;
     self.withdrawals_count = 0;
   }
+
+  pub fn next_user(&self) -> u64 {
+    self.users_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_payable(&self) -> u64 {
+    self.payables_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_payment(&self) -> u64 {
+    self.payments_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_withdrawal(&self) -> u64 {
+    self.withdrawals_count.checked_add(1).unwrap()
+  }
 }

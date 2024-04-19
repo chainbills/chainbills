@@ -34,10 +34,10 @@ impl User {
   }
 
   pub fn next_payment(&self) -> u64 {
-    self.payables_count.checked_add(1).unwrap()
+    self.payments_count.checked_add(1).unwrap()
   }
 
   pub fn next_withdrawal(&self) -> u64 {
-    self.payables_count.checked_add(1).unwrap()
+    self.withdrawals_count.checked_add(1).unwrap()
   }
 }

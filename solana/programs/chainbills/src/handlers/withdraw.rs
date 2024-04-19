@@ -37,13 +37,16 @@ fn update_state_for_withdrawal(
   withdrawal: &mut Account<Withdrawal>,
 ) -> Result<()> {
   // Increment the global_stats for withdrawals_count.
-  global_stats.withdrawals_count = global_stats.withdrawals_count.checked_add(1).unwrap();
+  global_stats.withdrawals_count = global_stats.next_withdrawal();
 
   // Increment the chain stats for payables_count.
-  chain_stats.payables_count = chain_stats.payables_count.checked_add(1).unwrap();
+  chain_stats.withdrawals_count = chain_stats.next_withdrawal();
+
+  // Increment withdrawals_count in the host that just withdrew.
+  host.withdrawals_count = host.next_withdrawal();
 
   // Increment withdrawals_count on the involved payable.
-  payable.withdrawals_count = payable.withdrawals_count.checked_add(1).unwrap();
+  payable.withdrawals_count = payable.next_withdrawal();
 
   // Deduct the balances on the involved payable.
   for balance in payable.balances.iter_mut() {
@@ -52,9 +55,6 @@ fn update_state_for_withdrawal(
       break;
     }
   }
-
-  // Increment withdrawals_count in the host that just withdrew.
-  host.withdrawals_count = host.withdrawals_count.checked_add(1).unwrap();
 
   // Initialize the withdrawal.
   withdrawal.global_count = global_stats.withdrawals_count;
@@ -66,7 +66,7 @@ fn update_state_for_withdrawal(
   withdrawal.timestamp = clock::Clock::get()?.unix_timestamp as u64;
   withdrawal.details = TokenAndAmount {
     token: mint,
-    amount: amount,
+    amount,
   };
 
   msg!(
@@ -108,7 +108,6 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     authority: authority.to_account_info().clone(),
   };
   let cpi_program = token_program.to_account_info();
-
   let amount_minus_fees = denormalized
     .checked_mul(98)
     .unwrap()

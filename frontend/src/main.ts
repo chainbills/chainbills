@@ -4,16 +4,17 @@ import 'solana-wallets-vue/styles.css';
 import 'web3-avatar-vue/dist/style.css';
 import './assets/main.css';
 
+import { createWeb3Auth } from '@kolirt/vue-web3-auth';
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import AOS from 'aos';
-import { Chains, createWeb3Auth } from '@kolirt/vue-web3-auth';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import ToastService from 'primevue/toastservice';
 import SolanaWallets from 'solana-wallets-vue';
+import { defineChain } from 'viem';
 import { createApp } from 'vue';
 import VueGtag from 'vue-gtag';
 import VueWriter from 'vue-writer';
@@ -39,8 +40,24 @@ app.use(VueWriter as any);
 app.use(
   createWeb3Auth({
     projectId: import.meta.env.VITE_WC_PROJECT_ID,
-    chains: [Chains.sepolia]
-  })
+    chains: [
+      // Chains.sepolia,
+      defineChain({
+        id: 31_337,
+        name: 'Localhost',
+        network: 'localhost',
+        nativeCurrency: {
+          decimals: 18,
+          name: 'Ether',
+          symbol: 'ETH',
+        },
+        rpcUrls: {
+          default: { http: ['http://127.0.0.1:8545'] },
+          public: { http: ['http://127.0.0.1:8545'] },
+        },
+      }),
+    ],
+  }),
 );
 
 if (!import.meta.env.DEV) {

@@ -1,39 +1,44 @@
 import { Payment } from '@/schemas/payment';
-import {
-  convertTokensForOnChain,
-  type TokenAndAmountOffChain,
-} from '@/schemas/tokens-and-amounts';
+import { type TokenAndAmountOffChain } from '@/schemas/tokens-and-amounts';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { useAnchorWallet } from 'solana-wallets-vue';
+import { useChainStore } from './chain';
+import { useEvmStore } from './evm';
 import { useServerStore } from './server';
 import { PROGRAM_ID, useSolanaStore } from './solana';
 import { useUserStore } from './user';
+import { useWalletStore } from './wallet';
 
 export const usePaymentStore = defineStore('payment', () => {
+  const chain = useChainStore();
+  const evm = useEvmStore();
   const server = useServerStore();
-  const toast = useToast();
-  const anchorWallet = useAnchorWallet();
-  const user = useUserStore();
   const solana = useSolanaStore();
-  const {
-    createATAInstruction,
-    getATAAndExists,
-    globalStats,
-    program,
-    systemProgram,
-    tokenProgram,
-  } = solana;
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  const toast = useToast();
+  const user = useUserStore();
+  const wallet = useWalletStore();
 
-  const address = (count: number): PublicKey | null => {
-    if (!anchorWallet.value) return null;
+  const get = async (id: Uint8Array): Promise<Payment | null> => {
+    try {
+      const data = (await solana
+        .program()
+        .account.payment.fetch(new PublicKey(id))) as any;
+      const { chain, ownerWallet } = await user.get(data.host);
+      return new Payment(id, chain, ownerWallet, data);
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+      return null;
+    }
+  };
+
+  const pubkey = (count: number): PublicKey | null => {
+    if (!wallet.whAddress) return null;
     return PublicKey.findProgramAddressSync(
       [
-        anchorWallet.value!.publicKey.toBuffer(),
+        wallet.whAddress,
         Buffer.from('payment'),
         new BN(count).toArrayLike(Buffer, 'le', 8),
       ],
@@ -43,67 +48,27 @@ export const usePaymentStore = defineStore('payment', () => {
 
   const pay = async (
     email: string,
-    payable: string,
+    payableId: Uint8Array,
     details: TokenAndAmountOffChain,
-  ): Promise<string | null> => {
-    if (!anchorWallet.value) return null;
+  ): Promise<Uint8Array | null> => {
+    if (!wallet.whAddress || !chain.current) return null;
 
     try {
-      const isExistingUser = await user.isInitialized();
-      let paymentCount = 1;
-      if (isExistingUser) paymentCount = (await user.data())!.paymentsCount + 1;
+      const method = chain.current == 'Ethereum' ? evm.pay : solana.pay;
+      const result = await method(payableId, details);
+      if (!result) return null;
 
-      const { amount, token: mint } = convertTokensForOnChain([details])[0];
-      if (amount == 0) {
-        toastError('Cannot withdraw zero');
-        return null;
-      }
-      const payment = address(paymentCount)!;
-      const payer = user.address()!;
-      const signer = anchorWallet.value!.publicKey;
-      const thisProgram = new PublicKey(PROGRAM_ID);
-
-      const { account: payerTokenAccount, exists: payerTAExists } =
-        await getATAAndExists(mint, signer);
-      const { account: globalTokenAccount, exists: thisProgramTAExists } =
-        await getATAAndExists(mint, globalStats);
-
-      const call = program().methods.pay(amount).accounts({
-        payment,
-        payable,
-        payer,
-        globalStats,
-        thisProgram,
-        mint,
-        payerTokenAccount,
-        globalTokenAccount,
-        signer,
-        tokenProgram,
-        systemProgram,
-      });
-
-      call.preInstructions([
-        ...(!isExistingUser ? [(await user.initializeInstruction())!] : []),
-        ...(!payerTAExists
-          ? [createATAInstruction(payerTokenAccount, signer, mint)]
-          : []),
-        ...(!thisProgramTAExists
-          ? [createATAInstruction(globalTokenAccount, globalStats, mint)]
-          : []),
-      ]);
-
-      const txHash = await call.rpc();
       console.log(
-        `Payment Transaction Details: https://explorer.solana.com/tx/${txHash}?cluster=devnet`,
+        `Created Payment Transaction Details: ${result.explorerUrl()}`,
       );
-      await server.paid(payment.toBase58(), email);
+      await server.paid(result.created, email);
       toast.add({
         severity: 'success',
         summary: 'Successfully Paid',
         detail: 'You have successfully made a Payment.',
         life: 12000,
       });
-      return payment.toBase58();
+      return result.created;
     } catch (e) {
       console.error(e);
       if (!`${e}`.includes('rejected')) toastError(`${e}`);
@@ -111,21 +76,8 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const get = async (addr: string): Promise<Payment | null> => {
-    try {
-      const data = await program().account.payment.fetch(addr);
-      const userData = await user.get(data.payer);
-      return new Payment(addr, userData.wallet, data);
-    } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
-      return null;
-    }
-  };
-
   const mines = async (): Promise<Payment[] | null> => {
-    if (!anchorWallet.value) return null;
-
+    if (!wallet.whAddress) return null;
     if (!(await user.isInitialized())) return [];
 
     try {
@@ -135,18 +87,23 @@ export const usePaymentStore = defineStore('payment', () => {
       const payments: Payment[] = [];
       // TODO: Implement pagination instead of this set maximum of 25
       for (let i = Math.min(count, 25); i >= 1; i--) {
-        const addr = address(i)!.toBase58();
-        const data = await program().account.payment.fetch(addr);
-        const userData = await user.get(data.payer);
-        payments.push(new Payment(addr, userData.wallet, data));
+        const _pubkey = pubkey(i)!;
+        const data = (await solana
+          .program()
+          .account.payment.fetch(_pubkey)) as any;
+        const { chain, ownerWallet } = await user.get(data.host);
+        payments.push(new Payment(_pubkey.toBytes(), chain, ownerWallet, data));
       }
       return payments;
     } catch (e) {
       console.error(e);
-      if (!`${e}`.includes('User rejected the request.')) toastError(`${e}`);
+      toastError(`${e}`);
       return null;
     }
   };
 
-  return { address, get, pay, mines };
+  const toastError = (detail: string) =>
+    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+
+  return { get, mines, pay, pubkey };
 });

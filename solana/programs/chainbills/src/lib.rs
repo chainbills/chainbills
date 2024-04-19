@@ -9,7 +9,7 @@ pub mod state;
 use crate::{context::*, state::TokenAndAmount};
 use anchor_lang::prelude::*;
 
-declare_id!("381yy2z6SFe7prqkF55WWnerFE19w6Fb5AfxcYhm2R78");
+declare_id!("5FT3xrwpVvYXkp5gVvj4fGFZsVfZXpnGHAx4WLKx5CfJ");
 
 #[program]
 pub mod chainbills {
@@ -34,7 +34,7 @@ pub mod chainbills {
   }
 
   /// Register (or update) a trusted contract or Wormhole emitter from another 
-  /// chain. Also register that chain's ChainStats if need be.
+  /// chain. Also initialize that chain's ChainStats if need be.
   ///
   /// ### Arguments
   /// * `ctx`     - `RegisterForeignEmitter` context

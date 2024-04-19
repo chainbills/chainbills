@@ -4,24 +4,25 @@ import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
 import { usePayableStore } from '@/stores/payable';
 import { useTimeStore } from '@/stores/time';
+import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
-import { useAnchorWallet } from 'solana-wallets-vue';
 import { onMounted, ref, watch } from 'vue';
 
 const isLoading = ref(false);
 const mines = ref<Payable[] | null>();
 const payable = usePayableStore();
 const time = useTimeStore();
-const anchorWallet = useAnchorWallet();
+const wallet = useWalletStore();
+const decode = (val: Uint8Array) => new TextDecoder().decode(val);
 const getMines = async () => {
   isLoading.value = true;
   mines.value = await payable.mines();
   isLoading.value = false;
 };
 onMounted(async () => {
-  if (anchorWallet.value) await getMines();
+  if (wallet.whAddress) await getMines();
   watch(
-    () => anchorWallet.value,
+    () => wallet.whAddress,
     async (connected) => {
       if (connected) await getMines();
       else mines.value = null;
@@ -41,7 +42,7 @@ onMounted(async () => {
       </router-link>
     </div>
 
-    <template v-if="!anchorWallet">
+    <template v-if="!wallet.whAddress">
       <p class="pt-8 mb-8 text-center text-xl">
         Please connect your wallet to continue
       </p>
@@ -84,14 +85,14 @@ onMounted(async () => {
       <div class="sm:grid sm:grid-cols-2 md:grid-cols-3 gap-6">
         <router-link
           v-for="{
-            address,
+            id,
             hostCount,
             paymentsCount,
             balances,
             createdAt,
             isClosed,
           } of mines"
-          :to="`/payable/${address}`"
+          :to="`/payable/${decode(id)}`"
           class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0"
         >
           <Button

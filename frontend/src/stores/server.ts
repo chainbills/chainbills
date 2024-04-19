@@ -3,8 +3,6 @@ import { useToast } from 'primevue/usetoast';
 
 export const useServerStore = defineStore('server', () => {
   const toast = useToast();
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const call = async (path: string): Promise<any> => {
     return new Promise(async (resolve, _) => {
@@ -36,18 +34,24 @@ export const useServerStore = defineStore('server', () => {
   };
 
   const createdPayable = async (
-    payable: string,
+    payable: Uint8Array,
     email: string,
   ): Promise<boolean> => {
-    return await call(`/payable/${payable}/${email}`);
+    const decoded = new TextDecoder().decode(payable);
+    return await call(`/payable/${decoded}/${email}`);
   };
 
-  const paid = async (payment: string, email: string): Promise<boolean> => {
-    return await call(`/payment/${payment}/${email}`);
+  const paid = async (payment: Uint8Array, email: string): Promise<boolean> => {
+    const decoded = new TextDecoder().decode(payment);
+    return await call(`/payment/${decoded}/${email}`);
   };
 
-  const withdrew = async (withdrawal: string): Promise<boolean> => {
-    return await call(`/withdrawal/${withdrawal}`);
+  const toastError = (detail: string) =>
+    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+
+  const withdrew = async (withdrawal: Uint8Array): Promise<boolean> => {
+    const decoded = new TextDecoder().decode(withdrawal);
+    return await call(`/withdrawal/${decoded}`);
   };
 
   return { createdPayable, paid, withdrew };

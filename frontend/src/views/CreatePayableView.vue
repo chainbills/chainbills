@@ -7,11 +7,11 @@ import {
   type TokenAndAmountOffChain,
 } from '@/schemas/tokens-and-amounts';
 import { usePayableStore } from '@/stores/payable';
+import { useWalletStore } from '@/stores/wallet';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
-import { useAnchorWallet } from 'solana-wallets-vue';
 import { onMounted, ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -29,19 +29,19 @@ const emailError = ref('');
 const payable = usePayableStore();
 const router = useRouter();
 const selectedTokens = ref<any[]>([]);
-const anchorWallet = useAnchorWallet();
-
-const selectToken = (token: any) => {
-  selectedTokens.value = [...selectedTokens.value, token];
-  amounts.value.push(ref(0));
-  amountErrors.value.push(ref(''));
-};
+const wallet = useWalletStore();
 
 const removeToken = (index: number) => {
   selectedTokens.value.splice(index, 1);
   selectedTokens.value = [...selectedTokens.value];
   amounts.value.splice(index, 1);
   amountErrors.value.splice(index, 1);
+};
+
+const selectToken = (token: any) => {
+  selectedTokens.value = [...selectedTokens.value, token];
+  amounts.value.push(ref(0));
+  amountErrors.value.push(ref(''));
 };
 
 const updateDisplayedConfig = () => {
@@ -64,6 +64,20 @@ const updateDisplayedConfig = () => {
   }
 };
 
+const validateAmount = (v: any) => {
+  if (Number.isNaN(v) || +v == 0) return 'Required';
+  else if (v <= 0) return 'Should be positive';
+  else return '';
+};
+
+const validateConfig = () => {
+  configError.value =
+    !allowsFreePayments.value && selectedTokens.value.length == 0
+      ? 'Either allow free payments OR specify at least one accepted ' +
+        'token and its amount.'
+      : '';
+};
+
 const validateDescription = () => {
   const v = description.value.trim();
   if (v.length == 0) descriptionError.value = 'Required';
@@ -79,20 +93,6 @@ const validateEmail = () => {
   else if (typeMismatch) emailError.value = 'Invalid Email';
   else if (valid) emailError.value = '';
   else emailError.value = emailInput.value.validationMessage;
-};
-
-const validateConfig = () => {
-  configError.value =
-    !allowsFreePayments.value && selectedTokens.value.length == 0
-      ? 'Either allow free payments OR specify at least one accepted ' +
-        'token and its amount.'
-      : '';
-};
-
-const validateAmount = (v: any) => {
-  if (Number.isNaN(v) || +v == 0) return 'Required';
-  else if (v <= 0) return 'Should be positive';
-  else return '';
 };
 
 const create = async () => {
@@ -115,7 +115,7 @@ const create = async () => {
   }
 
   isCreating.value = true;
-  const address = await payable.initialize(
+  const id = await payable.initialize(
     email.value.trim(),
     DomPurify.sanitize(description.value.trim()),
     tokensAndAmounts,
@@ -123,7 +123,7 @@ const create = async () => {
   );
   isCreating.value = false;
 
-  if (address) router.push(`/payable/${address}`);
+  if (id) router.push(`/payable/${new TextDecoder().decode(id)}`);
 };
 
 const reviewConfig = () => {
@@ -147,7 +147,7 @@ onMounted(() => {
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
 
-    <div class="text-center pb-20" v-if="!anchorWallet">
+    <div class="text-center pb-20" v-if="!wallet.whAddress">
       <p class="mb-8">Please connect your wallet to continue.</p>
       <p class="mx-auto w-fit"><ConnectWalletButton /></p>
     </div>

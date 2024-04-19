@@ -6,6 +6,7 @@ import IconSpinner from '@/icons/IconSpinner.vue';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import { useChainStore } from '@/stores/chain';
 import { useThemeStore } from '@/stores/theme';
+import { account as evmWallet } from '@kolirt/vue-web3-auth';
 import Toast from 'primevue/toast';
 import { useAnchorWallet } from 'solana-wallets-vue';
 import { onMounted, watch } from 'vue';
@@ -19,10 +20,12 @@ onMounted(() => {
   // this forces the theme refresh when the app loads
   useThemeStore();
   watch(
+    () => evmWallet.connected,
+    (v) => chain.setChain(v ? 'Ethereum' : null),
+  );
+  watch(
     () => anchorWallet.value,
-    (v) => {
-      if (!v) chain.setChain(null);
-    },
+    (v) => chain.setChain(v ? 'Solana' : null),
   );
 });
 </script>

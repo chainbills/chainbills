@@ -1,22 +1,32 @@
+import { type Chain } from '@/stores/chain';
 import {
   convertTokensToOffChain,
   type TokenAndAmountOffChain,
 } from './tokens-and-amounts';
 
 export class Payment {
-  address: string;
+  id: Uint8Array;
   globalCount: number;
+  chain: Chain;
+  chainCount: number;
   payer: string;
   payerCount: number;
-  payerWallet: string;
+  payerWallet: Uint8Array;
   payable: string;
   payableCount: number;
   timestamp: Date;
   details: TokenAndAmountOffChain;
 
-  constructor(address: string, payerWallet: string, onChainData: any) {
-    this.address = address;
+  constructor(
+    id: Uint8Array,
+    chain: Chain,
+    payerWallet: Uint8Array,
+    onChainData: any,
+  ) {
+    this.id = id;
     this.globalCount = onChainData.globalCount.toNumber();
+    this.chain = chain;
+    this.chainCount = onChainData.chainCount.toNumber();
     this.payer = onChainData.payer.toBase58();
     this.payerCount = onChainData.payerCount.toNumber();
     this.payerWallet = payerWallet;

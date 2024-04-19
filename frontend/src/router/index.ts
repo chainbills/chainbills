@@ -21,7 +21,9 @@ const beforeEnterPayableDetails = async (to: RouteLocationNormalized) => {
   const appLoading = useAppLoadingStore();
   const payable = usePayableStore();
   appLoading.show();
-  const details = await payable.get(to.params['address'] as string);
+  const details = await payable.get(
+    new TextEncoder().encode(to.params['id'] as string),
+  );
   if (details) {
     to.meta.details = details;
     appLoading.hide();
@@ -37,10 +39,14 @@ const beforeEnterPaymentDetails = async (to: RouteLocationNormalized) => {
   const payable = usePayableStore();
   const payment = usePaymentStore();
   appLoading.show();
-  const result = await payment.get(to.params['address'] as string);
+  const result = await payment.get(
+    new TextEncoder().encode(to.params['id'] as string),
+  );
   if (result) {
     to.meta.payment = result;
-    to.meta.payable = await payable.get(result.payable);
+    to.meta.payable = await payable.get(
+      new TextEncoder().encode(to.params['id'] as string),
+    );
     appLoading.hide();
     return true;
   } else {
@@ -77,21 +83,21 @@ const router = createRouter({
       meta: { title: `My Activity | ${baseTitle}` },
     },
     {
-      path: '/payable/:address',
+      path: '/payable/:id',
       name: 'payable',
       component: () => import('../views/PayableView.vue'),
       meta: { title: `Payable's Details | ${baseTitle}` },
       beforeEnter: beforeEnterPayableDetails,
     },
     {
-      path: '/pay/:address',
+      path: '/pay/:id',
       name: 'pay',
       component: () => import('../views/PayView.vue'),
       meta: { title: `Make a Payment | ${baseTitle}` },
       beforeEnter: beforeEnterPayableDetails,
     },
     {
-      path: '/receipt/:address',
+      path: '/receipt/:id',
       name: 'receipt',
       component: () => import('../views/PaymentView.vue'),
       meta: { title: `Payment Receipt | ${baseTitle}` },

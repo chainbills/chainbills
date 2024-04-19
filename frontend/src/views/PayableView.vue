@@ -4,10 +4,10 @@ import { Payable } from '@/schemas/payable';
 import type { TokenAndAmountOffChain } from '@/schemas/tokens-and-amounts';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import { useTimeStore } from '@/stores/time';
+import { useWalletStore } from '@/stores/wallet';
 import { useWithdrawalStore } from '@/stores/withdrawal';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
-import { useAnchorWallet } from 'solana-wallets-vue';
 import { useRoute } from 'vue-router';
 
 const appLoading = useAppLoadingStore();
@@ -16,8 +16,8 @@ const details = route.meta.details as Payable;
 const time = useTimeStore();
 const toast = useToast();
 const { origin } = window.location;
-const link = `${origin}/pay/${details.address}`;
-const anchorWallet = useAnchorWallet();
+const link = `${origin}/pay/${details.id}`;
+const wallet = useWalletStore();
 const withdrawal = useWithdrawalStore();
 
 const {
@@ -92,7 +92,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
     });
   } else {
     appLoading.show('Withdrawing');
-    const result = await withdrawal.withdraw(details.address, balance);
+    const result = await withdrawal.withdraw(details.id, balance);
     if (result) {
       // this waiting for the user to see the toast of success
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -104,7 +104,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
 
 <template>
   <section class="max-w-screen-lg mx-auto pb-20">
-    <template v-if="!anchorWallet">
+    <template v-if="!wallet.whAddress">
       <p class="my-12 text-center text-xl">
         Please connect your wallet to continue
       </p>
@@ -113,7 +113,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
 
     <template
       class=""
-      v-else-if="anchorWallet.publicKey.toBase58() != details.hostWallet"
+      v-else-if="wallet.whAddress != details.hostWallet"
     >
       <h2 class="text-3xl text-center mb-8 pt-8 font-bold">Unauthorized</h2>
       <p class="text-lg text-center max-w-sm mx-auto mb-4">
@@ -141,7 +141,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
       <h2 class="mb-8 leading-tight">
         <span>Payable ID:</span><br />
         <span class="text-xs break-all text-gray-500">{{
-          details.address
+          details.id
         }}</span>
       </h2>
 
@@ -151,7 +151,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
           <p
             class="p-4 rounded bg-blue-50 dark:bg-slate-900 underline break-all mb-3 sm:mb-0"
           >
-            <router-link :to="`/pay/${details.address}`">
+            <router-link :to="`/pay/${details.id}`">
               {{ link }}
             </router-link>
           </p>

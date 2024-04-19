@@ -2,15 +2,16 @@
 import type { Payable } from '@/schemas/payable';
 import type { Payment } from '@/schemas/payment';
 import { useTimeStore } from '@/stores/time';
+import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
-import { useAnchorWallet } from 'solana-wallets-vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
 const time = useTimeStore();
-const anchorWallet = useAnchorWallet();
+const wallet = useWalletStore();
+const decode = (val: Uint8Array) => new TextDecoder().decode(val);
 </script>
 
 <template>
@@ -19,7 +20,9 @@ const anchorWallet = useAnchorWallet();
 
     <p class="mb-8 leading-tight">
       <span>Receipt ID:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ payment.address }}</span>
+      <span class="text-xs break-all text-gray-500">{{
+        decode(payment.id)
+      }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
@@ -48,10 +51,7 @@ const anchorWallet = useAnchorWallet();
       <router-link
         :to="`/payable/${payment.payable}`"
         class="text-xs break-all text-gray-500 underline"
-        v-if="
-          anchorWallet &&
-          anchorWallet.publicKey.toBase58() == payableDetails.hostWallet
-        "
+        v-if="wallet.whAddress && wallet.whAddress == payableDetails.hostWallet"
       >
         {{ payment.payable }}
       </router-link>

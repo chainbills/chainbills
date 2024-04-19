@@ -4,11 +4,9 @@ import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
 import { tokens } from '@/schemas/tokens-and-amounts';
 import { usePaymentStore } from '@/stores/payment';
-import { useSolanaStore } from '@/stores/solana';
-import { PublicKey } from '@solana/web3.js';
+import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
-import { useAnchorWallet } from 'solana-wallets-vue';
 import { onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -25,10 +23,9 @@ const route = useRoute();
 const details = route.meta.details as Payable;
 const { allowsFreePayments, tokensAndAmounts } = details;
 const router = useRouter();
-const solana = useSolanaStore();
 const selectedConfig = ref();
 const selectedToken = ref();
-const anchorWallet = useAnchorWallet();
+const wallet = useWalletStore();
 
 const selectToken = (token: any) => {
   selectedConfig.value = allowsFreePayments
@@ -47,16 +44,12 @@ const validateAmount = () => {
 };
 
 const validateBalance = async () => {
-  if (!anchorWallet.value) return;
+  if (!wallet.whAddress) return;
 
   balanceError.value == '';
   if (selectedConfig.value) {
-    const { amount: amt, address, name } = selectedConfig.value;
-    const { account: tokenAccount } = await solana.getATAAndExists(
-      new PublicKey(address),
-      anchorWallet.value.publicKey,
-    );
-    const balance = await solana.balance(tokenAccount, name);
+    const { amount: amt, address: token, name } = selectedConfig.value;
+    const balance = await wallet.balance(token, name);
     if (balance === null) balanceError.value = '';
     else if (amt && balance < amt) {
       balanceError.value =
@@ -99,13 +92,9 @@ const pay = async () => {
   }
 
   isPaying.value = true;
-  const address = await payment.pay(
-    email.value,
-    details.address,
-    selectedConfig.value,
-  );
+  const id = await payment.pay(email.value, details.id, selectedConfig.value);
 
-  if (address) router.push(`/receipt/${address}`);
+  if (id) router.push(`/receipt/${new TextDecoder().decode(id)}`);
   else isPaying.value = false;
 };
 
@@ -119,7 +108,7 @@ onMounted(() => {
       await validateBalance();
     },
   );
-  watch(() => anchorWallet.value, validateBalance);
+  watch(() => wallet.whAddress, validateBalance);
 
   if (!allowsFreePayments && tokensAndAmounts.length == 1) {
     selectedConfig.value = tokensAndAmounts[0];
@@ -133,7 +122,7 @@ onMounted(() => {
 
     <p class="mb-8 leading-tight">
       <span>Payable ID:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ details.address }}</span>
+      <span class="text-xs break-all text-gray-500">{{ details.id }}</span>
     </p>
 
     <div class="max-w-lg">
@@ -228,7 +217,7 @@ onMounted(() => {
         <small class="text-xs block text-red-500">{{ configError }}</small>
       </div>
 
-      <template v-if="anchorWallet">
+      <template v-if="wallet.whAddress">
         <p
           v-if="
             (allowsFreePayments ||
@@ -255,9 +244,9 @@ onMounted(() => {
       </template>
     </form>
 
-    <template v-if="!anchorWallet">
+    <template v-if="!wallet.whAddress">
       <p class="my-12 text-center text-xl">
-        Please connect your anchorWallet to continue
+        Please connect your Wallet to continue
       </p>
       <p class="mx-auto w-fit"><ConnectWalletButton /></p>
     </template>

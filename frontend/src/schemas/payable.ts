@@ -1,14 +1,17 @@
+import { type Chain } from '@/stores/chain';
 import {
   convertTokensToOffChain,
   type TokenAndAmountOffChain,
 } from './tokens-and-amounts';
 
 export class Payable {
-  address: string;
+  id: Uint8Array;
   globalCount: number;
+  chain: Chain;
+  chainCount: number;
   host: string;
   hostCount: number;
-  hostWallet: string;
+  hostWallet: Uint8Array;
   description: string;
   tokensAndAmounts: TokenAndAmountOffChain[];
   balances: TokenAndAmountOffChain[];
@@ -18,9 +21,16 @@ export class Payable {
   withdrawalsCount: number;
   isClosed: boolean;
 
-  constructor(address: string, hostWallet: string, onChainData: any) {
-    this.address = address;
+  constructor(
+    id: Uint8Array,
+    chain: Chain,
+    hostWallet: Uint8Array,
+    onChainData: any,
+  ) {
+    this.id = id;
     this.globalCount = onChainData.globalCount.toNumber();
+    this.chain = chain;
+    this.chainCount = onChainData.chainCount.toNumber();
     this.host = onChainData.host.toBase58();
     this.hostCount = onChainData.hostCount.toNumber();
     this.hostWallet = hostWallet;

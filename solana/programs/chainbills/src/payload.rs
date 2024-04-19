@@ -85,7 +85,16 @@ impl CbPayloadMessage {
   }
 
   pub fn description(&self) -> String {
-    String::from_utf8(self.description_serialized.to_vec()).expect("InvalidPayloadMessage")
+    let mut index = 0usize;
+    let buf = &self.tokens_and_amounts_serialized;
+    let desc_length = {
+      let mut out = [0u8; 2];
+      out.copy_from_slice(&buf[index..(index + 2)]);
+      u16::from_be_bytes(out) as u16
+    };
+    index += 2;
+
+    String::from_utf8(buf[index..(index + desc_length as usize)].to_vec()).unwrap()
   }
 }
 
@@ -148,11 +157,7 @@ impl AnchorDeserialize for CbPayloadMessage {
     let action_id = buf[index];
     index += 1;
 
-    let caller = {
-      let mut out = [0u8; 32];
-      out.copy_from_slice(&buf[index..(index + 32)]);
-      out
-    };
+    let caller = <[u8; 32]>::deserialize(&mut &buf[index..(index + 32)])?;
     index += 32;
 
     let mut payable_id = [0u8; 32];
@@ -227,11 +232,7 @@ impl AnchorDeserialize for CbPayloadMessage {
         ));
       }
     } else if action_id > 1 && action_id <= 6 {
-      payable_id = {
-        let mut out = [0u8; 32];
-        out.copy_from_slice(&buf[index..(index + 32)]);
-        out
-      };
+      payable_id = <[u8; 32]>::deserialize(&mut &buf[index..(index + 32)])?;
       index += 32;
 
       if action_id == 4 {
@@ -261,11 +262,7 @@ impl AnchorDeserialize for CbPayloadMessage {
       }
 
       if action_id == 5 || action_id == 6 {
-        token = {
-          let mut out = [0u8; 32];
-          out.copy_from_slice(&buf[index..(index + 32)]);
-          out
-        };
+        token = <[u8; 32]>::deserialize(&mut &buf[index..(index + 32)])?;
         index += 32;
         amount = {
           let mut out = [0u8; 8];

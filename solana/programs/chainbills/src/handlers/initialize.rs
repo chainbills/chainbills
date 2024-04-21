@@ -1,4 +1,4 @@
-use crate::{context::Initialize, events::*};
+use crate::{context::Initialize, events::*, state::TokenAndAmount};
 use anchor_lang::prelude::*;
 use wormhole_anchor_sdk::wormhole;
 
@@ -18,6 +18,7 @@ pub fn initialize_handler(ctx: Context<Initialize>) -> Result<()> {
   config.mint_authority = ctx.accounts.mint_authority.key();
   config.custody_signer = ctx.accounts.custody_signer.key();
   config.authority_signer = ctx.accounts.authority_signer.key();
+  config.max_fees_per_token = Vec::<TokenAndAmount>::new();
   config.batch_id = 0; // 0 means no batching
   config.finality = wormhole::Finality::Confirmed as u8;
 

@@ -29,6 +29,9 @@ pub struct Withdraw<'info> {
   #[account(mut, seeds = [ChainStats::SEED_PREFIX, &wormhole::CHAIN_ID_SOLANA.to_le_bytes()[..]], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
+  #[account(seeds = [Config::SEED_PREFIX], bump)]
+  pub config: Box<Account<'info, Config>>,
+
   pub mint: Box<Account<'info, Mint>>,
 
   #[account(

@@ -27,13 +27,13 @@ pub mod chainbills {
   /// Initializing any other entity must increment the appropriate count in
   /// GlobalStats.
   ///
-  /// ChainStats is like GlobalStats but just for each BlockChain Network 
+  /// ChainStats is like GlobalStats but just for each BlockChain Network
   /// involved in Chainbills. Solana's ChainStats also gets initialized here.
   pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
     handlers::initialize_handler(ctx)
   }
 
-  /// Register (or update) a trusted contract or Wormhole emitter from another 
+  /// Register (or update) a trusted contract or Wormhole emitter from another
   /// chain. Also initialize that chain's ChainStats if need be.
   ///
   /// ### Arguments
@@ -46,6 +46,20 @@ pub mod chainbills {
     address: [u8; 32],
   ) -> Result<()> {
     handlers::register_foreign_contract_handler(ctx, chain, address)
+  }
+
+  /// Updates the maximum fees of the given token.
+  ///
+  /// ### Args
+  /// * token<[u8; 32]>: The Wormhole-normalized address of the token for which
+  ///     its maximum withdrawal fees is been set.
+  /// * fee<u64>: The max fee to set.
+  pub fn update_max_fee_handler(
+    ctx: Context<UpdateMaxFee>,
+    token: [u8; 32],
+    fee: u64,
+  ) -> Result<()> {
+    handlers::update_max_fee_handler(ctx, token, fee)
   }
 
   /// Initialize a User.

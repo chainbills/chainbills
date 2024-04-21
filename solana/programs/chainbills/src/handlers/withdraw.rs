@@ -1,6 +1,7 @@
 use crate::{constants::*, context::*, error::ChainbillsError, events::*, state::*};
 use anchor_lang::{prelude::*, solana_program::clock};
 use anchor_spl::token::{self, Transfer as SplTransfer};
+use std::cmp::min;
 use wormhole_anchor_sdk::token_bridge;
 
 fn check_withdraw_inputs(amount: u64, mint: [u8; 32], payable: &Account<Payable>) -> Result<()> {
@@ -85,6 +86,18 @@ fn update_state_for_withdrawal(
   Ok(())
 }
 
+fn calculate_amount_minus_fees(config: &Account<Config>, token: [u8; 32], amount: u64) -> u64 {
+  let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
+  let mut max_fee = 0u64;
+  for taa in config.max_fees_per_token.iter() {
+    if taa.token == token {
+      max_fee = taa.amount;
+      break;
+    }
+  }
+  amount.checked_sub(min(two_percent, max_fee)).unwrap()
+}
+
 /// Transfers the amount of tokens from a payable to a host
 ///
 /// ### args
@@ -108,11 +121,8 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     authority: authority.to_account_info().clone(),
   };
   let cpi_program = token_program.to_account_info();
-  let amount_minus_fees = denormalized
-    .checked_mul(98)
-    .unwrap()
-    .checked_div(100)
-    .unwrap();
+  let config = ctx.accounts.config.as_ref();
+  let amount_minus_fees = calculate_amount_minus_fees(config, mint.key().to_bytes(), denormalized);
   token::transfer(
     CpiContext::new_with_signer(
       cpi_program,
@@ -196,8 +206,9 @@ pub fn withdraw_received_handler(
   );
 
   // Ensure matching token
+  let mint = token_bridge_wrapped_mint.key().to_bytes();
   require!(
-    vaa.data().token == token_bridge_wrapped_mint.key().to_bytes(),
+    vaa.data().token == mint,
     ChainbillsError::NotMatchingTransactionToken
   );
 
@@ -205,13 +216,10 @@ pub fn withdraw_received_handler(
   let denormalized = token_bridge::denormalize_amount(amount, token_bridge_wrapped_mint.decimals);
 
   // Check other inputs
-  check_withdraw_inputs(amount, token_bridge_wrapped_mint.key().to_bytes(), payable)?;
+  check_withdraw_inputs(amount, mint, payable)?;
 
-  let amount_minus_fees = denormalized
-    .checked_mul(98)
-    .unwrap()
-    .checked_div(100)
-    .unwrap();
+  let config = ctx.accounts.config.as_ref();
+  let amount_minus_fees = calculate_amount_minus_fees(config, mint, denormalized);
 
   // TRANSFER
   // Approve spending by token bridge
@@ -275,7 +283,7 @@ pub fn withdraw_received_handler(
   let withdrawal = ctx.accounts.withdrawal.as_mut();
   update_state_for_withdrawal(
     amount,
-    token_bridge_wrapped_mint.key().to_bytes(),
+    mint,
     global_stats,
     chain_stats,
     payable,

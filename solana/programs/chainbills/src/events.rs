@@ -7,6 +7,9 @@ pub struct InitializedEvent {}
 pub struct RegisteredForeignContractEvent {}
 
 #[event]
+pub struct UpdatedMaxFeeEvent {}
+
+#[event]
 pub struct InitializedUserEvent {
   pub global_count: u64,
   pub chain_count: u64,

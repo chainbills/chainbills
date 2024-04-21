@@ -1,3 +1,4 @@
+use crate::state::TokenAndAmount;
 use anchor_lang::prelude::*;
 
 #[account]
@@ -38,6 +39,9 @@ pub struct Config {
   /// Doesn't hold data. Signs outbound TokenBridge SPL transfers.
   pub authority_signer: Pubkey, // 32 bytes
 
+  /// Holds the maximum amount of fees deductible per token.
+  pub max_fees_per_token: Vec<TokenAndAmount>, // Max of 100 members
+
   /// AKA nonce. Just zero, but saving this information in this account.
   pub batch_id: u32, // 4 bytes
 
@@ -48,7 +52,8 @@ pub struct Config {
 
 impl Config {
   // discriminator (8) first
-  pub const SPACE: usize = 8 + (9 * 32) + 4 + 1;
+  // Hardcoding this maximum of 100 tokens_and_amounts in max_fees_per_token
+  pub const SPACE: usize = 8 + (9 * 32) + (100 * TokenAndAmount::SPACE) + 4 + 1;
 
   /// AKA `b"config"`.
   pub const SEED_PREFIX: &'static [u8] = b"config";

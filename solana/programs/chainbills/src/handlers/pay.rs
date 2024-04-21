@@ -259,8 +259,9 @@ pub fn pay_received_handler(
   let normalized = token_bridge::normalize_amount(amount, token_bridge_wrapped_mint.decimals);
 
   // Ensure matching token and amount
+  let mint = token_bridge_wrapped_mint.key().to_bytes();
   require!(
-    payload.token == token_bridge_wrapped_mint.key().to_bytes(),
+    payload.token == mint,
     ChainbillsError::NotMatchingTransactionToken
   );
   require!(
@@ -269,11 +270,7 @@ pub fn pay_received_handler(
   );
 
   // Check pay inputs
-  check_pay_inputs(
-    normalized,
-    token_bridge_wrapped_mint.key().to_bytes(),
-    payable,
-  )?;
+  check_pay_inputs(normalized, mint, payable)?;
 
   // TRANSFER
   token_bridge::complete_transfer_wrapped_with_payload(CpiContext::new_with_signer(
@@ -303,7 +300,7 @@ pub fn pay_received_handler(
   let payment = ctx.accounts.payment.as_mut();
   update_state_for_payment(
     normalized,
-    token_bridge_wrapped_mint.key().to_bytes(),
+    mint,
     global_stats,
     chain_stats,
     payable,

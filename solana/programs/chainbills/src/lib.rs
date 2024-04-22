@@ -9,7 +9,7 @@ pub mod state;
 use crate::{context::*, state::TokenAndAmount};
 use anchor_lang::prelude::*;
 
-declare_id!("5FT3xrwpVvYXkp5gVvj4fGFZsVfZXpnGHAx4WLKx5CfJ");
+declare_id!("7YWuy7VkB76uJXt8xHaQu8aGWodG7NUaCkmzVFWg94xk");
 
 #[program]
 pub mod chainbills {
@@ -54,7 +54,7 @@ pub mod chainbills {
   /// * token<[u8; 32]>: The Wormhole-normalized address of the token for which
   ///     its maximum withdrawal fees is been set.
   /// * fee<u64>: The max fee to set.
-  pub fn update_max_fee_handler(
+  pub fn update_max_fee(
     ctx: Context<UpdateMaxFee>,
     token: [u8; 32],
     fee: u64,

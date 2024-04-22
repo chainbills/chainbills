@@ -8,7 +8,7 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import abi from './abi.json';
 
-export const CONTRACT_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+export const CONTRACT_ADDRESS = '0x7DEF11c120c17fBcd63d916Eefb14F9Fc395f7eA';
 
 export const useEvmStore = defineStore('evm', () => {
   const initializePayable = async (

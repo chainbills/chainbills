@@ -4,12 +4,12 @@ import {
   readContract,
 } from '@kolirt/vue-web3-auth';
 import { getAssociatedTokenAddressSync as getATA } from '@solana/spl-token';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, clusterApiUrl } from '@solana/web3.js';
 import { UniversalAddress } from '@wormhole-foundation/sdk-definitions';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet } from 'solana-wallets-vue';
-import { onMounted, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { useChainStore } from './chain';
 
 export const useWalletStore = defineStore('wallet', () => {
@@ -47,32 +47,36 @@ export const useWalletStore = defineStore('wallet', () => {
     }
   };
   const chain = useChainStore();
-  // TODO: Update Solana Connection url here too
-  const solanaConnection = new Connection('http://localhost:8899', 'finalized');
-  // const solanaConnection = new Connection(clusterApiUrl('devnet'), 'finalized');
+  const solanaConnection = new Connection(clusterApiUrl('devnet'), 'finalized');
   const toast = useToast();
   const whAddress = ref<Uint8Array | null>(null);
+
+  const setWhAddress = ([newChain, newEvmAddress, newAnchorWallet]: any[]) => {
+    if (newChain == 'Ethereum' && newEvmAddress) {
+      whAddress.value = new UniversalAddress(newEvmAddress, 'hex').address;
+    } else if (newChain == 'Solana' && newAnchorWallet) {
+      whAddress.value = new UniversalAddress(
+        newAnchorWallet.publicKey.toBase58(),
+        'base58',
+      ).address;
+    } else {
+      whAddress.value = null;
+    }
+  };
 
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  onMounted(() => {
-    watch(
-      [() => chain.current, () => evmWallet.address, () => anchorWallet.value],
-      ([newChain, newEvmAddress, newAnchorWallet]) => {
-        if (newChain == 'Ethereum' && newEvmAddress) {
-          whAddress.value = new UniversalAddress(newEvmAddress, 'hex').address;
-        } else if (newChain == 'Solana' && newAnchorWallet) {
-          whAddress.value = new UniversalAddress(
-            newAnchorWallet.publicKey.toBase58(),
-            'base58',
-          ).address;
-        } else {
-          whAddress.value = null;
-        }
-      },
-    );
-  });
+  watch(
+    [() => chain.current, () => evmWallet.address, () => anchorWallet.value],
+    setWhAddress,
+    { deep: true },
+  );
+
+  setTimeout(
+    () => setWhAddress([chain.current, evmWallet.address, anchorWallet.value]),
+    1000,
+  );
 
   return { balance, whAddress };
 });

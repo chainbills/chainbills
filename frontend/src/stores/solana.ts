@@ -16,7 +16,7 @@ import {
   getAssociatedTokenAddressSync as getATA,
   getAccount,
 } from '@solana/spl-token';
-import { Connection, PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { Connection, PublicKey, TransactionInstruction, clusterApiUrl } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet } from 'solana-wallets-vue';
@@ -24,7 +24,7 @@ import { WH_CHAIN_ID_SOLANA } from './chain';
 import idl from './idl.json';
 import { useUserStore } from './user';
 
-export const PROGRAM_ID = '5FT3xrwpVvYXkp5gVvj4fGFZsVfZXpnGHAx4WLKx5CfJ';
+export const PROGRAM_ID = '7YWuy7VkB76uJXt8xHaQu8aGWodG7NUaCkmzVFWg94xk';
 
 export const useSolanaStore = defineStore('solana-utils', () => {
   const anchorWallet = useAnchorWallet();
@@ -35,8 +35,7 @@ export const useSolanaStore = defineStore('solana-utils', () => {
     ],
     new PublicKey(PROGRAM_ID),
   )[0];
-  const connection = new Connection('http://localhost:8899', 'finalized');
-  // const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
+  const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
   const globalStats = PublicKey.findProgramAddressSync(
     [Buffer.from('global')],
     new PublicKey(PROGRAM_ID),

@@ -13,10 +13,13 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
-default = []
+default = ["testnet"]
+mainnet = ["wormhole-anchor-sdk/mainnet"]
+testnet = ["wormhole-anchor-sdk/solana-devnet"]
+devnet = ["wormhole-anchor-sdk/tilt-devnet"]
 
 [dependencies]
 anchor-lang = {version = "0.29.0", features = ["init-if-needed"]}
 solana-program = "=1.17.0"
 anchor-spl = "0.29.0"
-wormhole-anchor-sdk = {version = "0.29.0-alpha.1", features = ["token-bridge"]}
+wormhole-anchor-sdk = {version = "0.29.0-alpha.1", default-features = false, features = ["token-bridge"]}

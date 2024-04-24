@@ -4,14 +4,14 @@
 seeds = false
 skip-lint = false
 
-[programs.localnet]
-chainbills = "381yy2z6SFe7prqkF55WWnerFE19w6Fb5AfxcYhm2R78"
+[programs.devnet]
+chainbills = "7YWuy7VkB76uJXt8xHaQu8aGWodG7NUaCkmzVFWg94xk"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "/home/obumnwabude/.config/solana/id.json"
 
 [scripts]

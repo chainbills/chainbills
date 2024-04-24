@@ -36,7 +36,7 @@ pub struct WithdrawReceived<'info> {
         seeds = [Config::SEED_PREFIX],
         bump,
     )]
-  pub config: Box<Account<'info, Config>>,
+  pub config: AccountLoader<'info, Config>,
 
   #[account(mut, seeds = [ChainStats::SEED_PREFIX, &vaa.emitter_chain().to_le_bytes()[..]], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
@@ -114,19 +114,19 @@ pub struct WithdrawReceived<'info> {
   pub token_bridge_wrapped_meta: Account<'info, token_bridge::WrappedMeta>,
 
   #[account(
-        address = config.authority_signer @ ChainbillsError::InvalidTokenBridgeMintAuthority
+        address = config.load()?.authority_signer @ ChainbillsError::InvalidTokenBridgeMintAuthority
     )]
   /// CHECK: Token Bridge custody signer. Read-only.
   pub token_bridge_authority_signer: UncheckedAccount<'info>,
 
   #[account(
-        address = config.token_bridge_config @ ChainbillsError::InvalidTokenBridgeConfig
+        address = config.load()?.token_bridge_config @ ChainbillsError::InvalidTokenBridgeConfig
     )]
   pub token_bridge_config: Box<Account<'info, token_bridge::Config>>,
 
   #[account(
         mut,
-        address = config.wormhole_bridge @ ChainbillsError::InvalidWormholeBridge,
+        address = config.load()?.wormhole_bridge @ ChainbillsError::InvalidWormholeBridge,
     )]
   /// Wormhole bridge data. Mutable.
   pub wormhole_bridge: Box<Account<'info, wormhole::BridgeData>>,
@@ -145,21 +145,21 @@ pub struct WithdrawReceived<'info> {
 
   #[account(
         mut,
-        address = config.emitter @ ChainbillsError::InvalidWormholeEmitter
+        address = config.load()?.emitter @ ChainbillsError::InvalidWormholeEmitter
     )]
   /// CHECK: Token Bridge emitter. Read-only.
   pub emitter: UncheckedAccount<'info>,
 
   #[account(
         mut,
-        address = config.sequence @ ChainbillsError::InvalidWormholeSequence
+        address = config.load()?.sequence @ ChainbillsError::InvalidWormholeSequence
     )]
   /// CHECK: Token Bridge sequence. Mutable.
   pub sequence: Box<Account<'info, wormhole::SequenceTracker>>,
 
   #[account(
         mut,
-        address = config.fee_collector @ ChainbillsError::InvalidWormholeFeeCollector
+        address = config.load()?.fee_collector @ ChainbillsError::InvalidWormholeFeeCollector
     )]
   /// Wormhole fee collector. Mutable.
   pub fee_collector: Box<Account<'info, wormhole::FeeCollector>>,

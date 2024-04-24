@@ -9,7 +9,7 @@ pub mod state;
 use crate::{context::*, state::TokenAndAmount};
 use anchor_lang::prelude::*;
 
-declare_id!("7YWuy7VkB76uJXt8xHaQu8aGWodG7NUaCkmzVFWg94xk");
+declare_id!("p7Lu1yPzMRYLfLxWbEePx8kn3LNevFTbGVC5ghyADF9");
 
 #[program]
 pub mod chainbills {

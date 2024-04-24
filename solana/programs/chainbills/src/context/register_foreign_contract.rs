@@ -5,7 +5,7 @@ use wormhole_anchor_sdk::token_bridge;
 #[derive(Accounts)]
 #[instruction(chain: u16)]
 pub struct RegisterForeignContract<'info> {
-  #[account(mut)]
+  #[account(mut, constraint = config.load()?.owner == owner.key() @ ChainbillsError::OwnerOnly)]
   /// Owner of the program set in the [`Config`] account. Signer for creating
   /// the [`ForeignContract`] account.
   pub owner: Signer<'info>,
@@ -17,7 +17,7 @@ pub struct RegisterForeignContract<'info> {
     )]
   /// Config account. This program requires that the `owner` specified in the
   /// context equals the pubkey specified in this account. Read-only.
-  pub config: Account<'info, Config>,
+  pub config: AccountLoader<'info, Config>,
 
   #[account(
       init_if_needed,

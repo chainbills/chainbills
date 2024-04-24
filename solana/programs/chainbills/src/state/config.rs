@@ -1,8 +1,6 @@
-use crate::state::TokenAndAmount;
 use anchor_lang::prelude::*;
 
-#[account]
-#[derive(Default)]
+#[account(zero_copy)]
 /// Config account data. Mainly Wormhole-related addresses and infos.
 pub struct Config {
   /// Program's owner.
@@ -38,22 +36,11 @@ pub struct Config {
 
   /// Doesn't hold data. Signs outbound TokenBridge SPL transfers.
   pub authority_signer: Pubkey, // 32 bytes
-
-  /// Holds the maximum amount of fees deductible per token.
-  pub max_fees_per_token: Vec<TokenAndAmount>, // Max of 100 members
-
-  /// AKA nonce. Just zero, but saving this information in this account.
-  pub batch_id: u32, // 4 bytes
-
-  /// AKA consistency level. u8 representation of Solana's
-  /// [Finality](wormhole_anchor_sdk::wormhole::Finality).
-  pub finality: u8, // 1 bytes
 }
 
 impl Config {
   // discriminator (8) first
-  // Hardcoding this maximum of 100 tokens_and_amounts in max_fees_per_token
-  pub const SPACE: usize = 8 + (9 * 32) + (100 * TokenAndAmount::SPACE) + 4 + 1;
+  pub const SPACE: usize = 8 + (9 * 32);
 
   /// AKA `b"config"`.
   pub const SEED_PREFIX: &'static [u8] = b"config";

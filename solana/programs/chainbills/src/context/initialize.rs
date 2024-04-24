@@ -60,7 +60,7 @@ pub struct Initialize<'info> {
   /// Config account, which saves program data useful for other instructions.
   /// Also saves the payer of the [`initialize`](crate::initialize) instruction
   /// as the program's owner.
-  pub config: Box<Account<'info, Config>>,
+  pub config: AccountLoader<'info, Config>,
 
   /// Wormhole program.
   pub wormhole_program: Program<'info, wormhole::program::Wormhole>,

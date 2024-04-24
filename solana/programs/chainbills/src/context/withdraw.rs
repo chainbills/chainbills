@@ -30,7 +30,7 @@ pub struct Withdraw<'info> {
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
   #[account(seeds = [Config::SEED_PREFIX], bump)]
-  pub config: Box<Account<'info, Config>>,
+  pub config: AccountLoader<'info, Config>,
 
   pub mint: Box<Account<'info, Mint>>,
 

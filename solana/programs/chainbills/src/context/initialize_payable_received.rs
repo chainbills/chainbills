@@ -36,7 +36,7 @@ pub struct InitializePayableReceived<'info> {
         seeds = [Config::SEED_PREFIX],
         bump,
     )]
-  pub config: Box<Account<'info, Config>>,
+  pub config: AccountLoader<'info, Config>,
 
   pub wormhole_program: Program<'info, wormhole::program::Wormhole>,
 

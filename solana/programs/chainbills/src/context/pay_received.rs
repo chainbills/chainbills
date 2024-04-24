@@ -42,7 +42,7 @@ pub struct PayReceived<'info> {
         seeds = [Config::SEED_PREFIX],
         bump,
     )]
-  pub config: Box<Account<'info, Config>>,
+  pub config: AccountLoader<'info, Config>,
 
   #[account(mut, seeds = [ChainStats::SEED_PREFIX, &vaa.emitter_chain().to_le_bytes()[..]], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
@@ -105,19 +105,19 @@ pub struct PayReceived<'info> {
   pub token_bridge_foreign_endpoint: Box<Account<'info, token_bridge::EndpointRegistration>>,
 
   #[account(
-        address = config.mint_authority @ ChainbillsError::InvalidTokenBridgeMintAuthority
+        address = config.load()?.mint_authority @ ChainbillsError::InvalidTokenBridgeMintAuthority
     )]
   /// CHECK: Token Bridge custody signer. Read-only.
   pub token_bridge_mint_authority: UncheckedAccount<'info>,
 
   #[account(
-        address = config.token_bridge_config @ ChainbillsError::InvalidTokenBridgeConfig
+        address = config.load()?.token_bridge_config @ ChainbillsError::InvalidTokenBridgeConfig
     )]
   pub token_bridge_config: Box<Account<'info, token_bridge::Config>>,
 
   #[account(
         mut,
-        address = config.wormhole_bridge @ ChainbillsError::InvalidWormholeBridge,
+        address = config.load()?.wormhole_bridge @ ChainbillsError::InvalidWormholeBridge,
     )]
   /// Wormhole bridge data. Mutable.
   pub wormhole_bridge: Box<Account<'info, wormhole::BridgeData>>,

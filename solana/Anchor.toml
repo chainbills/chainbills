@@ -5,7 +5,7 @@ seeds = false
 skip-lint = false
 
 [programs.devnet]
-chainbills = "7YWuy7VkB76uJXt8xHaQu8aGWodG7NUaCkmzVFWg94xk"
+chainbills = "p7Lu1yPzMRYLfLxWbEePx8kn3LNevFTbGVC5ghyADF9"
 
 [registry]
 url = "https://api.apr.dev"

@@ -87,20 +87,12 @@ fn update_state_for_withdrawal(
 }
 
 fn calculate_amount_minus_fees(
-  // max_fees_per_token: &Vec<TokenAndAmount>,
-  token: [u8; 32],
+  max_withdrawal_fee_details: &Account<TokenAndAmount>,
   amount: u64,
 ) -> u64 {
   let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
-  // let mut max_fee = 0u64;
-  // for taa in max_fees_per_token.iter() {
-  //   if taa.token == token {
-  //     max_fee = taa.amount;
-  //     break;
-  //   }
-  // }
-  // amount.checked_sub(min(two_percent, max_fee)).unwrap()
-  amount.checked_sub(two_percent).unwrap()
+  let max_fee = max_withdrawal_fee_details.amount;
+  amount.checked_sub(min(two_percent, max_fee)).unwrap()
 }
 
 /// Transfers the amount of tokens from a payable to a host
@@ -126,12 +118,8 @@ pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     authority: authority.to_account_info().clone(),
   };
   let cpi_program = token_program.to_account_info();
-  let config = ctx.accounts.config.load()?;
-  let amount_minus_fees = calculate_amount_minus_fees(
-    // &config.max_fees_per_token,
-    mint.key().to_bytes(),
-    denormalized,
-  );
+  let max_withdrawal_fee_details = ctx.accounts.max_withdrawal_fee_details.as_ref();
+  let amount_minus_fees = calculate_amount_minus_fees(max_withdrawal_fee_details, denormalized);
   token::transfer(
     CpiContext::new_with_signer(
       cpi_program,
@@ -227,11 +215,9 @@ pub fn withdraw_received_handler(
   // Check other inputs
   check_withdraw_inputs(amount, mint, payable)?;
 
-  let config = ctx.accounts.config.load()?;
-  let amount_minus_fees =
-    calculate_amount_minus_fees(
-      // &config.max_fees_per_token, 
-      mint, denormalized);
+  // Obtain amount_minus_fees
+  let max_withdrawal_fee_details = ctx.accounts.max_withdrawal_fee_details.as_ref();
+  let amount_minus_fees = calculate_amount_minus_fees(max_withdrawal_fee_details, denormalized);
 
   // TRANSFER
   // Approve spending by token bridge

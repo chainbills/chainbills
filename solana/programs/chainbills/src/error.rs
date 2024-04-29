@@ -155,5 +155,5 @@ pub enum ChainbillsError {
   NotMatchingTransactionToken,
 
   #[msg("WrongChainStatsProvided")]
-  WrongChainStatsProvided
+  WrongChainStatsProvided,
 }

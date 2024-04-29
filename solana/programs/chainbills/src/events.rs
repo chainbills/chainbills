@@ -7,7 +7,7 @@ pub struct InitializedEvent {}
 pub struct RegisteredForeignContractEvent {}
 
 #[event]
-pub struct UpdatedMaxFeeEvent {}
+pub struct UpdatedMaxWithdrawalFeeEvent {}
 
 #[event]
 pub struct InitializedUserEvent {

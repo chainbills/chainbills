@@ -48,18 +48,18 @@ pub mod chainbills {
     handlers::register_foreign_contract_handler(ctx, chain, address)
   }
 
-  /// Updates the maximum fees of the given token.
+  /// Updates the maximum withdrawal fees of the given token.
   ///
   /// ### Args
   /// * token<[u8; 32]>: The Wormhole-normalized address of the token for which
   ///     its maximum withdrawal fees is been set.
   /// * fee<u64>: The max fee to set.
-  pub fn update_max_fee(
-    ctx: Context<UpdateMaxFee>,
+  pub fn update_maximum_withdrawal_fee(
+    ctx: Context<UpdateMaxWithdrawalFee>,
     token: [u8; 32],
     fee: u64,
   ) -> Result<()> {
-    handlers::update_max_fee_handler(ctx, token, fee)
+    handlers::update_max_withdrawal_fee_handler(ctx, token, fee)
   }
 
   /// Initialize a User.

@@ -11,7 +11,7 @@ pub struct User {
   /// The nth count of global users at the point this user was initialized.
   pub global_count: u64, // 8 bytes
 
-  /// The nth count of users on the calling chain at the point this user was 
+  /// The nth count of users on the calling chain at the point this user was
   /// initialized.
   pub chain_count: u64, // 8 bytes
 

@@ -6,7 +6,7 @@ use anchor_lang::prelude::*;
 /// This combination is used to constrain how much of a token
 /// a payable can accept. It is also used to record the details
 /// of a payment or a withdrawal.
-#[derive(AnchorDeserialize, AnchorSerialize, Clone, Copy)]
+#[account]
 pub struct TokenAndAmount {
   /// The Wormhole-normalized address of the associated token mint.
   /// This should be the bridged address on Solana.

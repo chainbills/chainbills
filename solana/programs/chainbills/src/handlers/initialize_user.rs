@@ -10,11 +10,11 @@ pub fn initialize_user_handler(ctx: Context<InitializeUser>) -> Result<()> {
   // increment global count for users
   let global_stats = ctx.accounts.global_stats.as_mut();
   global_stats.users_count = global_stats.next_user();
-  
+
   // increment chain count for users
   let chain_stats = ctx.accounts.chain_stats.as_mut();
   chain_stats.users_count = chain_stats.next_user();
-  
+
   // initialize the user
   let user = ctx.accounts.user.as_mut();
   user.owner_wallet = ctx.accounts.signer.key().to_bytes();

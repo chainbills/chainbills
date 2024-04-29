@@ -1,4 +1,4 @@
-use crate::state::*;
+use crate::{constants::SEED_PREFIX_MAX_WITHDRAWAL_FEE, state::*};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 use wormhole_anchor_sdk::wormhole;
@@ -33,6 +33,9 @@ pub struct Withdraw<'info> {
   pub config: AccountLoader<'info, Config>,
 
   pub mint: Box<Account<'info, Mint>>,
+
+  #[account(seeds = [SEED_PREFIX_MAX_WITHDRAWAL_FEE, mint.key().to_bytes().as_ref()], bump)]
+  pub max_withdrawal_fee_details: Box<Account<'info, TokenAndAmount>>,
 
   #[account(
         mut,

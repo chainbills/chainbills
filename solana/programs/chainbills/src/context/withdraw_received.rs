@@ -87,7 +87,7 @@ pub struct WithdrawReceived<'info> {
         mut,
         seeds = [
             token_bridge::WrappedMint::SEED_PREFIX,
-            &token_bridge_wrapped_meta.chain.to_le_bytes(),
+            &token_bridge_wrapped_meta.chain.to_be_bytes(),
             &token_bridge_wrapped_meta.token_address
         ],
         bump,

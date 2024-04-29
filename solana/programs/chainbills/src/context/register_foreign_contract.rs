@@ -47,7 +47,7 @@ pub struct RegisterForeignContract<'info> {
 
   #[account(
         seeds = [
-            &chain.to_le_bytes(),
+            &chain.to_be_bytes(),
             token_bridge_foreign_endpoint.emitter_address.as_ref()
         ],
         bump,

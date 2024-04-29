@@ -205,7 +205,12 @@ pub fn pay_received_handler(
   );
 
   let payer = ctx.accounts.payer.as_mut();
-  if payer.to_account_info().data_is_empty() {
+  if payer
+    .to_account_info()
+    .try_borrow_data()?
+    .iter()
+    .all(|&x| x == 0)
+  {
     // increment global count for users
     let global_stats = ctx.accounts.global_stats.as_mut();
     global_stats.users_count = global_stats.next_user();

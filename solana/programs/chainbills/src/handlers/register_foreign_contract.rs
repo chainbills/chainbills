@@ -30,7 +30,13 @@ pub fn register_foreign_contract_handler(
   contract.token_bridge_foreign_endpoint = ctx.accounts.token_bridge_foreign_endpoint.key();
 
   let chain_stats = ctx.accounts.chain_stats.as_mut();
-  if chain_stats.to_account_info().data_is_empty() {
+
+  if chain_stats
+    .to_account_info()
+    .try_borrow_data()?
+    .iter()
+    .all(|&x| x == 0)
+  {
     // Initialize the chain_stats for this new contract's chain if not done b4.
     chain_stats.initialize(chain);
   } else {

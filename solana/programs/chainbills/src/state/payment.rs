@@ -33,7 +33,7 @@ pub struct Payment {
 
 impl Payment {
   // discriminator (8) included
-  pub const SPACE: usize = (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
+  pub const SPACE: usize = (6 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
   /// AKA `b"payment"`.
   #[constant]

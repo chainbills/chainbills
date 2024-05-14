@@ -16,7 +16,7 @@ contract CbGovernance is OwnableUpgradeable, CbGetters, CbErrors {
     uint16 emitterChainId,
     bytes32 emitterAddress
   ) public onlyOwner {
-    if (emitterChainId == 0 && emitterChainId == chainId()) {
+    if (emitterChainId == 0 || emitterChainId == chainId()) {
       revert InvalidWormholeChainId();
     } else if (emitterAddress == bytes32(0)) {
       revert InvalidWormholeEmitterAddress();

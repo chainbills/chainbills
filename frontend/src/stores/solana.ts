@@ -3,28 +3,27 @@ import {
   convertTokensForOnChain,
   type TokenAndAmountOffChain,
 } from '@/schemas/tokens-and-amounts';
-import {
-  AnchorProvider,
-  BN,
-  Program,
-  web3,
-  type Idl,
-} from '@project-serum/anchor';
+import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
 import {
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction as createATAIx,
   getAssociatedTokenAddressSync as getATA,
   getAccount,
 } from '@solana/spl-token';
-import { Connection, PublicKey, TransactionInstruction, clusterApiUrl } from '@solana/web3.js';
+import {
+  Connection,
+  PublicKey,
+  TransactionInstruction,
+  clusterApiUrl,
+} from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet } from 'solana-wallets-vue';
 import { WH_CHAIN_ID_SOLANA } from './chain';
-import idl from './idl.json';
+import { IDL, type Chainbills } from './idl';
 import { useUserStore } from './user';
 
-export const PROGRAM_ID = '7YWuy7VkB76uJXt8xHaQu8aGWodG7NUaCkmzVFWg94xk';
+export const PROGRAM_ID = 'p7Lu1yPzMRYLfLxWbEePx8kn3LNevFTbGVC5ghyADF9';
 
 export const useSolanaStore = defineStore('solana-utils', () => {
   const anchorWallet = useAnchorWallet();
@@ -90,7 +89,7 @@ export const useSolanaStore = defineStore('solana-utils', () => {
     const call = program()
       .methods.initializePayable(
         description,
-        convertTokensForOnChain(tokensAndAmounts),
+        convertTokensForOnChain(tokensAndAmounts) as any,
         allowsFreePayments,
       )
       .accounts({
@@ -164,7 +163,6 @@ export const useSolanaStore = defineStore('solana-utils', () => {
         payer: user.pubkey()!,
         globalStats,
         chainStats,
-        thisProgram,
         mint,
         payerTokenAccount,
         globalTokenAccount,
@@ -191,8 +189,8 @@ export const useSolanaStore = defineStore('solana-utils', () => {
   };
 
   const program = () =>
-    new Program(
-      idl as Idl,
+    new Program<Chainbills>(
+      IDL,
       PROGRAM_ID,
       ...(anchorWallet.value
         ? [new AnchorProvider(connection, anchorWallet.value!, {})]
@@ -242,7 +240,6 @@ export const useSolanaStore = defineStore('solana-utils', () => {
         host: user.pubkey()!,
         globalStats,
         chainStats,
-        thisProgram,
         mint,
         hostTokenAccount,
         globalTokenAccount,

@@ -6,9 +6,9 @@ import {
 import { account, writeContract } from '@kolirt/vue-web3-auth';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import abi from './abi.json';
+import abi from './abi';
 
-export const CONTRACT_ADDRESS = '0x7DEF11c120c17fBcd63d916Eefb14F9Fc395f7eA';
+export const CONTRACT_ADDRESS = '0x89F1051407799805eac5aE9A40240dbCaaB55b98';
 
 export const useEvmStore = defineStore('evm', () => {
   const initializePayable = async (

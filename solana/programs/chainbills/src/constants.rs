@@ -39,7 +39,3 @@ pub const MAX_PAYABLES_TOKENS: usize = 20;
 /// AKA `b"sending"`.
 #[constant]
 pub const SEED_PREFIX_SENDING: &[u8] = b"sending";
-
-/// AKA `b"max_withdrawal_fee`.
-#[constant]
-pub const SEED_PREFIX_MAX_WITHDRAWAL_FEE: &[u8] = b"max_withdrawal_fee";

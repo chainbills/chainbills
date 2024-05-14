@@ -1,4 +1,4 @@
-use crate::{constants::SEED_PREFIX_MAX_WITHDRAWAL_FEE, error::ChainbillsError, state::*};
+use crate::{error::ChainbillsError, state::*};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -16,9 +16,9 @@ pub struct UpdateMaxWithdrawalFee<'info> {
   /// Config account to confirm owner status.
   pub config: AccountLoader<'info, Config>,
 
-  #[account(init_if_needed, payer = owner, seeds = [SEED_PREFIX_MAX_WITHDRAWAL_FEE, &token], bump, space = TokenAndAmount::SPACE)]
+  #[account(init_if_needed, payer = owner, seeds = [MaxFeeDetails::SEED_PREFIX, &token], bump, space = MaxFeeDetails::SPACE)]
   /// Account that stores the max withdrawal fee details.
-  pub max_withdrawal_fee_details: Box<Account<'info, TokenAndAmount>>,
+  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
 
   pub system_program: Program<'info, System>,
 }

@@ -98,9 +98,9 @@ pub struct WithdrawReceived<'info> {
   /// with the native token's metadata. Mutable.
   pub token_bridge_wrapped_mint: Box<Account<'info, token_bridge::WrappedMint>>,
 
-  #[account(seeds = [SEED_PREFIX_MAX_WITHDRAWAL_FEE, token_bridge_wrapped_mint.key().to_bytes().as_ref()], bump)]
+  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, token_bridge_wrapped_mint.key().to_bytes().as_ref()], bump)]
   /// Account that stores the max withdrawal fee details.
-  pub max_withdrawal_fee_details: Box<Account<'info, TokenAndAmount>>,
+  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
 
   #[account(
         seeds = [

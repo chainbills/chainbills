@@ -87,7 +87,7 @@ fn update_state_for_withdrawal(
 }
 
 fn calculate_amount_minus_fees(
-  max_withdrawal_fee_details: &Account<TokenAndAmount>,
+  max_withdrawal_fee_details: &Account<MaxFeeDetails>,
   amount: u64,
 ) -> u64 {
   let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();

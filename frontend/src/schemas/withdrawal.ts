@@ -5,7 +5,7 @@ import {
 } from './tokens-and-amounts';
 
 export class Withdrawal {
-  id: Uint8Array;
+  id: string;
   globalCount: number;
   chain: Chain;
   chainCount: number;
@@ -18,7 +18,7 @@ export class Withdrawal {
   details: TokenAndAmountOffChain;
 
   constructor(
-    id: Uint8Array,
+    id: string,
     chain: Chain,
     hostWallet: Uint8Array,
     onChainData: any,

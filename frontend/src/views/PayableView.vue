@@ -6,8 +6,10 @@ import { useAppLoadingStore } from '@/stores/app-loading';
 import { useTimeStore } from '@/stores/time';
 import { useWalletStore } from '@/stores/wallet';
 import { useWithdrawalStore } from '@/stores/withdrawal';
+import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const appLoading = useAppLoadingStore();
@@ -18,6 +20,7 @@ const toast = useToast();
 const { origin } = window.location;
 const link = `${origin}/pay/${details.id}`;
 const wallet = useWalletStore();
+const { whAddress } = storeToRefs(wallet);
 const withdrawal = useWithdrawalStore();
 
 const {
@@ -48,6 +51,16 @@ const cards = [
   ['Your Nth Count', hostCount + nth(hostCount)],
   ['Closed?', isClosed ? 'Yes' : 'No'],
 ];
+
+const areUnit8ArraysEqual = (a: Uint8Array, b: Uint8Array) => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+};
+
+const isMine = ref(
+  areUnit8ArraysEqual(whAddress.value ?? new Uint8Array(), details.hostWallet),
+);
 
 const copy = () => {
   toast.add({
@@ -100,6 +113,15 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
     } else appLoading.hide();
   }
 };
+
+onMounted(() => {
+  watch(
+    () => whAddress.value,
+    (val) => {
+      isMine.value = val ? areUnit8ArraysEqual(val, details.hostWallet) : false;
+    },
+  );
+});
 </script>
 
 <template>
@@ -111,10 +133,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
       <p class="mx-auto w-fit"><ConnectWalletButton /></p>
     </template>
 
-    <template
-      class=""
-      v-else-if="wallet.whAddress != details.hostWallet"
-    >
+    <template class="" v-else-if="!isMine">
       <h2 class="text-3xl text-center mb-8 pt-8 font-bold">Unauthorized</h2>
       <p class="text-lg text-center max-w-sm mx-auto mb-4">
         You don't have permissions to view this page.
@@ -140,9 +159,7 @@ const withdraw = async (balance: TokenAndAmountOffChain) => {
     <template v-else>
       <h2 class="mb-8 leading-tight">
         <span>Payable ID:</span><br />
-        <span class="text-xs break-all text-gray-500">{{
-          details.id
-        }}</span>
+        <span class="text-xs break-all text-gray-500">{{ details.id }}</span>
       </h2>
 
       <div class="max-w-lg mb-12">

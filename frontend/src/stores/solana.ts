@@ -25,12 +25,12 @@ import { useUserStore } from './user';
 
 export const PROGRAM_ID = 'p7Lu1yPzMRYLfLxWbEePx8kn3LNevFTbGVC5ghyADF9';
 
-export const useSolanaStore = defineStore('solana-utils', () => {
+export const useSolanaStore = defineStore('solana', () => {
   const anchorWallet = useAnchorWallet();
   const chainStats = PublicKey.findProgramAddressSync(
     [
       Buffer.from('chain'),
-      new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 8),
+      new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
     ],
     new PublicKey(PROGRAM_ID),
   )[0];
@@ -40,7 +40,6 @@ export const useSolanaStore = defineStore('solana-utils', () => {
     new PublicKey(PROGRAM_ID),
   )[0];
   const systemProgram = new PublicKey(web3.SystemProgram.programId);
-  const thisProgram = new PublicKey(PROGRAM_ID);
   const toast = useToast();
   const tokenProgram = new PublicKey(TOKEN_PROGRAM_ID);
   const user = useUserStore();
@@ -127,7 +126,7 @@ export const useSolanaStore = defineStore('solana-utils', () => {
   };
 
   const pay = async (
-    payableId: Uint8Array,
+    payableId: string,
     details: TokenAndAmountOffChain,
   ): Promise<OnChainSuccess | null> => {
     const { amount, token: mint } = convertTokensForOnChain([details])[0];
@@ -182,7 +181,7 @@ export const useSolanaStore = defineStore('solana-utils', () => {
     ]);
 
     return new OnChainSuccess({
-      created: payment.toBytes(),
+      created: payment,
       txHash: await call.rpc(),
       chain: 'Solana',
     });
@@ -194,7 +193,7 @@ export const useSolanaStore = defineStore('solana-utils', () => {
       PROGRAM_ID,
       ...(anchorWallet.value
         ? [new AnchorProvider(connection, anchorWallet.value!, {})]
-        : []),
+        : [{ connection }]),
     );
 
   const seeds = (entity: string, count: number): Uint8Array[] => {
@@ -209,7 +208,7 @@ export const useSolanaStore = defineStore('solana-utils', () => {
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const withdraw = async (
-    payableId: Uint8Array,
+    payableId: string,
     details: TokenAndAmountOffChain,
   ): Promise<OnChainSuccess | null> => {
     const { amount, token: mint } = convertTokensForOnChain([details])[0];
@@ -223,8 +222,16 @@ export const useSolanaStore = defineStore('solana-utils', () => {
       return null;
     }
 
+    const config = PublicKey.findProgramAddressSync(
+      [Buffer.from('config')],
+      new PublicKey(PROGRAM_ID),
+    )[0];
     const withdrawal = PublicKey.findProgramAddressSync(
       seeds('withdrawal', (await user.data())!.withdrawalsCount + 1),
+      new PublicKey(PROGRAM_ID),
+    )[0]; 
+    const maxWithdrawalFeeDetails = PublicKey.findProgramAddressSync(
+      [Buffer.from('max_withdrawal_fee'), mint.toBytes()],
       new PublicKey(PROGRAM_ID),
     )[0];
     const signer = anchorWallet.value!.publicKey;
@@ -235,11 +242,13 @@ export const useSolanaStore = defineStore('solana-utils', () => {
     const call = program()
       .methods.withdraw(amount)
       .accounts({
+        config,
         withdrawal,
         payable: new PublicKey(payableId),
         host: user.pubkey()!,
         globalStats,
         chainStats,
+        maxWithdrawalFeeDetails,
         mint,
         hostTokenAccount,
         globalTokenAccount,
@@ -255,7 +264,7 @@ export const useSolanaStore = defineStore('solana-utils', () => {
     }
 
     return new OnChainSuccess({
-      created: withdrawal.toBytes(),
+      created: withdrawal,
       txHash: await call.rpc(),
       chain: 'Solana',
     });

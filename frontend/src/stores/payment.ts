@@ -20,7 +20,7 @@ export const usePaymentStore = defineStore('payment', () => {
   const user = useUserStore();
   const wallet = useWalletStore();
 
-  const get = async (id: Uint8Array): Promise<Payment | null> => {
+  const get = async (id: string): Promise<Payment | null> => {
     try {
       const data = (await solana
         .program()
@@ -48,9 +48,9 @@ export const usePaymentStore = defineStore('payment', () => {
 
   const pay = async (
     email: string,
-    payableId: Uint8Array,
+    payableId: string,
     details: TokenAndAmountOffChain,
-  ): Promise<Uint8Array | null> => {
+  ): Promise<string | null> => {
     if (!wallet.whAddress || !chain.current) return null;
 
     try {
@@ -92,7 +92,9 @@ export const usePaymentStore = defineStore('payment', () => {
           .program()
           .account.payment.fetch(_pubkey)) as any;
         const { chain, ownerWallet } = await user.get(data.host);
-        payments.push(new Payment(_pubkey.toBytes(), chain, ownerWallet, data));
+        payments.push(
+          new Payment(_pubkey.toBase58(), chain, ownerWallet, data),
+        );
       }
       return payments;
     } catch (e) {

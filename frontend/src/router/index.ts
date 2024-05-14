@@ -21,9 +21,7 @@ const beforeEnterPayableDetails = async (to: RouteLocationNormalized) => {
   const appLoading = useAppLoadingStore();
   const payable = usePayableStore();
   appLoading.show();
-  const details = await payable.get(
-    new TextEncoder().encode(to.params['id'] as string),
-  );
+  const details = await payable.get(to.params['id'] as string);
   if (details) {
     to.meta.details = details;
     appLoading.hide();
@@ -39,14 +37,10 @@ const beforeEnterPaymentDetails = async (to: RouteLocationNormalized) => {
   const payable = usePayableStore();
   const payment = usePaymentStore();
   appLoading.show();
-  const result = await payment.get(
-    new TextEncoder().encode(to.params['id'] as string),
-  );
+  const result = await payment.get(to.params['id'] as string);
   if (result) {
     to.meta.payment = result;
-    to.meta.payable = await payable.get(
-      new TextEncoder().encode(to.params['id'] as string),
-    );
+    to.meta.payable = await payable.get(result.payable);
     appLoading.hide();
     return true;
   } else {

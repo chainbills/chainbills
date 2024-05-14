@@ -13,7 +13,6 @@ const mines = ref<Payable[] | null>();
 const payable = usePayableStore();
 const time = useTimeStore();
 const wallet = useWalletStore();
-const decode = (val: Uint8Array) => new TextDecoder().decode(val);
 const getMines = async () => {
   isLoading.value = true;
   mines.value = await payable.mines();
@@ -92,7 +91,7 @@ onMounted(async () => {
             createdAt,
             isClosed,
           } of mines"
-          :to="`/payable/${decode(id)}`"
+          :to="`/payable/${id}`"
           class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0"
         >
           <Button

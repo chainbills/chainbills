@@ -5,7 +5,7 @@ import {
 } from './tokens-and-amounts';
 
 export class Payment {
-  id: Uint8Array;
+  id: string;
   globalCount: number;
   chain: Chain;
   chainCount: number;
@@ -18,7 +18,7 @@ export class Payment {
   details: TokenAndAmountOffChain;
 
   constructor(
-    id: Uint8Array,
+    id: string,
     chain: Chain,
     payerWallet: Uint8Array,
     onChainData: any,

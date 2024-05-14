@@ -94,7 +94,7 @@ const pay = async () => {
   isPaying.value = true;
   const id = await payment.pay(email.value, details.id, selectedConfig.value);
 
-  if (id) router.push(`/receipt/${new TextDecoder().decode(id)}`);
+  if (id) router.push(`/receipt/${id}`);
   else isPaying.value = false;
 };
 

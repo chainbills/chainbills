@@ -123,7 +123,7 @@ const create = async () => {
   );
   isCreating.value = false;
 
-  if (id) router.push(`/payable/${new TextDecoder().decode(id)}`);
+  if (id) router.push(`/payable/${id}`);
 };
 
 const reviewConfig = () => {

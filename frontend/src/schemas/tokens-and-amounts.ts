@@ -39,7 +39,7 @@ export const convertTokensToOffChain = (
   taasOnC: TokenAndAmountOnChain[],
 ): TokenAndAmountOffChain[] => {
   return taasOnC.map((taa) => {
-    const address = taa.token.toBase58();
+    const address = new PublicKey(taa.token).toBase58();
     const found = tokens.find((t) => t.address == address);
     if (!found) console.warn(`Couldn't find token details for ${address}`);
     const name = found ? found.name : address;

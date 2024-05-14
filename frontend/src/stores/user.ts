@@ -28,11 +28,17 @@ export const useUserStore = defineStore('user', () => {
 
   const data = async (): Promise<User | null> => {
     if (!wallet.whAddress) return null;
-    return new User(await solana.program().account.user.fetch(pubkey()!));
+    return new User(
+      pubkey()!.toBase58(),
+      await solana.program().account.user.fetch(pubkey()!),
+    );
   };
 
   const get = async (pubkey: PublicKey): Promise<User> => {
-    return new User(await solana.program().account.user.fetch(pubkey));
+    return new User(
+      pubkey.toBase58(),
+      await solana.program().account.user.fetch(pubkey),
+    );
   };
 
   return { data, get, isInitialized, pubkey };

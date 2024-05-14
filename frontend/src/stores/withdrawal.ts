@@ -20,7 +20,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const user = useUserStore();
   const wallet = useWalletStore();
 
-  const get = async (id: Uint8Array): Promise<Withdrawal | null> => {
+  const get = async (id: string): Promise<Withdrawal | null> => {
     try {
       const data = (await solana
         .program()
@@ -51,7 +51,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
           .account.withdrawal.fetch(_pubkey)) as any;
         const { chain, ownerWallet } = await user.get(data.host);
         withdrawals.push(
-          new Withdrawal(_pubkey.toBytes(), chain, ownerWallet, data),
+          new Withdrawal(_pubkey.toBase58(), chain, ownerWallet, data),
         );
       }
       return withdrawals;
@@ -78,9 +78,9 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const withdraw = async (
-    payableId: Uint8Array,
+    payableId: string,
     details: TokenAndAmountOffChain,
-  ): Promise<Uint8Array | null> => {
+  ): Promise<string | null> => {
     if (!wallet.whAddress || !chain.current) return null;
 
     try {

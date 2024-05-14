@@ -4,6 +4,7 @@ import {
   type TokenAndAmountOffChain,
 } from '@/schemas/tokens-and-amounts';
 import { account, writeContract } from '@kolirt/vue-web3-auth';
+import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import abi from './abi';
@@ -32,16 +33,16 @@ export const useEvmStore = defineStore('evm', () => {
       ],
     });
     await wait();
-    // TODO: Detect call reception in Solana before returning
+    // TODO: Detect call reception in Solana and return entity from there
     return new OnChainSuccess({
-      created: new Uint8Array(),
+      created: hash,
       txHash: hash,
       chain: 'Ethereum',
     });
   };
 
   const pay = async (
-    payableId: Uint8Array,
+    payableId: string,
     details: TokenAndAmountOffChain,
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
@@ -53,12 +54,15 @@ export const useEvmStore = defineStore('evm', () => {
       address: CONTRACT_ADDRESS,
       abi,
       functionName: 'pay',
-      args: [payableId, convertTokensForOnChain([details])[0]],
+      args: [
+        new PublicKey(payableId).toBytes(),
+        convertTokensForOnChain([details])[0],
+      ],
     });
     await wait();
-    // TODO: Detect call reception in Solana before returning
+    // TODO: Detect call reception in Solana and return entity from there
     return new OnChainSuccess({
-      created: new Uint8Array(),
+      created: hash,
       txHash: hash,
       chain: 'Ethereum',
     });
@@ -70,7 +74,7 @@ export const useEvmStore = defineStore('evm', () => {
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const withdraw = async (
-    payableId: Uint8Array,
+    payableId: string,
     details: TokenAndAmountOffChain,
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
@@ -82,12 +86,15 @@ export const useEvmStore = defineStore('evm', () => {
       address: CONTRACT_ADDRESS,
       abi,
       functionName: 'withdraw',
-      args: [payableId, convertTokensForOnChain([details])[0]],
+      args: [
+        new PublicKey(payableId).toBytes(),
+        convertTokensForOnChain([details])[0],
+      ],
     });
     await wait();
-    // TODO: Detect call reception in Solana before returning
+    // TODO: Detect call reception in Solana and return entity from there
     return new OnChainSuccess({
-      created: new Uint8Array(),
+      created: hash,
       txHash: hash,
       chain: 'Ethereum',
     });

@@ -1,7 +1,7 @@
 import type { Chain } from '@/stores/chain';
 
 export class OnChainSuccess {
-  created: Uint8Array;
+  created: string;
   txHash: string;
   chain: Chain;
 

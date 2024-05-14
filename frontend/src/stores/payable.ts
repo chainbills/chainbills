@@ -25,7 +25,7 @@ export const usePayableStore = defineStore('payable', () => {
     description: string,
     tokensAndAmounts: TokenAndAmountOffChain[],
     allowsFreePayments: boolean,
-  ): Promise<Uint8Array | null> => {
+  ): Promise<string | null> => {
     if (!wallet.whAddress || !chain.current) return null;
     if (allowsFreePayments) tokensAndAmounts = [];
 
@@ -59,7 +59,7 @@ export const usePayableStore = defineStore('payable', () => {
     }
   };
 
-  const get = async (id: Uint8Array): Promise<Payable | null> => {
+  const get = async (id: string): Promise<Payable | null> => {
     try {
       const data = (await solana
         .program()
@@ -89,7 +89,9 @@ export const usePayableStore = defineStore('payable', () => {
           .program()
           .account.payable.fetch(_pubkey)) as any;
         const { chain, ownerWallet } = await user.get(data.host);
-        payables.push(new Payable(_pubkey.toBytes(), chain, ownerWallet, data));
+        payables.push(
+          new Payable(_pubkey.toBase58(), chain, ownerWallet, data),
+        );
       }
       return payables;
     } catch (e) {

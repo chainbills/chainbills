@@ -6,6 +6,7 @@ import {
 import type { BN } from '@project-serum/anchor';
 
 export class User {
+  id: string;
   ownerWallet: Uint8Array;
   chain: Chain;
   chainCount: number;
@@ -14,10 +15,11 @@ export class User {
   paymentsCount: number;
   withdrawalsCount: number;
 
-  constructor(onChainData: any) {
+  constructor(id: string, onChainData: any) {
+    this.id = id;
     this.ownerWallet = onChainData.ownerWallet;
 
-    const chainId = (onChainData.chainId as BN).toNumber();
+    const chainId = onChainData.chainId;
     if (chainId == WH_CHAIN_ID_SOLANA) this.chain = 'Solana';
     else if (chainId == WH_CHAIN_ID_ETHEREUM) this.chain = 'Ethereum';
     else throw `Unknown chainId: ${chainId}`;

@@ -15,8 +15,7 @@ export class OnChainSuccess {
     if (this.chain == 'Solana') {
       return `https://explorer.solana.com/tx/${this.txHash}?cluster=devnet`;
     } else {
-      // TODO: Set the explorer url of EVM
-      return `"TO BE SET: {txHash: ${this.txHash}}"`;
+      return `https://sepolia.etherscan.io/tx/${this.txHash}`;
     }
   }
 }

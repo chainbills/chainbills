@@ -107,7 +107,12 @@ const create = async () => {
       if (amountErrors.value[i].value) return;
       else
         tokensAndAmounts.push(
-          new TokenAndAmount(selectedTokens.value[i], amounts.value[i].value),
+          new TokenAndAmount(
+            selectedTokens.value[i],
+            // TODO: Factor in the correct decimals (Wormhole-normalized)
+            amounts.value[i].value *
+              10 ** selectedTokens.value[i].details.Solana.decimals,
+          ),
         );
     }
   }
@@ -285,29 +290,27 @@ onMounted(() => {
       <p v-if="allowsFreePayments" class="text-xl mb-2">
         This payable will accept payments of any amounts of any token.
       </p>
-      <div v-else-if="displayedConfig">
-        <p v-if="displayedConfig.length == 1">
-          This payable will accept
-          <span class="font-bold text-2xl"
-            >{{ displayedConfig[0].amount }}&nbsp;{{
-              displayedConfig[0].name
-            }}</span
-          >
+      <p v-else-if="displayedConfig.length == 1">
+        This payable will accept
+        <span class="font-bold text-2xl"
+          >{{ displayedConfig[0].amount }}&nbsp;{{
+            displayedConfig[0].name
+          }}</span
+        >
+      </p>
+      <div class="pt-4" v-else-if="displayedConfig.length > 1">
+        <p class="mb-2 text-lg">
+          This payable will accept <span class="font-bold">any</span> of the
+          following
         </p>
-        <div class="pt-4" v-else>
-          <p class="mb-2 text-lg">
-            This payable will accept <span class="font-bold">any</span> of the
-            following
-          </p>
-          <div class="flex gap-4 flex-wrap">
-            <span
-              v-for="config of displayedConfig"
-              class="border rounded-md px-3 py-2 font-medium text-xl"
-              style="border-color: var(--shadow)"
-            >
-              {{ config.amount }}&nbsp;{{ config.name }}
-            </span>
-          </div>
+        <div class="flex gap-4 flex-wrap">
+          <span
+            v-for="config of displayedConfig"
+            class="border rounded-md px-3 py-2 font-medium text-xl"
+            style="border-color: var(--shadow)"
+          >
+            {{ config.amount }}&nbsp;{{ config.name }}
+          </span>
         </div>
       </div>
 

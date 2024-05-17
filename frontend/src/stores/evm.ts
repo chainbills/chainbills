@@ -1,9 +1,12 @@
 import { OnChainSuccess } from '@/schemas/on-chain-success';
+import { TokenAndAmount, type Token } from '@/schemas/tokens-and-amounts';
 import {
-  convertTokensForOnChain,
-  type TokenAndAmountOffChain,
-} from '@/schemas/tokens-and-amounts';
-import { account, writeContract } from '@kolirt/vue-web3-auth';
+  account,
+  erc20ABI,
+  readContract,
+  writeContract,
+} from '@kolirt/vue-web3-auth';
+import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -12,9 +15,27 @@ import abi from './abi';
 export const CONTRACT_ADDRESS = '0x89F1051407799805eac5aE9A40240dbCaaB55b98';
 
 export const useEvmStore = defineStore('evm', () => {
+  const balance = async (token: Token): Promise<number | null> => {
+    if (!account.connected) return null;
+    try {
+      return Number(
+        await readContract({
+          address: token.details.Ethereum.address as `0x${string}`,
+          abi: erc20ABI,
+          functionName: 'balanceOf',
+          args: [account.address],
+        }),
+      );
+    } catch (e) {
+      console.error(e);
+      toastError(`Couldn't fetch ${token.name} balance: ${e}`);
+      return null;
+    }
+  };
+
   const initializePayable = async (
     description: string,
-    tokensAndAmounts: TokenAndAmountOffChain[],
+    tokensAndAmounts: TokenAndAmount[],
     allowsFreePayments: boolean,
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
@@ -29,7 +50,7 @@ export const useEvmStore = defineStore('evm', () => {
       args: [
         description,
         allowsFreePayments,
-        convertTokensForOnChain(tokensAndAmounts),
+        tokensAndAmounts.map((t) => t.toOnChain()),
       ],
     });
     await wait();
@@ -43,12 +64,21 @@ export const useEvmStore = defineStore('evm', () => {
 
   const pay = async (
     payableId: string,
-    details: TokenAndAmountOffChain,
+    { amount, details }: TokenAndAmount,
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
       toastError('Connect Ethereum Wallet First!');
       return null;
     }
+
+    const approval = await writeContract({
+      address: details.Ethereum.address as `0x${string}`,
+      abi: erc20ABI,
+      functionName: 'approve',
+      args: [CONTRACT_ADDRESS, amount],
+    });
+    if (approval) await approval.wait();
+    else return null;
 
     const { hash, wait } = await writeContract({
       address: CONTRACT_ADDRESS,
@@ -56,7 +86,8 @@ export const useEvmStore = defineStore('evm', () => {
       functionName: 'pay',
       args: [
         new PublicKey(payableId).toBytes(),
-        convertTokensForOnChain([details])[0],
+        new PublicKey(details.Solana.address).toBytes(),
+        new BN(amount),
       ],
     });
     await wait();
@@ -75,7 +106,7 @@ export const useEvmStore = defineStore('evm', () => {
 
   const withdraw = async (
     payableId: string,
-    details: TokenAndAmountOffChain,
+    { amount, details }: TokenAndAmount,
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
       toastError('Connect Ethereum Wallet First!');
@@ -88,7 +119,8 @@ export const useEvmStore = defineStore('evm', () => {
       functionName: 'withdraw',
       args: [
         new PublicKey(payableId).toBytes(),
-        convertTokensForOnChain([details])[0],
+        new PublicKey(details.Solana.address).toBytes(),
+        new BN(amount),
       ],
     });
     await wait();
@@ -100,5 +132,5 @@ export const useEvmStore = defineStore('evm', () => {
     });
   };
 
-  return { initializePayable, pay, withdraw };
+  return { balance, initializePayable, pay, withdraw };
 });

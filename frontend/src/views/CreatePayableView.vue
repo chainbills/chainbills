@@ -4,7 +4,8 @@ import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import {
   tokens,
-  type TokenAndAmountOffChain,
+  TokenAndAmount,
+  type Token,
 } from '@/schemas/tokens-and-amounts';
 import { usePayableStore } from '@/stores/payable';
 import { useWalletStore } from '@/stores/wallet';
@@ -19,7 +20,7 @@ const allowsFreePayments = ref(false);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
 const configError = ref('');
-const displayedConfig = ref<any>(null);
+const displayedConfig = ref<TokenAndAmount[]>([]);
 const isCreating = ref(false);
 const description = ref('');
 const descriptionError = ref('');
@@ -28,7 +29,7 @@ const email = ref('');
 const emailError = ref('');
 const payable = usePayableStore();
 const router = useRouter();
-const selectedTokens = ref<any[]>([]);
+const selectedTokens = ref<Token[]>([]);
 const wallet = useWalletStore();
 
 const removeToken = (index: number) => {
@@ -38,29 +39,27 @@ const removeToken = (index: number) => {
   amountErrors.value.splice(index, 1);
 };
 
-const selectToken = (token: any) => {
+const chooseToken = (token: any) => {
   selectedTokens.value = [...selectedTokens.value, token];
   amounts.value.push(ref(0));
   amountErrors.value.push(ref(''));
 };
 
 const updateDisplayedConfig = () => {
-  const tokensAndAmounts: TokenAndAmountOffChain[] = [];
+  const tokensAndAmounts: TokenAndAmount[] = [];
   if (!allowsFreePayments.value) {
     for (let i = 0; i < amounts.value.length; i++) {
       amountErrors.value[i].value = validateAmount(amounts.value[i].value);
       if (amountErrors.value[i].value) {
-        displayedConfig.value = null;
+        displayedConfig.value = [];
         return;
       } else {
-        tokensAndAmounts.push({
-          amount: amounts.value[i].value,
-          ...selectedTokens.value[i],
-        });
+        tokensAndAmounts.push(
+          new TokenAndAmount(selectedTokens.value[i], amounts.value[i].value),
+        );
       }
     }
-    displayedConfig.value =
-      tokensAndAmounts.length == 0 ? null : tokensAndAmounts;
+    displayedConfig.value = tokensAndAmounts;
   }
 };
 
@@ -101,16 +100,15 @@ const create = async () => {
   validateConfig();
   if (emailError.value || descriptionError.value || configError.value) return;
 
-  const tokensAndAmounts: TokenAndAmountOffChain[] = [];
+  const tokensAndAmounts: TokenAndAmount[] = [];
   if (!allowsFreePayments.value) {
     for (let i = 0; i < amounts.value.length; i++) {
       amountErrors.value[i].value = validateAmount(amounts.value[i].value);
       if (amountErrors.value[i].value) return;
       else
-        tokensAndAmounts.push({
-          amount: amounts.value[i].value,
-          ...selectedTokens.value[i],
-        });
+        tokensAndAmounts.push(
+          new TokenAndAmount(selectedTokens.value[i], amounts.value[i].value),
+        );
     }
   }
 
@@ -272,12 +270,12 @@ onMounted(() => {
         <Dropdown
           :options="
             tokens.filter(
-              (t) => !selectedTokens.find((st) => st.address == t.address),
+              (t) => !selectedTokens.find((st) => st.name == t.name),
             )
           "
           optionLabel="name"
           v-if="tokens.length > selectedTokens.length"
-          @change="(e) => selectToken(e.value)"
+          @change="(e) => chooseToken(e.value)"
           placeholder="Select a Token"
           class="mb-2"
         />

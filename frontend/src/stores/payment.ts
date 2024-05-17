@@ -1,5 +1,5 @@
 import { Payment } from '@/schemas/payment';
-import { type TokenAndAmountOffChain } from '@/schemas/tokens-and-amounts';
+import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
@@ -25,7 +25,7 @@ export const usePaymentStore = defineStore('payment', () => {
       const data = (await solana
         .program()
         .account.payment.fetch(new PublicKey(id))) as any;
-      const { chain, ownerWallet } = await user.get(data.host);
+      const { chain, ownerWallet } = await user.get(data.payer);
       return new Payment(id, chain, ownerWallet, data);
     } catch (e) {
       console.error(e);
@@ -49,7 +49,7 @@ export const usePaymentStore = defineStore('payment', () => {
   const pay = async (
     email: string,
     payableId: string,
-    details: TokenAndAmountOffChain,
+    details: TokenAndAmount,
   ): Promise<string | null> => {
     if (!wallet.whAddress || !chain.current) return null;
 
@@ -91,7 +91,7 @@ export const usePaymentStore = defineStore('payment', () => {
         const data = (await solana
           .program()
           .account.payment.fetch(_pubkey)) as any;
-        const { chain, ownerWallet } = await user.get(data.host);
+        const { chain, ownerWallet } = await user.get(data.payer);
         payments.push(
           new Payment(_pubkey.toBase58(), chain, ownerWallet, data),
         );

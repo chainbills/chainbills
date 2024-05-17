@@ -1,5 +1,5 @@
 import { Payable } from '@/schemas/payable';
-import { type TokenAndAmountOffChain } from '@/schemas/tokens-and-amounts';
+import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
@@ -23,7 +23,7 @@ export const usePayableStore = defineStore('payable', () => {
   const initialize = async (
     email: string,
     description: string,
-    tokensAndAmounts: TokenAndAmountOffChain[],
+    tokensAndAmounts: TokenAndAmount[],
     allowsFreePayments: boolean,
   ): Promise<string | null> => {
     if (!wallet.whAddress || !chain.current) return null;

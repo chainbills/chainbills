@@ -2,7 +2,12 @@
 import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
-import { tokens } from '@/schemas/tokens-and-amounts';
+import {
+  TokenAndAmount,
+  tokens,
+  type Token,
+} from '@/schemas/tokens-and-amounts';
+import { useChainStore } from '@/stores/chain';
 import { usePaymentStore } from '@/stores/payment';
 import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
@@ -13,6 +18,7 @@ import { useRoute, useRouter } from 'vue-router';
 const amount = ref<any>('');
 const amountError = ref('');
 const balanceError = ref('');
+const chain = useChainStore();
 const configError = ref('');
 const emailInput = ref(null) as unknown as Ref<HTMLInputElement>;
 const email = ref('');
@@ -23,14 +29,12 @@ const route = useRoute();
 const details = route.meta.details as Payable;
 const { allowsFreePayments, tokensAndAmounts } = details;
 const router = useRouter();
-const selectedConfig = ref();
-const selectedToken = ref();
+const selectedConfig = ref<TokenAndAmount>();
+const selectedToken = ref<Token>();
 const wallet = useWalletStore();
 
-const selectToken = (token: any) => {
-  selectedConfig.value = allowsFreePayments
-    ? { ...token, amount: amount.value }
-    : token;
+const selectToken = (token: Token) => {
+  selectedConfig.value = new TokenAndAmount(token, amount.value);
 };
 
 const validateAmount = () => {
@@ -48,8 +52,8 @@ const validateBalance = async () => {
 
   balanceError.value == '';
   if (selectedConfig.value) {
-    const { amount: amt, address: token, name } = selectedConfig.value;
-    const balance = await wallet.balance(token, name);
+    const { amount: amt, name } = selectedConfig.value;
+    const balance = await wallet.balance(selectedConfig.value.token());
     if (balance === null) balanceError.value = '';
     else if (amt && balance < amt) {
       balanceError.value =
@@ -92,7 +96,7 @@ const pay = async () => {
   }
 
   isPaying.value = true;
-  const id = await payment.pay(email.value, details.id, selectedConfig.value);
+  const id = await payment.pay(email.value, details.id, selectedConfig.value!);
 
   if (id) router.push(`/receipt/${id}`);
   else isPaying.value = false;
@@ -198,20 +202,21 @@ onMounted(() => {
           {{ tokensAndAmounts.length == 1 ? 'Pay' : 'Select an Option' }}
         </p>
         <p class="font-bold text-3xl" v-if="tokensAndAmounts.length == 1">
-          {{ tokensAndAmounts[0].amount }}&nbsp;{{ tokensAndAmounts[0].name }}
+          {{ tokensAndAmounts[0].display(chain.current ?? 'Solana') }}
         </p>
         <div class="flex gap-2 flex-wrap mb-1" v-else>
+          <!-- TODO: Review whether to use the current chain for formatting -->
           <Button
             v-for="taa of tokensAndAmounts"
             :class="
               'shadow-md px-3 py-2 ' +
-              (selectedConfig?.address == taa.address
+              (selectedConfig?.name == taa.name
                 ? 'bg-blue-300 dark:bg-slate-800'
                 : '')
             "
-            @click="selectToken(taa)"
+            @click="selectedConfig = taa"
           >
-            {{ taa.amount }}&nbsp;{{ taa.name }}
+            {{ taa.display(chain.current ?? 'Solana') }}
           </Button>
         </div>
         <small class="text-xs block text-red-500">{{ configError }}</small>
@@ -228,9 +233,9 @@ onMounted(() => {
           class="mb-4"
         >
           You are paying
-          <span class="font-bold text-2xl"
-            >{{ selectedConfig.amount }}&nbsp;{{ selectedConfig.name }}</span
-          >
+          <span class="font-bold text-2xl">{{
+            selectedConfig.display(chain.current ?? 'Solana')
+          }}</span>
         </p>
 
         <small class="text-xs block text-red-500">{{ balanceError }}</small>

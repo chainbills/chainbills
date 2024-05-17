@@ -11,7 +11,6 @@ const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
 const time = useTimeStore();
 const wallet = useWalletStore();
-const decode = (val: Uint8Array) => new TextDecoder().decode(val);
 </script>
 
 <template>
@@ -20,23 +19,24 @@ const decode = (val: Uint8Array) => new TextDecoder().decode(val);
 
     <p class="mb-8 leading-tight">
       <span>Receipt ID:</span><br />
-      <span class="text-xs break-all text-gray-500">{{
-        decode(payment.id)
-      }}</span>
+      <span class="text-xs break-all text-gray-500">{{ payment.id }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
       <span>Payer's Wallet Address:</span><br />
       <span class="text-xs break-all text-gray-500">{{
-        payment.payerWallet
+        wallet.original(payment.payerWallet, payment.chain)
       }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
+      <span>Payer's Chain:</span><br />
+      <span class="text-xs break-all text-gray-500">{{ payment.chain }}</span>
+    </p>
+
+    <p class="mb-8 leading-tight">
       <span>Paid:</span><br />
-      <span class="text-xl font-bold"
-        >{{ payment.details.amount }}&nbsp;{{ payment.details.name }}</span
-      >
+      <span class="text-xl font-bold">{{ payment.displayDetails() }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
@@ -51,7 +51,10 @@ const decode = (val: Uint8Array) => new TextDecoder().decode(val);
       <router-link
         :to="`/payable/${payment.payable}`"
         class="text-xs break-all text-gray-500 underline"
-        v-if="wallet.whAddress && wallet.whAddress == payableDetails.hostWallet"
+        v-if="
+          wallet.whAddress &&
+          wallet.areSame(wallet.whAddress, payableDetails.hostWallet)
+        "
       >
         {{ payment.payable }}
       </router-link>

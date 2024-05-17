@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
 import { Payable } from '@/schemas/payable';
-import type { TokenAndAmountOffChain } from '@/schemas/tokens-and-amounts';
+import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import { useTimeStore } from '@/stores/time';
 import { useWalletStore } from '@/stores/wallet';
@@ -52,14 +52,8 @@ const cards = [
   ['Closed?', isClosed ? 'Yes' : 'No'],
 ];
 
-const areUnit8ArraysEqual = (a: Uint8Array, b: Uint8Array) => {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-  return true;
-};
-
 const isMine = ref(
-  areUnit8ArraysEqual(whAddress.value ?? new Uint8Array(), details.hostWallet),
+  wallet.areSame(whAddress.value ?? new Uint8Array(), details.hostWallet),
 );
 
 const copy = () => {
@@ -77,25 +71,20 @@ const comingSoon = () => {
 };
 
 const getBalsDisplay = () => {
-  const all = [];
+  const all: TokenAndAmount[] = [];
   if (allowsFreePayments) {
-    for (let bal of balances) {
-      all.push({ display: `${bal.amount} ${bal.name}`, value: bal });
-    }
+    balances.forEach((b) => all.push(b));
   } else {
     for (let taa of tokensAndAmounts) {
-      const found = balances.find((b) => b.address == taa.address);
-      all.push({
-        display: `${found ? found.amount : 0} ${taa.name}`,
-        value: found ?? { ...taa, amount: 0 },
-      });
+      const found = balances.find((b) => b.name == taa.name);
+      all.push(new TokenAndAmount(taa.token(), found?.amount ?? 0));
     }
   }
   return all;
 };
 const balsDisplay = getBalsDisplay();
 
-const withdraw = async (balance: TokenAndAmountOffChain) => {
+const withdraw = async (balance: TokenAndAmount) => {
   if (balance.amount == 0) {
     toast.add({
       severity: 'info',
@@ -118,7 +107,7 @@ onMounted(() => {
   watch(
     () => whAddress.value,
     (val) => {
-      isMine.value = val ? areUnit8ArraysEqual(val, details.hostWallet) : false;
+      isMine.value = val ? wallet.areSame(val, details.hostWallet) : false;
     },
   );
 });
@@ -192,11 +181,12 @@ onMounted(() => {
         receive payments.
       </p>
       <div v-else-if="balsDisplay.length == 1" class="mb-12 flex items-end">
+        <!-- TODO: Review choice of only Solana chain here -->
         <p class="text-4xl mr-6">
-          {{ balsDisplay[0].display }}
+          {{ balsDisplay[0].display('Solana') }}
         </p>
         <Button
-          @click="withdraw(balsDisplay[0].value)"
+          @click="withdraw(balsDisplay[0])"
           class="bg-blue-500 text-white dark:text-white text-sm px-3 py-1"
           >Withdraw</Button
         >
@@ -206,13 +196,16 @@ onMounted(() => {
         class="grid grid-cols-2 gap-6 sm:flex pb-12 flex-wrap content-start"
       >
         <div
-          v-for="{ display, value } of balsDisplay"
+          v-for="taa of balsDisplay"
           class="p-4 bg-blue-50 sm:w-44 dark:bg-slate-900 text-center rounded-md shadow-inner"
         >
-          <p class="font-bold text-lg mb-3">{{ display }}</p>
+          <!-- TODO: Review choice of only Solana chain here -->
+          <p class="font-bold text-lg mb-3">
+            {{ taa.display('Solana') }}
+          </p>
           <Button
             class="border border-blue-500 text-blue-500 text-sm px-3 py-1"
-            @click="withdraw(value)"
+            @click="withdraw(taa)"
             >Withdraw</Button
           >
         </div>

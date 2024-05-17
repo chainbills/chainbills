@@ -34,11 +34,8 @@ export const useUserStore = defineStore('user', () => {
     );
   };
 
-  const get = async (pubkey: PublicKey): Promise<User> => {
-    return new User(
-      pubkey.toBase58(),
-      await solana.program().account.user.fetch(pubkey),
-    );
+  const get = async (id: string): Promise<User> => {
+    return new User(id, await solana.program().account.user.fetch(id));
   };
 
   return { data, get, isInitialized, pubkey };

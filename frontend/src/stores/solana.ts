@@ -1,8 +1,5 @@
 import { OnChainSuccess } from '@/schemas/on-chain-success';
-import {
-  convertTokensForOnChain,
-  type TokenAndAmountOffChain,
-} from '@/schemas/tokens-and-amounts';
+import { TokenAndAmount, type Token } from '@/schemas/tokens-and-amounts';
 import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
 import {
   TOKEN_PROGRAM_ID,
@@ -44,16 +41,20 @@ export const useSolanaStore = defineStore('solana', () => {
   const tokenProgram = new PublicKey(TOKEN_PROGRAM_ID);
   const user = useUserStore();
 
-  const balance = async (
-    tokenAccount: PublicKey,
-    tokenName: string,
-  ): Promise<number | null> => {
+  const balance = async (token: Token): Promise<number | null> => {
     try {
-      return (await connection.getTokenAccountBalance(tokenAccount)).value
-        .uiAmount;
+      if (!anchorWallet.value) return null;
+      return (
+        await connection.getTokenAccountBalance(
+          getATA(
+            new PublicKey(token.details.Solana.address),
+            anchorWallet.value!.publicKey,
+          ),
+        )
+      ).value.uiAmount;
     } catch (e) {
       if (`${e}`.includes('could not find account')) return 0;
-      toastError(`Couldn't fetch ${tokenName} balance: ${e}`);
+      toastError(`Couldn't fetch ${token.name} balance: ${e}`);
       return null;
     }
   };
@@ -68,7 +69,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const initializePayable = async (
     description: string,
-    tokensAndAmounts: TokenAndAmountOffChain[],
+    tokensAndAmounts: TokenAndAmount[],
     allowsFreePayments: boolean,
   ): Promise<OnChainSuccess | null> => {
     if (!anchorWallet.value) {
@@ -88,7 +89,7 @@ export const useSolanaStore = defineStore('solana', () => {
     const call = program()
       .methods.initializePayable(
         description,
-        convertTokensForOnChain(tokensAndAmounts) as any,
+        tokensAndAmounts.map((t) => t.toOnChain()) as any,
         allowsFreePayments,
       )
       .accounts({
@@ -103,7 +104,7 @@ export const useSolanaStore = defineStore('solana', () => {
     if (!isExistingUser) call.preInstructions([(await initializeUserIx())!]);
 
     return new OnChainSuccess({
-      created: payable.toBytes(),
+      created: payable.toBase58(),
       txHash: await call.rpc(),
       chain: 'Solana',
     });
@@ -127,10 +128,9 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const pay = async (
     payableId: string,
-    details: TokenAndAmountOffChain,
+    { amount, details }: TokenAndAmount,
   ): Promise<OnChainSuccess | null> => {
-    const { amount, token: mint } = convertTokensForOnChain([details])[0];
-    if (amount.toNumber() == 0) {
+    if (amount == 0) {
       toastError('Cannot withdraw zero');
       return null;
     }
@@ -144,6 +144,7 @@ export const useSolanaStore = defineStore('solana', () => {
     let payerCount = 1;
     if (isExistingUser) payerCount = (await user.data())!.paymentsCount + 1;
 
+    const mint = new PublicKey(details.Solana.address);
     const payment = PublicKey.findProgramAddressSync(
       seeds('payment', payerCount),
       new PublicKey(PROGRAM_ID),
@@ -155,7 +156,7 @@ export const useSolanaStore = defineStore('solana', () => {
     const globalTAExists = await doesATAExists(globalTokenAccount);
 
     const call = program()
-      .methods.pay(amount)
+      .methods.pay(new BN(amount))
       .accounts({
         payment,
         payable: new PublicKey(payableId),
@@ -181,7 +182,7 @@ export const useSolanaStore = defineStore('solana', () => {
     ]);
 
     return new OnChainSuccess({
-      created: payment,
+      created: payment.toBase58(),
       txHash: await call.rpc(),
       chain: 'Solana',
     });
@@ -209,10 +210,9 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const withdraw = async (
     payableId: string,
-    details: TokenAndAmountOffChain,
+    { amount, details }: TokenAndAmount,
   ): Promise<OnChainSuccess | null> => {
-    const { amount, token: mint } = convertTokensForOnChain([details])[0];
-    if (amount.toNumber() == 0) {
+    if (amount == 0) {
       toastError('Cannot withdraw zero');
       return null;
     }
@@ -222,6 +222,7 @@ export const useSolanaStore = defineStore('solana', () => {
       return null;
     }
 
+    const mint = new PublicKey(details.Solana.address);
     const config = PublicKey.findProgramAddressSync(
       [Buffer.from('config')],
       new PublicKey(PROGRAM_ID),
@@ -229,7 +230,7 @@ export const useSolanaStore = defineStore('solana', () => {
     const withdrawal = PublicKey.findProgramAddressSync(
       seeds('withdrawal', (await user.data())!.withdrawalsCount + 1),
       new PublicKey(PROGRAM_ID),
-    )[0]; 
+    )[0];
     const maxWithdrawalFeeDetails = PublicKey.findProgramAddressSync(
       [Buffer.from('max_withdrawal_fee'), mint.toBytes()],
       new PublicKey(PROGRAM_ID),
@@ -240,7 +241,7 @@ export const useSolanaStore = defineStore('solana', () => {
     const globalTokenAccount = getATA(mint, globalStats, true);
 
     const call = program()
-      .methods.withdraw(amount)
+      .methods.withdraw(new BN(amount))
       .accounts({
         config,
         withdrawal,
@@ -264,7 +265,7 @@ export const useSolanaStore = defineStore('solana', () => {
     }
 
     return new OnChainSuccess({
-      created: withdrawal,
+      created: withdrawal.toBase58(),
       txHash: await call.rpc(),
       chain: 'Solana',
     });

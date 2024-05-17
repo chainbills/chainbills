@@ -1,8 +1,5 @@
 import { type Chain } from '@/stores/chain';
-import {
-  convertTokensToOffChain,
-  type TokenAndAmountOffChain,
-} from './tokens-and-amounts';
+import { TokenAndAmount } from './tokens-and-amounts';
 
 export class Payable {
   id: string;
@@ -13,8 +10,8 @@ export class Payable {
   hostCount: number;
   hostWallet: Uint8Array;
   description: string;
-  tokensAndAmounts: TokenAndAmountOffChain[];
-  balances: TokenAndAmountOffChain[];
+  tokensAndAmounts: TokenAndAmount[];
+  balances: TokenAndAmount[];
   allowsFreePayments: boolean;
   createdAt: Date;
   paymentsCount: number;
@@ -35,10 +32,10 @@ export class Payable {
     this.hostCount = onChainData.hostCount.toNumber();
     this.hostWallet = hostWallet;
     this.description = onChainData.description;
-    this.tokensAndAmounts = convertTokensToOffChain(
-      onChainData.tokensAndAmounts,
+    this.tokensAndAmounts = onChainData.tokensAndAmounts.map(
+      TokenAndAmount.fromOnChain,
     );
-    this.balances = convertTokensToOffChain(onChainData.balances);
+    this.balances = onChainData.balances.map(TokenAndAmount.fromOnChain);
     this.allowsFreePayments = onChainData.allowsFreePayments;
     this.createdAt = new Date(onChainData.createdAt.toNumber() * 1000);
     this.paymentsCount = onChainData.paymentsCount.toNumber();

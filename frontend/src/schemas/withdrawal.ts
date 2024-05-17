@@ -1,8 +1,5 @@
 import { type Chain } from '@/stores/chain';
-import {
-  convertTokensToOffChain,
-  type TokenAndAmountOffChain,
-} from './tokens-and-amounts';
+import { TokenAndAmount } from './tokens-and-amounts';
 
 export class Withdrawal {
   id: string;
@@ -15,7 +12,7 @@ export class Withdrawal {
   hostCount: number;
   hostWallet: Uint8Array;
   timestamp: Date;
-  details: TokenAndAmountOffChain;
+  details: TokenAndAmount;
 
   constructor(
     id: string,
@@ -32,7 +29,7 @@ export class Withdrawal {
     this.hostWallet = hostWallet;
     this.payable = onChainData.payable.toBase58();
     this.payableCount = onChainData.payableCount.toNumber();
-    this.details = convertTokensToOffChain([onChainData.details])[0];
+    this.details = TokenAndAmount.fromOnChain(onChainData.details);
     this.timestamp = new Date(onChainData.timestamp.toNumber() * 1000);
   }
 }

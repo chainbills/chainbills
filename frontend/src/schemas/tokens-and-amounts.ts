@@ -1,55 +1,78 @@
+import type { Chain } from '@/stores/chain';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 
-export const tokens = [
-  {
-    name: 'USDC',
-    address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-    decimals: 6,
-  },
-  {
-    name: 'wSOL',
-    address: 'So11111111111111111111111111111111111111112',
-    decimals: 9,
-  },
-];
-
-export interface TokenAndAmountOnChain {
-  token: PublicKey;
-  amount: BN;
-}
-
-export interface TokenAndAmountOffChain {
-  name: string;
+export interface TokenChainDetails {
   address: string;
-  amount: number;
   decimals: number;
 }
 
-export const convertTokensForOnChain = (
-  taasOffC: TokenAndAmountOffChain[],
-): TokenAndAmountOnChain[] => {
-  return taasOffC.map((taa) => ({
-    amount: new BN(taa.amount * 10 ** taa.decimals),
-    token: new PublicKey(taa.address),
-  }));
-};
+export interface Token {
+  name: string;
+  details: { [key in Chain]: TokenChainDetails };
+}
 
-export const convertTokensToOffChain = (
-  taasOnC: TokenAndAmountOnChain[],
-): TokenAndAmountOffChain[] => {
-  return taasOnC.map((taa) => {
-    const address = new PublicKey(taa.token).toBase58();
-    const found = tokens.find((t) => t.address == address);
-    if (!found) console.warn(`Couldn't find token details for ${address}`);
-    const name = found ? found.name : address;
-    const amount = found
-      ? parseFloat(
-          (taa.amount.toNumber() / 10 ** found.decimals).toFixed(18),
-          // 18 is max decimals
-        )
-      : taa.amount.toNumber();
-    const decimals = found ? found.decimals : 1;
-    return { address, amount, decimals, name };
-  });
-};
+export interface TokenAndAmountOnChain {
+  token: Uint8Array;
+  amount: BN;
+}
+
+export class TokenAndAmount {
+  name: string;
+  details: { [key in Chain]: TokenChainDetails };
+  amount: number;
+
+  constructor(token: Token, amount: number) {
+    this.name = token.name;
+    this.details = token.details;
+    this.amount = amount;
+  }
+
+  // TODO: Add a reconcile method for decimals of Ethereum
+  // When there will be tokens with difference in decimals in both chains
+
+  static fromOnChain({ token, amount }: TokenAndAmountOnChain): TokenAndAmount {
+    const address = new PublicKey(token).toBase58();
+    const found = tokens.find((t) => t.details.Solana.address == address);
+    if (!found) throw `Couldn't find token details for ${address}`;
+    return new TokenAndAmount(found, amount.toNumber());
+  }
+
+  display(chain: Chain) {
+    return this.format(chain) + ' ' + this.name;
+  } 
+
+  format(chain: Chain) {
+    return this.amount / 10 ** this.details[chain].decimals;
+  }
+
+  token(): Token {
+    return {
+      name: this.name,
+      details: this.details,
+    };
+  }
+
+  toOnChain(): TokenAndAmountOnChain {
+    return {
+      token: new PublicKey(this.details.Solana.address).toBytes(),
+      amount: new BN(this.amount),
+    };
+  }
+}
+
+export const tokens: Token[] = [
+  {
+    name: 'USDC',
+    details: {
+      Solana: {
+        address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+        decimals: 6,
+      },
+      Ethereum: {
+        address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        decimals: 6,
+      },
+    },
+  },
+];

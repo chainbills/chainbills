@@ -1,4 +1,4 @@
-import { type TokenAndAmountOffChain } from '@/schemas/tokens-and-amounts';
+import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
 import { Withdrawal } from '@/schemas/withdrawal';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
@@ -79,7 +79,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
   const withdraw = async (
     payableId: string,
-    details: TokenAndAmountOffChain,
+    details: TokenAndAmount,
   ): Promise<string | null> => {
     if (!wallet.whAddress || !chain.current) return null;
 

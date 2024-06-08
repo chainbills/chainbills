@@ -2,7 +2,12 @@ import express, { Request, Response } from 'express';
 import { onRequest } from 'firebase-functions/v2/https';
 import morgan from 'morgan';
 
-import { initializedPayable, paid, withdrew } from './handlers';
+import {
+  initializedPayable,
+  paid,
+  saveNotificationToken,
+  withdrew
+} from './handlers';
 import { validateAuth } from './middleware/validate-auth';
 
 const app = express();
@@ -31,6 +36,18 @@ const wrapper = async (
     });
   }
 };
+
+app.post(
+  '/notifications',
+  validateAuth,
+  async (req: Request, res: Response) => {
+    await wrapper(
+      async () => await saveNotificationToken(req.body),
+      'saving notification token',
+      res
+    );
+  }
+);
 
 app.post('/payable', validateAuth, async (req: Request, res: Response) => {
   await wrapper(

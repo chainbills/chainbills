@@ -13,7 +13,11 @@ export const program = (cluster: Cluster = SOLANA_CLUSTER) =>
     connection: new Connection(clusterApiUrl(cluster))
   });
 
-export const verify = (message: string, signature: string, publicKey: string) =>
+export const solanaVerify = (
+  message: string,
+  signature: string,
+  publicKey: string
+) =>
   nacl.sign.detached.verify(
     new TextEncoder().encode(message),
     bs58.decode(signature),

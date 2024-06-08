@@ -22,6 +22,7 @@
     "aos": "^3.0.0-beta.6",
     "bs58": "^5.0.0",
     "dompurify": "^3.0.11",
+    "firebase": "^10.12.2",
     "pinia": "^2.1.7",
     "primevue": "^3.50.0",
     "solana-wallets-vue": "^0.6.1",

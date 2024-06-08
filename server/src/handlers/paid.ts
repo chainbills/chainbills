@@ -3,11 +3,11 @@ import { Body } from 'express';
 import { isEmail } from 'validator';
 
 import { Auth, Payment } from '../schemas';
-import { firestore, owner, program } from '../utils';
+import { firestore, notify, owner, program } from '../utils';
 
 export const paid = async (body: Body, auth: Auth) => {
-  const { paymentId, email } = body;
-  if (!isEmail(email)) throw `Invalid Email: ${email}`;
+  const { paymentId, email: payerEmail } = body;
+  if (!isEmail(payerEmail)) throw `Invalid Email: ${payerEmail}`;
   if (!paymentId) throw 'Missing required paymentId';
 
   const raw = await program(auth.solanaCluster).account.payment.fetch(
@@ -22,5 +22,16 @@ export const paid = async (body: Body, auth: Auth) => {
 
   await firestore
     .doc(`/payments/${paymentId}`)
-    .set({ email, ...payment }, { merge: true });
+    .set({ email: payerEmail, ...payment }, { merge: true });
+
+  const payableId = payment.payable;
+  const payableSnap = await firestore.doc(`/payables/${payableId}`).get();
+  if (payableSnap.exists) {
+    const { email: hostEmail, hostWallet } = payableSnap.data();
+    // TODO: send email to host
+    hostEmail;
+    await notify(hostWallet, payment);
+  } else {
+    // TODO: Alert developers in some way
+  }
 };

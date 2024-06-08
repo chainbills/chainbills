@@ -6,6 +6,7 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useChainStore } from './chain';
 import { useEvmStore } from './evm';
+import { useNotificationsStore } from './notifications';
 import { useServerStore } from './server';
 import { PROGRAM_ID, useSolanaStore } from './solana';
 import { useUserStore } from './user';
@@ -14,6 +15,7 @@ import { useWalletStore } from './wallet';
 export const usePayableStore = defineStore('payable', () => {
   const chain = useChainStore();
   const evm = useEvmStore();
+  const notifications = useNotificationsStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
@@ -51,6 +53,7 @@ export const usePayableStore = defineStore('payable', () => {
         detail: 'You have successfully created a Payable.',
         life: 12000,
       });
+      notifications.ensure();
       return result.created;
     } catch (e) {
       console.error(e);

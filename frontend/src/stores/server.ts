@@ -10,7 +10,7 @@ export const useServerStore = defineStore('server', () => {
   const toast = useToast();
   const wallet = useWalletStore();
 
-  const call = async (path: string, body: object): Promise<any> => {
+  const call = async (path: string, body: any): Promise<any> => {
     return new Promise(async (resolve, _) => {
       if (chain.currentId && wallet.address && auth.signature) {
         body.chainId = chain.currentId;
@@ -66,6 +66,10 @@ export const useServerStore = defineStore('server', () => {
     return await call('/payment', { paymentId, email });
   };
 
+  const saveNotificationToken = async (fcmToken: string): Promise<boolean> => {
+    return await call('/notifications', { fcmToken });
+  };
+
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
@@ -73,5 +77,5 @@ export const useServerStore = defineStore('server', () => {
     return await call('/withdrawal', { withdrawalId });
   };
 
-  return { createdPayable, paid, withdrew };
+  return { createdPayable, paid, saveNotificationToken, withdrew };
 });

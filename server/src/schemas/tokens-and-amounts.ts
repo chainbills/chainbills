@@ -1,5 +1,6 @@
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
+import { Chain } from '../utils/chain';
 
 export interface TokenChainDetails {
   address: string;

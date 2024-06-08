@@ -2,6 +2,9 @@ import type { Chain } from '@/stores/chain';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 
+// TODO: Ensure that the amount is in the decimals of Wormhole-normalization 
+// the chains have different decimals for the same token
+
 export interface TokenChainDetails {
   address: string;
   decimals: number;

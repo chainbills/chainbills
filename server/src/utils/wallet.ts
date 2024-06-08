@@ -13,7 +13,7 @@ export const canonical = (bytes: Uint8Array, chain: Chain) => {
 export const owner = async (
   address: string,
   cluster: Cluster
-): { chain: Chain; ownerWallet: string } => {
+): Promise<{ chain: Chain; ownerWallet: string }> => {
   const { chainId, ownerWallet: walletBytes } = await program(
     cluster
   ).account.user.fetch(new PublicKey(address));
@@ -23,6 +23,6 @@ export const owner = async (
   else if (chainId == WH_CHAIN_ID_ETH_SEPOLIA) chain = 'Ethereum Sepolia';
   else throw `Unknown chainId: ${chainId}`;
 
-  const ownerWallet = canonical(walletBytes, chain);
+  const ownerWallet = canonical(Uint8Array.from(walletBytes), chain);
   return { chain, ownerWallet };
 };

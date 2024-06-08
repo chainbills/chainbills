@@ -3,11 +3,10 @@ import { ChainId } from '@wormhole-foundation/sdk';
 import { NextFunction, Request, Response } from 'express';
 
 import { Auth } from '../schemas/auth';
+import { evmVerify, solanaVerify } from '../utils';
 import { WH_CHAIN_ID_ETH_SEPOLIA, WH_CHAIN_ID_SOLANA } from '../utils/chain';
-import { verify as evmVerify } from '../utils/evm';
-import { verify as solanaVerify } from '../utils/solana';
 
-const isChainId = (chainId: string): chainId is ChainId =>
+const isChainId = (chainId: number): chainId is ChainId =>
   chainId == WH_CHAIN_ID_SOLANA || chainId == WH_CHAIN_ID_ETH_SEPOLIA;
 
 const isSolanaCluster = (cluster: string): cluster is Cluster =>
@@ -42,8 +41,8 @@ export const validateAuth = async (
       walletAddress,
       chainId == WH_CHAIN_ID_SOLANA ? solanaCluster : null
     );
-    next();
-  } catch (e) {
+    return next();
+  } catch (e: any) {
     console.log(body);
     console.error(`Error at validating auth ... `);
     console.error(e);

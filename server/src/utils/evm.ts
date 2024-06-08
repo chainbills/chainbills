@@ -1,6 +1,6 @@
 import { verifyMessage } from 'viem';
 
-export const verify = async (
+export const evmVerify = async (
   message: string,
   signature: string,
   address: string

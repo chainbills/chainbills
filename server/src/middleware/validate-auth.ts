@@ -16,24 +16,21 @@ const isSolanaCluster = (cluster: string): cluster is Cluster =>
 export const AUTH_MESSAGE = 'Authentication';
 
 export const validateAuth = async (
-  { headers }: Request,
+  { body }: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const chainId = headers['chain-id'];
-    const walletAddress = headers['wallet-address'];
-    const signature = headers['signature'];
-    const solanaCluster = headers['solana-cluster'];
+    const { chainId, walletAddress, signature, solanaCluster } = body;
 
-    if (!chainId || !isChainId(chainId)) throw 'Provide Valid chain-id header';
-    if (!walletAddress) throw 'Provide wallet-address header';
-    if (!signature) throw 'Provide signature header';
+    if (!chainId || !isChainId(chainId)) throw 'Provide Valid chainId';
+    if (!walletAddress) throw 'Provide walletAddress';
+    if (!signature) throw 'Provide signature';
     if (
       chainId == WH_CHAIN_ID_SOLANA &&
       (!solanaCluster || !isSolanaCluster(solanaCluster))
     ) {
-      throw 'Provide Valid solana-cluster header';
+      throw 'Provide Valid solanaCluster';
     }
 
     const verify = chainId == WH_CHAIN_ID_SOLANA ? solanaVerify : evmVerify;
@@ -47,7 +44,7 @@ export const validateAuth = async (
     );
     next();
   } catch (e) {
-    console.log(headers);
+    console.log(body);
     console.error(`Error at validating auth ... `);
     console.error(e);
     return res.status(400).json({

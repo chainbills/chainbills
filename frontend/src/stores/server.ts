@@ -10,21 +10,27 @@ export const useServerStore = defineStore('server', () => {
   const toast = useToast();
   const wallet = useWalletStore();
 
-  const call = async (path: string): Promise<any> => {
+  const call = async (path: string, body: object): Promise<any> => {
     return new Promise(async (resolve, _) => {
-      const headers = { Accept: 'application/json' };
       if (chain.currentId && wallet.address && auth.signature) {
-        headers['chain-id'] = chain.currentId;
-        headers['wallet-address'] = wallet.address;
-        headers['signature'] = auth.signature;
+        body.chainId = chain.currentId;
+        body.walletAddress = wallet.address;
+        body.signature = auth.signature;
         if (chain.currentId == WH_CHAIN_ID_SOLANA) {
-          headers['solana-cluster'] = SOLANA_CLUSTER;
+          body.solanaCluster = SOLANA_CLUSTER;
         }
       }
 
       try {
         const result = await (
-          await fetch(`${import.meta.env.VITE_SERVER_URL}${path}`, { headers })
+          await fetch(`${import.meta.env.VITE_SERVER_URL}${path}`, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+          })
         ).json();
 
         if ('success' in result) {
@@ -50,21 +56,21 @@ export const useServerStore = defineStore('server', () => {
   };
 
   const createdPayable = async (
-    payable: string,
+    payableId: string,
     email: string,
   ): Promise<boolean> => {
-    return await call(`/payable/${payable}/${email}`);
+    return await call('/payable', { payableId, email });
   };
 
-  const paid = async (payment: string, email: string): Promise<boolean> => {
-    return await call(`/payment/${payment}/${email}`);
+  const paid = async (paymentId: string, email: string): Promise<boolean> => {
+    return await call('/payment', { paymentId, email });
   };
 
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  const withdrew = async (withdrawal: string): Promise<boolean> => {
-    return await call(`/withdrawal/${withdrawal}`);
+  const withdrew = async (withdrawalId: string): Promise<boolean> => {
+    return await call('/withdrawal', { withdrawalId });
   };
 
   return { createdPayable, paid, withdrew };

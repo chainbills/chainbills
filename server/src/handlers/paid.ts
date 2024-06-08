@@ -1,26 +1,26 @@
 import { PublicKey } from '@solana/web3.js';
-import { Params } from 'express';
+import { Body } from 'express';
 import { isEmail } from 'validator';
 
 import { Auth, Payment } from '../schemas';
 import { firestore, owner, program } from '../utils';
 
-export const paid = async (params: Params, auth: Auth) => {
-  const { address, email } = params;
+export const paid = async (body: Body, auth: Auth) => {
+  const { paymentId, email } = body;
   if (!isEmail(email)) throw `Invalid Email: ${email}`;
 
   const raw = await program(auth.solanaCluster).account.payment.fetch(
-    new PublicKey(address)
+    new PublicKey(paymentId)
   );
   const { chain, ownerWallet } = await owner(raw.payer, auth.solanaCluster);
-  if (auth.walletAddress !== ownerWallet) throw 'Not your payment!';
+  if (auth.walletAddress != ownerWallet) throw 'Not your payment!';
 
-  const payment = new Payment(address, chain, ownerWallet, raw);
+  const payment = new Payment(paymentId, chain, ownerWallet, raw);
 
   // TODO: Send email to payer
 
   await firestore
     .collection('payments')
-    .doc(address)
+    .doc(paymentId)
     .set({ email, ...payment }, { merge: true });
 };

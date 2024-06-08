@@ -10,7 +10,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(morgan('combined'));
-app.use(validateAuth);
 
 const wrapper = async (
   action: Function,
@@ -33,25 +32,25 @@ const wrapper = async (
   }
 };
 
-app.get('/payable/:address/:email', async (req: Request, res: Response) => {
+app.post('/payable', validateAuth, async (req: Request, res: Response) => {
   await wrapper(
-    async () => await initializedPayable(req.params, res.locals.auth),
+    async () => await initializedPayable(req.body, res.locals.auth),
     'initialized payable finalizer',
     res
   );
 });
 
-app.get('/payment/:address/:email', async (req: Request, res: Response) => {
+app.post('/payment', validateAuth, async (req: Request, res: Response) => {
   await wrapper(
-    async () => await paid(req.params, res.locals.auth),
+    async () => await paid(req.body, res.locals.auth),
     'payment finalizer',
     res
   );
 });
 
-app.get('/withdrawal/:address', async (req: Request, res: Response) => {
+app.post('/withdrawal', validateAuth, async (req: Request, res: Response) => {
   await wrapper(
-    async () => await withdrew(req.params, res.locals.auth),
+    async () => await withdrew(req.body, res.locals.auth),
     'withdrawal finalizer',
     res
   );

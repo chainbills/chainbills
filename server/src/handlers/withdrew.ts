@@ -4,14 +4,14 @@ import { Auth, Withdrawal } from '../schemas';
 import { firestore, owner, program } from '../utils';
 
 export const withdrew = async (params: Params, auth: Auth) => {
-  const { address } = params;
+  const { withdrawalId } = params;
   const raw = await program(auth.solanaCluster).account.withdrawal.fetch(
-    new PublicKey(address)
+    new PublicKey(withdrawalId)
   );
   const { chain, ownerWallet } = await owner(raw.host, auth.solanaCluster);
-  if (auth.walletAddress !== ownerWallet) throw 'Not your withdrawal!';
+  if (auth.walletAddress != ownerWallet) throw 'Not your withdrawal!';
 
-  const withdrawal = new Withdrawal(address, chain, ownerWallet, raw);
+  const withdrawal = new Withdrawal(withdrawalId, chain, ownerWallet, raw);
   const payableSnap = await firestore
     .collection('payables')
     .doc(withdrawal.payable)
@@ -23,6 +23,6 @@ export const withdrew = async (params: Params, auth: Auth) => {
 
   await firestore
     .collection('withdrawals')
-    .doc(address)
+    .doc(withdrawalId)
     .set({ email, ...withdrawal }, { merge: true });
 };

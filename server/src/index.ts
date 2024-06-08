@@ -51,6 +51,8 @@ app.get('/withdrawal/:address', async (req: Request, res: Response) => {
   );
 });
 
-app.use('**', (_, res) => res.json({ success: true }));
+app.use('**', (_, res) =>
+  res.status(404).json({ success: false, message: 'Not Found' })
+);
 
 export const server = onRequest({ cors: true }, app);

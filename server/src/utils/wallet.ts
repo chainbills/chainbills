@@ -1,3 +1,4 @@
+import { PublicKey } from '@solana/web3.js';
 import { encoding } from '@wormhole-foundation/sdk-base';
 import { Chain, WH_CHAIN_ID_ETHEREUM, WH_CHAIN_ID_SOLANA } from './chain';
 import { program } from './solana';

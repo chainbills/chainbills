@@ -42,7 +42,7 @@ export class TokenAndAmount {
     const address = new PublicKey(token).toBase58();
     const found = tokens.find((t) => t.details.Solana.address == address);
     if (!found) throw `Couldn't find token details for ${address}`;
-    const parsed = TokenAndAmount(found, amount.toNumber());
+    const parsed = new TokenAndAmount(found, amount.toNumber());
     return {
       token: parsed.name,
       amount: parsed.format(chain)

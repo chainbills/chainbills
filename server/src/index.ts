@@ -26,7 +26,7 @@ const wrapper = async (
     console.error(e);
     return response.status(400).json({
       success: false,
-      message: e['message'] ?? `${e}`
+      message: `Error at ${desc}: ${e['message'] ?? e}`
     });
   }
 };

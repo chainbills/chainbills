@@ -1,8 +1,8 @@
+import { PublicKey } from '@solana/web3.js';
 import { Params } from 'express';
 
 import { Withdrawal } from '../schemas/withdrawal';
-import { firestore } from '../utils/firestore';
-import { owner } from '../utils/wallet';
+import { firestore, owner, program } from '../utils';
 
 export const withdrew = async ({ address }: Params) => {
   const raw = await program.account.withdrawal.fetch(new PublicKey(address));

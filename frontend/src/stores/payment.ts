@@ -51,7 +51,7 @@ export const usePaymentStore = defineStore('payment', () => {
     payableId: string,
     details: TokenAndAmount,
   ): Promise<string | null> => {
-    if (!wallet.whAddress || !chain.current) return null;
+    if (!wallet.connected || !chain.current) return null;
 
     try {
       const method = chain.current == 'Ethereum' ? evm.pay : solana.pay;
@@ -77,7 +77,7 @@ export const usePaymentStore = defineStore('payment', () => {
   };
 
   const mines = async (): Promise<Payment[] | null> => {
-    if (!wallet.whAddress) return null;
+    if (!wallet.connected) return null;
     if (!(await user.isInitialized())) return [];
 
     try {

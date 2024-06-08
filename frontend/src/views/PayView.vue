@@ -48,12 +48,12 @@ const validateAmount = () => {
 };
 
 const validateBalance = async () => {
-  if (!wallet.whAddress) return;
+  if (!wallet.connected) return;
 
   balanceError.value == '';
   if (selectedConfig.value) {
     const { name } = selectedConfig.value;
-    const amt = selectedConfig.value.format(chain.current ?? 'Solana')
+    const amt = selectedConfig.value.format(chain.current ?? 'Solana');
     const balance = await wallet.balance(selectedConfig.value.token());
     if (balance === null) balanceError.value = '';
     else if (amt && balance < amt) {
@@ -113,7 +113,7 @@ onMounted(() => {
       await validateBalance();
     },
   );
-  watch(() => wallet.whAddress, validateBalance);
+  watch(() => wallet.connected, validateBalance);
 
   if (!allowsFreePayments && tokensAndAmounts.length == 1) {
     selectedConfig.value = tokensAndAmounts[0];
@@ -223,7 +223,7 @@ onMounted(() => {
         <small class="text-xs block text-red-500">{{ configError }}</small>
       </div>
 
-      <template v-if="wallet.whAddress">
+      <template v-if="wallet.connected">
         <p
           v-if="
             (allowsFreePayments ||
@@ -250,7 +250,7 @@ onMounted(() => {
       </template>
     </form>
 
-    <template v-if="!wallet.whAddress">
+    <template v-if="!wallet.connected">
       <p class="my-12 text-center text-xl">
         Please connect your Wallet to continue
       </p>

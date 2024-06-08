@@ -19,9 +19,9 @@ const getMines = async () => {
   isLoading.value = false;
 };
 onMounted(async () => {
-  if (wallet.whAddress) await getMines();
+  if (wallet.connected) await getMines();
   watch(
-    () => wallet.whAddress,
+    () => wallet.connected,
     async (connected) => {
       if (connected) await getMines();
       else mines.value = null;
@@ -41,7 +41,7 @@ onMounted(async () => {
       </router-link>
     </div>
 
-    <template v-if="!wallet.whAddress">
+    <template v-if="!wallet.connected">
       <p class="pt-8 mb-8 text-center text-xl">
         Please connect your wallet to continue
       </p>

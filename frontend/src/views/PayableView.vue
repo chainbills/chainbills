@@ -115,7 +115,7 @@ onMounted(() => {
 
 <template>
   <section class="max-w-screen-lg mx-auto pb-20">
-    <template v-if="!wallet.whAddress">
+    <template v-if="!wallet.connected">
       <p class="my-12 text-center text-xl">
         Please connect your wallet to continue
       </p>

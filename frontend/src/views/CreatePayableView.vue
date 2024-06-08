@@ -150,7 +150,7 @@ onMounted(() => {
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
 
-    <div class="text-center pb-20" v-if="!wallet.whAddress">
+    <div class="text-center pb-20" v-if="!wallet.connected">
       <p class="mb-8">Please connect your wallet to continue.</p>
       <p class="mx-auto w-fit"><ConnectWalletButton /></p>
     </div>

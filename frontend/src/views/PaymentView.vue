@@ -25,7 +25,7 @@ const wallet = useWalletStore();
     <p class="mb-8 leading-tight">
       <span>Payer's Wallet Address:</span><br />
       <span class="text-xs break-all text-gray-500">{{
-        wallet.original(payment.payerWallet, payment.chain)
+        wallet.canonical(payment.payerWallet, payment.chain)
       }}</span>
     </p>
 

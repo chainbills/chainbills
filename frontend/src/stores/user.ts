@@ -17,7 +17,7 @@ export const useUserStore = defineStore('user', () => {
   };
 
   const isInitialized = async (): Promise<boolean> => {
-    if (!wallet.whAddress) return false;
+    if (!wallet.connected) return false;
     try {
       await solana.program().account.user.fetch(pubkey()!);
       return true;
@@ -27,7 +27,7 @@ export const useUserStore = defineStore('user', () => {
   };
 
   const data = async (): Promise<User | null> => {
-    if (!wallet.whAddress) return null;
+    if (!wallet.connected) return null;
     return new User(
       pubkey()!.toBase58(),
       await solana.program().account.user.fetch(pubkey()!),

@@ -35,7 +35,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   };
 
   const mines = async (): Promise<Withdrawal[] | null> => {
-    if (!wallet.whAddress) return null;
+    if (!wallet.connected) return null;
     if (!(await user.isInitialized())) return [];
 
     try {
@@ -81,7 +81,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     payableId: string,
     details: TokenAndAmount,
   ): Promise<string | null> => {
-    if (!wallet.whAddress || !chain.current) return null;
+    if (!wallet.connected || !chain.current) return null;
 
     try {
       const method =

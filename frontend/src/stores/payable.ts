@@ -26,7 +26,7 @@ export const usePayableStore = defineStore('payable', () => {
     tokensAndAmounts: TokenAndAmount[],
     allowsFreePayments: boolean,
   ): Promise<string | null> => {
-    if (!wallet.whAddress || !chain.current) return null;
+    if (!wallet.connected || !chain.current) return null;
     if (allowsFreePayments) tokensAndAmounts = [];
 
     try {
@@ -74,7 +74,7 @@ export const usePayableStore = defineStore('payable', () => {
   };
 
   const mines = async (): Promise<Payable[] | null> => {
-    if (!wallet.whAddress) return null;
+    if (!wallet.connected) return null;
     if (!(await user.isInitialized())) return [];
 
     try {

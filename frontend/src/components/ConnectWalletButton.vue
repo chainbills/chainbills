@@ -4,8 +4,8 @@ import { useSidebarStore } from '@/stores/sidebar';
 import { useThemeStore } from '@/stores/theme';
 import {
   account,
-  connect as connectEthereum,
-  disconnect as disconnectEthereum,
+  connect as connectEvm,
+  disconnect as disconnectEvm,
 } from '@kolirt/vue-web3-auth';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
@@ -15,11 +15,11 @@ import { ref } from 'vue';
 import Web3Avatar from 'web3-avatar-vue';
 
 const chain = useChainStore();
-const ethereumMenu = ref();
+const evmMenu = ref();
 const sidebar = useSidebarStore();
 const toast = useToast();
 const theme = useThemeStore();
-const ethereumItems = ref([
+const evmItems = ref([
   {
     label: 'Copy Address',
     command: () => {
@@ -37,7 +37,7 @@ const ethereumItems = ref([
   {
     label: 'Disconnect',
     command: () => {
-      disconnectEthereum();
+      disconnectEvm();
       sidebar.close();
       chain.setChain(null);
     },
@@ -45,16 +45,16 @@ const ethereumItems = ref([
 ]);
 const walletItems = [
   { label: 'Solana', command: () => chain.setChain('Solana') },
-  { label: 'Ethereum', command: () => chain.setChain('Ethereum') },
+  { label: 'Ethereum', command: () => chain.setChain('Ethereum Sepolia') },
 ];
 const walletMenu = ref();
 
-const onClickEthereum = (event: any) => {
+const onClickEvm = (event: any) => {
   if (account.connected) {
-    ethereumMenu.value.toggle(event);
+    evmMenu.value.toggle(event);
   } else {
     sidebar.close();
-    connectEthereum();
+    connectEvm();
   }
 };
 const toggleWallet = (event: any) => walletMenu.value.toggle(event);
@@ -75,19 +75,14 @@ const toggleWallet = (event: any) => walletMenu.value.toggle(event);
   ></wallet-multi-button>
   <Button
     v-else
-    @click="onClickEthereum"
+    @click="onClickEvm"
     aria-haspopup="true"
-    aria-controls="ethereum-menu"
+    aria-controls="evm-menu"
     class="bg-blue-700 text-white px-4 py-2"
     ><span v-if="account.connected" class="w-6 h-6 mr-3">
       <Web3Avatar :address="account.address!" class="h-6" /></span
     >{{ account.connected ? account.shortAddress : 'Connect Wallet' }}
   </Button>
-  <Menu
-    ref="ethereumMenu"
-    id="ethereum-menu"
-    :model="ethereumItems"
-    :popup="true"
-  />
+  <Menu ref="evmMenu" id="evm-menu" :model="evmItems" :popup="true" />
   <Menu ref="walletMenu" id="wallet-menu" :model="walletItems" :popup="true" />
 </template>

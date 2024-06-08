@@ -1,5 +1,5 @@
 import {
-  WH_CHAIN_ID_ETHEREUM,
+  WH_CHAIN_ID_ETH_SEPOLIA,
   WH_CHAIN_ID_SOLANA,
   type Chain,
 } from '@/stores/chain';
@@ -21,8 +21,9 @@ export class User {
 
     const chainId = onChainData.chainId;
     if (chainId == WH_CHAIN_ID_SOLANA) this.chain = 'Solana';
-    else if (chainId == WH_CHAIN_ID_ETHEREUM) this.chain = 'Ethereum';
-    else throw `Unknown chainId: ${chainId}`;
+    else if (chainId == WH_CHAIN_ID_ETH_SEPOLIA) {
+      this.chain = 'Ethereum Sepolia';
+    } else throw `Unknown chainId: ${chainId}`;
 
     this.globalCount = (onChainData.globalCount as BN).toNumber();
     this.chainCount = onChainData.chainCount.toNumber();

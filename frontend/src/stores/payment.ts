@@ -54,7 +54,7 @@ export const usePaymentStore = defineStore('payment', () => {
     if (!wallet.connected || !chain.current) return null;
 
     try {
-      const method = chain.current == 'Ethereum' ? evm.pay : solana.pay;
+      const method = chain.current == 'Solana' ? solana.pay : evm.pay;
       const result = await method(payableId, details);
       if (!result) return null;
 

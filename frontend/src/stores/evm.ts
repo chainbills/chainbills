@@ -21,7 +21,7 @@ export const useEvmStore = defineStore('evm', () => {
     try {
       return Number(
         await readContract({
-          address: token.details.Ethereum.address as `0x${string}`,
+          address: token.details['Ethereum Sepolia'].address as `0x${string}`,
           abi: erc20ABI,
           functionName: 'balanceOf',
           args: [account.address],
@@ -40,7 +40,7 @@ export const useEvmStore = defineStore('evm', () => {
     allowsFreePayments: boolean,
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
-      toastError('Connect Ethereum Wallet First!');
+      toastError('Connect EVM Wallet First!');
       return null;
     }
 
@@ -59,7 +59,7 @@ export const useEvmStore = defineStore('evm', () => {
     return new OnChainSuccess({
       created: hash,
       txHash: hash,
-      chain: 'Ethereum',
+      chain: 'Ethereum Sepolia',
     });
   };
 
@@ -68,12 +68,12 @@ export const useEvmStore = defineStore('evm', () => {
     { amount, details }: TokenAndAmount,
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
-      toastError('Connect Ethereum Wallet First!');
+      toastError('Connect EVM Wallet First!');
       return null;
     }
 
     const approval = await writeContract({
-      address: details.Ethereum.address as `0x${string}`,
+      address: details['Ethereum Sepolia'].address as `0x${string}`,
       abi: erc20ABI,
       functionName: 'approve',
       args: [CONTRACT_ADDRESS, amount],
@@ -96,13 +96,13 @@ export const useEvmStore = defineStore('evm', () => {
     return new OnChainSuccess({
       created: hash,
       txHash: hash,
-      chain: 'Ethereum',
+      chain: 'Ethereum Sepolia',
     });
   };
 
   const sign = async (message: string): Promise<string | null> => {
     if (!account.connected) {
-      toastError('Connect Ethereum Wallet First!');
+      toastError('Connect EVM Wallet First!');
       return null;
     }
     return await signMessage(message);
@@ -118,7 +118,7 @@ export const useEvmStore = defineStore('evm', () => {
     { amount, details }: TokenAndAmount,
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
-      toastError('Connect Ethereum Wallet First!');
+      toastError('Connect EVM Wallet First!');
       return null;
     }
 
@@ -137,7 +137,7 @@ export const useEvmStore = defineStore('evm', () => {
     return new OnChainSuccess({
       created: hash,
       txHash: hash,
-      chain: 'Ethereum',
+      chain: 'Ethereum Sepolia',
     });
   };
 

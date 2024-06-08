@@ -1,6 +1,6 @@
 import type { Token } from '@/schemas/tokens-and-amounts';
 import {
-  disconnect as disconnectEvm,
+  disconnect as evmDisconnect,
   account as evmWallet,
 } from '@kolirt/vue-web3-auth';
 import { encoding } from '@wormhole-foundation/sdk-base';
@@ -41,9 +41,8 @@ export const useWalletStore = defineStore('wallet', () => {
 
   const balance = async (token: Token): Promise<number | null> => {
     if (!current.value) return null;
-    return chain.current == 'Ethereum'
-      ? await evm.balance(token)
-      : await solana.balance(token);
+    const method = chain.current == 'Solana' ? solana.balance : evm.balance;
+    return await method(token);
   };
 
   const canonical = (bytes: Uint8Array, chain: Chain) => {
@@ -56,16 +55,15 @@ export const useWalletStore = defineStore('wallet', () => {
 
   const disconnect = async (): Promise<void> => {
     if (!current.value) return;
-    if (chain.current == 'Ethereum') return await disconnectEvm();
-    return await solanaWallet.disconnect();
+    if (chain.current == 'Solana') return await solanaWallet.disconnect();
+    return await evmDisconnect();
   };
 
   const sign = async (message: string): Promise<string | null> => {
     if (!current.value) return null;
     try {
-      return chain.current == 'Ethereum'
-        ? await evm.sign(message)
-        : await solana.sign(message);
+      const method = chain.current == 'Solana' ? solana.sign : evm.sign;
+      return await method(message);
     } catch (e) {
       const detail = `${e}`.toLocaleLowerCase().includes('rejected')
         ? 'Please Sign to Continue'
@@ -81,7 +79,7 @@ export const useWalletStore = defineStore('wallet', () => {
   };
 
   const update = ([newChain, newEvmAddress, newAnchorWallet]: any[]) => {
-    if (newChain == 'Ethereum' && newEvmAddress) {
+    if (newChain == 'Ethereum Sepolia' && newEvmAddress) {
       current.value = new UniversalAddress(newEvmAddress, 'hex');
     } else if (newChain == 'Solana' && newAnchorWallet) {
       current.value = new UniversalAddress(

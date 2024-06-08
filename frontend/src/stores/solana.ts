@@ -20,7 +20,7 @@ import {
   useAnchorWallet,
   useWallet as useSolanaWallet,
 } from 'solana-wallets-vue';
-import { WH_CHAIN_ID_SOLANA } from './chain';
+import { SOLANA_CLUSTER, WH_CHAIN_ID_SOLANA } from './chain';
 import { IDL, type Chainbills } from './idl';
 import { useUserStore } from './user';
 
@@ -35,7 +35,7 @@ export const useSolanaStore = defineStore('solana', () => {
     ],
     new PublicKey(PROGRAM_ID),
   )[0];
-  const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
+  const connection = new Connection(clusterApiUrl(SOLANA_CLUSTER), 'finalized');
   const globalStats = PublicKey.findProgramAddressSync(
     [Buffer.from('global')],
     new PublicKey(PROGRAM_ID),

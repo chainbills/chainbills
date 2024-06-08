@@ -23,7 +23,7 @@ onMounted(() => {
   useThemeStore();
   watch(
     () => evmWallet.connected,
-    (v) => chain.setChain(v ? 'Ethereum' : null),
+    (v) => chain.setChain(v ? 'Ethereum Sepolia' : null),
   );
   watch(
     () => anchorWallet.value,

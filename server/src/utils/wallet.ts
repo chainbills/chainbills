@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 import { encoding } from '@wormhole-foundation/sdk-base';
-import { Chain, WH_CHAIN_ID_ETHEREUM, WH_CHAIN_ID_SOLANA } from './chain';
+import { Chain, WH_CHAIN_ID_ETH_SEPOLIA, WH_CHAIN_ID_SOLANA } from './chain';
 import { program } from './solana';
 
 export const canonical = (bytes: Uint8Array, chain: Chain) => {
@@ -19,7 +19,7 @@ export const owner = async (
 
   let chain: Chain;
   if (chainId == WH_CHAIN_ID_SOLANA) chain = 'Solana';
-  else if (chainId == WH_CHAIN_ID_ETHEREUM) chain = 'Sepolia';
+  else if (chainId == WH_CHAIN_ID_ETH_SEPOLIA) chain = 'Sepolia';
   else throw `Unknown chainId: ${chainId}`;
 
   const wallet = canonical(ownerWallet, chain);

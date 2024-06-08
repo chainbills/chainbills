@@ -31,9 +31,9 @@ export const usePayableStore = defineStore('payable', () => {
 
     try {
       const method =
-        chain.current == 'Ethereum'
-          ? evm.initializePayable
-          : solana.initializePayable;
+        chain.current == 'Solana'
+          ? solana.initializePayable
+          : evm.initializePayable;
       const result = await method(
         description,
         tokensAndAmounts,

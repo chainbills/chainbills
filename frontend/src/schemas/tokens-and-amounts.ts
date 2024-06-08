@@ -28,7 +28,7 @@ export class TokenAndAmount {
     this.amount = amount;
   }
 
-  // TODO: Add a reconcile method for decimals of Ethereum
+  // TODO: Add a reconcile method for decimals of Ethereum Sepolia
   // When there will be tokens with difference in decimals in both chains
 
   static fromOnChain({ token, amount }: TokenAndAmountOnChain): TokenAndAmount {
@@ -40,7 +40,7 @@ export class TokenAndAmount {
 
   display(chain: Chain) {
     return this.format(chain) + ' ' + this.name;
-  } 
+  }
 
   format(chain: Chain) {
     return this.amount / 10 ** this.details[chain].decimals;
@@ -69,7 +69,7 @@ export const tokens: Token[] = [
         address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
         decimals: 6,
       },
-      Ethereum: {
+      'Ethereum Sepolia': {
         address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
         decimals: 6,
       },

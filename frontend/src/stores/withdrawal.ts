@@ -85,7 +85,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
     try {
       const method =
-        chain.current == 'Ethereum' ? evm.withdraw : solana.withdraw;
+        chain.current == 'Solana' ? solana.withdraw : evm.withdraw;
       const result = await method(payableId, details);
       if (!result) return null;
 

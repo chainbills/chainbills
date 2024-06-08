@@ -4,6 +4,7 @@ import Header from '@/components/Header.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { useAppLoadingStore } from '@/stores/app-loading';
+import { useAuthStore } from '@/stores/auth';
 import { useChainStore } from '@/stores/chain';
 import { useThemeStore } from '@/stores/theme';
 import { account as evmWallet } from '@kolirt/vue-web3-auth';
@@ -12,9 +13,10 @@ import { useAnchorWallet } from 'solana-wallets-vue';
 import { onMounted, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
-const appLoading = useAppLoadingStore();
-const chain = useChainStore();
 const anchorWallet = useAnchorWallet();
+const appLoading = useAppLoadingStore();
+const auth = useAuthStore();
+const chain = useChainStore();
 
 onMounted(() => {
   // this forces the theme refresh when the app loads

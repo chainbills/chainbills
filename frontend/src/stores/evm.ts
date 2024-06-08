@@ -4,6 +4,7 @@ import {
   account,
   erc20ABI,
   readContract,
+  signMessage,
   writeContract,
 } from '@kolirt/vue-web3-auth';
 import { BN } from '@project-serum/anchor';
@@ -99,6 +100,14 @@ export const useEvmStore = defineStore('evm', () => {
     });
   };
 
+  const sign = async (message: string): Promise<string | null> => {
+    if (!account.connected) {
+      toastError('Connect Ethereum Wallet First!');
+      return null;
+    }
+    return await signMessage(message);
+  };
+
   const toast = useToast();
 
   const toastError = (detail: string) =>
@@ -132,5 +141,5 @@ export const useEvmStore = defineStore('evm', () => {
     });
   };
 
-  return { balance, initializePayable, pay, withdraw };
+  return { balance, initializePayable, pay, sign, withdraw };
 });

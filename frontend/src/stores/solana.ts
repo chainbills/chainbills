@@ -13,9 +13,13 @@ import {
   TransactionInstruction,
   clusterApiUrl,
 } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { useAnchorWallet } from 'solana-wallets-vue';
+import {
+  useAnchorWallet,
+  useWallet as useSolanaWallet,
+} from 'solana-wallets-vue';
 import { WH_CHAIN_ID_SOLANA } from './chain';
 import { IDL, type Chainbills } from './idl';
 import { useUserStore } from './user';
@@ -36,6 +40,7 @@ export const useSolanaStore = defineStore('solana', () => {
     [Buffer.from('global')],
     new PublicKey(PROGRAM_ID),
   )[0];
+  const solanaWallet = useSolanaWallet();
   const systemProgram = new PublicKey(web3.SystemProgram.programId);
   const toast = useToast();
   const tokenProgram = new PublicKey(TOKEN_PROGRAM_ID);
@@ -205,6 +210,16 @@ export const useSolanaStore = defineStore('solana', () => {
     ];
   };
 
+  const sign = async (message: string): Promise<string | null> => {
+    if (!solanaWallet.connected.value) {
+      toastError('Connect Solana Wallet First!');
+      return null;
+    }
+    return bs58.encode(
+      await solanaWallet.signMessage.value!(new TextEncoder().encode(message)),
+    );
+  };
+
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
@@ -271,5 +286,5 @@ export const useSolanaStore = defineStore('solana', () => {
     });
   };
 
-  return { balance, initializePayable, pay, program, withdraw };
+  return { balance, initializePayable, pay, program, sign, withdraw };
 });

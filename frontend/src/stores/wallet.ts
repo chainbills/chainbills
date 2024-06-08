@@ -1,9 +1,16 @@
 import type { Token } from '@/schemas/tokens-and-amounts';
-import { account as evmWallet } from '@kolirt/vue-web3-auth';
+import {
+  disconnect as disconnectEvm,
+  account as evmWallet,
+} from '@kolirt/vue-web3-auth';
 import { encoding } from '@wormhole-foundation/sdk-base';
 import { UniversalAddress } from '@wormhole-foundation/sdk-definitions';
 import { defineStore } from 'pinia';
-import { useAnchorWallet } from 'solana-wallets-vue';
+import { useToast } from 'primevue/usetoast';
+import {
+  useAnchorWallet,
+  useWallet as useSolanaWallet,
+} from 'solana-wallets-vue';
 import { computed, ref, watch } from 'vue';
 import { useChainStore, type Chain } from './chain';
 import { useEvmStore } from './evm';
@@ -15,8 +22,14 @@ export const useWalletStore = defineStore('wallet', () => {
   const current = ref<UniversalAddress | null>(null);
   const evm = useEvmStore();
   const solana = useSolanaStore();
+  const solanaWallet = useSolanaWallet();
+  const toast = useToast();
 
-  const address = computed(() => current.value?.toString() ?? null);
+  const address = computed(() =>
+    whAddress.value && chain.current
+      ? canonical(whAddress.value, chain.current)
+      : null,
+  );
   const connected = computed(() => !!current.value);
   const whAddress = computed(() => current.value?.address ?? null);
 
@@ -27,7 +40,7 @@ export const useWalletStore = defineStore('wallet', () => {
   };
 
   const balance = async (token: Token): Promise<number | null> => {
-    if (!!current.value) return null;
+    if (!current.value) return null;
     return chain.current == 'Ethereum'
       ? await evm.balance(token)
       : await solana.balance(token);
@@ -35,7 +48,36 @@ export const useWalletStore = defineStore('wallet', () => {
 
   const canonical = (bytes: Uint8Array, chain: Chain) => {
     if (chain == 'Solana') return encoding.b58.encode(Uint8Array.from(bytes));
-    return encoding.hex.encode(Uint8Array.from(bytes));
+    return (
+      '0x' +
+      encoding.hex.encode(Uint8Array.from(bytes), false).replace(/^0+/, '')
+    );
+  };
+
+  const disconnect = async (): Promise<void> => {
+    if (!current.value) return;
+    if (chain.current == 'Ethereum') return await disconnectEvm();
+    return await solanaWallet.disconnect();
+  };
+
+  const sign = async (message: string): Promise<string | null> => {
+    if (!current.value) return null;
+    try {
+      return chain.current == 'Ethereum'
+        ? await evm.sign(message)
+        : await solana.sign(message);
+    } catch (e) {
+      const detail = `${e}`.toLocaleLowerCase().includes('rejected')
+        ? 'Please Sign to Continue'
+        : `Couldn't sign: ${e}`;
+      toast.add({
+        severity: 'error',
+        summary: 'Error',
+        detail,
+        life: 12000,
+      });
+      return null;
+    }
   };
 
   const update = ([newChain, newEvmAddress, newAnchorWallet]: any[]) => {
@@ -62,5 +104,14 @@ export const useWalletStore = defineStore('wallet', () => {
     1000,
   );
 
-  return { address, areSame, balance, canonical, connected, whAddress };
+  return {
+    address,
+    areSame,
+    balance,
+    canonical,
+    connected,
+    disconnect,
+    sign,
+    whAddress,
+  };
 });

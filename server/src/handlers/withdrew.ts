@@ -5,6 +5,8 @@ import { firestore, owner, program } from '../utils';
 
 export const withdrew = async (params: Params, auth: Auth) => {
   const { withdrawalId } = params;
+  if (!withdrawalId) throw 'Missing required withdrawalId';
+
   const raw = await program(auth.solanaCluster).account.withdrawal.fetch(
     new PublicKey(withdrawalId)
   );
@@ -12,17 +14,14 @@ export const withdrew = async (params: Params, auth: Auth) => {
   if (auth.walletAddress != ownerWallet) throw 'Not your withdrawal!';
 
   const withdrawal = new Withdrawal(withdrawalId, chain, ownerWallet, raw);
-  const payableSnap = await firestore
-    .collection('payables')
-    .doc(withdrawal.payable)
-    .get();
-  if (!payableSnap.exists) throw `Unknown Payable: ${withdrawal.payable}`;
+  const payableId = withdrawal.payable;
+  const payableSnap = await firestore.doc(`/payables/${payableId}`).get();
+  if (!payableSnap.exists) throw `Unknown Payable: ${payableId}`;
   const { email } = payableSnap.data();
 
   // TODO: Send email to host
 
   await firestore
-    .collection('withdrawals')
-    .doc(withdrawalId)
+    .doc(`/withdrawals/${withdrawalId}`)
     .set({ email, ...withdrawal }, { merge: true });
 };

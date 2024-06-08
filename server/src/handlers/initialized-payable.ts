@@ -8,6 +8,7 @@ import { firestore, owner, program } from '../utils';
 export const initializedPayable = async (body: Body, auth: Auth) => {
   const { payableId, email } = body;
   if (!isEmail(email)) throw `Invalid Email: ${email}`;
+  if (!payableId) throw 'Missing required payableId';
 
   const raw = await program(auth.solanaCluster).account.payable.fetch(
     new PublicKey(payableId)
@@ -20,7 +21,6 @@ export const initializedPayable = async (body: Body, auth: Auth) => {
   // TODO: Send email to host
 
   await firestore
-    .collection('payables')
-    .doc(payableId)
+    .doc(`/payables/${payableId}`)
     .set({ email, ...payable }, { merge: true });
 };

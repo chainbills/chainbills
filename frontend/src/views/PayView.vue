@@ -43,8 +43,11 @@ const validateAmount = () => {
   else if (v <= 0) amountError.value = 'Should be positive';
   else amountError.value = '';
   if (allowsFreePayments && selectedConfig.value) {
-    selectedConfig.value.amount = v;
+    selectedConfig.value.amount =
+      v *
+      10 ** selectedConfig.value.details[chain.current ?? 'Solana'].decimals;
   }
+  validateBalance();
 };
 
 const validateBalance = async () => {

@@ -84,13 +84,12 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     if (!wallet.connected || !chain.current) return null;
 
     try {
-      const method =
-        chain.current == 'Solana' ? solana.withdraw : evm.withdraw;
+      const method = chain.current == 'Solana' ? solana.withdraw : evm.withdraw;
       const result = await method(payableId, details);
       if (!result) return null;
 
       console.log(
-        `Created Withdrawal Transaction Details: ${result.explorerUrl()}`,
+        `Made Withdrawal Transaction Details: ${result.explorerUrl()}`,
       );
       await server.withdrew(result.created);
       toast.add({

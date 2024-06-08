@@ -1,14 +1,17 @@
 import { PublicKey } from '@solana/web3.js';
-import { Params } from 'express';
 
-import { Withdrawal } from '../schemas/withdrawal';
+import { Auth, Withdrawal } from '../schemas';
 import { firestore, owner, program } from '../utils';
 
-export const withdrew = async ({ address }: Params) => {
-  const raw = await program.account.withdrawal.fetch(new PublicKey(address));
-  const { chain, wallet } = await owner(raw.host);
-  const withdrawal = new Withdrawal(address, chain, wallet, raw);
+export const withdrew = async (params: Params, auth: Auth) => {
+  const { address } = params;
+  const raw = await program(auth.solanaCluster).account.withdrawal.fetch(
+    new PublicKey(address)
+  );
+  const { chain, ownerWallet } = await owner(raw.host, auth.solanaCluster);
+  if (auth.walletAddress !== ownerWallet) throw 'Not your withdrawal!';
 
+  const withdrawal = new Withdrawal(address, chain, ownerWallet, raw);
   const payableSnap = await firestore
     .collection('payables')
     .doc(withdrawal.payable)

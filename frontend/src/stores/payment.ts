@@ -59,7 +59,7 @@ export const usePaymentStore = defineStore('payment', () => {
       if (!result) return null;
 
       console.log(
-        `Created Payment Transaction Details: ${result.explorerUrl()}`,
+        `Made Payment Transaction Details: ${result.explorerUrl()}`,
       );
       await server.paid(result.created, email);
       toast.add({

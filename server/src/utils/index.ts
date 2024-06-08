@@ -1,4 +1,5 @@
 export * from './chain'
+export * from './evm'
 export * from './firestore'
 export * from './solana'
 export * from './wallet'

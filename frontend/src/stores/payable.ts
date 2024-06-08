@@ -42,7 +42,7 @@ export const usePayableStore = defineStore('payable', () => {
       if (!result) return null;
 
       console.log(
-        `Create Payable Transaction Details: ${result.explorerUrl()}`,
+        `Created Payable Transaction Details: ${result.explorerUrl()}`,
       );
       await server.createdPayable(result.created, email);
       toast.add({

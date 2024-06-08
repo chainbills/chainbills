@@ -1,14 +1,30 @@
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
+import { useAuthStore } from './auth';
+import { SOLANA_CLUSTER, WH_CHAIN_ID_SOLANA, useChainStore } from './chain';
+import { useWalletStore } from './wallet';
 
 export const useServerStore = defineStore('server', () => {
+  const auth = useAuthStore();
+  const chain = useChainStore();
   const toast = useToast();
+  const wallet = useWalletStore();
 
   const call = async (path: string): Promise<any> => {
     return new Promise(async (resolve, _) => {
+      const headers = { Accept: 'application/json' };
+      if (chain.currentId && wallet.address && auth.signature) {
+        headers['chain-id'] = chain.currentId;
+        headers['wallet-address'] = wallet.address;
+        headers['signature'] = auth.signature;
+        if (chain.currentId == WH_CHAIN_ID_SOLANA) {
+          headers['solana-cluster'] = SOLANA_CLUSTER;
+        }
+      }
+
       try {
         const result = await (
-          await fetch(`${import.meta.env.VITE_SERVER_URL}${path}`)
+          await fetch(`${import.meta.env.VITE_SERVER_URL}${path}`, { headers })
         ).json();
 
         if ('success' in result) {

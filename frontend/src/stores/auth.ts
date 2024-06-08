@@ -3,7 +3,7 @@ import { onMounted, ref, watch } from 'vue';
 import { useChainStore } from './chain';
 import { useWalletStore } from './wallet';
 
-export const AUTH_MESSAGE = 'authentication';
+export const AUTH_MESSAGE = 'Authentication';
 
 export const useAuthStore = defineStore('auth', () => {
   const chain = useChainStore();

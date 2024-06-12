@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useAuthStore } from './auth';
-import { SOLANA_CLUSTER, WH_CHAIN_ID_SOLANA, useChainStore } from './chain';
+import { useChainStore } from './chain';
 import { useWalletStore } from './wallet';
 
 export const useServerStore = defineStore('server', () => {
@@ -16,9 +16,7 @@ export const useServerStore = defineStore('server', () => {
         body.chainId = chain.currentId;
         body.walletAddress = wallet.address;
         body.signature = auth.signature;
-        if (chain.currentId == WH_CHAIN_ID_SOLANA) {
-          body.solanaCluster = SOLANA_CLUSTER;
-        }
+        body.whNetwork = 'Testnet'; // TODO: Change to 'Mainnet' when needed
       }
 
       try {

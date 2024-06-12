@@ -1,16 +1,18 @@
 import { Program } from '@project-serum/anchor';
-import { Cluster, Connection, clusterApiUrl } from '@solana/web3.js';
+import { Connection, clusterApiUrl } from '@solana/web3.js';
 import bs58 from 'bs58';
 import nacl from 'tweetnacl';
+import { Network } from '@wormhole-foundation/sdk';
 
-import { SOLANA_CLUSTER } from './chain';
 import { IDL, type Chainbills } from './idl';
 
 export const PROGRAM_ID = 'p7Lu1yPzMRYLfLxWbEePx8kn3LNevFTbGVC5ghyADF9';
 
-export const program = (cluster: Cluster = SOLANA_CLUSTER) =>
+export const program = (network: Network) =>
   new Program<Chainbills>(IDL, PROGRAM_ID, {
-    connection: new Connection(clusterApiUrl(cluster))
+    connection: new Connection(
+      clusterApiUrl(network == 'Mainnet' ? 'mainnet-beta' : 'devnet')
+    )
   });
 
 export const solanaVerify = (

@@ -1,3 +1,5 @@
+import { Network } from '@wormhole-foundation/sdk';
+
 import { Chain } from '../utils/chain';
 import { TokenAndAmount, TokenAndAmountOffChain } from './tokens-and-amounts';
 
@@ -6,6 +8,7 @@ export class Payable {
   globalCount: number;
   chain: Chain;
   chainCount: number;
+  network: Network;
   host: string;
   hostCount: number;
   hostWallet: string;
@@ -18,17 +21,25 @@ export class Payable {
   withdrawalsCount: number;
   isClosed: boolean;
 
-  constructor(id: string, chain: Chain, hostWallet: string, onChainData: any) {
+  constructor(
+    id: string,
+    chain: Chain,
+    network: Network,
+    hostWallet: string,
+    onChainData: any
+  ) {
     this.id = id;
     this.globalCount = onChainData.globalCount.toNumber();
     this.chain = chain;
     this.chainCount = onChainData.chainCount.toNumber();
+    this.network = network;
     this.host = onChainData.host.toBase58();
     this.hostCount = onChainData.hostCount.toNumber();
     this.hostWallet = hostWallet;
     this.description = onChainData.description;
 
-    const convertTAA = (details) => TokenAndAmount.fromOnChain(details, chain);
+    const convertTAA = (details: any) =>
+      TokenAndAmount.fromOnChain(details, chain);
     this.tokensAndAmounts = onChainData.tokensAndAmounts.map(convertTAA);
     this.balances = onChainData.balances.map(convertTAA);
 

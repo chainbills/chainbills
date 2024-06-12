@@ -1,5 +1,7 @@
-import { Cluster, PublicKey } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { Network } from '@wormhole-foundation/sdk';
 import { encoding } from '@wormhole-foundation/sdk-base';
+
 import { Chain, WH_CHAIN_ID_ETH_SEPOLIA, WH_CHAIN_ID_SOLANA } from './chain';
 import { program } from './solana';
 
@@ -12,10 +14,10 @@ export const canonical = (bytes: Uint8Array, chain: Chain) => {
 
 export const owner = async (
   address: PublicKey,
-  cluster?: Cluster
+  network: Network
 ): Promise<{ chain: Chain; ownerWallet: string }> => {
   const { chainId, ownerWallet: walletBytes } = await program(
-    cluster
+    network
   ).account.user.fetch(new PublicKey(address));
 
   let chain: Chain;

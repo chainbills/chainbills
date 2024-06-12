@@ -44,7 +44,7 @@ contract CbPayloadMessages is CbStructs, CbErrors {
       bytes memory encodedDesc = abi.encodePacked(parsed.description);
       encoded = abi.encodePacked(
         encoded,
-        uint8(encodedDesc.length),
+        uint16(encodedDesc.length),
         encodedDesc
       );
     } else if (parsed.actionId > 1 && parsed.actionId <= 6) {
@@ -97,7 +97,7 @@ contract CbPayloadMessages is CbStructs, CbErrors {
 
         for (uint8 i = 0; i < taaLength; i++) {
           (parsed.tokensAndAmounts[i].token, index) = encoded.asBytes32(index);
-          (parsed.tokensAndAmounts[i].amount, index) = encoded.asUint128(index);
+          (parsed.tokensAndAmounts[i].amount, index) = encoded.asUint64(index);
         }
       }
 
@@ -130,7 +130,7 @@ contract CbPayloadMessages is CbStructs, CbErrors {
 
       if (parsed.actionId == 5 || parsed.actionId == 6) {
         (parsed.token, index) = encoded.asBytes32(index);
-        (parsed.amount, index) = encoded.asUint128(index);
+        (parsed.amount, index) = encoded.asUint64(index);
       }
 
       // confirm that the message was the payload has ended

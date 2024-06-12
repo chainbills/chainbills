@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.20;
 
-import {Upgrades} from 'openzeppelin-foundry-upgrades/Upgrades.sol';
+import {Upgrades, Options} from 'openzeppelin-foundry-upgrades/Upgrades.sol';
 import {Chainbills} from 'src/Chainbills.sol';
 import {Script, console} from 'forge-std/Script.sol';
 
@@ -14,7 +14,11 @@ contract UpgradeChainbills is Script {
     uint256 ownerPrivateKey = vm.envUint('PRIVATE_KEY');
     vm.startBroadcast(ownerPrivateKey);
 
-    Upgrades.upgradeProxy(proxy, 'Chainbills.sol', '');
+    // TODO: Ensure that skipping checks is solely for allowing re-update
+    // of same contract
+    Options memory opts;
+    opts.unsafeSkipAllChecks = true;
+    Upgrades.upgradeProxy(proxy, 'Chainbills.sol', '', opts);
 
     console.log('Upgraded Chainbills to: ', proxy);
     vm.stopBroadcast();

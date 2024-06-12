@@ -4,9 +4,9 @@
 [submodule "evm/lib/wormhole-solidity-sdk"]
 	path = evm/lib/wormhole-solidity-sdk
 	url = https://github.com/wormhole-foundation/wormhole-solidity-sdk
-[submodule "evm/lib/openzeppelin-foundry-upgrades"]
-	path = evm/lib/openzeppelin-foundry-upgrades
-	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
 [submodule "evm/lib/openzeppelin-contracts-upgradeable"]
 	path = evm/lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
+[submodule "evm/lib/openzeppelin-foundry-upgrades"]
+	path = evm/lib/openzeppelin-foundry-upgrades
+	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades

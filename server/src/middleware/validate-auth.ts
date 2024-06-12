@@ -44,7 +44,7 @@ export const validateAuth = async (
     return next();
   } catch (e: any) {
     console.log(body);
-    console.error(`Error at validating auth ... `);
+    console.error('Error at validating auth ... ');
     console.error(e);
     return res.status(400).json({
       success: false,

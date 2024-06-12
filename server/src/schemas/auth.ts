@@ -1,16 +1,16 @@
 import { Cluster } from '@solana/web3.js';
 import { ChainId } from '@wormhole-foundation/sdk';
-import { Chain } from '../utils';
+import { Chain, WH_CHAIN_ID_ETH_SEPOLIA, WH_CHAIN_ID_SOLANA } from '../utils';
 
 export class Auth {
   chainId: ChainId;
   walletAddress: string;
-  solanaCluster: Cluster | null;
+  solanaCluster: Cluster | undefined;
 
   constructor(
     chainId: ChainId,
     walletAddress: string,
-    solanaCluster: Cluster | null = null
+    solanaCluster?: Cluster | undefined
   ) {
     this.chainId = chainId;
     this.walletAddress = walletAddress;
@@ -18,8 +18,8 @@ export class Auth {
   }
 
   chain(): Chain {
-    if (chainId == WH_CHAIN_ID_SOLANA) chain = 'Solana';
-    else if (chainId == WH_CHAIN_ID_ETH_SEPOLIA) chain = 'Ethereum Sepolia';
-    else throw `Unknown chainId: ${chainId}`;
+    if (this.chainId == WH_CHAIN_ID_SOLANA) return 'Solana';
+    else if (this.chainId == WH_CHAIN_ID_ETH_SEPOLIA) return 'Ethereum Sepolia';
+    else throw `Unknown chainId: ${this.chainId}`;
   }
 }

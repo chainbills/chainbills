@@ -44,8 +44,11 @@ const evmItems = ref([
   },
 ]);
 const walletItems = [
-  { label: 'Solana', command: () => chain.setChain('Solana') },
-  { label: 'Ethereum', command: () => chain.setChain('Ethereum Sepolia') },
+  { label: 'Solana Devnet', command: () => chain.setChain('Solana') },
+  {
+    label: 'Ethereum Sepolia',
+    command: () => chain.setChain('Ethereum Sepolia'),
+  },
 ];
 const walletMenu = ref();
 

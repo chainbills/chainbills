@@ -3,8 +3,8 @@ import { PublicKey } from '@solana/web3.js';
 import { Auth, Withdrawal } from '../schemas';
 import { firestore, owner, program } from '../utils';
 
-export const withdrew = async (params: Params, auth: Auth) => {
-  const { withdrawalId } = params;
+export const withdrew = async (body: any, auth: Auth) => {
+  const { withdrawalId } = body;
   if (!withdrawalId) throw 'Missing required withdrawalId';
 
   const raw = await program(auth.solanaCluster).account.withdrawal.fetch(

@@ -11,9 +11,12 @@ export type Chain = 'Solana' | 'Ethereum Sepolia';
 
 export const useChainStore = defineStore('chain', () => {
   const current = ref<Chain | null>(null);
-  const currentId = computed(
-    () => (current.value && toChainId(current.value)) ?? null,
-  );
+  const currentId = computed(() => {
+    if (!current.value) return null;
+    return current.value == 'Solana'
+      ? WH_CHAIN_ID_SOLANA
+      : WH_CHAIN_ID_ETH_SEPOLIA;
+  });
   const setChain = (value: Chain | null) => (current.value = value);
 
   return { current, currentId, setChain };

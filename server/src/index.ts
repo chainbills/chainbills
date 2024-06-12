@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import {
   initializedPayable,
   paid,
+  relay,
   saveNotificationToken,
   withdrew
 } from './handlers';
@@ -63,6 +64,10 @@ app.post('/payment', validateAuth, async (req: Request, res: Response) => {
     'payment finalizer',
     res
   );
+});
+
+app.post('/relay', validateAuth, async (req: Request, res: Response) => {
+  await wrapper(async () => await relay(req.body), 'relaying', res);
 });
 
 app.post('/withdrawal', validateAuth, async (req: Request, res: Response) => {

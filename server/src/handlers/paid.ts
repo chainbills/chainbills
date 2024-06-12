@@ -1,11 +1,10 @@
 import { PublicKey } from '@solana/web3.js';
-import { Body } from 'express';
 import { isEmail } from 'validator';
 
 import { Auth, Payment } from '../schemas';
 import { firestore, notify, owner, program } from '../utils';
 
-export const paid = async (body: Body, auth: Auth) => {
+export const paid = async (body: any, auth: Auth) => {
   const { paymentId, email: payerEmail } = body;
   if (!isEmail(payerEmail)) throw `Invalid Email: ${payerEmail}`;
   if (!paymentId) throw 'Missing required paymentId';

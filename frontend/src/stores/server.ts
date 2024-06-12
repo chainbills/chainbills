@@ -66,6 +66,13 @@ export const useServerStore = defineStore('server', () => {
     return await call('/payment', { paymentId, email });
   };
 
+  const relay = async (
+    txHash: string,
+    functionName: string,
+  ): Promise<boolean> => {
+    return await call('/relay', { txHash, functionName });
+  };
+
   const saveNotificationToken = async (fcmToken: string): Promise<boolean> => {
     return await call('/notifications', { fcmToken });
   };
@@ -77,5 +84,5 @@ export const useServerStore = defineStore('server', () => {
     return await call('/withdrawal', { withdrawalId });
   };
 
-  return { createdPayable, paid, saveNotificationToken, withdrew };
+  return { createdPayable, paid, relay, saveNotificationToken, withdrew };
 });

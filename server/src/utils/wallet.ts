@@ -11,8 +11,8 @@ export const canonical = (bytes: Uint8Array, chain: Chain) => {
 };
 
 export const owner = async (
-  address: string,
-  cluster: Cluster
+  address: PublicKey,
+  cluster?: Cluster
 ): Promise<{ chain: Chain; ownerWallet: string }> => {
   const { chainId, ownerWallet: walletBytes } = await program(
     cluster

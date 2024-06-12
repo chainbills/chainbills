@@ -12,10 +12,13 @@ import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import abi from './abi';
+import { useServerStore } from './server';
 
 export const CONTRACT_ADDRESS = '0x89F1051407799805eac5aE9A40240dbCaaB55b98';
 
 export const useEvmStore = defineStore('evm', () => {
+  const server = useServerStore();
+
   const balance = async (token: Token): Promise<number | null> => {
     if (!account.connected) return null;
     try {
@@ -47,15 +50,17 @@ export const useEvmStore = defineStore('evm', () => {
     const { hash, wait } = await writeContract({
       address: CONTRACT_ADDRESS,
       abi,
-      functionName: 'initiailizePayable',
+      functionName: 'initializePayable',
       args: [
         description,
         allowsFreePayments,
         tokensAndAmounts.map((t) => t.toOnChain()),
       ],
     });
+
     await wait();
-    // TODO: Detect call reception in Solana and return entity from there
+    if (!(await server.relay(hash, 'initializePayable'))) return null;
+
     return new OnChainSuccess({
       created: hash,
       txHash: hash,
@@ -91,8 +96,10 @@ export const useEvmStore = defineStore('evm', () => {
         new BN(amount),
       ],
     });
+
     await wait();
-    // TODO: Detect call reception in Solana and return entity from there
+    if (!(await server.relay(hash, 'pay'))) return null;
+
     return new OnChainSuccess({
       created: hash,
       txHash: hash,
@@ -132,8 +139,10 @@ export const useEvmStore = defineStore('evm', () => {
         new BN(amount),
       ],
     });
+
     await wait();
-    // TODO: Detect call reception in Solana and return entity from there
+    if (!(await server.relay(hash, 'withdraw'))) return null;
+
     return new OnChainSuccess({
       created: hash,
       txHash: hash,

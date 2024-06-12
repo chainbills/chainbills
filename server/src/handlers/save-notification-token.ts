@@ -1,9 +1,8 @@
-import { Body } from 'express';
 import { FieldValue } from 'firebase-admin/firestore';
 
 import { firestore, messaging } from '../utils';
 
-export const saveNotificationToken = async (body: Body) => {
+export const saveNotificationToken = async (body: any) => {
   const { walletAddress, fcmToken } = body;
   if (!fcmToken) throw 'Missing required fcmToken';
 

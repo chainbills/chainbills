@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.20;
 
@@ -21,16 +20,8 @@ contract DeployChainbills is Script {
     uint256 ownerPrivateKey = vm.envUint('PRIVATE_KEY');
     vm.startBroadcast(ownerPrivateKey);
 
-    address proxy = Upgrades.deployTransparentProxy(
-      'Chainbills.sol',
-      vm.createWallet(ownerPrivateKey).addr,
-      abi.encodeCall(
-        Chainbills.initialize,
-        (wormhole, tokenBridge, chainId, finality)
-      )
-    );
+    new Chainbills(wormhole, tokenBridge, chainId, finality);
 
-    console.log('Deployed Chainbills at: ', proxy);
     vm.stopBroadcast();
   }
 }

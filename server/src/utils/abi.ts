@@ -95,11 +95,7 @@ export const abi = [
           { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
           { name: 'token', type: 'bytes32', internalType: 'bytes32' },
           { name: 'amount', type: 'uint256', internalType: 'uint256' },
-          {
-            name: 'allowsFreePayments',
-            type: 'bool',
-            internalType: 'bool'
-          },
+          { name: 'allowsFreePayments', type: 'bool', internalType: 'bool' },
           {
             name: 'tokensAndAmounts',
             type: 'tuple[]',
@@ -129,11 +125,7 @@ export const abi = [
           { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
           { name: 'token', type: 'bytes32', internalType: 'bytes32' },
           { name: 'amount', type: 'uint256', internalType: 'uint256' },
-          {
-            name: 'allowsFreePayments',
-            type: 'bool',
-            internalType: 'bool'
-          },
+          { name: 'allowsFreePayments', type: 'bool', internalType: 'bool' },
           {
             name: 'tokensAndAmounts',
             type: 'tuple[]',

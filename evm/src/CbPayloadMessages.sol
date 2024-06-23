@@ -44,7 +44,7 @@ contract CbPayloadMessages is CbStructs, CbErrors {
       bytes memory encodedDesc = abi.encodePacked(parsed.description);
       encoded = abi.encodePacked(
         encoded,
-        uint16(encodedDesc.length),
+        uint8(encodedDesc.length),
         encodedDesc
       );
     } else if (parsed.actionId > 1 && parsed.actionId <= 6) {
@@ -54,7 +54,7 @@ contract CbPayloadMessages is CbStructs, CbErrors {
         bytes memory encodedDesc = abi.encodePacked(parsed.description);
         encoded = abi.encodePacked(
           encoded,
-          uint16(encodedDesc.length),
+          uint8(encodedDesc.length),
           encodedDesc
         );
       }
@@ -95,14 +95,18 @@ contract CbPayloadMessages is CbStructs, CbErrors {
 
         if (taaLength > MAX_PAYABLES_TOKENS) revert InvalidPayloadMessage();
 
+        CbTokenAndAmount[] memory tokensAndAmounts = new CbTokenAndAmount[](
+          taaLength
+        );
         for (uint8 i = 0; i < taaLength; i++) {
-          (parsed.tokensAndAmounts[i].token, index) = encoded.asBytes32(index);
-          (parsed.tokensAndAmounts[i].amount, index) = encoded.asUint64(index);
+          (tokensAndAmounts[i].token, index) = encoded.asBytes32(index);
+          (tokensAndAmounts[i].amount, index) = encoded.asUint64(index);
         }
+        parsed.tokensAndAmounts = tokensAndAmounts;
       }
 
-      uint16 descLength;
-      (descLength, index) = encoded.asUint16(index);
+      uint8 descLength;
+      (descLength, index) = encoded.asUint8(index);
       if (descLength > MAX_PAYABLES_DESCRIPTION_LENGTH) {
         revert InvalidPayloadMessage();
       }
@@ -117,8 +121,8 @@ contract CbPayloadMessages is CbStructs, CbErrors {
       (parsed.payableId, index) = encoded.asBytes32(index);
 
       if (parsed.actionId == 4) {
-        uint16 descLength;
-        (descLength, index) = encoded.asUint16(index);
+        uint8 descLength;
+        (descLength, index) = encoded.asUint8(index);
         if (descLength > MAX_PAYABLES_DESCRIPTION_LENGTH) {
           revert InvalidPayloadMessage();
         }

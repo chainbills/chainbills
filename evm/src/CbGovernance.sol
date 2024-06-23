@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.20;
 
-import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts/access/Ownable.sol';
 
 import './CbErrors.sol';
 import './CbGetters.sol';
 
-contract CbGovernance is OwnableUpgradeable, CbGetters, CbErrors {
+contract CbGovernance is Ownable, CbGetters, CbErrors {
+  constructor() Ownable(msg.sender) {}
+
   /// Registers foreign emitters (trusted Cb contracts).
   /// @dev Only the deployer (owner) can invoke this method
   /// @param emitterChainId Wormhole ChainId of the contract being registered.

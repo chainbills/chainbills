@@ -23,7 +23,7 @@ contract CbStructs {
   uint8 public constant ACTION_ID_WITHDRAW = 6;
 
   /// Maximum characters in a payable's description.
-  uint256 public constant MAX_PAYABLES_DESCRIPTION_LENGTH = 3000;
+  uint256 public constant MAX_PAYABLES_DESCRIPTION_LENGTH = 250;
 
   /// The maximum number of tokens a payable can hold balances in.
   /// Also the maximum number of tokens that a payable can specify

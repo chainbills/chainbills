@@ -3,8 +3,7 @@ pragma solidity ^0.8.20;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
+import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import 'wormhole/Chains.sol';
 import 'wormhole/libraries/BytesParsing.sol';
 import 'wormhole/Utils.sol';
@@ -16,11 +15,12 @@ import './CbPayloadMessages.sol';
 /// @notice This contract uses Wormhole's generic-messaging to send
 /// PayloadMessages (for actions) and paid tokens to the Chainbills Solana
 /// program.
+// Initializable,
 contract Chainbills is
-  Initializable,
   CbGovernance,
   CbPayloadMessages,
-  ReentrancyGuardUpgradeable
+  ReentrancyGuard
+  // ReentrancyGuardUpgradeable
 {
   using BytesParsing for bytes;
 
@@ -28,19 +28,17 @@ contract Chainbills is
   /// @dev Sets the owner, wormhole, tokenBridge, chainId, and
   /// wormholeFinality variables.
   /// See ChainbillState.sol for descriptions of each state variable.
-  function initialize(
+  constructor(
     address wormhole_,
     address tokenBridge_,
     uint16 chainId_,
     uint8 wormholeFinality_
-  ) public payable initializer {
+  ) {
     if (wormhole_ == address(0)) revert InvalidWormholeAddress();
     else if (tokenBridge_ == address(0)) revert InvalidTokenBridgeAddress();
     else if (chainId_ == 0) revert InvalidWormholeChainId();
     else if (wormholeFinality_ == 0) revert InvalidWormholeFinality();
 
-    __Ownable_init(msg.sender);
-    __ReentrancyGuard_init();
     setWormhole(wormhole_);
     setTokenBridge(tokenBridge_);
     setChainId(chainId_);

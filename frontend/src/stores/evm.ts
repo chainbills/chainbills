@@ -11,10 +11,10 @@ import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import abi from './abi';
+import { abi } from './abi';
 import { useServerStore } from './server';
 
-export const CONTRACT_ADDRESS = '0x89F1051407799805eac5aE9A40240dbCaaB55b98';
+export const CONTRACT_ADDRESS = '0xb52CB1AD5D67C5CD25180f8cdB48D22243291884';
 
 export const useEvmStore = defineStore('evm', () => {
   const server = useServerStore();

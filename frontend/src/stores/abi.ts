@@ -1,4 +1,4 @@
-export default [
+export const abi = [
   { type: 'fallback', stateMutability: 'payable' },
   { type: 'receive', stateMutability: 'payable' },
   {
@@ -95,11 +95,7 @@ export default [
           { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
           { name: 'token', type: 'bytes32', internalType: 'bytes32' },
           { name: 'amount', type: 'uint256', internalType: 'uint256' },
-          {
-            name: 'allowsFreePayments',
-            type: 'bool',
-            internalType: 'bool',
-          },
+          { name: 'allowsFreePayments', type: 'bool', internalType: 'bool' },
           {
             name: 'tokensAndAmounts',
             type: 'tuple[]',
@@ -129,11 +125,7 @@ export default [
           { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
           { name: 'token', type: 'bytes32', internalType: 'bytes32' },
           { name: 'amount', type: 'uint256', internalType: 'uint256' },
-          {
-            name: 'allowsFreePayments',
-            type: 'bool',
-            internalType: 'bool',
-          },
+          { name: 'allowsFreePayments', type: 'bool', internalType: 'bool' },
           {
             name: 'tokensAndAmounts',
             type: 'tuple[]',

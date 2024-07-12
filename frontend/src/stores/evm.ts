@@ -54,7 +54,7 @@ export const useEvmStore = defineStore('evm', () => {
       args: [
         description,
         allowsFreePayments,
-        tokensAndAmounts.map((t) => t.toOnChain()),
+        tokensAndAmounts.map((t) => t.toOnChain({ hex: true })),
       ],
     });
 

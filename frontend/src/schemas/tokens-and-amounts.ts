@@ -2,7 +2,7 @@ import type { Chain } from '@/stores/chain';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 
-// TODO: Ensure that the amount is in the decimals of Wormhole-normalization 
+// TODO: Ensure that the amount is in the decimals of Wormhole-normalization
 // the chains have different decimals for the same token
 
 export interface TokenChainDetails {
@@ -16,7 +16,7 @@ export interface Token {
 }
 
 export interface TokenAndAmountOnChain {
-  token: Uint8Array;
+  token: Uint8Array | string;
   amount: BN;
 }
 
@@ -56,9 +56,17 @@ export class TokenAndAmount {
     };
   }
 
-  toOnChain(): TokenAndAmountOnChain {
+  toOnChain(opts = { hex: false }): TokenAndAmountOnChain {
+    let token: Uint8Array | string = new PublicKey(
+      this.details.Solana.address,
+    ).toBytes();
+    if (opts.hex) {
+      token =
+        '0x' +
+        Array.from(token, (i) => i.toString(16).padStart(2, '0')).join('');
+    }
     return {
-      token: new PublicKey(this.details.Solana.address).toBytes(),
+      token,
       amount: new BN(this.amount),
     };
   }

@@ -32,7 +32,11 @@ const wrapper = async (
 };
 
 router.post('/relay', validateNetwork, async (req: Request, res: Response) => {
-  await wrapper(async () => await relay(req.body), 'relaying', res);
+  await wrapper(
+    async () => await relay(req.body, res.locals.whNetwork),
+    'relaying',
+    res
+  );
 });
 
 router.post(

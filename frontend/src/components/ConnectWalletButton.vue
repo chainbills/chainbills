@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useSidebarStore } from '@/stores/sidebar';
 import { useThemeStore } from '@/stores/theme';
+import { AbstraxionAuth } from '@burnt-labs/abstraxion-core';
 import {
   account,
   connect as connectEvm,
@@ -11,12 +12,14 @@ import Dialog from 'primevue/dialog';
 import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet, WalletMultiButton } from 'solana-wallets-vue';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import Web3Avatar from 'web3-avatar-vue';
 
+const abstraxion = new AbstraxionAuth();
 const anchorWallet = useAnchorWallet();
-const isModalVisible = ref(false);
 const evmMenu = ref();
+const isModalVisible = ref(false);
+const isXionLoggedIn = ref(false);
 const sidebar = useSidebarStore();
 const toast = useToast();
 const theme = useThemeStore();
@@ -50,7 +53,18 @@ const onClickEvm = () => {
   connectEvm();
 };
 
-onMounted(() => {
+const onClickXion = async () => {
+  if (isXionLoggedIn.value) abstraxion.logout();
+  else {
+    await abstraxion.login();
+  }
+};
+
+const unsubscribeXion = abstraxion.subscribeToAuthStateChange((newState) => {
+  isXionLoggedIn.value = newState;
+});
+
+onMounted(async () => {
   watch(
     () => anchorWallet.value,
     (v) => {
@@ -60,12 +74,41 @@ onMounted(() => {
       }
     },
   );
+  abstraxion.configureAbstraxionInstance(
+    'https://testnet-rpc.xion-api.com:443',
+    undefined,
+    [
+      {
+        address:
+          'xion1z70cvc08qv5764zeg3dykcyymj5z6nu4sqr7x8vl4zjef2gyp69s9mmdka',
+        amounts: [{ denom: 'uxion', amount: '1000000' }],
+      },
+    ],
+    true,
+    [{ denom: 'uxion', amount: '1000000' }],
+  );
+  await abstraxion.authenticate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const isGranted = searchParams.get('granted');
+  const granter = searchParams.get('granter');
+  if (isGranted && granter) await abstraxion.login();
+});
+
+onUnmounted(() => {
+  unsubscribeXion();
 });
 </script>
 
 <template>
+  <Button
+    v-if="isXionLoggedIn"
+    @click="onClickXion"
+    class="bg-blue-700 text-white px-4 py-2"
+  >
+    XION Logout
+  </Button>
   <wallet-multi-button
-    v-if="anchorWallet"
+    v-else-if="anchorWallet"
     :dark="theme.isDisplayDark"
   ></wallet-multi-button>
   <Button
@@ -94,7 +137,12 @@ onMounted(() => {
   >
     <p class="mb-4">Choose your Sign In Option from the following:</p>
 
-    <h2 class="text-lg mb-2">Solana</h2>
+    <h2 class="text-lg mb-2">XION (Recommended)</h2>
+    <Button class="bg-blue-700 text-white px-4 py-2" @click="onClickXion">
+      Connect
+    </Button>
+
+    <h2 class="text-lg mt-8 mb-2">Solana</h2>
     <wallet-multi-button :dark="theme.isDisplayDark"></wallet-multi-button>
 
     <h2 class="text-lg mt-8 mb-2">Ethereum Sepolia</h2>

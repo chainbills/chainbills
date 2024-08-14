@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useChainStore } from '@/stores/chain';
 import { useSidebarStore } from '@/stores/sidebar';
 import { useThemeStore } from '@/stores/theme';
 import {
@@ -8,13 +7,15 @@ import {
   disconnect as disconnectEvm,
 } from '@kolirt/vue-web3-auth';
 import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
 import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
-import { WalletMultiButton } from 'solana-wallets-vue';
-import { ref } from 'vue';
+import { useAnchorWallet, WalletMultiButton } from 'solana-wallets-vue';
+import { onMounted, ref, watch } from 'vue';
 import Web3Avatar from 'web3-avatar-vue';
 
-const chain = useChainStore();
+const anchorWallet = useAnchorWallet();
+const isModalVisible = ref(false);
 const evmMenu = ref();
 const sidebar = useSidebarStore();
 const toast = useToast();
@@ -39,53 +40,67 @@ const evmItems = ref([
     command: () => {
       disconnectEvm();
       sidebar.close();
-      chain.setChain(null);
     },
   },
 ]);
-const walletItems = [
-  { label: 'Solana Devnet', command: () => chain.setChain('Solana') },
-  {
-    label: 'Ethereum Sepolia',
-    command: () => chain.setChain('Ethereum Sepolia'),
-  },
-];
-const walletMenu = ref();
 
-const onClickEvm = (event: any) => {
-  if (account.connected) {
-    evmMenu.value.toggle(event);
-  } else {
-    sidebar.close();
-    connectEvm();
-  }
+const onClickEvm = () => {
+  sidebar.close();
+  isModalVisible.value = false;
+  connectEvm();
 };
-const toggleWallet = (event: any) => walletMenu.value.toggle(event);
+
+onMounted(() => {
+  watch(
+    () => anchorWallet.value,
+    (v) => {
+      if (v) {
+        isModalVisible.value = false;
+        sidebar.close();
+      }
+    },
+  );
+});
 </script>
 
 <template>
-  <Button
-    v-if="!chain.current"
-    @click="toggleWallet"
-    aria-haspopup="true"
-    aria-controls="wallet-menu"
-    class="bg-blue-500 text-white px-4 py-2"
-    >Select Chain</Button
-  >
   <wallet-multi-button
+    v-if="anchorWallet"
     :dark="theme.isDisplayDark"
-    v-else-if="chain.current == 'Solana'"
   ></wallet-multi-button>
   <Button
-    v-else
-    @click="onClickEvm"
+    v-else-if="account.connected"
+    @click="evmMenu.toggle"
     aria-haspopup="true"
     aria-controls="evm-menu"
     class="bg-blue-700 text-white px-4 py-2"
-    ><span v-if="account.connected" class="w-6 h-6 mr-3">
+    ><span class="w-6 h-6 mr-3">
       <Web3Avatar :address="account.address!" class="h-6" /></span
-    >{{ account.connected ? account.shortAddress : 'Connect Wallet' }}
+    >{{ account.shortAddress }}
   </Button>
+  <Button
+    @click="isModalVisible = true"
+    v-else
+    aria-haspopup="true"
+    aria-controls="wallet-menu"
+    class="bg-blue-500 text-white px-4 py-2"
+    >Sign In</Button
+  >
+  <Dialog
+    v-model:visible="isModalVisible"
+    modal
+    header="Sign In"
+    class="max-sm:m-8 w-full max-w-sm"
+  >
+    <p class="mb-4">Choose your Sign In Option from the following:</p>
+
+    <h2 class="text-lg mb-2">Solana</h2>
+    <wallet-multi-button :dark="theme.isDisplayDark"></wallet-multi-button>
+
+    <h2 class="text-lg mt-8 mb-2">Ethereum Sepolia</h2>
+    <Button class="bg-blue-700 text-white px-4 py-2" @click="onClickEvm">
+      Select Wallet
+    </Button>
+  </Dialog>
   <Menu ref="evmMenu" id="evm-menu" :model="evmItems" :popup="true" />
-  <Menu ref="walletMenu" id="wallet-menu" :model="walletItems" :popup="true" />
 </template>

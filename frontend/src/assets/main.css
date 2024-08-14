@@ -19,6 +19,7 @@ body.dark {
   --text: #fff;
 }
 
+body.dark .p-component-overlay.p-dialog-mask,
 body.dark .p-component-overlay.p-sidebar-mask {
   background-color: #fff6 !important;
 }
@@ -41,10 +42,14 @@ body.dark .p-dropdown-panel .p-dropdown-item:hover {
   padding-top: 64px;
 }
 
+.p-dialog-header,
+.p-dialog-content,
 .p-menu.p-component {
   background-color: var(--app-bg);
 }
 
+.p-dialog-header,
+.p-dialog-content,
 .p-menu.p-component [menu-item],
 .p-menu.p-component .p-menuitem-text {
   color: var(--text);

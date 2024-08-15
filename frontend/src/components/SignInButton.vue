@@ -73,7 +73,7 @@ onMounted(() => {
     @click="evmMenu.toggle"
     aria-haspopup="true"
     aria-controls="evm-menu"
-    class="bg-blue-700 text-white px-4 py-2"
+    class="bg-primary text-white px-4 py-2"
     ><span class="w-6 h-6 mr-3">
       <Web3Avatar :address="account.address!" class="h-6" /></span
     >{{ account.shortAddress }}
@@ -83,7 +83,7 @@ onMounted(() => {
     v-else
     aria-haspopup="true"
     aria-controls="wallet-menu"
-    class="bg-blue-500 text-white px-4 py-2"
+    class="bg-primary text-white px-4 py-2"
     >Sign In</Button
   >
   <Dialog
@@ -98,7 +98,7 @@ onMounted(() => {
     <wallet-multi-button :dark="theme.isDisplayDark"></wallet-multi-button>
 
     <h2 class="text-lg mt-8 mb-2">Ethereum Sepolia</h2>
-    <Button class="bg-blue-700 text-white px-4 py-2" @click="onClickEvm">
+    <Button class="bg-primary text-white px-4 py-2" @click="onClickEvm">
       Select Wallet
     </Button>
   </Dialog>

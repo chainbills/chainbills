@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
+import ConnectWalletButton from '@/components/SignInButton.vue';
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import {
-  tokens,
   TokenAndAmount,
+  tokens,
   type Token,
 } from '@/schemas/tokens-and-amounts';
 import { usePayableStore } from '@/stores/payable';

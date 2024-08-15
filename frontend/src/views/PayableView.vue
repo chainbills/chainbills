@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
+import ConnectWalletButton from '@/components/SignInButton.vue';
 import { Payable } from '@/schemas/payable';
 import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
 import { useAppLoadingStore } from '@/stores/app-loading';

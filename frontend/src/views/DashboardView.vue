@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
+import ConnectWalletButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
 import { usePayableStore } from '@/stores/payable';
@@ -32,7 +32,7 @@ onMounted(async () => {
 
 <template>
   <section class="max-w-screen-lg mx-auto pb-20">
-    <div class="mb-8 flex mb-8 justify-between items-center">
+    <div class="mb-8 flex justify-between items-center">
       <h2 class="text-3xl font-bold">Your Payables</h2>
       <router-link to="/start">
         <Button class="bg-blue-500 text-white dark:text-black px-4 py-1"

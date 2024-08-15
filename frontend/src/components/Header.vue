@@ -4,7 +4,7 @@ import IconMenu from '@/icons/IconMenu.vue';
 import { useSidebarStore } from '@/stores/sidebar';
 import { useThemeStore } from '@/stores/theme';
 import Button from 'primevue/button';
-import ConnectWalletButton from './ConnectWalletButton.vue';
+import ConnectWalletButton from './SignInButton.vue';
 
 const sidebar = useSidebarStore();
 const theme = useThemeStore()

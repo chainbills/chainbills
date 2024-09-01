@@ -3,11 +3,10 @@ use anchor_lang::prelude::*;
 /// Keeps track of how much of a token is its max fee.
 #[account]
 pub struct MaxFeeDetails {
-  /// The Wormhole-normalized address of the token mint.
-  /// This should be the bridged address on Solana.
-  pub token: [u8; 32], // 32 bytes
+  /// The address of the token mint.
+  pub token: Pubkey, // 32 bytes
 
-  /// The Wormhole-normalized (with 8 decimals) amount of the token.
+  /// The amount of the token (with its decimals).
   pub amount: u64, // 8 bytes
 }
 

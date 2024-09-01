@@ -1,4 +1,6 @@
-use crate::{context::RegisterForeignContract, error::ChainbillsError, events::*};
+use crate::{
+  context::RegisterForeignContract, error::ChainbillsError, events::*,
+};
 use anchor_lang::prelude::*;
 use wormhole_anchor_sdk::wormhole;
 
@@ -8,7 +10,7 @@ use wormhole_anchor_sdk::wormhole;
 /// (defined in the [Config] account) can add and update contracs.
 ///
 /// ### Arguments
-/// * `ctx`     - `RegisterForeignEmitter` context
+/// * `ctx`     - `RegisterForeignContract` context
 /// * `chain`   - Wormhole Chain ID
 /// * `address` - Wormhole Emitter Address
 pub fn register_foreign_contract_handler(
@@ -19,7 +21,9 @@ pub fn register_foreign_contract_handler(
   // Foreign contract cannot share the same Wormhole Chain ID as the
   // Solana Wormhole program's. And cannot register a zero address.
   require!(
-    chain > 0 && chain != wormhole::CHAIN_ID_SOLANA && !address.iter().all(|&x| x == 0),
+    chain > 0
+      && chain != wormhole::CHAIN_ID_SOLANA
+      && !address.iter().all(|&x| x == 0),
     ChainbillsError::InvalidForeignContract,
   );
 
@@ -27,27 +31,12 @@ pub fn register_foreign_contract_handler(
   let contract = &mut ctx.accounts.foreign_contract;
   contract.chain = chain;
   contract.address = address;
-  contract.token_bridge_foreign_endpoint = ctx.accounts.token_bridge_foreign_endpoint.key();
 
-  let chain_stats = ctx.accounts.chain_stats.as_mut();
-
-  if chain_stats
-    .to_account_info()
-    .try_borrow_data()?
-    .iter()
-    .all(|&x| x == 0)
-  {
-    // Initialize the chain_stats for this new contract's chain if not done b4.
-    chain_stats.initialize(chain);
-  } else {
-    // Else, Ensure the right chain_stats was provided
-    require!(
-      chain_stats.chain_id == chain,
-      ChainbillsError::WrongChainStatsProvided
-    );
-  }
-
+  // Emit log and event.
   msg!("Registered Foreign Contract and its ChainStats");
-  emit!(RegisteredForeignContractEvent {});
+  emit!(RegisteredForeignContractEvent {
+    chain_id: chain,
+    emitter: address
+  });
   Ok(())
 }

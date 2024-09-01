@@ -1,10 +1,9 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
 
 
 #[derive(Accounts)]
-pub struct Pay<'info> {
+pub struct PayNative<'info> {
   #[account(
         init,
         seeds = [
@@ -50,30 +49,11 @@ pub struct Pay<'info> {
   #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
-  pub mint: Box<Account<'info, Mint>>,
-
-  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, mint.key().as_ref()], bump)]
-  /// Ensures that payers don't pay into unsupported tokens.
+  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, crate::ID.as_ref()], bump)]
   pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
-
-  #[account(
-        mut,
-        associated_token::mint = mint,
-        associated_token::authority = signer,
-    )]
-  pub payer_token_account: Box<Account<'info, TokenAccount>>,
-
-  #[account(
-        mut,
-        associated_token::mint = mint,
-        associated_token::authority = chain_stats,
-    )]
-  pub chain_token_account: Box<Account<'info, TokenAccount>>,
 
   #[account(mut)]
   pub signer: Signer<'info>,
-
-  pub token_program: Program<'info, Token>,
 
   pub system_program: Program<'info, System>,
 }

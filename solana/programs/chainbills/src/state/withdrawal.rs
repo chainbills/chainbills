@@ -2,21 +2,17 @@ use crate::state::TokenAndAmount;
 use anchor_lang::prelude::*;
 
 #[account]
+/// A receipt of a withdrawal made by a Host from a Payable.
 pub struct Withdrawal {
-  /// The nth count of global withdrawals at the point this
-  /// withdrawal was made.
-  pub global_count: u64, // 8 bytes
+  /// The address of the Payable from which this Withdrawal was made.
+  pub payable_id: Pubkey, // 32 bytes
 
-  /// The nth count of withdrawals on the calling chain at the point
+  /// The wallet address (payable's owner) that made this Withdrawal.
+  pub host: Pubkey, // 32 bytes
+
+  /// The nth count of withdrawals on this chain at the point
   /// this withdrawal was made.
   pub chain_count: u64, // 8 bytes
-
-  /// The address of the Payable from which this Withdrawal was made.
-  pub payable: Pubkey, // 32 bytes
-
-  /// The address of the User account (payable's owner)
-  /// that made this Withdrawal.
-  pub host: Pubkey, // 32 bytes
 
   /// The nth count of withdrawals that the host has made
   /// at the point of making this withdrawal.
@@ -35,7 +31,7 @@ pub struct Withdrawal {
 
 impl Withdrawal {
   // discriminator (8) included
-  pub const SPACE: usize = (6 * 8) + (2 * 32) + TokenAndAmount::SPACE;
+  pub const SPACE: usize = (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
   /// AKA `b"withdrawal"`.
   #[constant]

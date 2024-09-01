@@ -3,24 +3,25 @@ import { NextFunction, Request, Response } from 'express';
 import { WH_CHAIN_ID_ETH_SEPOLIA, WH_CHAIN_ID_SOLANA } from '../utils';
 
 const isChainId = (chainId: any): chainId is ChainId =>
-  (<ChainId[]>[WH_CHAIN_ID_SOLANA, WH_CHAIN_ID_ETH_SEPOLIA]).includes(chainId);
+  +chainId === WH_CHAIN_ID_ETH_SEPOLIA || +chainId === WH_CHAIN_ID_SOLANA;
 
 export const validateChain = async (
   { headers }: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { chainId } = headers;
+  const { 'chain-id': chainId } = headers;
   let message = '';
-  if (!chainId) message = 'Provide Valid chainId';
-  console.log({chainId})
-  if (!isChainId(chainId)) message = `Unsupported chainId: ${chainId}`;
+  if (!chainId) message = 'Provide Valid chain-id in headers.';
+  if (!isChainId(chainId)) message = `Unsupported chain-id: ${chainId}`;
   if (message) {
-    console.error('Error at validating chain ...')
+    console.error('Error at validating chain ...');
     console.log(message);
     res.status(400).json({ success: false, message });
   } else {
-    res.locals.chainId;
+    res.locals.chainId = +chainId!;
+    res.locals.chain =
+      +chainId! === WH_CHAIN_ID_ETH_SEPOLIA ? 'Ethereum Sepolia' : 'Solana';
     next();
   }
 };

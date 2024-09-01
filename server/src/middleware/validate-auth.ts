@@ -10,18 +10,19 @@ export const validateAuth = async (
 ) => {
   try {
     const { chainId } = res.locals;
-    const { walletAddress, signature } = headers;
+    const { 'wallet-address': walletAddress, signature } = headers;
 
     if (!walletAddress || typeof walletAddress != 'string') {
-      throw 'Provide walletAddress';
+      throw 'Provide wallet-address in headers';
+    } else if (!signature || typeof signature != 'string') {
+      throw 'Provide signature in headers';
     }
-    if (!signature || typeof signature != 'string') throw 'Provide signature';
 
     const verify = chainId == WH_CHAIN_ID_SOLANA ? solanaVerify : evmVerify;
     const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
     if (!isVerified) throw 'Unauthorized. Signature and Address Not Matching.';
 
-    res.locals.walletAddress = walletAddress;
+    res.locals.walletAddress = walletAddress.toLowerCase();
     next();
   } catch (e: any) {
     console.error('Error at validating auth ... ');

@@ -14,6 +14,8 @@ export const userPaid = async (
   let { paymentId, email: payerEmail } = body;
   if (!isEmail(payerEmail)) throw `Invalid Email: ${payerEmail}`;
   if (!paymentId) throw 'Missing required paymentId';
+  if (typeof paymentId !== 'string') throw 'Invalid paymentId';
+  paymentId = paymentId.toLowerCase().trim();
 
   // Ensure the payment is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
@@ -25,7 +27,6 @@ export const userPaid = async (
   if (chain === 'Solana') {
     raw = await solanaFetch('userPayment', paymentId, network);
   } else if (chain === 'Ethereum Sepolia') {
-    if (!paymentId.startsWith('0x')) paymentId = `0x${paymentId}`;
     raw = await evmReadContract('userPayments', [paymentId]);
   } else throw `Unsupported Chain ${chain}`;
 

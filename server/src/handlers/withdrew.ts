@@ -12,11 +12,13 @@ export const withdrew = async (body: any, chain: Chain, network: Network) => {
   // Checks
   let { withdrawalId } = body;
   if (!withdrawalId) throw 'Missing required withdrawalId';
+  if (typeof withdrawalId !== 'string') throw 'Invalid withdrawalId';
+  withdrawalId = withdrawalId.toLowerCase().trim();
 
   // Ensure the withdrawal is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
-  const withSnap = await firestore.doc(`/withdrawals/${withdrawalId}`).get();
-  if (withSnap.exists) throw 'Withdrawal has already been recorded';
+  const withDSnap = await firestore.doc(`/withdrawals/${withdrawalId}`).get();
+  if (withDSnap.exists) throw 'Withdrawal has already been recorded';
 
   // Extract On-Chain Data
   let raw: any;

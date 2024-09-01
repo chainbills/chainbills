@@ -1,52 +1,33 @@
-import { Network } from '@wormhole-foundation/sdk';
-
-import { Chain } from '../utils/chain';
-import { TokenAndAmount, TokenAndAmountOffChain } from './tokens-and-amounts';
+import { ChainId, Network } from '@wormhole-foundation/sdk';
+import { Timestamp } from 'firebase-admin/firestore';
+import { Chain, getChainId } from '../utils';
 
 export class Payable {
   id: string;
-  globalCount: number;
   chain: Chain;
+  chainId: ChainId;
   chainCount: number;
   network: Network;
   host: string;
   hostCount: number;
-  hostWallet: string;
-  description: string;
-  tokensAndAmounts: TokenAndAmountOffChain[];
-  balances: TokenAndAmountOffChain[];
-  allowsFreePayments: boolean;
-  createdAt: number;
+  createdAt: Timestamp;
   paymentsCount: number;
   withdrawalsCount: number;
-  isClosed: boolean;
 
-  constructor(
-    id: string,
-    chain: Chain,
-    network: Network,
-    hostWallet: string,
-    onChainData: any
-  ) {
+  constructor(id: string, chain: Chain, network: Network, onChainData: any) {
     this.id = id;
-    this.globalCount = onChainData.globalCount.toNumber();
     this.chain = chain;
-    this.chainCount = onChainData.chainCount.toNumber();
+    this.chainId = getChainId(chain);
     this.network = network;
-    this.host = onChainData.host.toBase58();
-    this.hostCount = onChainData.hostCount.toNumber();
-    this.hostWallet = hostWallet;
-    this.description = onChainData.description;
+    this.chainCount = Number(onChainData.chainCount);
 
-    const convertTAA = (details: any) =>
-      TokenAndAmount.fromOnChain(details, chain);
-    this.tokensAndAmounts = onChainData.tokensAndAmounts.map(convertTAA);
-    this.balances = onChainData.balances.map(convertTAA);
+    if (chain == 'Ethereum Sepolia') this.host = onChainData.host;
+    else if (chain == 'Solana') this.host = onChainData.host.toBase58();
+    else throw `Unknown chain: ${chain}`;
 
-    this.allowsFreePayments = onChainData.allowsFreePayments;
-    this.createdAt = onChainData.createdAt.toNumber();
-    this.paymentsCount = onChainData.paymentsCount.toNumber();
-    this.withdrawalsCount = onChainData.withdrawalsCount.toNumber();
-    this.isClosed = onChainData.isClosed;
+    this.hostCount = Number(onChainData.hostCount);
+    this.createdAt = Timestamp.fromMillis(Number(onChainData.createdAt) * 1000);
+    this.paymentsCount = Number(onChainData.paymentsCount);
+    this.withdrawalsCount = Number(onChainData.withdrawalsCount);
   }
 }

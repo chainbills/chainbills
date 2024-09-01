@@ -1,34 +1,40 @@
-import { PublicKey } from '@solana/web3.js';
 import { Network } from '@wormhole-foundation/sdk';
+import { Withdrawal } from '../schemas';
+import {
+  Chain,
+  evmReadContract,
+  firestore,
+  notifyHost,
+  solanaFetch
+} from '../utils';
 
-import { Auth, Withdrawal } from '../schemas';
-import { firestore, owner, program } from '../utils';
-
-export const withdrew = async (body: any, auth: Auth, network: Network) => {
-  const { withdrawalId } = body;
+export const withdrew = async (body: any, chain: Chain, network: Network) => {
+  // Checks
+  let { withdrawalId } = body;
   if (!withdrawalId) throw 'Missing required withdrawalId';
 
-  const raw = await program(network).account.withdrawal.fetch(
-    new PublicKey(withdrawalId)
-  );
-  const { chain, ownerWallet } = await owner(raw.host, network);
-  if (auth.walletAddress != ownerWallet) throw 'Not your withdrawal!';
+  // Ensure the withdrawal is not being recreated a second time.
+  // This is necessary to prevent sending emails twice.
+  const withSnap = await firestore.doc(`/withdrawals/${withdrawalId}`).get();
+  if (withSnap.exists) throw 'Withdrawal has already been recorded';
 
-  const withdrawal = new Withdrawal(
-    withdrawalId,
-    chain,
-    network,
-    ownerWallet,
-    raw
-  );
-  const payableId = withdrawal.payable;
-  const payableSnap = await firestore.doc(`/payables/${payableId}`).get();
-  if (!payableSnap.exists) throw `Unknown Payable: ${payableId}`;
-  const { email } = payableSnap.data();
+  // Extract On-Chain Data
+  let raw: any;
+  if (chain === 'Solana') {
+    raw = await solanaFetch('payable', withdrawalId, network);
+  } else if (chain === 'Ethereum Sepolia') {
+    if (!withdrawalId.startsWith('0x')) withdrawalId = `0x${withdrawalId}`;
+    raw = await evmReadContract('withdrawals', [withdrawalId]);
+  } else throw `Unsupported Chain ${chain}`;
 
-  // TODO: Send email to host
+  // Construct new Withdrawal to save.
+  const withdrawal = new Withdrawal(withdrawalId, chain, network, raw);
 
+  // Notify Host (email)
+  notifyHost({ ...withdrawal, activity: 'withdrawal' });
+
+  // Save the withdrawal to the database
   await firestore
     .doc(`/withdrawals/${withdrawalId}`)
-    .set({ email, ...withdrawal }, { merge: true });
+    .set(withdrawal, { merge: true });
 };

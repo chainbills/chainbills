@@ -1,5 +1,6 @@
 export * from './auth';
 export * from './payable';
-export * from './payment';
+export * from './payable-payment';
 export * from './tokens-and-amounts';
+export * from './user-payment';
 export * from './withdrawal';

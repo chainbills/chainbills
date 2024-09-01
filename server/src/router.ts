@@ -1,12 +1,14 @@
 import { Request, Response, Router } from 'express';
 import {
-  initializedPayable,
-  paid,
+  createPayable,
+  getPayable,
+  payablePaid,
   relay,
   saveNotificationToken,
+  userPaid,
   withdrew
 } from './handlers';
-import { validateAuth, validateNetwork } from './middleware';
+import { validateAuth, validateChain, validateNetwork } from './middleware';
 
 export const router = Router();
 
@@ -37,6 +39,7 @@ router.post('/relay', validateNetwork, async (req: Request, res: Response) => {
 
 router.post(
   '/notifications',
+  validateChain,
   validateAuth,
   async (req: Request, res: Response) => {
     await wrapper(
@@ -47,19 +50,42 @@ router.post(
   }
 );
 
+router.get('/payable/:id', async (req: Request, res: Response) => {
+  await wrapper(
+    async () => await getPayable(req.params.id),
+    'getting payable',
+    res
+  );
+});
+
+router.post(
+  '/payment/payable',
+  validateChain,
+  validateNetwork,
+  async (req: Request, res: Response) => {
+    const { chain, whNetwork } = res.locals;
+    await wrapper(
+      async () => await payablePaid(req.params.body, chain, whNetwork),
+      'payment/payable finalizer',
+      res
+    );
+  }
+);
+
 [
-  { entity: 'payable', handler: initializedPayable },
-  { entity: 'payment', handler: paid },
+  { entity: 'payable', handler: createPayable },
+  { entity: 'payment/user', handler: userPaid },
   { entity: 'withdrawal', handler: withdrew }
 ].forEach(({ entity, handler }) => {
   router.post(
     `/${entity}`,
+    validateChain,
     validateNetwork,
     validateAuth,
     async (req: Request, res: Response) => {
-      const { auth, whNetwork } = res.locals;
+      const { chain, walletAddress, whNetwork } = res.locals;
       await wrapper(
-        async () => await handler(req.body, auth, whNetwork),
+        async () => await handler(req.body, chain, walletAddress, whNetwork),
         `${entity} finalizer`,
         res
       );

@@ -1,9 +1,13 @@
-import { verifyMessage } from 'viem';
-import { createPublicClient, http } from 'viem';
+import {
+  ContractFunctionName,
+  createPublicClient,
+  http,
+  verifyMessage
+} from 'viem';
 import { sepolia } from 'viem/chains';
 import { abi } from './abi';
 
-export const CONTRACT_ADDRESS = '0xb52CB1AD5D67C5CD25180f8cdB48D22243291884';
+export const CONTRACT_ADDRESS = '0x080b7B61c9F7C28614c1BB1F3FeE9Cd36caFBce0';
 
 export const evmVerify = async (
   message: string,
@@ -11,7 +15,10 @@ export const evmVerify = async (
   address: any
 ) => await verifyMessage({ address, message, signature });
 
-export const readContract = async (functionName: string, args: any[] = []) =>
+export const evmReadContract = async (
+  functionName: ContractFunctionName<typeof abi, 'pure' | 'view'>,
+  args: any[] = []
+) =>
   await createPublicClient({
     chain: sepolia,
     transport: http()

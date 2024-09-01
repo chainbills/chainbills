@@ -1,4 +1,3 @@
-import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { Chain } from '../utils/chain';
 
@@ -13,13 +12,8 @@ export interface Token {
 }
 
 export interface TokenAndAmountOnChain {
-  token: Uint8Array;
-  amount: BN;
-}
-
-export interface TokenAndAmountOffChain {
   token: string;
-  amount: number;
+  amount: bigint;
 }
 
 export class TokenAndAmount {
@@ -33,21 +27,24 @@ export class TokenAndAmount {
     this.amount = amount;
   }
 
-  // TODO: Add a reconcile method for decimals of Ethereum Sepolia
-  // When there will be tokens with difference in decimals in both chains
-
   static fromOnChain(
     { token, amount }: TokenAndAmountOnChain,
     chain: Chain
-  ): TokenAndAmountOffChain {
-    const address = new PublicKey(token).toBase58();
-    const found = tokens.find((t) => t.details.Solana.address == address);
-    if (!found) throw `Couldn't find token details for ${address}`;
-    const parsed = new TokenAndAmount(found, amount.toNumber());
-    return {
-      token: parsed.name,
-      amount: parsed.format(chain)
-    };
+  ): TokenAndAmount {
+    let found: Token | undefined;
+    if (chain == 'Ethereum Sepolia') {
+      found = tokens.find(
+        (t) => `${t.details['Ethereum Sepolia'].address}` == token
+      );
+    } else if (chain == 'Solana') {
+      if ((token as any) instanceof PublicKey) {
+        token = (token as unknown as PublicKey).toBase58();
+      }
+      found = tokens.find((t) => t.details.Solana.address == token);
+    } else throw `Unknown Chain: ${chain}`;
+
+    if (!found) throw `Couldn't find token details for ${token}`;
+    return new TokenAndAmount(found, Number(amount));
   }
 
   display(chain: Chain) {
@@ -65,10 +62,10 @@ export class TokenAndAmount {
     };
   }
 
-  toOnChain(): TokenAndAmountOnChain {
+  toOnChain(chain: Chain): TokenAndAmountOnChain {
     return {
-      token: new PublicKey(this.details.Solana.address).toBytes(),
-      amount: new BN(this.amount)
+      token: this.details[chain].address,
+      amount: BigInt(this.amount)
     };
   }
 }

@@ -1,34 +1,43 @@
-import {
-  WH_CHAIN_ID_ETH_SEPOLIA,
-  WH_CHAIN_ID_SOLANA,
-  type Chain,
-} from '@/stores/chain';
-import type { BN } from '@project-serum/anchor';
+import { type Chain } from '@/stores/chain';
 
 export class User {
-  id: string;
-  ownerWallet: Uint8Array;
+  walletAddress: string;
   chain: Chain;
   chainCount: number;
-  globalCount: number;
   payablesCount: number;
   paymentsCount: number;
   withdrawalsCount: number;
 
-  constructor(id: string, onChainData: any) {
-    this.id = id;
-    this.ownerWallet = onChainData.ownerWallet;
+  static fromEvm(walletAddress: string, onChainData: any): User {
+    return {
+      walletAddress,
+      chain: 'Ethereum Sepolia',
+      chainCount: Number(onChainData[0]),
+      payablesCount: Number(onChainData[1]),
+      paymentsCount: Number(onChainData[2]),
+      withdrawalsCount: Number(onChainData[3]),
+    };
+  }
 
-    const chainId = onChainData.chainId;
-    if (chainId == WH_CHAIN_ID_SOLANA) this.chain = 'Solana';
-    else if (chainId == WH_CHAIN_ID_ETH_SEPOLIA) {
-      this.chain = 'Ethereum Sepolia';
-    } else throw `Unknown chainId: ${chainId}`;
+  static fromSolana(onChainData: any): User {
+    return {
+      walletAddress: onChainData.walletAddress,
+      chain: 'Solana',
+      chainCount: Number(onChainData.chainCount),
+      payablesCount: Number(onChainData.payablesCount),
+      paymentsCount: Number(onChainData.paymentsCount),
+      withdrawalsCount: Number(onChainData.withdrawalsCount),
+    };
+  }
 
-    this.globalCount = (onChainData.globalCount as BN).toNumber();
-    this.chainCount = onChainData.chainCount.toNumber();
-    this.payablesCount = (onChainData.payablesCount as BN).toNumber();
-    this.paymentsCount = (onChainData.paymentsCount as BN).toNumber();
-    this.withdrawalsCount = (onChainData.withdrawalsCount as BN).toNumber();
+  static newUser(chain: Chain, walletAddress: string): User {
+    return {
+      walletAddress,
+      chain,
+      chainCount: 0,
+      payablesCount: 0,
+      paymentsCount: 0,
+      withdrawalsCount: 0,
+    };
   }
 }

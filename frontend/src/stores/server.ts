@@ -1,8 +1,11 @@
+import {
+  useAuthStore,
+  useChainStore,
+  useWalletStore,
+  type Chain,
+} from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { useAuthStore } from './auth';
-import { useChainStore } from './chain';
-import { useWalletStore } from './wallet';
 
 export const useServerStore = defineStore('server', () => {
   const auth = useAuthStore();
@@ -10,24 +13,28 @@ export const useServerStore = defineStore('server', () => {
   const toast = useToast();
   const wallet = useWalletStore();
 
-  const call = async (path: string, body: any): Promise<any> => {
+  const call = async (path: string, body?: any): Promise<any> => {
     return new Promise(async (resolve, _) => {
-      if (chain.currentId && wallet.address && auth.signature) {
-        body.chainId = chain.currentId;
-        body.walletAddress = wallet.address;
-        body.signature = auth.signature;
-        body.whNetwork = 'Testnet'; // TODO: Change to 'Mainnet' when needed
-      }
+      const headers: any = { whNetwork: 'Testnet' }; // TODO: Change to Mainnet
+      // when ready
+      if (chain.currentId) headers['chainId'] = chain.currentId;
+      if (wallet.address) headers['walletAddress'] = wallet.address;
+      if (auth.signature) headers['signature'] = auth.signature;
 
       try {
         const result = await (
           await fetch(`${import.meta.env.VITE_SERVER_URL}${path}`, {
-            method: 'POST',
             headers: {
               Accept: 'application/json',
               'Content-Type': 'application/json',
+              ...headers,
             },
-            body: JSON.stringify(body),
+            ...(body
+              ? {
+                  method: 'POST',
+                  body: JSON.stringify(body),
+                }
+              : { method: 'GET' }),
           })
         ).json();
 
@@ -53,20 +60,27 @@ export const useServerStore = defineStore('server', () => {
     });
   };
 
-  const createdPayable = async (
+  const createPayable = async (
     payableId: string,
     email: string,
+    description: string
   ): Promise<boolean> => {
-    return await call('/payable', { payableId, email });
+    return await call('/payable', { payableId, email, description });
   };
 
-  const paid = async (paymentId: string, email: string): Promise<boolean> => {
-    return await call('/payment', { paymentId, email });
+  const getPayable = async (
+    payableId: string
+  ): Promise<{ chain: Chain; description: string } | null> => {
+    return await call(`/payable/${payableId}`);
+  };
+
+  const payablePaid = async (paymentId: string): Promise<boolean> => {
+    return await call('/payment/payable', { paymentId });
   };
 
   const relay = async (
     txHash: string,
-    functionName: string,
+    functionName: string
   ): Promise<boolean> => {
     return await call('/relay', { txHash, functionName });
   };
@@ -78,9 +92,24 @@ export const useServerStore = defineStore('server', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
+  const userPaid = async (
+    paymentId: string,
+    email: string
+  ): Promise<boolean> => {
+    return await call('/payment/user', { paymentId, email });
+  };
+
   const withdrew = async (withdrawalId: string): Promise<boolean> => {
     return await call('/withdrawal', { withdrawalId });
   };
 
-  return { createdPayable, paid, relay, saveNotificationToken, withdrew };
+  return {
+    createPayable,
+    getPayable,
+    payablePaid,
+    relay,
+    saveNotificationToken,
+    userPaid,
+    withdrew,
+  };
 });

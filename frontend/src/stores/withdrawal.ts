@@ -1,15 +1,15 @@
-import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
-import { Withdrawal } from '@/schemas/withdrawal';
-import { BN } from '@project-serum/anchor';
-import { PublicKey } from '@solana/web3.js';
+import { TokenAndAmount, Withdrawal } from '@/schemas';
+import {
+  useChainStore,
+  useEvmStore,
+  useServerStore,
+  useSolanaStore,
+  useUserStore,
+  useWalletStore,
+  type Chain,
+} from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { useChainStore } from './chain';
-import { useEvmStore } from './evm';
-import { useServerStore } from './server';
-import { PROGRAM_ID, useSolanaStore } from './solana';
-import { useUserStore } from './user';
-import { useWalletStore } from './wallet';
 
 export const useWithdrawalStore = defineStore('withdrawal', () => {
   const chain = useChainStore();
@@ -20,66 +20,9 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const user = useUserStore();
   const wallet = useWalletStore();
 
-  const get = async (id: string): Promise<Withdrawal | null> => {
-    try {
-      const data = (await solana
-        .program()
-        .account.withdrawal.fetch(new PublicKey(id))) as any;
-      const { chain, ownerWallet } = await user.get(data.host);
-      return new Withdrawal(id, chain, ownerWallet, data);
-    } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
-      return null;
-    }
-  };
-
-  const mines = async (): Promise<Withdrawal[] | null> => {
-    if (!wallet.connected) return null;
-    if (!(await user.isInitialized())) return [];
-
-    try {
-      const { withdrawalsCount: count } = (await user.data())!;
-      if (count == 0) return [];
-
-      const withdrawals: Withdrawal[] = [];
-      // TODO: Implement pagination instead of this set maximum of 25
-      for (let i = Math.min(count, 25); i >= 1; i--) {
-        const _pubkey = pubkey(i)!;
-        const data = (await solana
-          .program()
-          .account.withdrawal.fetch(_pubkey)) as any;
-        const { chain, ownerWallet } = await user.get(data.host);
-        withdrawals.push(
-          new Withdrawal(_pubkey.toBase58(), chain, ownerWallet, data),
-        );
-      }
-      return withdrawals;
-    } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
-      return null;
-    }
-  };
-
-  const pubkey = (count: number): PublicKey | null => {
-    if (!wallet.whAddress) return null;
-    return PublicKey.findProgramAddressSync(
-      [
-        wallet.whAddress,
-        Buffer.from('withdrawal'),
-        new BN(count).toArrayLike(Buffer, 'le', 8),
-      ],
-      new PublicKey(PROGRAM_ID),
-    )[0];
-  };
-
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
-
-  const withdraw = async (
+  const exec = async (
     payableId: string,
-    details: TokenAndAmount,
+    details: TokenAndAmount
   ): Promise<string | null> => {
     if (!wallet.connected || !chain.current) return null;
 
@@ -87,9 +30,10 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       const method = chain.current == 'Solana' ? solana.withdraw : evm.withdraw;
       const result = await method(payableId, details);
       if (!result) return null;
+      await user.refresh();
 
       console.log(
-        `Made Withdrawal Transaction Details: ${result.explorerUrl()}`,
+        `Made Withdrawal Transaction Details: ${result.explorerUrl()}`
       );
       await server.withdrew(result.created);
       toast.add({
@@ -107,5 +51,50 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     }
   };
 
-  return { get, mines, pubkey, withdraw };
+  const get = async (id: string, chain: Chain): Promise<Withdrawal | null> => {
+    try {
+      const raw =
+        chain == 'Solana'
+          ? await solana.fetchEntity('withdrawal', id)
+          : await evm.readContract('withdrawals', [id]);
+      if (raw) return new Withdrawal(id, chain, raw);
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+    }
+    return null;
+  };
+
+  const mines = async (): Promise<Withdrawal[] | null> => {
+    if (!user.current) return null;
+    const { withdrawalsCount: count } = user.current;
+    if (count === 0) return [];
+
+    try {
+      const withdrawals: Withdrawal[] = [];
+
+      // TODO: Implement pagination instead of this set maximum of 25
+      let fetched = 0;
+      for (let i = count; i >= 1; i--) {
+        if (fetched >= 25) break;
+        const id = await user.getWithdrawalId(i);
+        if (id) {
+          const withdrawal = await get(id, user.current.chain);
+          if (withdrawal) withdrawals.push(withdrawal);
+          else return null;
+        } else return null;
+        fetched++;
+      }
+      return withdrawals;
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+      return null;
+    }
+  };
+
+  const toastError = (detail: string) =>
+    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+
+  return { exec, get, mines };
 });

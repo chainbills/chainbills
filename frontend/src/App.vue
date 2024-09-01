@@ -4,9 +4,7 @@ import Header from '@/components/Header.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { useAppLoadingStore } from '@/stores/app-loading';
-import { useAuthStore } from '@/stores/auth';
-import { useChainStore } from '@/stores/chain';
-import { useThemeStore } from '@/stores/theme';
+import { useChainStore, useThemeStore } from '@/stores';
 import { account as evmWallet } from '@kolirt/vue-web3-auth';
 import Toast from 'primevue/toast';
 import { useAnchorWallet } from 'solana-wallets-vue';
@@ -15,7 +13,6 @@ import { RouterView } from 'vue-router';
 
 const anchorWallet = useAnchorWallet();
 const appLoading = useAppLoadingStore();
-const auth = useAuthStore();
 const chain = useChainStore();
 
 onMounted(() => {
@@ -23,11 +20,11 @@ onMounted(() => {
   useThemeStore();
   watch(
     () => evmWallet.connected,
-    (v) => chain.setChain(v ? 'Ethereum Sepolia' : null),
+    (v) => chain.setChain(v ? 'Ethereum Sepolia' : null)
   );
   watch(
     () => anchorWallet.value,
-    (v) => chain.setChain(v ? 'Solana' : null),
+    (v) => chain.setChain(v ? 'Solana' : null)
   );
 });
 </script>

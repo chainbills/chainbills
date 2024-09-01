@@ -18,21 +18,23 @@ const getMines = async () => {
   mines.value = await payable.mines();
   isLoading.value = false;
 };
-onMounted(async () => {
-  if (wallet.connected) await getMines();
+onMounted(() => {
+  console.log('before')
+  if (wallet.connected) getMines().then(() => {});
+  console.log('after')
   watch(
     () => wallet.connected,
     async (connected) => {
       if (connected) await getMines();
       else mines.value = null;
-    },
+    }
   );
 });
 </script>
 
 <template>
   <section class="max-w-screen-lg mx-auto pb-20">
-    <div class="mb-8 flex mb-8 justify-between items-center">
+    <div class="mb-8 flex justify-between items-center">
       <h2 class="text-3xl font-bold">Your Payables</h2>
       <router-link to="/start">
         <Button class="bg-blue-500 text-white dark:text-black px-4 py-1"
@@ -87,6 +89,7 @@ onMounted(async () => {
             id,
             hostCount,
             paymentsCount,
+            chain,
             balances,
             createdAt,
             isClosed,
@@ -117,11 +120,11 @@ onMounted(async () => {
             </p>
             <div class="flex gap-2 flex-wrap mb-4">
               <p
-                v-for="{ amount, name } of balances"
+                v-for="bal of balances"
                 class="px-2 py-1 shadow rounded"
                 style="background-color: var(--app-bg)"
               >
-                {{ amount }}&nbsp;{{ name }}
+                {{ bal.display(chain) }}
               </p>
             </div>
             <span

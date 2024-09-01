@@ -16,6 +16,17 @@ import { useChainStore, type Chain } from './chain';
 import { useEvmStore } from './evm';
 import { useSolanaStore } from './solana';
 
+export const denormalizeBytes = (bytes: Uint8Array, chain: Chain): string => {
+  if (chain == 'Solana') return encoding.b58.encode(Uint8Array.from(bytes));
+  if (chain == 'Ethereum Sepolia') {
+    return (
+      '0x' +
+      encoding.hex.encode(Uint8Array.from(bytes), false).replace(/^0+/, '')
+    );
+  }
+  throw `Unknown chain: ${chain}`;
+};
+
 export const useWalletStore = defineStore('wallet', () => {
   const anchorWallet = useAnchorWallet();
   const chain = useChainStore();
@@ -27,8 +38,8 @@ export const useWalletStore = defineStore('wallet', () => {
 
   const address = computed(() =>
     whAddress.value && chain.current
-      ? canonical(whAddress.value, chain.current)
-      : null,
+      ? denormalizeBytes(whAddress.value, chain.current)
+      : null
   );
   const connected = computed(() => !!current.value);
   const whAddress = computed(() => current.value?.address ?? null);
@@ -43,14 +54,6 @@ export const useWalletStore = defineStore('wallet', () => {
     if (!current.value) return null;
     const method = chain.current == 'Solana' ? solana.balance : evm.balance;
     return await method(token);
-  };
-
-  const canonical = (bytes: Uint8Array, chain: Chain) => {
-    if (chain == 'Solana') return encoding.b58.encode(Uint8Array.from(bytes));
-    return (
-      '0x' +
-      encoding.hex.encode(Uint8Array.from(bytes), false).replace(/^0+/, '')
-    );
   };
 
   const disconnect = async (): Promise<void> => {
@@ -84,7 +87,7 @@ export const useWalletStore = defineStore('wallet', () => {
     } else if (newChain == 'Solana' && newAnchorWallet) {
       current.value = new UniversalAddress(
         newAnchorWallet.publicKey.toBase58(),
-        'base58',
+        'base58'
       );
     } else {
       current.value = null;
@@ -94,19 +97,18 @@ export const useWalletStore = defineStore('wallet', () => {
   watch(
     [() => chain.current, () => evmWallet.address, () => anchorWallet.value],
     update,
-    { deep: true },
+    { deep: true }
   );
 
   setTimeout(
     () => update([chain.current, evmWallet.address, anchorWallet.value]),
-    1000,
+    1000
   );
 
   return {
     address,
     areSame,
     balance,
-    canonical,
     connected,
     disconnect,
     sign,

@@ -1,45 +1,40 @@
-import { type Chain } from '@/stores/chain';
-import { TokenAndAmount } from './tokens-and-amounts';
+import { TokenAndAmount, type TokenAndAmountOnChain } from '@/schemas';
+import { type Chain } from '@/stores';
 
 export class Payable {
   id: string;
-  globalCount: number;
   chain: Chain;
   chainCount: number;
   host: string;
   hostCount: number;
-  hostWallet: Uint8Array;
   description: string;
-  tokensAndAmounts: TokenAndAmount[];
+  allowedTokensAndAmounts: TokenAndAmount[];
   balances: TokenAndAmount[];
-  allowsFreePayments: boolean;
   createdAt: Date;
   paymentsCount: number;
   withdrawalsCount: number;
   isClosed: boolean;
 
-  constructor(
-    id: string,
-    chain: Chain,
-    hostWallet: Uint8Array,
-    onChainData: any,
-  ) {
+  constructor(id: string, chain: Chain, description: string, onChainData: any) {
     this.id = id;
-    this.globalCount = onChainData.globalCount.toNumber();
     this.chain = chain;
-    this.chainCount = onChainData.chainCount.toNumber();
-    this.host = onChainData.host.toBase58();
-    this.hostCount = onChainData.hostCount.toNumber();
-    this.hostWallet = hostWallet;
-    this.description = onChainData.description;
-    this.tokensAndAmounts = onChainData.tokensAndAmounts.map(
-      TokenAndAmount.fromOnChain,
+    this.chainCount = Number(onChainData.chainCount);
+
+    if (chain == 'Ethereum Sepolia') this.host = onChainData.host;
+    else if (chain == 'Solana') this.host = onChainData.host.toBase58();
+    else throw `Unknown chain: ${chain}`;
+
+    this.hostCount = Number(onChainData.hostCount);
+    this.description = description;
+    this.allowedTokensAndAmounts = onChainData.allowedTokensAndAmounts.map(
+      (aTAA: TokenAndAmountOnChain) => TokenAndAmount.fromOnChain(aTAA, chain)
     );
-    this.balances = onChainData.balances.map(TokenAndAmount.fromOnChain);
-    this.allowsFreePayments = onChainData.allowsFreePayments;
-    this.createdAt = new Date(onChainData.createdAt.toNumber() * 1000);
-    this.paymentsCount = onChainData.paymentsCount.toNumber();
-    this.withdrawalsCount = onChainData.withdrawalsCount.toNumber();
+    this.balances = onChainData.balances.map((bal: TokenAndAmountOnChain) =>
+      TokenAndAmount.fromOnChain(bal, chain)
+    );
+    this.createdAt = new Date(Number(onChainData.createdAt) * 1000);
+    this.paymentsCount = Number(onChainData.paymentsCount);
+    this.withdrawalsCount = Number(onChainData.withdrawalsCount);
     this.isClosed = onChainData.isClosed;
   }
 }

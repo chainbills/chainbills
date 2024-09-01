@@ -1,34 +1,38 @@
-import { OnChainSuccess } from '@/schemas/on-chain-success';
-import { TokenAndAmount, type Token } from '@/schemas/tokens-and-amounts';
+import {
+  CONTRACT_ADDRESS,
+  OnChainSuccess,
+  TokenAndAmount,
+  User,
+  type Token,
+} from '@/schemas';
 import {
   account,
   erc20ABI,
-  readContract,
+  writeContract as rawWriteContract,
   signMessage,
-  writeContract,
 } from '@kolirt/vue-web3-auth';
-import { BN } from '@project-serum/anchor';
-import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
+import { createPublicClient, http, zeroAddress } from 'viem';
+import { sepolia } from 'viem/chains';
 import { abi } from './abi';
-import { useServerStore } from './server';
-
-export const CONTRACT_ADDRESS = '0xb52CB1AD5D67C5CD25180f8cdB48D22243291884';
 
 export const useEvmStore = defineStore('evm', () => {
-  const server = useServerStore();
+  const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http(),
+  });
 
   const balance = async (token: Token): Promise<number | null> => {
     if (!account.connected) return null;
     try {
       return Number(
-        await readContract({
+        await publicClient.readContract({
           address: token.details['Ethereum Sepolia'].address as `0x${string}`,
           abi: erc20ABI,
           functionName: 'balanceOf',
           args: [account.address],
-        }),
+        })
       );
     } catch (e) {
       console.error(e);
@@ -37,74 +41,122 @@ export const useEvmStore = defineStore('evm', () => {
     }
   };
 
-  const initializePayable = async (
-    description: string,
-    tokensAndAmounts: TokenAndAmount[],
-    allowsFreePayments: boolean,
+  const createPayable = async (
+    tokensAndAmounts: TokenAndAmount[]
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
       toastError('Connect EVM Wallet First!');
       return null;
     }
-
-    const { hash, wait } = await writeContract({
+    const { hash, wait } = await rawWriteContract({
       address: CONTRACT_ADDRESS,
       abi,
-      functionName: 'initializePayable',
-      args: [
-        description,
-        allowsFreePayments,
-        tokensAndAmounts.map((t) => t.toOnChain()),
-      ],
+      functionName: 'createPayable',
+      args: [tokensAndAmounts.map((t) => t.toOnChain('Ethereum Sepolia'))],
     });
 
     await wait();
-    if (!(await server.relay(hash, 'initializePayable'))) return null;
 
+    // TODO: Extract the newly created payable ID from the receipt logs in
+    // simulate contract call instead of constructing as below
     return new OnChainSuccess({
-      created: hash,
+      created: await getUserPayableId((await getCurrentUser())?.payablesCount),
       txHash: hash,
       chain: 'Ethereum Sepolia',
     });
   };
 
+  const getCurrentUser = async () => {
+    if (!account.connected) return null;
+    const raw = await readContract('users', [account.address]);
+    if (raw) return User.fromEvm(account.address, raw);
+    return null;
+  };
+
+  const getPayablePaymentId = async (
+    payableId: string,
+    count: number
+  ): Promise<string | null> => {
+    const id = await readContract('payablePaymentIds', [payableId, count - 1]);
+    if (!id || id === zeroAddress) return null;
+    return id;
+  };
+
+  const getUserEntityId = async (
+    entity: string,
+    count: number
+  ): Promise<string | null> => {
+    if (!account.connected) return null;
+    const id = await readContract(`user${entity}Ids`, [account.address, count]);
+    if (!id || id === zeroAddress) return null;
+    return id;
+  };
+
+  const getUserPayableId = async (count: number) =>
+    getUserEntityId('Payable', count - 1);
+
+  const getUserPaymentId = async (count: number) =>
+    getUserEntityId('Payment', count - 1);
+
+  const getUserWithdrawalId = async (count: number) =>
+    getUserEntityId('Withdrawal', count - 1);
+
   const pay = async (
     payableId: string,
-    { amount, details }: TokenAndAmount,
+    { amount, details }: TokenAndAmount
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
       toastError('Connect EVM Wallet First!');
       return null;
     }
 
-    const approval = await writeContract({
-      address: details['Ethereum Sepolia'].address as `0x${string}`,
+    const token = details['Ethereum Sepolia'].address as `0x${string}`;
+    if (token != CONTRACT_ADDRESS) {
+      const approval = await rawWriteContract({
+        address: token,
+        abi: erc20ABI,
+        functionName: 'approve',
+        args: [CONTRACT_ADDRESS, amount],
+      });
+      if (approval) await approval.wait();
+      else return null;
+    }
+
+    const { hash, wait } = await rawWriteContract({
+      address: token,
       abi: erc20ABI,
-      functionName: 'approve',
-      args: [CONTRACT_ADDRESS, amount],
-    });
-    if (approval) await approval.wait();
-    else return null;
-
-    const { hash, wait } = await writeContract({
-      address: CONTRACT_ADDRESS,
-      abi,
       functionName: 'pay',
-      args: [
-        new PublicKey(payableId).toBytes(),
-        new PublicKey(details.Solana.address).toBytes(),
-        new BN(amount),
-      ],
+      args: [payableId, token, BigInt(amount)],
+      ...(token == CONTRACT_ADDRESS ? { value: BigInt(amount) } : {}),
     });
-
+    
     await wait();
-    if (!(await server.relay(hash, 'pay'))) return null;
 
+    // TODO: Extract the newly created payable ID from the receipt logs in
+    // simulate contract call instead of constructing as below
     return new OnChainSuccess({
-      created: hash,
+      created: await getUserPaymentId((await getCurrentUser())?.paymentsCount),
       txHash: hash,
       chain: 'Ethereum Sepolia',
     });
+  };
+
+  const readContract = async (
+    functionName: string,
+    args: any[] = []
+  ): Promise<any> => {
+    try {
+      return await publicClient.readContract({
+        address: CONTRACT_ADDRESS,
+        abi,
+        functionName,
+        args,
+      });
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+      return null;
+    }
   };
 
   const sign = async (message: string): Promise<string | null> => {
@@ -122,33 +174,41 @@ export const useEvmStore = defineStore('evm', () => {
 
   const withdraw = async (
     payableId: string,
-    { amount, details }: TokenAndAmount,
+    { amount, details }: TokenAndAmount
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
       toastError('Connect EVM Wallet First!');
       return null;
     }
-
-    const { hash, wait } = await writeContract({
+    const { hash, wait } = await rawWriteContract({
       address: CONTRACT_ADDRESS,
       abi,
       functionName: 'withdraw',
-      args: [
-        new PublicKey(payableId).toBytes(),
-        new PublicKey(details.Solana.address).toBytes(),
-        new BN(amount),
-      ],
+      args: [payableId, details['Ethereum Sepolia'].address, amount],
     });
-
     await wait();
-    if (!(await server.relay(hash, 'withdraw'))) return null;
-
+    // TODO: Extract the newly created payable ID from the receipt logs in
+    // simulate contract call instead of constructing as below
     return new OnChainSuccess({
-      created: hash,
+      created: await getUserWithdrawalId(
+        (await getCurrentUser())?.withdrawalsCount
+      ),
       txHash: hash,
       chain: 'Ethereum Sepolia',
     });
   };
 
-  return { balance, initializePayable, pay, sign, withdraw };
+  return {
+    balance,
+    createPayable,
+    getCurrentUser,
+    getPayablePaymentId,
+    getUserPayableId,
+    getUserPaymentId,
+    getUserWithdrawalId,
+    readContract,
+    pay,
+    sign,
+    withdraw,
+  };
 });

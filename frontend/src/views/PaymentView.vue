@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import type { Payable } from '@/schemas/payable';
-import type { Payment } from '@/schemas/payment';
-import { useTimeStore } from '@/stores/time';
-import { useWalletStore } from '@/stores/wallet';
+import type { Payable, Payment } from '@/schemas';
+import {
+  denormalizeBytes,
+  useChainStore,
+  useTimeStore,
+  useWalletStore,
+} from '@/stores';
 import Button from 'primevue/button';
 import { useRoute } from 'vue-router';
 
+const chain = useChainStore();
 const route = useRoute();
 const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
@@ -24,9 +28,7 @@ const wallet = useWalletStore();
 
     <p class="mb-8 leading-tight">
       <span>Payer's Wallet Address:</span><br />
-      <span class="text-xs break-all text-gray-500">{{
-        wallet.canonical(payment.payerWallet, payment.chain)
-      }}</span>
+      <span class="text-xs break-all text-gray-500">{{ payment.payer }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
@@ -36,7 +38,9 @@ const wallet = useWalletStore();
 
     <p class="mb-8 leading-tight">
       <span>Paid:</span><br />
-      <span class="text-xl font-bold">{{ payment.displayDetails() }}</span>
+      <span class="text-xl font-bold">{{
+        payment.details.display(payment.chain)
+      }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
@@ -49,17 +53,18 @@ const wallet = useWalletStore();
     <p class="mb-8 leading-tight">
       <span>Payable ID:</span><br />
       <router-link
-        :to="`/payable/${payment.payable}`"
+        :to="`/payable/${payment.payableId}`"
         class="text-xs break-all text-gray-500 underline"
         v-if="
           wallet.whAddress &&
-          wallet.areSame(wallet.whAddress, payableDetails.hostWallet)
+          denormalizeBytes(wallet.whAddress, chain.current!) ==
+            payableDetails.host
         "
       >
-        {{ payment.payable }}
+        {{ payment.payableId }}
       </router-link>
       <span class="text-xs break-all text-gray-500" v-else>{{
-        payment.payable
+        payment.payableId
       }}</span>
     </p>
 

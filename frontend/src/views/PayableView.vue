@@ -2,37 +2,29 @@
 import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
 import { Payable } from '@/schemas/payable';
 import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
+import { useChainStore, usePayableStore } from '@/stores';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import { useTimeStore } from '@/stores/time';
-import { useWalletStore } from '@/stores/wallet';
+import { denormalizeBytes, useWalletStore } from '@/stores/wallet';
 import { useWithdrawalStore } from '@/stores/withdrawal';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const appLoading = useAppLoadingStore();
+const chain = useChainStore();
 const route = useRoute();
-const details = route.meta.details as Payable;
+const payable = ref(route.meta.details as Payable);
 const time = useTimeStore();
 const toast = useToast();
 const { origin } = window.location;
-const link = `${origin}/pay/${details.id}`;
+const link = `${origin}/pay/${payable.value.id}`;
+const payableStore = usePayableStore();
 const wallet = useWalletStore();
 const { whAddress } = storeToRefs(wallet);
 const withdrawal = useWithdrawalStore();
-
-const {
-  paymentsCount,
-  withdrawalsCount,
-  allowsFreePayments,
-  createdAt,
-  hostCount,
-  isClosed,
-  tokensAndAmounts,
-  balances,
-} = details;
 
 const nth = (n: number) => {
   if (n > 3 && n < 21) return 'th';
@@ -43,17 +35,29 @@ const nth = (n: number) => {
   else return 'th';
 };
 
-const cards = [
-  ['Payments Received', paymentsCount == 0 ? 'None' : paymentsCount],
-  ['Withdrawals Made', withdrawalsCount == 0 ? 'None' : withdrawalsCount],
-  ['Free Payments?', allowsFreePayments ? 'Yes' : 'No'],
-  ['Created At', time.display(createdAt)],
-  ['Your Nth Count', hostCount + nth(hostCount)],
-  ['Closed?', isClosed ? 'Yes' : 'No'],
-];
+const cards = computed(() => {
+  const {
+    paymentsCount,
+    withdrawalsCount,
+    createdAt,
+    hostCount,
+    isClosed,
+    allowedTokensAndAmounts,
+  } = payable.value;
+  return [
+    ['Payments Received', paymentsCount == 0 ? 'None' : paymentsCount],
+    ['Withdrawals Made', withdrawalsCount == 0 ? 'None' : withdrawalsCount],
+    ['Free Payments?', allowedTokensAndAmounts.length == 0 ? 'Yes' : 'No'],
+    ['Created At', time.display(createdAt)],
+    ['Your Nth Count', hostCount + nth(hostCount)],
+    ['Closed?', isClosed ? 'Yes' : 'No'],
+  ];
+});
 
 const isMine = ref(
-  wallet.areSame(whAddress.value ?? new Uint8Array(), details.hostWallet),
+  whAddress.value
+    ? denormalizeBytes(whAddress.value, chain.current!) == payable.value.host
+    : false
 );
 
 const copy = () => {
@@ -72,17 +76,21 @@ const comingSoon = () => {
 
 const getBalsDisplay = () => {
   const all: TokenAndAmount[] = [];
-  if (allowsFreePayments) {
+  const { allowedTokensAndAmounts, balances } = payable.value;
+  if (allowedTokensAndAmounts.length == 0) {
     balances.forEach((b) => all.push(b));
   } else {
-    for (let taa of tokensAndAmounts) {
+    const copied = [...balances];
+    for (let taa of allowedTokensAndAmounts) {
       const found = balances.find((b) => b.name == taa.name);
       all.push(new TokenAndAmount(taa.token(), found?.amount ?? 0));
+      if (found) copied.splice(copied.indexOf(found), 1);
     }
+    for (let bal of copied) all.push(bal);
   }
   return all;
 };
-const balsDisplay = getBalsDisplay();
+const balsDisplay = ref(getBalsDisplay());
 
 const withdraw = async (balance: TokenAndAmount) => {
   if (balance.amount == 0) {
@@ -94,12 +102,17 @@ const withdraw = async (balance: TokenAndAmount) => {
     });
   } else {
     appLoading.show('Withdrawing');
-    const result = await withdrawal.withdraw(details.id, balance);
+    const result = await withdrawal.exec(payable.value.id, balance);
     if (result) {
-      // this waiting for the user to see the toast of success
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      window.location.reload();
-    } else appLoading.hide();
+      const newPayable = await payableStore.get(payable.value.id);
+      if (newPayable) {
+        payable.value = newPayable;
+        balsDisplay.value = getBalsDisplay();
+        appLoading.hide();
+        // reloading the page if updates failed to ensure we don't have 
+        // stale data in the UI
+      } else window.location.reload();
+    }
   }
 };
 
@@ -107,8 +120,10 @@ onMounted(() => {
   watch(
     () => whAddress.value,
     (val) => {
-      isMine.value = val ? wallet.areSame(val, details.hostWallet) : false;
-    },
+      isMine.value = val
+        ? denormalizeBytes(val, chain.current!) == payable.value.host
+        : false;
+    }
   );
 });
 </script>
@@ -148,7 +163,7 @@ onMounted(() => {
     <template v-else>
       <h2 class="mb-8 leading-tight">
         <span>Payable ID:</span><br />
-        <span class="text-xs break-all text-gray-500">{{ details.id }}</span>
+        <span class="text-xs break-all text-gray-500">{{ payable.id }}</span>
       </h2>
 
       <div class="max-w-lg mb-12">
@@ -157,7 +172,7 @@ onMounted(() => {
           <p
             class="p-4 rounded bg-blue-50 dark:bg-slate-900 underline break-all mb-3 sm:mb-0"
           >
-            <router-link :to="`/pay/${details.id}`">
+            <router-link :to="`/pay/${payable.id}`">
               {{ link }}
             </router-link>
           </p>
@@ -181,9 +196,8 @@ onMounted(() => {
         receive payments.
       </p>
       <div v-else-if="balsDisplay.length == 1" class="mb-12 flex items-end">
-        <!-- TODO: Review choice of only Solana chain here -->
         <p class="text-4xl mr-6">
-          {{ balsDisplay[0].display('Solana') }}
+          {{ balsDisplay[0].display(payable.chain) }}
         </p>
         <Button
           @click="withdraw(balsDisplay[0])"
@@ -199,9 +213,8 @@ onMounted(() => {
           v-for="taa of balsDisplay"
           class="p-4 bg-blue-50 sm:w-44 dark:bg-slate-900 text-center rounded-md shadow-inner"
         >
-          <!-- TODO: Review choice of only Solana chain here -->
           <p class="font-bold text-lg mb-3">
-            {{ taa.display('Solana') }}
+            {{ taa.display(payable.chain) }}
           </p>
           <Button
             class="border border-blue-500 text-blue-500 text-sm px-3 py-1"
@@ -218,7 +231,7 @@ onMounted(() => {
         <div class="mb-8 sm:flex items-end">
           <textarea
             readonly
-            v-model="details.description"
+            v-model="payable.description"
             class="outline-none w-full px-3 py-2 bg-blue-50 dark:bg-slate-900 rounded-md shadow-inner mb-2 sm:mb-0 sm:mr-4"
           ></textarea>
           <Button

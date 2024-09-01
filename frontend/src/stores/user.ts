@@ -1,42 +1,56 @@
 import { User } from '@/schemas/user';
-import { PublicKey } from '@solana/web3.js';
+import {
+  useChainStore,
+  useEvmStore,
+  useSolanaStore,
+  useWalletStore,
+} from '@/stores';
 import { defineStore } from 'pinia';
-import { PROGRAM_ID, useSolanaStore } from './solana';
-import { useWalletStore } from './wallet';
+import { onMounted, ref, watch } from 'vue';
 
 export const useUserStore = defineStore('user', () => {
+  const chain = useChainStore();
+  const current = ref<User | null>(null);
+  const evm = useEvmStore();
   const solana = useSolanaStore();
   const wallet = useWalletStore();
 
-  const pubkey = (): PublicKey | null => {
-    if (!wallet.whAddress) return null;
-    return PublicKey.findProgramAddressSync(
-      [wallet.whAddress],
-      new PublicKey(PROGRAM_ID),
-    )[0];
+  const getPayableId = async (count: number): Promise<string | null> => {
+    if (!wallet.address) return null;
+    if (chain.current === 'Solana') return solana.getUserPayableId(count);
+    else return await evm.getUserPayableId(count);
   };
 
-  const isInitialized = async (): Promise<boolean> => {
-    if (!wallet.connected) return false;
-    try {
-      await solana.program().account.user.fetch(pubkey()!);
-      return true;
-    } catch (e) {
-      return false;
-    }
+  const getPaymentId = async (count: number): Promise<string | null> => {
+    if (!wallet.address) return null;
+    if (chain.current === 'Solana') return solana.getUserPaymentId(count);
+    else return await evm.getUserPaymentId(count);
   };
 
-  const data = async (): Promise<User | null> => {
-    if (!wallet.connected) return null;
-    return new User(
-      pubkey()!.toBase58(),
-      await solana.program().account.user.fetch(pubkey()!),
+  const getWithdrawalId = async (count: number): Promise<string | null> => {
+    if (!wallet.address) return null;
+    if (chain.current === 'Solana') return solana.getUserWithdrawalId(count);
+    else return await evm.getUserWithdrawalId(count);
+  };
+
+  const refresh = async (): Promise<void> => {
+    if (!wallet.address || !chain.current) current.value = null;
+    else if (chain.current === 'Solana') {
+      current.value = await solana.getCurrentUser();
+    } else current.value = await evm.getCurrentUser();
+  }
+
+  onMounted(() => {
+    watch(
+      () => wallet.address,
+      async (addr) => {
+        if (!addr || !chain.current) current.value = null;
+        else if (chain.current === 'Solana') {
+          current.value = await solana.getCurrentUser();
+        } else current.value = await evm.getCurrentUser();
+      }
     );
-  };
+  });
 
-  const get = async (id: string): Promise<User> => {
-    return new User(id, await solana.program().account.user.fetch(id));
-  };
-
-  return { data, get, isInitialized, pubkey };
+  return { current, getPayableId, getPaymentId, getWithdrawalId, refresh };
 });

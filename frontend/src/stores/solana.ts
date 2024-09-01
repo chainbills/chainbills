@@ -1,6 +1,8 @@
-import { OnChainSuccess } from '@/schemas/on-chain-success';
-import { TokenAndAmount, type Token } from '@/schemas/tokens-and-amounts';
+import { OnChainSuccess, TokenAndAmount, User, type Token } from '@/schemas';
+import { SOLANA_CLUSTER, WH_CHAIN_ID_SOLANA } from '@/stores/chain';
+import { IDL, type Chainbills } from '@/stores/idl';
 import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
+import type { AllAccountsMap } from '@project-serum/anchor/dist/cjs/program/namespace/types';
 import {
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction as createATAIx,
@@ -20,31 +22,23 @@ import {
   useAnchorWallet,
   useWallet as useSolanaWallet,
 } from 'solana-wallets-vue';
-import { SOLANA_CLUSTER, WH_CHAIN_ID_SOLANA } from './chain';
-import { IDL, type Chainbills } from './idl';
-import { useUserStore } from './user';
 
-export const PROGRAM_ID = 'p7Lu1yPzMRYLfLxWbEePx8kn3LNevFTbGVC5ghyADF9';
+export const PROGRAM_ID = '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND';
 
 export const useSolanaStore = defineStore('solana', () => {
+  const getPDA = (seeds: (Buffer | Uint8Array)[]): string =>
+    PublicKey.findProgramAddressSync(
+      seeds,
+      new PublicKey(PROGRAM_ID)
+    )[0].toBase58();
+
   const anchorWallet = useAnchorWallet();
-  const chainStats = PublicKey.findProgramAddressSync(
-    [
-      Buffer.from('chain'),
-      new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
-    ],
-    new PublicKey(PROGRAM_ID),
-  )[0];
+  const chainStats = getPDA([Buffer.from('chain')]);
   const connection = new Connection(clusterApiUrl(SOLANA_CLUSTER), 'finalized');
-  const globalStats = PublicKey.findProgramAddressSync(
-    [Buffer.from('global')],
-    new PublicKey(PROGRAM_ID),
-  )[0];
   const solanaWallet = useSolanaWallet();
   const systemProgram = new PublicKey(web3.SystemProgram.programId);
   const toast = useToast();
   const tokenProgram = new PublicKey(TOKEN_PROGRAM_ID);
-  const user = useUserStore();
 
   const balance = async (token: Token): Promise<number | null> => {
     try {
@@ -53,8 +47,8 @@ export const useSolanaStore = defineStore('solana', () => {
         await connection.getTokenAccountBalance(
           getATA(
             new PublicKey(token.details.Solana.address),
-            anchorWallet.value!.publicKey,
-          ),
+            anchorWallet.value!.publicKey
+          )
         )
       ).value.uiAmount;
     } catch (e) {
@@ -62,6 +56,46 @@ export const useSolanaStore = defineStore('solana', () => {
       toastError(`Couldn't fetch ${token.name} balance: ${e}`);
       return null;
     }
+  };
+
+  const createPayable = async (
+    tokensAndAmounts: TokenAndAmount[]
+  ): Promise<OnChainSuccess | null> => {
+    if (!anchorWallet.value) {
+      toastError('Connect Solana Wallet First!');
+      return null;
+    }
+
+    const currentUser = (await getCurrentUser())!;
+    const isExistingUser = currentUser.chainCount > 0;
+    let hostCount = 1;
+    if (isExistingUser) hostCount = currentUser.payablesCount + 1;
+
+    const payable = getPDA(getSeeds('payable', hostCount));
+    const payableChainCounter = getPDA([
+      new PublicKey(payable).toBytes(),
+      new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
+    ]);
+    const call = program()
+      .methods.createPayable(
+        tokensAndAmounts.map((t) => t.toOnChain('Solana')) as any
+      )
+      .accounts({
+        payable,
+        payableChainCounter,
+        host: getCurrentUserPDA(),
+        chainStats,
+        signer: anchorWallet.value!.publicKey,
+        systemProgram,
+      });
+
+    if (!isExistingUser) call.preInstructions([(await initializeUserIx())!]);
+
+    return new OnChainSuccess({
+      created: payable,
+      txHash: await call.rpc(),
+      chain: 'Solana',
+    });
   };
 
   const doesATAExists = async (ata: PublicKey): Promise<boolean> => {
@@ -72,68 +106,62 @@ export const useSolanaStore = defineStore('solana', () => {
     return exists;
   };
 
-  const initializePayable = async (
-    description: string,
-    tokensAndAmounts: TokenAndAmount[],
-    allowsFreePayments: boolean,
-  ): Promise<OnChainSuccess | null> => {
-    if (!anchorWallet.value) {
-      toastError('Connect Solana Wallet First!');
-      return null;
-    }
+  const fetchEntity = async (
+    entity: keyof AllAccountsMap<Chainbills>,
+    id: string
+  ) => await program().account[entity].fetch(new PublicKey(id));
 
-    const isExistingUser = await user.isInitialized();
-    let hostCount = 1;
-    if (isExistingUser) hostCount = (await user.data())!.payablesCount + 1;
-
-    const payable = PublicKey.findProgramAddressSync(
-      seeds('payable', hostCount),
-      new PublicKey(PROGRAM_ID),
-    )[0];
-
-    const call = program()
-      .methods.initializePayable(
-        description,
-        tokensAndAmounts.map((t) => t.toOnChain()) as any,
-        allowsFreePayments,
-      )
-      .accounts({
-        payable,
-        host: user.pubkey()!,
-        globalStats,
-        chainStats,
-        signer: anchorWallet.value!.publicKey,
-        systemProgram,
-      });
-
-    if (!isExistingUser) call.preInstructions([(await initializeUserIx())!]);
-
-    return new OnChainSuccess({
-      created: payable.toBase58(),
-      txHash: await call.rpc(),
-      chain: 'Solana',
-    });
-  };
-
-  const initializeUserIx = async (): Promise<TransactionInstruction> => {
-    return program()
+  const initializeUserIx = async (): Promise<TransactionInstruction> =>
+    program()
       .methods.initializeUser()
       .accounts({
-        user: PublicKey.findProgramAddressSync(
-          [anchorWallet.value!.publicKey.toBytes()],
-          new PublicKey(PROGRAM_ID),
-        )[0]!,
+        user: getCurrentUserPDA(),
         signer: anchorWallet.value!.publicKey,
         chainStats,
-        globalStats,
         systemProgram,
       })
       .instruction();
+
+  const getCurrentUser = async () => {
+    if (!anchorWallet.value) return null;
+    const addr = getCurrentUserPDA();
+    try {
+      return User.fromSolana(await fetchEntity('user', addr));
+    } catch (_) {
+      return User.newUser('Solana', addr);
+    }
   };
+
+  const getCurrentUserPDA = (): string =>
+    getPDA([anchorWallet.value!.publicKey.toBytes()]);
+
+  const getPayablePaymentId = (payableId: string, count: number): string =>
+    getPDA(getSeeds('payable_payment', count, new PublicKey(payableId)));
+
+  const getSeeds = (
+    prefix: string,
+    count: number,
+    pubkey?: PublicKey
+  ): Uint8Array[] => {
+    return [
+      (pubkey ?? anchorWallet.value!.publicKey).toBytes(),
+      Buffer.from(prefix),
+      new BN(count).toArrayLike(Buffer, 'le', 8),
+    ];
+  };
+
+  const getUserPayableId = (count: number): string =>
+    getPDA(getSeeds('payable', count));
+
+  const getUserPaymentId = (count: number): string =>
+    getPDA(getSeeds('user_payment', count));
+
+  const getUserWithdrawalId = (count: number): string =>
+    getPDA(getSeeds('payable', count));
 
   const pay = async (
     payableId: string,
-    { amount, details }: TokenAndAmount,
+    { amount, details, name: tokenName }: TokenAndAmount
   ): Promise<OnChainSuccess | null> => {
     if (amount == 0) {
       toastError('Cannot withdraw zero');
@@ -145,32 +173,41 @@ export const useSolanaStore = defineStore('solana', () => {
       return null;
     }
 
-    const isExistingUser = await user.isInitialized();
+    const currentUser = (await getCurrentUser())!;
+    const isExistingUser = currentUser.chainCount > 0;
     let payerCount = 1;
-    if (isExistingUser) payerCount = (await user.data())!.paymentsCount + 1;
+    if (isExistingUser) payerCount = currentUser.payablesCount + 1;
 
     const mint = new PublicKey(details.Solana.address);
-    const payment = PublicKey.findProgramAddressSync(
-      seeds('payment', payerCount),
-      new PublicKey(PROGRAM_ID),
-    )[0];
+    const userPayment = getPDA(getSeeds('user_payment', payerCount));
+    const payable = await fetchEntity('payable', payableId);
+    const payableCount = Number(payable.paymentsCount) + 1;
+    const payablePayment = getPDA(
+      getSeeds('payable_payment', payableCount, new PublicKey(payableId))
+    );
+    const payableChainCounter = getPDA([
+      new PublicKey(payableId).toBytes(),
+      new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
+    ]);
     const signer = anchorWallet.value.publicKey;
     const payerTokenAccount = getATA(mint, signer, true);
-    const payerTAExists = await doesATAExists(payerTokenAccount);
-    const globalTokenAccount = getATA(mint, globalStats, true);
-    const globalTAExists = await doesATAExists(globalTokenAccount);
+    if (!(await doesATAExists(payerTokenAccount))) {
+      throw `You don't have any ${tokenName}`;
+    }
+    const chainTokenAccount = getATA(mint, new PublicKey(chainStats), true);
 
     const call = program()
       .methods.pay(new BN(amount))
       .accounts({
-        payment,
+        userPayment,
+        payablePayment,
+        payableChainCounter,
         payable: new PublicKey(payableId),
-        payer: user.pubkey()!,
-        globalStats,
+        payer: getCurrentUserPDA(),
         chainStats,
         mint,
         payerTokenAccount,
-        globalTokenAccount,
+        chainTokenAccount,
         signer,
         tokenProgram,
         systemProgram,
@@ -178,16 +215,10 @@ export const useSolanaStore = defineStore('solana', () => {
 
     call.preInstructions([
       ...(!isExistingUser ? [(await initializeUserIx())!] : []),
-      ...(!payerTAExists
-        ? [createATAIx(signer, payerTokenAccount, signer, mint)]
-        : []),
-      ...(!globalTAExists
-        ? [createATAIx(signer, globalTokenAccount, globalStats, mint)]
-        : []),
     ]);
 
     return new OnChainSuccess({
-      created: payment.toBase58(),
+      created: userPayment,
       txHash: await call.rpc(),
       chain: 'Solana',
     });
@@ -199,16 +230,8 @@ export const useSolanaStore = defineStore('solana', () => {
       PROGRAM_ID,
       ...(anchorWallet.value
         ? [new AnchorProvider(connection, anchorWallet.value!, {})]
-        : [{ connection }]),
+        : [{ connection }])
     );
-
-  const seeds = (entity: string, count: number): Uint8Array[] => {
-    return [
-      anchorWallet.value!.publicKey.toBytes(),
-      Buffer.from(entity),
-      new BN(count).toArrayLike(Buffer, 'le', 8),
-    ];
-  };
 
   const sign = async (message: string): Promise<string | null> => {
     if (!solanaWallet.connected.value) {
@@ -216,7 +239,7 @@ export const useSolanaStore = defineStore('solana', () => {
       return null;
     }
     return bs58.encode(
-      await solanaWallet.signMessage.value!(new TextEncoder().encode(message)),
+      await solanaWallet.signMessage.value!(new TextEncoder().encode(message))
     );
   };
 
@@ -225,7 +248,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const withdraw = async (
     payableId: string,
-    { amount, details }: TokenAndAmount,
+    { amount, details }: TokenAndAmount
   ): Promise<OnChainSuccess | null> => {
     if (amount == 0) {
       toastError('Cannot withdraw zero');
@@ -238,36 +261,36 @@ export const useSolanaStore = defineStore('solana', () => {
     }
 
     const mint = new PublicKey(details.Solana.address);
-    const config = PublicKey.findProgramAddressSync(
-      [Buffer.from('config')],
-      new PublicKey(PROGRAM_ID),
-    )[0];
-    const withdrawal = PublicKey.findProgramAddressSync(
-      seeds('withdrawal', (await user.data())!.withdrawalsCount + 1),
-      new PublicKey(PROGRAM_ID),
-    )[0];
-    const maxWithdrawalFeeDetails = PublicKey.findProgramAddressSync(
-      [Buffer.from('max_withdrawal_fee'), mint.toBytes()],
-      new PublicKey(PROGRAM_ID),
-    )[0];
+    const config = getPDA([Buffer.from('config')]);
+    const withdrawal = getPDA(
+      getSeeds('withdrawal', (await getCurrentUser())!.withdrawalsCount + 1)
+    );
+    const maxWithdrawalFeeDetails = getPDA([
+      Buffer.from('max_withdrawal_fee'),
+      mint.toBytes(),
+    ]);
     const signer = anchorWallet.value!.publicKey;
-    const hostTokenAccount = getATA(mint, signer, true);
+    const hostTokenAccount = getATA(mint, signer, false);
     const hostTAExists = await doesATAExists(hostTokenAccount);
-    const globalTokenAccount = getATA(mint, globalStats, true);
+    const chainTokenAccount = getATA(mint, new PublicKey(chainStats), true);
+    const configData = await fetchEntity('config', config);
+    const feeCollector = configData.chainbillsFeeCollector;
+    const feesTokenAccount = getATA(mint, feeCollector, false);
 
     const call = program()
       .methods.withdraw(new BN(amount))
       .accounts({
-        config,
         withdrawal,
         payable: new PublicKey(payableId),
-        host: user.pubkey()!,
-        globalStats,
+        host: getCurrentUserPDA(),
         chainStats,
-        maxWithdrawalFeeDetails,
+        config,
         mint,
+        maxWithdrawalFeeDetails,
         hostTokenAccount,
-        globalTokenAccount,
+        chainTokenAccount,
+        feeCollector,
+        feesTokenAccount,
         signer,
         tokenProgram,
         systemProgram,
@@ -280,11 +303,24 @@ export const useSolanaStore = defineStore('solana', () => {
     }
 
     return new OnChainSuccess({
-      created: withdrawal.toBase58(),
+      created: withdrawal,
       txHash: await call.rpc(),
       chain: 'Solana',
     });
   };
 
-  return { balance, initializePayable, pay, program, sign, withdraw };
+  return {
+    balance,
+    createPayable,
+    fetchEntity,
+    getCurrentUser,
+    getPayablePaymentId,
+    getUserPayableId,
+    getUserPaymentId,
+    getUserWithdrawalId,
+    pay,
+    program,
+    sign,
+    withdraw,
+  };
 });

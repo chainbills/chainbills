@@ -40,14 +40,14 @@ app.use(
   createWeb3Auth({
     projectId: import.meta.env.VITE_WC_PROJECT_ID,
     chains: [Chains.sepolia],
-  }),
+  })
 );
 
 if (!import.meta.env.DEV) {
   app.use(
     VueGtag,
     { config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID } },
-    router,
+    router
   );
 }
 

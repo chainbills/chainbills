@@ -9,6 +9,12 @@ export const WH_CHAIN_ID_ETH_SEPOLIA = toChainId('Sepolia');
 export const chains: Chain[] = ['Solana', 'Ethereum Sepolia'];
 export type Chain = 'Solana' | 'Ethereum Sepolia';
 
+export const getChain = (id: number): Chain => {
+  if (id == WH_CHAIN_ID_SOLANA) return 'Solana';
+  if (id == WH_CHAIN_ID_ETH_SEPOLIA) return 'Ethereum Sepolia';
+  throw `Unknown chainId: ${id}`;
+};
+
 export const useChainStore = defineStore('chain', () => {
   const current = ref<Chain | null>(null);
   const currentId = computed(() => {

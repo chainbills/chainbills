@@ -1,55 +1,39 @@
-import { Payment } from '@/schemas/payment';
-import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
-import { BN } from '@project-serum/anchor';
+import {
+  Payable,
+  PayablePayment,
+  TokenAndAmount,
+  UserPayment,
+  type Payment,
+} from '@/schemas';
+import {
+  useChainStore,
+  useEvmStore,
+  usePayableStore,
+  useServerStore,
+  useSolanaStore,
+  useUserStore,
+  useWalletStore,
+  type Chain,
+} from '@/stores';
 import { PublicKey } from '@solana/web3.js';
+import { encoding } from '@wormhole-foundation/sdk';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { useChainStore } from './chain';
-import { useEvmStore } from './evm';
-import { useServerStore } from './server';
-import { PROGRAM_ID, useSolanaStore } from './solana';
-import { useUserStore } from './user';
-import { useWalletStore } from './wallet';
 
 export const usePaymentStore = defineStore('payment', () => {
   const chain = useChainStore();
   const evm = useEvmStore();
+  const payableStore = usePayableStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
   const user = useUserStore();
   const wallet = useWalletStore();
 
-  const get = async (id: string): Promise<Payment | null> => {
-    try {
-      const data = (await solana
-        .program()
-        .account.payment.fetch(new PublicKey(id))) as any;
-      const { chain, ownerWallet } = await user.get(data.payer);
-      return new Payment(id, chain, ownerWallet, data);
-    } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
-      return null;
-    }
-  };
-
-  const pubkey = (count: number): PublicKey | null => {
-    if (!wallet.whAddress) return null;
-    return PublicKey.findProgramAddressSync(
-      [
-        wallet.whAddress,
-        Buffer.from('payment'),
-        new BN(count).toArrayLike(Buffer, 'le', 8),
-      ],
-      new PublicKey(PROGRAM_ID),
-    )[0];
-  };
-
-  const pay = async (
+  const exec = async (
     email: string,
     payableId: string,
-    details: TokenAndAmount,
+    details: TokenAndAmount
   ): Promise<string | null> => {
     if (!wallet.connected || !chain.current) return null;
 
@@ -57,11 +41,24 @@ export const usePaymentStore = defineStore('payment', () => {
       const method = chain.current == 'Solana' ? solana.pay : evm.pay;
       const result = await method(payableId, details);
       if (!result) return null;
+      await user.refresh();
 
-      console.log(
-        `Made Payment Transaction Details: ${result.explorerUrl()}`,
-      );
-      await server.paid(result.created, email);
+      console.log(`Made Payment Transaction Details: ${result.explorerUrl()}`);
+      await server.userPaid(result.created, email);
+
+      // TODO: Move this payablePaid call to the relayer or a different process
+      const payable = await payableStore.get(payableId);
+      if (payable) {
+        const payablePaymentId = await payableStore.getPaymentId(
+          payableId,
+          payable.chain,
+          payable.paymentsCount
+        );
+        if (payablePaymentId) {
+          await server.payablePaid(payablePaymentId);
+        }
+      }
+
       toast.add({
         severity: 'success',
         summary: 'Successfully Paid',
@@ -76,25 +73,126 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const mines = async (): Promise<Payment[] | null> => {
-    if (!wallet.connected) return null;
-    if (!(await user.isInitialized())) return [];
+  const get = async (id: string, chain?: Chain): Promise<Payment | null> => {
+    // A simple trick to guess the chain based on the ID's format
+    // (if not provided)
+    if (!chain) {
+      chain = 'Solana';
+      try {
+        new PublicKey(id);
+      } catch (_) {
+        if (encoding.hex.valid(id)) chain = 'Ethereum Sepolia';
+        // If it's not a valid Solana public key or Ethereum Sepolia address,
+        // then it's not a valid ID.
+        else return null;
+      }
+    }
+
+    let payment: Payment | null = null;
+
+    // First try to fetch the payment as if it was a user payment.
+    try {
+      const raw =
+        chain == 'Solana'
+          ? await solana.fetchEntity('userPayment', id)
+          : await evm.readContract('userPayments', [id]);
+      if (raw) payment = new UserPayment(id, chain, raw);
+    } catch (_) {}
+
+    // If the payment is not a user payment, try to fetch it as a payable payment.
+    if (!payment) {
+      try {
+        const raw =
+          chain == 'Solana'
+            ? await solana.fetchEntity('payablePayment', id)
+            : await evm.readContract('payablePayments', [id]);
+        if (raw) payment = new PayablePayment(id, chain, raw);
+      } catch (_) {}
+    }
+
+    return payment;
+  };
+
+  const getForPayable = async (
+    id: string,
+    chain: Chain
+  ): Promise<PayablePayment | null> => {
+    try {
+      const raw =
+        chain == 'Solana'
+          ? await solana.fetchEntity('payablePayment', id)
+          : await evm.readContract('payablePayments', [id]);
+      if (raw) return new PayablePayment(id, chain, raw);
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+    }
+    return null;
+  };
+
+  const getForUser = async (
+    id: string,
+    chain: Chain
+  ): Promise<UserPayment | null> => {
+    try {
+      const raw =
+        chain == 'Solana'
+          ? await solana.fetchEntity('userPayment', id)
+          : await evm.readContract('userPayments', [id]);
+      if (raw) return new UserPayment(id, chain, raw);
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+    }
+    return null;
+  };
+
+  const getManyForPayable = async (
+    payable: Payable
+  ): Promise<PayablePayment[] | null> => {
+    const { paymentsCount: count, chain } = payable;
+    if (count === 0) return [];
 
     try {
-      const { paymentsCount: count } = (await user.data())!;
-      if (count == 0) return [];
-
-      const payments: Payment[] = [];
+      const payments: PayablePayment[] = [];
       // TODO: Implement pagination instead of this set maximum of 25
-      for (let i = Math.min(count, 25); i >= 1; i--) {
-        const _pubkey = pubkey(i)!;
-        const data = (await solana
-          .program()
-          .account.payment.fetch(_pubkey)) as any;
-        const { chain, ownerWallet } = await user.get(data.payer);
-        payments.push(
-          new Payment(_pubkey.toBase58(), chain, ownerWallet, data),
-        );
+      let fetched = 0;
+      for (let i = count; i >= 1; i--) {
+        if (fetched >= 25) break;
+        const id = await payableStore.getPaymentId(payable.id, chain, i);
+        if (id) {
+          const payment = await getForPayable(id, chain);
+          if (payment) payments.push(payment);
+          else return null;
+        } else return null;
+        fetched++;
+      }
+      return payments;
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+      return null;
+    }
+  };
+
+  const mines = async (): Promise<UserPayment[] | null> => {
+    if (!user.current) return null;
+    const { paymentsCount: count } = user.current;
+    if (count === 0) return [];
+
+    try {
+      const payments: UserPayment[] = [];
+      // TODO: Implement pagination instead of this set maximum of 25
+      let fetched = 0;
+      for (let i = count; i >= 1; i--) {
+        if (fetched >= 25) break;
+        const id = await user.getPaymentId(i);
+        if (id) {
+          const payment = await getForUser(id, user.current.chain);
+          if (payment) payments.push(payment);
+          else return null;
+        } else return null;
+        fetched++;
       }
       return payments;
     } catch (e) {
@@ -107,5 +205,5 @@ export const usePaymentStore = defineStore('payment', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { get, mines, pay, pubkey };
+  return { exec, get, getForPayable, getForUser, getManyForPayable, mines };
 });

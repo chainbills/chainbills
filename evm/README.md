@@ -2,7 +2,7 @@
 
 Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive any amount of cryptocurrency from everybody (payers), powered by WormHole. ChainBills deducts 2% from all withdrawals for fees and maintenance.
 
-This EVM Environment was generated with Foundry
+This EVM Environment was generated with Foundry.
 
 ## About Foundry
 
@@ -54,7 +54,7 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script --chain sepolia script/DeployChainbills.s.sol:DeployChainbills --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv
 ```
 
 ### Cast

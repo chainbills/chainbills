@@ -2,400 +2,411 @@
 pragma solidity ^0.8.20;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import 'wormhole/Chains.sol';
-import 'wormhole/libraries/BytesParsing.sol';
 import 'wormhole/Utils.sol';
 
 import './CbGovernance.sol';
-import './CbPayloadMessages.sol';
+import './CbPayload.sol';
 
-/// @title A Cross-Chain Payment Gateway.
-/// @notice This contract uses Wormhole's generic-messaging to send
-/// PayloadMessages (for actions) and paid tokens to the Chainbills Solana
-/// program.
-// Initializable,
-contract Chainbills is
-  CbGovernance,
-  CbPayloadMessages,
-  ReentrancyGuard
-  // ReentrancyGuardUpgradeable
-{
-  using BytesParsing for bytes;
-
-  /// Sets up this smart contract when it is deployed.
-  /// @dev Sets the owner, wormhole, tokenBridge, chainId, and
-  /// wormholeFinality variables.
-  /// See ChainbillState.sol for descriptions of each state variable.
-  constructor(
-    address wormhole_,
-    address tokenBridge_,
-    uint16 chainId_,
-    uint8 wormholeFinality_
-  ) {
-    if (wormhole_ == address(0)) revert InvalidWormholeAddress();
-    else if (tokenBridge_ == address(0)) revert InvalidTokenBridgeAddress();
-    else if (chainId_ == 0) revert InvalidWormholeChainId();
-    else if (wormholeFinality_ == 0) revert InvalidWormholeFinality();
-
-    setWormhole(wormhole_);
-    setTokenBridge(tokenBridge_);
-    setChainId(chainId_);
-    setWormholeFinality(wormholeFinality_);
-  }
-
-  /// Initialize a Payable.
-  ///
-  /// @param description Displayed to payers when paying to and on receipts of
-  /// a payable.
-  /// @param allowsFreePayments Whether a payable allows payments of any amount
-  /// of any token.
-  /// @param tokensAndAmounts The accepted tokens (and their amounts) on a
-  /// payable.
-  /// @return messageSequence Wormhole message sequence for the Wormhole token
-  /// bridge contract. This sequence is incremented (per message) for each
-  /// message emitter.
-  function initializePayable(
-    string calldata description,
-    bool allowsFreePayments,
-    CbTokenAndAmount[] calldata tokensAndAmounts
-  ) public payable returns (uint64 messageSequence) {
-    bytes memory descBytes = bytes(description);
-    if (descBytes.length == 0) revert EmptyDescriptionProvided();
-    else if (descBytes.length > MAX_PAYABLES_DESCRIPTION_LENGTH) {
-      revert MaxPayableDescriptionReached();
-    } else if (tokensAndAmounts.length > MAX_PAYABLES_TOKENS) {
-      revert MaxPayableTokensCapacityReached();
-    } else if (
-      (allowsFreePayments && tokensAndAmounts.length > 0) ||
-      (!allowsFreePayments && tokensAndAmounts.length == 0)
-    ) {
-      revert ImproperPayablesConfiguration();
-    } else {
-      for (uint16 i = 0; i < tokensAndAmounts.length; i++) {
-        address token = fromWormholeFormat(tokensAndAmounts[i].token);
-        if (token == address(0)) revert InvalidTokenAddress();
-
-        uint8 decimals = getDecimals(token);
-        uint256 amount = tokensAndAmounts[i].amount;
-        uint256 denormalized = denormalizeAmount(amount, decimals);
-        if (amount == 0 || denormalized == 0) revert ZeroAmountSpecified();
-      }
-    }
-
-    messageSequence = sendPayloadMessage(
-      CbPayloadMessage({
-        actionId: ACTION_ID_INITIALIZE_PAYABLE,
-        caller: toWormholeFormat(msg.sender),
-        payableId: toWormholeFormat(address(0)),
-        token: toWormholeFormat(address(0)),
-        amount: 0,
-        allowsFreePayments: allowsFreePayments,
-        tokensAndAmounts: tokensAndAmounts,
-        description: description
-      })
-    );
-  }
-
-  /// Stop a payable from accepting payments.
-  /// @dev Should be called only by the host (user) that owns the payable.
-  /// otherwise the Solana will reject the update.
-  ///
-  /// @param payableId The payable's Wormhole-normalized address to be closed.
-  /// @return messageSequence Wormhole message sequence for the Wormhole token
-  /// bridge contract. This sequence is incremented (per message) for each
-  /// message emitter.
-  function closePayable(
-    bytes32 payableId
-  ) public payable returns (uint64 messageSequence) {
-    messageSequence = sendPayloadMessage(
-      CbPayloadMessage({
-        actionId: ACTION_ID_CLOSE_PAYABLE,
-        caller: toWormholeFormat(msg.sender),
-        payableId: payableId,
-        token: toWormholeFormat(address(0)),
-        amount: 0,
-        allowsFreePayments: false,
-        tokensAndAmounts: new CbTokenAndAmount[](0),
-        description: ''
-      })
-    );
-  }
-
-  /// Allow a closed payable to continue accepting payments.
-  /// @dev Should be called only by the host (user) that owns the payable.
-  /// otherwise the Solana will reject the update.
-  ///
-  /// @param payableId The payable's Wormhole-normalized address to re-open
-  /// @return messageSequence Wormhole message sequence for the Wormhole token
-  /// bridge contract. This sequence is incremented (per message) for each
-  /// message emitter.
-  function reopenPayable(
-    bytes32 payableId
-  ) public payable returns (uint64 messageSequence) {
-    messageSequence = sendPayloadMessage(
-      CbPayloadMessage({
-        actionId: ACTION_ID_REOPEN_PAYABLE,
-        caller: toWormholeFormat(msg.sender),
-        payableId: payableId,
-        token: toWormholeFormat(address(0)),
-        amount: 0,
-        allowsFreePayments: false,
-        tokensAndAmounts: new CbTokenAndAmount[](0),
-        description: ''
-      })
-    );
-  }
-
-  /// Allows a payable's host to update the payable's description.
-  ///
-  /// @param payableId The payable's Wormhole-normalized address to re-open
-  /// @param description The new description to update with
-  /// @return messageSequence Wormhole message sequence for the Wormhole token
-  /// bridge contract. This sequence is incremented (per message) for each
-  /// message emitter.
-  function updatePayableDescription(
-    bytes32 payableId,
-    string calldata description
-  ) public payable returns (uint64 messageSequence) {
-    bytes memory descBytes = bytes(description);
-    if (descBytes.length == 0) revert EmptyDescriptionProvided();
-    else if (descBytes.length > MAX_PAYABLES_DESCRIPTION_LENGTH) {
-      revert MaxPayableDescriptionReached();
-    }
-    messageSequence = sendPayloadMessage(
-      CbPayloadMessage({
-        actionId: ACTION_ID_UPDATE_PAYABLE_DESCRIPTION,
-        caller: toWormholeFormat(msg.sender),
-        payableId: payableId,
-        description: description,
-        token: toWormholeFormat(address(0)),
-        amount: 0,
-        allowsFreePayments: false,
-        tokensAndAmounts: new CbTokenAndAmount[](0)
-      })
-    );
-  }
-
-  /// Transfers the amount of tokens from a payer to a payable.
-  ///
-  /// @param payableId The payable's Wormhole-normalized address to pay into.
-  /// @param token The Wormhole-normalized address of the token been paid.
-  /// Provide the address of this token as bridged on Solana.
-  /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
-  /// token.
-  /// @return messageSequence Wormhole message sequence for the Wormhole token
-  /// bridge contract. This sequence is incremented (per message) for each
-  /// message emitter.
-  function pay(
-    bytes32 payableId,
-    bytes32 token,
-    uint256 amount
-  ) public payable nonReentrant returns (uint64 messageSequence) {
-    // Perform necessary checks
-    uint16 targetChain = CHAIN_ID_SOLANA;
-    address localToken = tokenBridge().wrappedAsset(targetChain, token);
-    if (localToken == address(0)) revert TokenNotAttested();
-
-    uint8 decimals = getDecimals(localToken);
-    uint256 denormalized = denormalizeAmount(amount, decimals);
-    if (amount == 0 || denormalized == 0) revert ZeroAmountSpecified();
-
-    bytes32 targetContract = getRegisteredEmitter(targetChain);
-    if (targetContract == bytes32(0)) revert EmitterNotRegistered();
-
-    uint256 wormholeFee = wormhole().messageFee();
-    if (msg.value < (wormholeFee + getRelayerFee())) {
-      revert InsufficientFeesValue();
-    }
-
-    // transfer tokens from user to the this contract and
-    // approve the token bridge to spend the specified tokens
-    uint256 amountReceived = custodyTokens(localToken, denormalized);
-    ITokenBridge bridge = tokenBridge();
-    SafeERC20.safeIncreaseAllowance(
-      IERC20(localToken),
-      address(bridge),
-      amountReceived
-    );
-
-    // Call `transferTokensWithPayload`method on the token bridge and pay
-    // the Wormhole network fee. The token bridge will emit a Wormhole
-    // message with an encoded `TransferWithPayload` struct
-    messageSequence = bridge.transferTokensWithPayload{value: wormholeFee}(
-      localToken,
-      amountReceived,
-      targetChain,
-      targetContract,
-      0, // batchId. 0 for no batching.
-      encodePayloadMessage(
-        CbPayloadMessage({
-          actionId: ACTION_ID_PAY,
-          caller: toWormholeFormat(msg.sender),
-          payableId: payableId,
-          token: token,
-          amount: amount,
-          allowsFreePayments: false,
-          tokensAndAmounts: new CbTokenAndAmount[](0),
-          description: ''
-        })
-      )
-    );
-  }
-
-  /// Transfers the amount of tokens from a payable to a host.
-  /// @dev Should be called only by the host (user) that owns the payable.
-  /// otherwise the Solana will reject the payload message. Also, the
-  /// details should have positive balances in the payable.
-  ///
-  /// @param payableId The payable's Wormhole-normalized address to withdraw
-  /// from.
-  /// @param token The Wormhole-normalized address of the token been paid.
-  /// Provide the address of this token as bridged on Solana.
-  /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
-  /// token.
-  /// @return messageSequence Wormhole message sequence for the Wormhole token
-  /// bridge contract. This sequence is incremented (per message) for each
-  /// message emitter.
-  function withdraw(
-    bytes32 payableId,
-    bytes32 token,
-    uint256 amount
-  ) public payable returns (uint64 messageSequence) {
-    messageSequence = sendPayloadMessage(
-      CbPayloadMessage({
-        actionId: ACTION_ID_WITHDRAW,
-        caller: toWormholeFormat(msg.sender),
-        payableId: payableId,
-        token: token,
-        amount: amount,
-        allowsFreePayments: false,
-        tokensAndAmounts: new CbTokenAndAmount[](0),
-        description: ''
-      })
-    );
-  }
-
-  /// Completes the withdrawal from Solana that was initiated by the {withdraw}
-  /// function.
-  /// @dev The token bridge contract calls the Wormhole core endpoint to verify
-  /// the `TransferWithPayload` message. The token bridge contract saves the
-  /// message hash in storage to prevent `TransferWithPayload` messages from
-  /// being replayed.
-  /// @param encoded Encoded `TransferWithPayload` message
-  function completeWithdrawal(bytes memory encoded) public {
-    // Parse the encoded Wormhole message
-    // SECURITY: Just parseVM is called instead of parseAndVerifyVM since
-    // consequent calls to the TokenBridge will verify the encoded message.
-    IWormhole.VM memory parsed = wormhole().parseVM(encoded);
-
-    // Obtain the previously saved token address for this transfer
-    uint256 _payloadIndex = 33;
-    bytes32 sourceAddress;
-    uint16 sourceChain;
-    (sourceAddress, _payloadIndex) = parsed.payload.asBytes32(_payloadIndex);
-    (sourceChain, _payloadIndex) = parsed.payload.asUint16(_payloadIndex);
-    address token = tokenBridge().wrappedAsset(sourceChain, sourceAddress);
-    if (token == address(0)) revert TokenNotAttested();
-
-    // check balance before completing the transfer
-    uint256 balanceBefore = getBalance(token);
-
-    ITokenBridge bridge = tokenBridge();
-    // Call `completeTransferWithPayload` on the token bridge. This
-    // method acts as a reentrancy protection since it does not allow
-    // transfers to be redeemed more than once.
-    bytes memory transferPayload = bridge.completeTransferWithPayload(encoded);
-
-    // compute and save the balance difference after completing the transfer
-    uint256 amountTransferred = getBalance(token) - balanceBefore;
-
-    // parse the wormhole message payload into the `TransferWithPayload` struct
-    ITokenBridge.TransferWithPayload memory transfer = bridge
-      .parseTransferWithPayload(transferPayload);
-
-    // confirm that the message sender is a registered Chainbills contract
-    if (transfer.fromAddress != getRegisteredEmitter(parsed.emitterChainId)) {
-      revert EmitterNotRegistered();
-    }
-
-    // parse the CbPayloadMessage from the `TransferWithPayload` struct and
-    // complete transfer back to original caller.
-    CbPayloadMessage memory payload = decodePayloadMessage(transfer.payload);
-    address caller = fromWormholeFormat(payload.caller);
-    if (caller == address(0)) revert InvalidCallerAddress();
-    SafeERC20.safeTransfer(IERC20(token), caller, amountTransferred);
-  }
-
-  function sendPayloadMessage(
-    CbPayloadMessage memory payload
-  ) internal returns (uint64 messageSequence) {
-    // Ensure sufficient fee was provided.
-    IWormhole wh = wormhole();
-    uint256 wormholeFee = wh.messageFee();
-    if (msg.value < (wormholeFee + getRelayerFee())) {
-      revert InsufficientFeesValue();
-    }
-
-    messageSequence = wh.publishMessage(
-      0, // batchId. 0 for no batching.
-      encodePayloadMessage(payload),
-      wormholeFinality()
-    );
-  }
-
-  function custodyTokens(
-    address token,
-    uint256 amount
-  ) internal returns (uint256) {
-    // query own token balance before transfer
-    uint256 balanceBefore = getBalance(token);
-
-    // deposit tokens
-    SafeERC20.safeTransferFrom(
-      IERC20(token),
-      msg.sender,
-      address(this),
-      amount
-    );
-
-    // return the balance difference
-    return getBalance(token) - balanceBefore;
-  }
-
-  function getBalance(address token) internal view returns (uint256 balance) {
-    // fetch the specified token balance for this contract
-    (, bytes memory queriedBalance) = token.staticcall(
-      abi.encodeWithSelector(IERC20.balanceOf.selector, address(this))
-    );
-    balance = abi.decode(queriedBalance, (uint256));
-  }
-
-  function getDecimals(address token) internal view returns (uint8) {
-    (, bytes memory queriedDecimals) = token.staticcall(
-      abi.encodeWithSignature('decimals()')
-    );
-    return abi.decode(queriedDecimals, (uint8));
-  }
-
-  function denormalizeAmount(
-    uint256 amount,
-    uint8 decimals
-  ) internal pure returns (uint256) {
-    if (decimals > 8) amount *= 10 ** (decimals - 8);
-    return amount;
-  }
-
-  function normalizeAmount(
-    uint256 amount,
-    uint8 decimals
-  ) internal pure returns (uint256) {
-    if (decimals > 8) amount /= 10 ** (decimals - 8);
-    return amount;
-  }
+/// A Cross-Chain Payment Gateway.
+contract Chainbills is CbGovernance, CbPayload {
+  error InvalidFeeCollector();
+  error InvalidWormholeAddress();
+  error InvalidWormholeFinality();
+  error MaxPayableTokensCapacityReached();
+  error EmitterNotRegistered();
+  error NotYourPayable();
+  error PayableIsAlreadyClosed();
+  error PayableIsNotClosed();
+  error PayableIsClosed();
+  error MatchingTokenAndAmountNotFound();
+  error InsufficientPaymentValue();
+  error IncorrectPaymentValue();
+  error UnsuccessfulPayment();
+  error InsufficientWithdrawAmount();
+  error NoBalanceForWithdrawalToken();
+  error UnsuccessfulWithdrawal();
 
   fallback() external payable {}
 
   receive() external payable {}
+
+  /// Sets up this smart contract when it is deployed. Sets the feeCollector,
+  /// wormhole, chainId, and wormholeFinality variables.
+  constructor(
+    address feeCollector_,
+    address wormhole_,
+    uint16 chainId_,
+    uint8 wormholeFinality_
+  ) {
+    if (feeCollector_ == address(0)) revert InvalidFeeCollector();
+    else if (wormhole_ == address(0)) revert InvalidWormholeAddress();
+    else if (chainId_ == 0) revert InvalidWormholeChainId();
+    else if (wormholeFinality_ == 0) revert InvalidWormholeFinality();
+
+    feeCollector = feeCollector_;
+    wormhole = wormhole_;
+    chainId = chainId_;
+    wormholeFinality = wormholeFinality_;
+    chainStats = ChainStats(0, 0, 0, 0);
+  }
+
+  /// Initializes a User if need be.
+  /// @param wallet The address of the user.
+  function initializeUserIfNeedBe(address wallet) internal {
+    // Check if the user has not yet been initialized, if yes, initialize.
+    if (users[wallet].chainCount == 0) {
+      chainStats.usersCount++;
+      users[wallet].chainCount = chainStats.usersCount;
+      emit InitializedUser(wallet, chainStats.usersCount);
+    }
+  }
+
+  /// Returns a hash that should be used for entity IDs.
+  function createId(
+    address wallet,
+    uint256 count
+  ) internal view returns (bytes32) {
+    return
+      keccak256(
+        abi.encodePacked(block.chainid, chainId, block.timestamp, wallet, count)
+      );
+  }
+
+  /// Create a Payable.
+  /// @param allowedTokensAndAmounts The accepted tokens (and their amounts) on
+  /// the payable. If empty, then the payable will accept payments in any token.
+  /// @return payableId The ID of the newly created payable.
+  function createPayable(
+    TokenAndAmount[] calldata allowedTokensAndAmounts
+  ) public returns (bytes32 payableId) {
+    /* CHECKS */
+    // Ensure that the number of specified acceptable tokens (and their amounts)
+    // for payments don't exceed the set maximum.
+    if (allowedTokensAndAmounts.length > MAX_PAYABLES_TOKENS) {
+      revert MaxPayableTokensCapacityReached();
+    }
+
+    for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
+      // Ensure tokens are valid and are supported. Basically if a token's max
+      // fees is not set, then it isn't supported
+      address token = allowedTokensAndAmounts[i].token;
+      if (token == address(0) || maxFeesPerToken[token] == 0) {
+        revert InvalidTokenAddress();
+      }
+      // Ensure that the specified amount is greater than zero.
+      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
+    }
+
+    /* STATE CHANGES */
+    // Increment the chain stats for payablesCount
+    chainStats.payablesCount++;
+
+    // Increment payablesCount on the host (address) creating this payable.
+    initializeUserIfNeedBe(msg.sender);
+    users[msg.sender].payablesCount++;
+
+    // Create the payable.
+    payableId = createId(msg.sender, users[msg.sender].payablesCount);
+    userPayableIds[msg.sender].push(payableId);
+    Payable storage _payable = payables[payableId];
+    _payable.chainCount = chainStats.payablesCount;
+    _payable.host = msg.sender;
+    _payable.hostCount = users[msg.sender].payablesCount;
+    _payable.allowedTokensAndAmounts = allowedTokensAndAmounts;
+    _payable.createdAt = block.timestamp;
+
+    // Emit Event.
+    emit CreatedPayable(
+      payableId,
+      msg.sender,
+      _payable.chainCount,
+      _payable.hostCount
+    );
+  }
+
+  /// Stop a payable from accepting payments. Should be called only by the host
+  /// (address) that owns the payable.
+  /// @param payableId The ID of the payable to close.
+  function closePayable(bytes32 payableId) public {
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+    if (_payable.isClosed) revert PayableIsAlreadyClosed();
+    _payable.isClosed = true;
+    emit ClosedPayable(payableId, msg.sender);
+  }
+
+  /// Allow a closed payable to continue accepting payments. Should be called
+  /// only by the host (address) that owns the payable.
+  /// @param payableId The ID of the payable to re-open.
+  function reopenPayable(bytes32 payableId) public {
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+    if (!_payable.isClosed) revert PayableIsNotClosed();
+    _payable.isClosed = false;
+    emit ReopenedPayable(payableId, msg.sender);
+  }
+
+  /// Allows a payable's host to update the payable's allowedTokensAndAmounts.
+  /// @param payableId The ID of the payable to update.
+  /// @param allowedTokensAndAmounts The new tokens and amounts array.
+  function updatePayableAllowedTokensAndAmounts(
+    bytes32 payableId,
+    TokenAndAmount[] calldata allowedTokensAndAmounts
+  ) public {
+    /* CHECKS */
+    // Ensure that the caller owns the payable.
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+
+    // Ensure that the number of specified acceptable tokens (and their amounts)
+    // for payments don't exceed the set maximum.
+    if (allowedTokensAndAmounts.length > MAX_PAYABLES_TOKENS) {
+      revert MaxPayableTokensCapacityReached();
+    }
+
+    for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
+      // Ensure tokens are valid and are supported. Basically if a token's max
+      // fees is not set, then it isn't supported
+      address token = allowedTokensAndAmounts[i].token;
+      if (token == address(0) || maxFeesPerToken[token] == 0) {
+        revert InvalidTokenAddress();
+      }
+      // Ensure that the specified amount is greater than zero.
+      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
+    }
+
+    /* STATE CHANGES */
+    // Update the payable's allowedTokensAndAmounts
+    _payable.allowedTokensAndAmounts = allowedTokensAndAmounts;
+
+    // Emit Event.
+    emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);
+  }
+
+  /// Transfers the amount of tokens from a payer to a payable.
+  /// @param payableId The ID of the payable to pay into.
+  /// @param token The Wormhole-normalized address of the token been paid.
+  /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
+  /// token.
+  function pay(
+    bytes32 payableId,
+    address token,
+    uint256 amount
+  ) public payable nonReentrant returns (bytes32 paymentId) {
+    /* CHECKS */
+    // Ensure that the token is valid and is supported. Basically if a token's
+    // max fees is not set, then it isn't supported.
+    if (token == address(0) || maxFeesPerToken[token] == 0) {
+      revert InvalidTokenAddress();
+    }
+
+    // Ensure that amount is greater than zero
+    if (amount == 0) revert ZeroAmountSpecified();
+
+    // Ensure that the payable is not closed
+    Payable storage _payable = payables[payableId];
+    if (_payable.isClosed) revert PayableIsClosed();
+
+    // Ensure that the payable can still accept new tokens, if this
+    // payable allows any token
+    uint8 aTAALength = uint8(_payable.allowedTokensAndAmounts.length);
+    if (aTAALength == 0 && _payable.balances.length >= MAX_PAYABLES_TOKENS) {
+      for (uint8 i = 0; i < _payable.allowedTokensAndAmounts.length; i++) {
+        if (_payable.allowedTokensAndAmounts[i].token == token) break;
+        if (i == aTAALength - 1) revert MaxPayableTokensCapacityReached();
+      }
+    }
+
+    // Ensure that the specified token to be transferred is an allowed token
+    // for this payable, if this payable doesn't allow any token outside those
+    // it specified
+    if (aTAALength > 0) {
+      for (uint8 i = 0; i < aTAALength; i++) {
+        if (
+          _payable.allowedTokensAndAmounts[i].token == token &&
+          _payable.allowedTokensAndAmounts[i].amount == amount
+        ) break;
+        if (i == aTAALength - 1) revert MatchingTokenAndAmountNotFound();
+      }
+    }
+
+    /* TRANSFER */
+    if (token == address(this)) {
+      if (msg.value < amount) revert InsufficientPaymentValue();
+      if (msg.value > amount) revert IncorrectPaymentValue();
+    } else {
+      if (!IERC20(token).transferFrom(msg.sender, address(this), amount)) {
+        revert UnsuccessfulPayment();
+      }
+    }
+
+    /* STATE CHANGES */
+    // Increment the chainStats for paymentsCount.
+    chainStats.paymentsCount++;
+
+    // Increment paymentsCount in the payer that just paid.
+    initializeUserIfNeedBe(msg.sender);
+    users[msg.sender].paymentsCount++;
+
+    // Increment global and local-chain paymentsCount on involved payable.
+    _payable.paymentsCount++;
+    payableChainPaymentsCount[payableId][chainId]++;
+
+    // Update payable's balances to add this token and its amount.
+    uint8 balLength = uint8(_payable.balances.length);
+    for (uint8 i = 0; i < balLength; i++) {
+      if (_payable.balances[i].token == token) {
+        _payable.balances[i].amount += amount;
+        break;
+      }
+      if (i == balLength - 1) {
+        _payable.balances.push(TokenAndAmount(token, amount));
+      }
+    }
+
+    // Record payment details of payable.
+    paymentId = createId(msg.sender, users[msg.sender].paymentsCount);
+    payablePaymentIds[payableId].push(paymentId);
+    payableChainPaymentIds[payableId][chainId].push(paymentId);
+    payablePayments[paymentId] = PayablePayment({
+      payableId: payableId,
+      payer: toWormholeFormat(msg.sender),
+      payerChainId: chainId,
+      localChainCount: payableChainPaymentsCount[payableId][chainId],
+      payableCount: _payable.paymentsCount,
+      payerCount: users[msg.sender].paymentsCount,
+      timestamp: block.timestamp,
+      details: TokenAndAmount(token, amount)
+    });
+
+    // Record payment details of user.
+    userPaymentIds[msg.sender].push(paymentId);
+    userPayments[paymentId] = UserPayment({
+      payableId: payableId,
+      payer: msg.sender,
+      payableChainId: chainId,
+      chainCount: chainStats.paymentsCount,
+      payerCount: users[msg.sender].paymentsCount,
+      payableCount: _payable.paymentsCount,
+      timestamp: block.timestamp,
+      details: TokenAndAmount(token, amount)
+    });
+
+    // Emit Events.
+    emit PayablePaid(
+      payableId,
+      toWormholeFormat(msg.sender),
+      paymentId,
+      chainId,
+      payableChainPaymentsCount[payableId][chainId],
+      _payable.paymentsCount
+    );
+    emit UserPaid(
+      payableId,
+      msg.sender,
+      paymentId,
+      chainId,
+      chainStats.paymentsCount,
+      users[msg.sender].paymentsCount
+    );
+  }
+
+  /// Transfers the amount of tokens from a payable to the owner host.
+  /// @param payableId The ID of the Payable to withdraw from.
+  /// @param token The Wormhole-normalized address of the token been withdrawn.
+  /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
+  /// token.
+  function withdraw(
+    bytes32 payableId,
+    address token,
+    uint256 amount
+  ) public payable nonReentrant returns (bytes32 withdrawalId) {
+    /* CHECKS */
+    // Ensure that the caller owns the payable.
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+
+    // Ensure that the amount to be withdrawn is not zero.
+    if (amount == 0) revert ZeroAmountSpecified();
+
+    // - Ensure that this payable has enough of the provided amount in its balance.
+    // - Ensure that the specified token for withdrawal exists in the
+    //   payable's balances.
+    uint8 balLength = uint8(_payable.balances.length);
+    for (uint8 i = 0; i < balLength; i++) {
+      if (_payable.balances[i].token == token) {
+        if (_payable.balances[i].amount < amount) {
+          revert InsufficientWithdrawAmount();
+        } else {
+          break;
+        }
+      }
+      if (i == balLength - 1) revert NoBalanceForWithdrawalToken();
+    }
+
+    /* TRANSFER */
+    // Prepare withdraw amounts and fees
+    uint256 twoPercent = (amount * 2) / 100;
+    uint256 maxFee = maxFeesPerToken[token];
+    uint256 fee = twoPercent > maxFee ? maxFee : twoPercent;
+    uint256 amtDue = amount - fee;
+
+    // Transfer the amount minus fees to the owner.
+    bool isSuccess = false;
+    if (token == address(this)) {
+      (isSuccess, ) = payable(msg.sender).call{value: amtDue}('');
+    } else {
+      isSuccess = IERC20(token).transfer(msg.sender, amtDue);
+    }
+    if (!isSuccess) revert UnsuccessfulWithdrawal();
+
+    // Transfer the fees to the fees collector.
+    if (token == address(this)) {
+      (payable(feeCollector).call{value: fee}(''));
+    } else {
+      IERC20(token).transfer(feeCollector, fee);
+    }
+
+    /* STATE CHANGES */
+    // Increment the chainStats for withdrawalsCount.
+    chainStats.withdrawalsCount++;
+
+    // Increment withdrawalsCount in the host that just withdrew.
+    users[msg.sender].withdrawalsCount++;
+
+    // Increment withdrawalsCount on involved payable.
+    _payable.withdrawalsCount++;
+
+    // Deduct the balances on the involved payable.
+    for (uint8 i = 0; i < balLength; i++) {
+      if (_payable.balances[i].token == token) {
+        _payable.balances[i].amount -= amount;
+        break;
+      }
+    }
+
+    // Initialize the withdrawal.
+    withdrawalId = createId(msg.sender, users[msg.sender].withdrawalsCount);
+    userWithdrawalIds[msg.sender].push(withdrawalId);
+    payableWithdrawalIds[payableId].push(withdrawalId);
+    withdrawals[withdrawalId] = Withdrawal({
+      payableId: payableId,
+      host: msg.sender,
+      chainCount: chainStats.withdrawalsCount,
+      hostCount: users[msg.sender].withdrawalsCount,
+      payableCount: _payable.withdrawalsCount,
+      timestamp: block.timestamp,
+      details: TokenAndAmount(token, amount)
+    });
+
+    // Emit Event.
+    emit Withdrew(
+      payableId,
+      msg.sender,
+      withdrawalId,
+      chainStats.withdrawalsCount,
+      _payable.withdrawalsCount,
+      users[msg.sender].withdrawalsCount
+    );
+  }
 }

@@ -108,11 +108,14 @@ contract Chainbills is CbGovernance, CbPayload {
     // Create the payable.
     payableId = createId(msg.sender, users[msg.sender].payablesCount);
     userPayableIds[msg.sender].push(payableId);
+    payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
     Payable storage _payable = payables[payableId];
     _payable.chainCount = chainStats.payablesCount;
     _payable.host = msg.sender;
     _payable.hostCount = users[msg.sender].payablesCount;
-    _payable.allowedTokensAndAmounts = allowedTokensAndAmounts;
+    _payable.allowedTokensAndAmountsCount = uint8(
+      allowedTokensAndAmounts.length
+    );
     _payable.createdAt = block.timestamp;
 
     // Emit Event.
@@ -177,7 +180,10 @@ contract Chainbills is CbGovernance, CbPayload {
 
     /* STATE CHANGES */
     // Update the payable's allowedTokensAndAmounts
-    _payable.allowedTokensAndAmounts = allowedTokensAndAmounts;
+    payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
+    _payable.allowedTokensAndAmountsCount = uint8(
+      allowedTokensAndAmounts.length
+    );
 
     // Emit Event.
     emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);
@@ -209,10 +215,10 @@ contract Chainbills is CbGovernance, CbPayload {
 
     // Ensure that the payable can still accept new tokens, if this
     // payable allows any token
-    uint8 aTAALength = uint8(_payable.allowedTokensAndAmounts.length);
-    if (aTAALength == 0 && _payable.balances.length >= MAX_PAYABLES_TOKENS) {
-      for (uint8 i = 0; i < _payable.allowedTokensAndAmounts.length; i++) {
-        if (_payable.allowedTokensAndAmounts[i].token == token) break;
+    uint8 aTAALength = _payable.allowedTokensAndAmountsCount;
+    if (aTAALength == 0 && _payable.balancesCount >= MAX_PAYABLES_TOKENS) {
+      for (uint8 i = 0; i < aTAALength; i++) {
+        if (payableAllowedTokensAndAmounts[payableId][i].token == token) break;
         if (i == aTAALength - 1) revert MaxPayableTokensCapacityReached();
       }
     }
@@ -223,8 +229,8 @@ contract Chainbills is CbGovernance, CbPayload {
     if (aTAALength > 0) {
       for (uint8 i = 0; i < aTAALength; i++) {
         if (
-          _payable.allowedTokensAndAmounts[i].token == token &&
-          _payable.allowedTokensAndAmounts[i].amount == amount
+          payableAllowedTokensAndAmounts[payableId][i].token == token &&
+          payableAllowedTokensAndAmounts[payableId][i].amount == amount
         ) break;
         if (i == aTAALength - 1) revert MatchingTokenAndAmountNotFound();
       }
@@ -253,14 +259,14 @@ contract Chainbills is CbGovernance, CbPayload {
     payableChainPaymentsCount[payableId][chainId]++;
 
     // Update payable's balances to add this token and its amount.
-    uint8 balLength = uint8(_payable.balances.length);
-    for (uint8 i = 0; i < balLength; i++) {
-      if (_payable.balances[i].token == token) {
-        _payable.balances[i].amount += amount;
+    for (uint8 i = 0; i < _payable.balancesCount; i++) {
+      if (payableBalances[payableId][i].token == token) {
+        payableBalances[payableId][i].amount += amount;
         break;
       }
-      if (i == balLength - 1) {
-        _payable.balances.push(TokenAndAmount(token, amount));
+      if (i == _payable.balancesCount - 1) {
+        payableBalances[payableId].push(TokenAndAmount(token, amount));
+        _payable.balancesCount++;
       }
     }
 
@@ -268,6 +274,7 @@ contract Chainbills is CbGovernance, CbPayload {
     paymentId = createId(msg.sender, users[msg.sender].paymentsCount);
     payablePaymentIds[payableId].push(paymentId);
     payableChainPaymentIds[payableId][chainId].push(paymentId);
+    payablePaymentDetails[paymentId] = TokenAndAmount(token, amount);
     payablePayments[paymentId] = PayablePayment({
       payableId: payableId,
       payer: toWormholeFormat(msg.sender),
@@ -275,12 +282,12 @@ contract Chainbills is CbGovernance, CbPayload {
       localChainCount: payableChainPaymentsCount[payableId][chainId],
       payableCount: _payable.paymentsCount,
       payerCount: users[msg.sender].paymentsCount,
-      timestamp: block.timestamp,
-      details: TokenAndAmount(token, amount)
+      timestamp: block.timestamp
     });
 
     // Record payment details of user.
     userPaymentIds[msg.sender].push(paymentId);
+    userPaymentDetails[paymentId] = TokenAndAmount(token, amount);
     userPayments[paymentId] = UserPayment({
       payableId: payableId,
       payer: msg.sender,
@@ -288,8 +295,7 @@ contract Chainbills is CbGovernance, CbPayload {
       chainCount: chainStats.paymentsCount,
       payerCount: users[msg.sender].paymentsCount,
       payableCount: _payable.paymentsCount,
-      timestamp: block.timestamp,
-      details: TokenAndAmount(token, amount)
+      timestamp: block.timestamp
     });
 
     // Emit Events.
@@ -332,16 +338,17 @@ contract Chainbills is CbGovernance, CbPayload {
     // - Ensure that this payable has enough of the provided amount in its balance.
     // - Ensure that the specified token for withdrawal exists in the
     //   payable's balances.
-    uint8 balLength = uint8(_payable.balances.length);
-    for (uint8 i = 0; i < balLength; i++) {
-      if (_payable.balances[i].token == token) {
-        if (_payable.balances[i].amount < amount) {
+    for (uint8 i = 0; i < _payable.balancesCount; i++) {
+      if (payableBalances[payableId][i].token == token) {
+        if (payableBalances[payableId][i].amount < amount) {
           revert InsufficientWithdrawAmount();
         } else {
           break;
         }
       }
-      if (i == balLength - 1) revert NoBalanceForWithdrawalToken();
+      if (i == _payable.balancesCount - 1) {
+        revert NoBalanceForWithdrawalToken();
+      }
     }
 
     /* TRANSFER */
@@ -378,9 +385,9 @@ contract Chainbills is CbGovernance, CbPayload {
     _payable.withdrawalsCount++;
 
     // Deduct the balances on the involved payable.
-    for (uint8 i = 0; i < balLength; i++) {
-      if (_payable.balances[i].token == token) {
-        _payable.balances[i].amount -= amount;
+    for (uint8 i = 0; i < _payable.balancesCount; i++) {
+      if (payableBalances[payableId][i].token == token) {
+        payableBalances[payableId][i].amount -= amount;
         break;
       }
     }
@@ -389,14 +396,14 @@ contract Chainbills is CbGovernance, CbPayload {
     withdrawalId = createId(msg.sender, users[msg.sender].withdrawalsCount);
     userWithdrawalIds[msg.sender].push(withdrawalId);
     payableWithdrawalIds[payableId].push(withdrawalId);
+    withdrawalDetails[withdrawalId] = TokenAndAmount(token, amount);
     withdrawals[withdrawalId] = Withdrawal({
       payableId: payableId,
       host: msg.sender,
       chainCount: chainStats.withdrawalsCount,
       hostCount: users[msg.sender].withdrawalsCount,
       payableCount: _payable.withdrawalsCount,
-      timestamp: block.timestamp,
-      details: TokenAndAmount(token, amount)
+      timestamp: block.timestamp
     });
 
     // Emit Event.

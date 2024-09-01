@@ -1,7 +1,7 @@
 import type { Chain } from '@/stores/chain';
 import { PublicKey } from '@solana/web3.js';
 
-export const CONTRACT_ADDRESS = '0x080b7B61c9F7C28614c1BB1F3FeE9Cd36caFBce0';
+export const CONTRACT_ADDRESS = '0xA825FFC41e91992d159F465cAA06bF973CdEdAF6';
 
 export interface TokenChainDetails {
   address: string;

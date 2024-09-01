@@ -146,12 +146,99 @@ export const abi = [
   },
   {
     type: 'function',
+    name: 'getAllowedTokensAndAmounts',
+    inputs: [{ name: 'payableId', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct CbState.TokenAndAmount[]',
+        components: [
+          { name: 'token', type: 'address', internalType: 'address' },
+          { name: 'amount', type: 'uint256', internalType: 'uint256' }
+        ]
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'getBalances',
+    inputs: [{ name: 'payableId', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct CbState.TokenAndAmount[]',
+        components: [
+          { name: 'token', type: 'address', internalType: 'address' },
+          { name: 'amount', type: 'uint256', internalType: 'uint256' }
+        ]
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
     name: 'getPayableChainPaymentsCount',
     inputs: [
       { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
       { name: 'chainId_', type: 'uint16', internalType: 'uint16' }
     ],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'getPayablePaymentDetails',
+    inputs: [{ name: 'paymentId', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        internalType: 'struct CbState.TokenAndAmount',
+        components: [
+          { name: 'token', type: 'address', internalType: 'address' },
+          { name: 'amount', type: 'uint256', internalType: 'uint256' }
+        ]
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'getUserPaymentDetails',
+    inputs: [{ name: 'paymentId', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        internalType: 'struct CbState.TokenAndAmount',
+        components: [
+          { name: 'token', type: 'address', internalType: 'address' },
+          { name: 'amount', type: 'uint256', internalType: 'uint256' }
+        ]
+      }
+    ],
+    stateMutability: 'view'
+  },
+  {
+    type: 'function',
+    name: 'getWithdrawalDetails',
+    inputs: [
+      { name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' }
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'tuple',
+        internalType: 'struct CbState.TokenAndAmount',
+        components: [
+          { name: 'token', type: 'address', internalType: 'address' },
+          { name: 'amount', type: 'uint256', internalType: 'uint256' }
+        ]
+      }
+    ],
     stateMutability: 'view'
   },
   {
@@ -231,16 +318,7 @@ export const abi = [
       { name: 'localChainCount', type: 'uint256', internalType: 'uint256' },
       { name: 'payableCount', type: 'uint256', internalType: 'uint256' },
       { name: 'payerCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-      {
-        name: 'details',
-        type: 'tuple',
-        internalType: 'struct CbState.TokenAndAmount',
-        components: [
-          { name: 'token', type: 'address', internalType: 'address' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+      { name: 'timestamp', type: 'uint256', internalType: 'uint256' }
     ],
     stateMutability: 'view'
   },
@@ -265,6 +343,12 @@ export const abi = [
       { name: 'createdAt', type: 'uint256', internalType: 'uint256' },
       { name: 'paymentsCount', type: 'uint256', internalType: 'uint256' },
       { name: 'withdrawalsCount', type: 'uint256', internalType: 'uint256' },
+      {
+        name: 'allowedTokensAndAmountsCount',
+        type: 'uint8',
+        internalType: 'uint8'
+      },
+      { name: 'balancesCount', type: 'uint8', internalType: 'uint8' },
       { name: 'isClosed', type: 'bool', internalType: 'bool' }
     ],
     stateMutability: 'view'
@@ -366,16 +450,7 @@ export const abi = [
       { name: 'chainCount', type: 'uint256', internalType: 'uint256' },
       { name: 'payerCount', type: 'uint256', internalType: 'uint256' },
       { name: 'payableCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-      {
-        name: 'details',
-        type: 'tuple',
-        internalType: 'struct CbState.TokenAndAmount',
-        components: [
-          { name: 'token', type: 'address', internalType: 'address' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+      { name: 'timestamp', type: 'uint256', internalType: 'uint256' }
     ],
     stateMutability: 'view'
   },
@@ -424,16 +499,7 @@ export const abi = [
       { name: 'chainCount', type: 'uint256', internalType: 'uint256' },
       { name: 'hostCount', type: 'uint256', internalType: 'uint256' },
       { name: 'payableCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-      {
-        name: 'details',
-        type: 'tuple',
-        internalType: 'struct CbState.TokenAndAmount',
-        components: [
-          { name: 'token', type: 'address', internalType: 'address' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+      { name: 'timestamp', type: 'uint256', internalType: 'uint256' }
     ],
     stateMutability: 'view'
   },
@@ -742,7 +808,9 @@ export const abi = [
   { type: 'error', name: 'InvalidPageNumber', inputs: [] },
   { type: 'error', name: 'InvalidPayableId', inputs: [] },
   { type: 'error', name: 'InvalidPayload', inputs: [] },
+  { type: 'error', name: 'InvalidPaymentId', inputs: [] },
   { type: 'error', name: 'InvalidTokenAddress', inputs: [] },
+  { type: 'error', name: 'InvalidWithdrawalId', inputs: [] },
   { type: 'error', name: 'InvalidWormholeAddress', inputs: [] },
   { type: 'error', name: 'InvalidWormholeChainId', inputs: [] },
   { type: 'error', name: 'InvalidWormholeEmitterAddress', inputs: [] },

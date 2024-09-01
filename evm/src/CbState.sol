@@ -3,8 +3,10 @@ pragma solidity ^0.8.20;
 
 contract CbState {
   error InvalidChainId();
-  error InvalidPayableId();
   error InvalidPageNumber();
+  error InvalidPayableId();
+  error InvalidPaymentId();
+  error InvalidWithdrawalId();
 
   /// The maximum number of tokens a payable can hold balances in.
   /// Also the maximum number of tokens that a payable can specify
@@ -35,12 +37,20 @@ contract CbState {
   mapping(address => bytes32[]) public userPaymentIds;
   /// Payments on this chain by their IDs by users.
   mapping(bytes32 => UserPayment) public userPayments;
+  /// The amount and token that the payers paid
+  mapping(bytes32 => TokenAndAmount) userPaymentDetails;
   /// Payables on this chain by their IDs
   mapping(bytes32 => Payable) public payables;
+  /// The allowed tokens (and their amounts) on payables.
+  mapping(bytes32 => TokenAndAmount[]) payableAllowedTokensAndAmounts;
+  /// Records of how much is in payables.
+  mapping(bytes32 => TokenAndAmount[]) payableBalances;
   /// Payments to Payables, from all chains, by their IDs. The Payment IDs
   /// will be the same as the IDs of userPayments if the payment was made
   /// by a User on this chain. Otherwise, the payment ID will be different.
   mapping(bytes32 => PayablePayment) public payablePayments;
+  /// The amount and token that payers paid to Payables
+  mapping(bytes32 => TokenAndAmount) payablePaymentDetails;
   /// IDs of Payments to Payables, from all chains.
   mapping(bytes32 => bytes32[]) public payablePaymentIds;
   /// Total Number of payments made to this payable, from each chain by
@@ -57,6 +67,8 @@ contract CbState {
   mapping(address => bytes32[]) public userWithdrawalIds;
   /// Array of IDs of Withdrawals made in a payable.
   mapping(bytes32 => bytes32[]) public payableWithdrawalIds;
+  /// The amount and token that a host withdrew
+  mapping(bytes32 => TokenAndAmount) withdrawalDetails;
 
   /// Keeps track of all activities on this chain. Counters for the
   /// users, payables, userPayments, and withdrawals mappings.
@@ -112,12 +124,12 @@ contract CbState {
     uint256 paymentsCount;
     /// The total number of withdrawals made from this payable.
     uint256 withdrawalsCount;
+    /// The number of the allowedTokensAndAmounts of this Payable.
+    uint8 allowedTokensAndAmountsCount;
+    /// The length of the balances array in this Payable.
+    uint8 balancesCount;
     /// Whether this payable is currently accepting payments.
     bool isClosed;
-    /// The allowed tokens (and their amounts) on this payable.
-    TokenAndAmount[] allowedTokensAndAmounts;
-    /// Records of how much is in this payable.
-    TokenAndAmount[] balances;
   }
 
   /// Receipt of a payment from any blockchain network (this-chain inclusive)
@@ -142,8 +154,6 @@ contract CbState {
     uint256 payerCount;
     /// When this payment was made.
     uint256 timestamp;
-    /// The amount and token that the payer paid
-    TokenAndAmount details;
   }
 
   /// A user's receipt of a payment made in this chain to a Payable on any
@@ -166,8 +176,6 @@ contract CbState {
     uint256 payableCount;
     /// When this payment was made.
     uint256 timestamp;
-    /// The amount and token that the payer paid
-    TokenAndAmount details;
   }
 
   /// A receipt of a withdrawal made by a Host from a Payable.
@@ -188,8 +196,50 @@ contract CbState {
     uint256 payableCount;
     /// When this withdrawal was made.
     uint256 timestamp;
-    /// The amount and token that the host withdrew
-    TokenAndAmount details;
+  }
+
+  function getAllowedTokensAndAmounts(
+    bytes32 payableId
+  ) external view returns (TokenAndAmount[] memory) {
+    if (payableId == bytes32(0)) revert InvalidPayableId();
+    if (payables[payableId].host == address(0)) revert InvalidPayableId();
+    return payableAllowedTokensAndAmounts[payableId];
+  }
+
+  function getBalances(
+    bytes32 payableId
+  ) external view returns (TokenAndAmount[] memory) {
+    if (payableId == bytes32(0)) revert InvalidPayableId();
+    if (payables[payableId].host == address(0)) revert InvalidPayableId();
+    return payableBalances[payableId];
+  }
+
+  function getUserPaymentDetails(
+    bytes32 paymentId
+  ) external view returns (TokenAndAmount memory) {
+    if (paymentId == bytes32(0)) revert InvalidPaymentId();
+    if (userPayments[paymentId].payer == address(0)) revert InvalidPaymentId();
+    return userPaymentDetails[paymentId];
+  }
+
+  function getPayablePaymentDetails(
+    bytes32 paymentId
+  ) external view returns (TokenAndAmount memory) {
+    if (paymentId == bytes32(0)) revert InvalidPaymentId();
+    if (payablePayments[paymentId].payableId == bytes32(0)) {
+      revert InvalidPaymentId();
+    }
+    return payablePaymentDetails[paymentId];
+  }
+
+  function getWithdrawalDetails(
+    bytes32 withdrawalId
+  ) external view returns (TokenAndAmount memory) {
+    if (withdrawalId == bytes32(0)) revert InvalidWithdrawalId();
+    if (withdrawals[withdrawalId].host == address(0)) {
+      revert InvalidWithdrawalId();
+    }
+    return withdrawalDetails[withdrawalId];
   }
 
   function getPayableChainPaymentsCount(

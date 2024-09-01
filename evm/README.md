@@ -54,6 +54,7 @@ $ anvil
 ### Deploy
 
 ```shell
+$ source .env
 $ forge script --chain sepolia script/DeployChainbills.s.sol:DeployChainbills --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv
 ```
 

@@ -8,7 +8,7 @@ const year = new Date().getFullYear();
       Powered by
       <a
         href="https://wormhole.com/"
-        class="font-semibold text-indigo-500"
+        class="font-semibold text-primary"
         target="_blank"
         rel="noopener noreferrer"
         >Wormhole</a

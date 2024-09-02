@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ConnectWalletButton from '@/components/SignInButton.vue';
+import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
 import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
 import { useChainStore, usePayableStore } from '@/stores';
@@ -10,7 +11,7 @@ import { useWithdrawalStore } from '@/stores/withdrawal';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
-import { computed, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const appLoading = useAppLoadingStore();
@@ -35,7 +36,7 @@ const nth = (n: number) => {
   else return 'th';
 };
 
-const cards = computed(() => {
+const getCards = () => {
   const {
     paymentsCount,
     withdrawalsCount,
@@ -52,7 +53,8 @@ const cards = computed(() => {
     ['Your Nth Count', hostCount + nth(hostCount)],
     ['Closed?', isClosed ? 'Yes' : 'No'],
   ];
-});
+};
+const cards = ref(getCards());
 
 const isMine = ref(
   whAddress.value
@@ -91,6 +93,7 @@ const getBalsDisplay = () => {
   return all;
 };
 const balsDisplay = ref(getBalsDisplay());
+const isWithdrawing = ref(false);
 
 const withdraw = async (balance: TokenAndAmount) => {
   if (balance.amount == 0) {
@@ -101,19 +104,19 @@ const withdraw = async (balance: TokenAndAmount) => {
       life: 12000,
     });
   } else {
-    appLoading.show('Withdrawing');
+    isWithdrawing.value = true;
     const result = await withdrawal.exec(payable.value.id, balance);
     if (result) {
       const newPayable = await payableStore.get(payable.value.id);
-      // TODO: Trigger UI update or check why the data is still stale
       if (newPayable) {
         payable.value = newPayable;
         balsDisplay.value = getBalsDisplay();
-        appLoading.hide();
+        cards.value = getCards();
+        isWithdrawing.value = false;
         // reloading the page if updates failed to ensure we don't have
         // stale data in the UI
       } else window.location.reload();
-    } else appLoading.hide();
+    } else isWithdrawing.value = false;
   }
 };
 
@@ -192,7 +195,11 @@ onMounted(() => {
       <small class="text-xs text-gray-500 block mb-4"
         >We charge 2% on every withdrawal.</small
       >
-      <p v-if="balsDisplay.length == 0" class="mb-12">
+      <div v-if="isWithdrawing" class="py-12 max-w-lg">
+        <p class="text-center text-lg mb-4">Withdrawing ...</p>
+        <IconSpinner height="96" width="96" class="mx-auto mb-8" />
+      </div>
+      <p v-else-if="balsDisplay.length == 0" class="mb-12">
         You have no balances yet. To withdraw, share your payable's link and
         receive payments.
       </p>

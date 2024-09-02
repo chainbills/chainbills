@@ -102,7 +102,6 @@ const withdraw = async (balance: TokenAndAmount) => {
     });
   } else {
     appLoading.show('Withdrawing');
-    balance.amount = balance.amount / 2;
     const result = await withdrawal.exec(payable.value.id, balance);
     if (result) {
       const newPayable = await payableStore.get(payable.value.id);

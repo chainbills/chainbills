@@ -150,7 +150,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="pt-12 pb-20">
+  <section class="pt-12 md:pt-4 pb-20">
     <h2
       class="text-center text-xl max-w-sm md:text-2xl md:max-w-lg mx-auto mb-12"
     >
@@ -168,165 +168,178 @@ onMounted(() => {
       <p class="pb-24">
         <Button
           @click="isCreating = false"
-          class="border border-blue-500 text-blue-500 text-sm px-3 py-1 mr-6"
+          class="border border-primary text-primary text-sm px-3 py-1 mr-6"
           >Cancel</Button
         >
         <Button
           @click="isCreating = false"
-          class="border border-blue-500 text-blue-500 text-sm px-3 py-1"
+          class="border border-primary text-primary text-sm px-3 py-1"
           >Retry</Button
         >
       </p>
     </div>
 
-    <form class="max-w-sm mx-auto" @submit.prevent="create" v-else>
-      <label
-        :class="
-          'text-sm focus-within:text-blue-500 ' +
-          (emailError ? 'text-red-500 focus-within:text-red-500' : '')
-        "
-        ><span>Email *</span>
-        <small class="text-xs text-gray-500 block mb-2"
-          >For Notifications</small
-        >
-        <input
-          type="email"
-          v-model="email"
-          ref="emailInput"
-          autocomplete="email"
-          class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-blue-500 bg-transparent"
-          :style="{ color: 'var(--text)' }"
-          required
-        />
-        <small class="text-xs block mb-10">{{ emailError }}</small>
-      </label>
-
-      <label
-        :class="
-          'text-sm focus-within:text-blue-500 ' +
-          (descriptionError ? 'text-red-500 focus-within:text-red-500' : '')
-        "
-      >
-        <span>Description *</span>
-        <small class="text-xs text-gray-500 block mb-2"
-          >What others see when they are paying</small
-        >
-        <textarea
-          class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-blue-500 bg-transparent"
-          :style="{ color: 'var(--text)' }"
-          required
-          @input="() => (description = DomPurify.sanitize(description))"
-          v-model="description"
-          rows="5"
-        ></textarea>
-        <small class="text-xs block mb-10">{{ descriptionError }}</small>
-      </label>
-
-      <div class="mb-12">
-        <label for="allow-any-token" class="inline-block"
-          >Allow Free Payments ?
-        </label>
-        <small class="text-xs text-gray-500 block mb-4"
-          >Do you want to accept any token and any amount?</small
-        >
-        <p class="flex items-center">
-          <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')"
-            >No</span
-          >
-          <InputSwitch inputId="allow-any-token" v-model="allowsFreePayments" />
-          <span :class="'ml-2 ' + (allowsFreePayments ? 'font-bold' : '')"
-            >Yes</span
-          >
-        </p>
-      </div>
-
-      <template v-if="!allowsFreePayments">
-        <p>Allowed Tokens and Amounts</p>
-        <small class="text-xs text-gray-500 block mb-4"
-          >If no above, please specify the payments you want.</small
-        >
+    <form
+      class="max-md:max-w-sm md:max-w-screen-md mx-auto md:flex gap-12"
+      @submit.prevent="create"
+      v-else
+    >
+      <div class="grow">
         <label
-          v-for="(token, i) of selectedTokens"
-          class="flex items-start mb-4"
-        >
-          <div class="w-36 flex flex-col mr-4">
-            <input
-              class="pb-1 border-b-2 mb-1 focus:outline-none focus:border-blue-500 bg-transparent"
-              placeholder="Amount"
-              v-model="amounts[i].value"
-              required
-              :min="0"
-              :step="10 ** (-1 * 18)"
-              type="number"
-              @input="
-                () => {
-                  amountErrors[i].value = validateAmount(amounts[i].value);
-                  updateDisplayedConfig();
-                }
-              "
-            />
-            <small class="text-xs block text-red-500">{{
-              amountErrors[i].value
-            }}</small>
-          </div>
-          <span class="px-2 py-1 border mr-2 rounded">{{ token.name }}</span>
-          <Button
-            @click="() => removeToken(i)"
-            type="button"
-            :aria-label="'Remove Selected ' + token"
-          >
-            <IconClose />
-          </Button>
-        </label>
-        <Dropdown
-          :options="
-            availableTokens.filter(
-              (t) => !selectedTokens.find((st) => st.name == t.name)
-            )
+          :class="
+            'text-sm focus-within:text-primary w-full ' +
+            (emailError ? 'text-red-500 focus-within:text-red-500' : '')
           "
-          optionLabel="name"
-          v-if="availableTokens.length > selectedTokens.length"
-          @change="(e) => chooseToken(e.value)"
-          placeholder="Select a Token"
-          class="mb-2"
-        />
-      </template>
-      <small class="text-xs block mb-2 text-red-500">{{ configError }}</small>
-
-      <p v-if="allowsFreePayments" class="text-xl mb-2">
-        This payable will accept payments of any amounts in any token.
-      </p>
-      <p v-else-if="displayedConfig.length == 1">
-        This payable will accept
-        <span class="font-bold text-2xl"
-          >{{ displayedConfig[0].amount }}&nbsp;{{
-            displayedConfig[0].name
-          }}</span
-        >
-      </p>
-      <div class="pt-4" v-else-if="displayedConfig.length > 1">
-        <p class="mb-2 text-lg">
-          This payable will accept <span class="font-bold">any</span> of the
-          following
-        </p>
-        <div class="flex gap-4 flex-wrap">
-          <span
-            v-for="config of displayedConfig"
-            class="border rounded-md px-3 py-2 font-medium text-xl"
-            style="border-color: var(--shadow)"
+          ><span>Email *</span>
+          <small class="text-xs text-gray-500 block mb-2"
+            >For Notifications</small
           >
-            {{ config.amount }}&nbsp;{{ config.name }}
-          </span>
-        </div>
+          <input
+            type="email"
+            v-model="email"
+            ref="emailInput"
+            autocomplete="email"
+            class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+            :style="{ color: 'var(--text)' }"
+            required
+          />
+          <small class="text-xs block mb-10">{{ emailError }}</small>
+        </label>
+
+        <label
+          :class="
+            'text-sm focus-within:text-primary ' +
+            (descriptionError ? 'text-red-500 focus-within:text-red-500' : '')
+          "
+        >
+          <span>Description *</span>
+          <small class="text-xs text-gray-500 block mb-2"
+            >What others see when they are paying</small
+          >
+          <textarea
+            class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+            :style="{ color: 'var(--text)' }"
+            required
+            @input="() => (description = DomPurify.sanitize(description))"
+            v-model="description"
+            rows="5"
+          ></textarea>
+          <small class="text-xs block mb-10">{{ descriptionError }}</small>
+        </label>
       </div>
 
-      <p class="mt-20 text-right sm:text-center">
-        <Button
-          type="submit"
-          class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
-          >Create</Button
-        >
-      </p>
+      <div class="">
+        <div class="mb-10">
+          <label for="allow-any-token" class="inline-block"
+            >Allow Free Payments ?
+          </label>
+          <small class="text-xs text-gray-500 block mb-4"
+            >Do you want to accept any token and any amount?</small
+          >
+          <p class="flex items-center">
+            <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')"
+              >No</span
+            >
+            <InputSwitch
+              inputId="allow-any-token"
+              v-model="allowsFreePayments"
+            />
+            <span :class="'ml-2 ' + (allowsFreePayments ? 'font-bold' : '')"
+              >Yes</span
+            >
+          </p>
+        </div>
+
+        <template v-if="!allowsFreePayments">
+          <p>Allowed Tokens and Amounts</p>
+          <small class="text-xs text-gray-500 block mb-4"
+            >If no above, please specify the payments you want.</small
+          >
+          <label
+            v-for="(token, i) of selectedTokens"
+            class="flex items-start mb-4"
+          >
+            <div class="w-36 flex flex-col mr-4">
+              <input
+                class="pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+                placeholder="Amount"
+                v-model="amounts[i].value"
+                required
+                :min="0"
+                :step="10 ** (-1 * 18)"
+                type="number"
+                @input="
+                  () => {
+                    amountErrors[i].value = validateAmount(amounts[i].value);
+                    updateDisplayedConfig();
+                  }
+                "
+              />
+              <small class="text-xs block text-red-500">{{
+                amountErrors[i].value
+              }}</small>
+            </div>
+            <span class="px-2 py-1 border mr-2 rounded">{{ token.name }}</span>
+            <Button
+              @click="() => removeToken(i)"
+              type="button"
+              :aria-label="'Remove Selected ' + token"
+            >
+              <IconClose />
+            </Button>
+          </label>
+          <Dropdown
+            :options="
+              availableTokens.filter(
+                (t) => !selectedTokens.find((st) => st.name == t.name)
+              )
+            "
+            optionLabel="name"
+            v-if="availableTokens.length > selectedTokens.length"
+            @change="(e) => chooseToken(e.value)"
+            placeholder="Select a Token"
+            class="mb-2"
+          />
+        </template>
+        <small class="text-xs block mb-2 text-red-500 md:max-w-xs">{{
+          configError
+        }}</small>
+
+        <p v-if="allowsFreePayments" class="text-xl mb-2 md:max-w-xs">
+          This payable will accept payments of any amounts in any token.
+        </p>
+        <p v-else-if="displayedConfig.length == 1" class="md:max-w-xs">
+          This payable will accept
+          <span class="font-bold text-2xl"
+            >{{ displayedConfig[0].amount }}&nbsp;{{
+              displayedConfig[0].name
+            }}</span
+          >
+        </p>
+        <div class="pt-4" v-else-if="displayedConfig.length > 1">
+          <p class="mb-2 text-lg md:max-w-xs">
+            This payable will accept <span class="font-bold">any</span> of the
+            following
+          </p>
+          <div class="flex gap-4 flex-wrap">
+            <span
+              v-for="config of displayedConfig"
+              class="border rounded-md px-3 py-2 font-medium text-xl"
+              style="border-color: var(--shadow)"
+            >
+              {{ config.amount }}&nbsp;{{ config.name }}
+            </span>
+          </div>
+        </div>
+
+        <p class="mt-12 text-right">
+          <Button
+            type="submit"
+            class="bg-primary text-white dark:text-black text-xl px-6 py-2"
+            >Create</Button
+          >
+        </p>
+      </div>
     </form>
   </section>
 </template>

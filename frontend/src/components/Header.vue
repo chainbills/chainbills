@@ -11,15 +11,16 @@ const theme = useThemeStore()
 </script>
 
 <template>
-  <header class="p-4 pl-8 fixed top-0 left-0 right-0 z-10 flex justify-between">
-    <h1 class="text-2xl font-bold">
+  <header class="max-[692px]:py-4 py-2 px-8 lg:px-12 fixed top-0 left-0 right-0 z-10">
+    <div class="flex justify-between max-w-screen-xl mx-auto" wrapper>
+    <h1 class="text-2xl font-bold max-[692px]:pt-0 pt-2">
       <router-link to="/" class="flex items-center">
-        <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark': 'light'}.png`" logo class="mr-1"/>
+        <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark': 'light'}.png`" class="mr-1 h-8 w-8"/>
         <span>Chainbills</span>
       </router-link>
     </h1>
 
-    <div class="hidden sm:flex items-center">
+    <div class="max-[692px]:hidden">
       <nav>
         <ul class="flex items-center">
           <li class="mr-6">
@@ -28,12 +29,13 @@ const theme = useThemeStore()
           <li class="mr-6">
             <router-link to="/activity">My Activity</router-link>
           </li class="mr-6">
-         <li class="hidden sm:inline mr-4"><SignInButton /></li>
+         <li class="max-[692px]:hidden inline mr-4"><SignInButton /></li>
           <li><ThemeMenu :full="false" /></li>
         </ul>
       </nav>
     </div>
-    <Button @click="sidebar.open" class="sm:hidden"><IconMenu /></Button>
+    <Button @click="sidebar.open" menu><IconMenu /></Button>
+    </div>
   </header>
 </template>
 
@@ -46,16 +48,21 @@ header {
   height: 64px;
 }
 
-[logo] {
-  height: 2rem;
-  width: 2rem;
-}
-
 nav .router-link-active::after {
-  background-color: var(--blue-500);
+  background-color: var(--primary);
   content: ' ';
   display: block;
   height: 3px;
   margin-top: 1px;
 }
+
+@media (min-width: 692px) {
+  [wrapper] {
+    align-items: start;
+  }
+
+  [menu] {
+    display: none;
+  }
+} 
 </style>

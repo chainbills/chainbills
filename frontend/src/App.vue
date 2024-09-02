@@ -53,7 +53,7 @@ onMounted(() => {
 <template>
   <Header />
 
-  <main class="p-8">
+  <main class="p-8 lg:px-12">
     <Sidebar />
 
     <div v-if="appLoading.status" class="py-20">

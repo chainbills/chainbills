@@ -6,7 +6,7 @@
   --app-bg: #fff;
   --shadow: rgb(0 0 0 / 0.1);
   --text: #1a1a1a;
-  --primary: #057EC5;
+  --primary: #057ec5;
 }
 
 body {
@@ -70,16 +70,24 @@ body.dark .p-dropdown-panel .p-dropdown-item:hover {
 .p-inputswitch:not(.p-disabled):has(.p-inputswitch-input:hover).p-highlight
   .p-inputswitch-slider,
 .p-inputswitch.p-highlight .p-inputswitch-slider {
-  background: var(--blue-500);
+  background: var(--primary);
 }
 
 .p-dropdown.p-component {
-  outline-color: var(--blue-500);
+  outline-color: var(--primary);
 }
 
 .swv-modal {
   position: relative;
   z-index: 10000;
+}
+
+.swv-button.swv-button-trigger,
+.swv-button.swv-button-trigger:hover {
+  background-color: var(--primary);
+  font-family: 'Inter var', sans-serif;
+  font-weight: normal;
+  padding: 0.5rem 1rem;
 }
 
 .p-dropdown {

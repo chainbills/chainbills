@@ -37,7 +37,7 @@ onMounted(async () => {
     <div class="mb-8 flex justify-between items-center">
       <h2 class="text-3xl font-bold">Your Payables</h2>
       <router-link to="/start">
-        <Button class="bg-blue-500 text-white dark:text-black px-4 py-1"
+        <Button class="bg-primary text-white dark:text-black px-4 py-1"
           >Create</Button
         >
       </router-link>
@@ -59,7 +59,7 @@ onMounted(async () => {
       <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
       <p class="mx-auto w-fit">
         <Button
-          class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"
+          class="bg-primary text-white dark:text-black text-xl px-6 py-2"
           @click="getMines"
           >Retry</Button
         >
@@ -75,7 +75,7 @@ onMounted(async () => {
       </p>
       <p class="text-center">
         <router-link to="/start">
-          <Button class="bg-blue-500 text-white dark:text-black px-3 py-2"
+          <Button class="bg-primary text-white dark:text-black px-3 py-2"
             >Get Started</Button
           >
         </router-link>
@@ -98,7 +98,7 @@ onMounted(async () => {
           class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0 rounded-md shadow h-fit"
         >
           <Button
-            class="p-6 mx-auto block w-full bg-blue-100 dark:bg-slate-900 rounded-md shadow-inner"
+            class="p-6 mx-auto block w-full bg-primary bg-opacity-10 rounded-md shadow-inner"
           >
             <p class="text-xs text-left text-gray-500 mb-1">#{{ hostCount }}</p>
             <p class="text-left mb-1">
@@ -128,7 +128,7 @@ onMounted(async () => {
               </p>
             </div>
             <span
-              class="bg-blue-500 text-white dark:text-black text-sm px-3 py-1 rounded"
+              class="bg-primary text-white dark:text-black text-sm px-3 py-1 rounded"
             >
               Withdraw
             </span>

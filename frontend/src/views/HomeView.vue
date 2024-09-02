@@ -11,7 +11,7 @@ import Button from 'primevue/button';
 
 <template>
   <section
-    class="bg-primary rounded-2xl p-6 text-white md:flex md:gap-x-8 md:items-center lg:p-10 lg:pt-0 lg:h-[512px] mb-16 sm:mb-32 md:w-full md:relative"
+    class="bg-primary rounded-2xl p-6 text-white md:flex md:gap-x-8 md:items-center lg:p-10 lg:pt-0 lg:h-[512px] mb-16 sm:mb-32 md:w-full md:relative max-w-screen-xl mx-auto"
   >
     <div class="md:w-1/2">
       <h2 class="text-3xl mb-6 lg:text-5xl lg:leading-tight">
@@ -46,7 +46,7 @@ import Button from 'primevue/button';
     />
   </section>
 
-  <section class="mb-16 sm:mb-32">
+  <section class="mb-16 sm:mb-32 max-w-screen-xl mx-auto">
     <h2 class="text-2xl sm:text-5xl mb-4">Some of Our Key Features</h2>
     <p class="sm:text-xl mb-4 sm:mb-8">
       See some of the key features Chainbills offers
@@ -95,9 +95,11 @@ import Button from 'primevue/button';
   </section>
 
   <section
-    class="bg-primary bg-opacity-10 dark:bg-opacity-30 -ml-8 -mr-8 p-8 sm:p-12 mb-16 sm:mb-32"
+    class="bg-primary bg-opacity-10 dark:bg-opacity-30 -ml-8 -mr-8 p-8 sm:p-12 mb-16 sm:mb-32 lg:-ml-12 lg:-mr-12"
   >
-    <div class="sm:flex sm:justify-between sm:items-center mb-12">
+    <div
+      class="sm:flex sm:justify-between sm:items-center mb-12 max-w-screen-xl mx-auto"
+    >
       <h2 class="text-2xl font-medium max-sm:mb-4">How to Get Started</h2>
       <h2
         class="bg-black dark:bg-white text-xl text-white dark:text-black py-2 px-4 w-fit rounded-md relative"
@@ -108,7 +110,7 @@ import Button from 'primevue/button';
     </div>
 
     <div
-      class="grid gap-4 sm:grid-cols-2 sm:gap-8 md:grid-cols-3 lg:grid-cols-4 mb-8"
+      class="grid gap-4 sm:grid-cols-2 sm:gap-8 md:grid-cols-3 lg:grid-cols-4 mb-8 max-w-screen-xl mx-auto"
     >
       <div class="rounded-2xl px-3 py-5 bg-white dark:bg-black max-sm:max-w-sm">
         <div
@@ -158,7 +160,9 @@ import Button from 'primevue/button';
       Why you should choose Chainbills
     </h2>
 
-    <div class="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8">
+    <div
+      class="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8 max-w-screen-xl mx-auto"
+    >
       <div data-aos="fade-up">
         <div class="bg-primary rounded-full p-2.5 w-fit mb-4 max-sm:mx-auto">
           <IconLock class="fill-white dark:fill-black" />

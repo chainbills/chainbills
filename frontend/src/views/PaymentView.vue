@@ -100,12 +100,12 @@ const payableRoute = computed(
 
     <p class="text-lg text-center max-w-md mx-auto pt-12 mb-8">
       Receive money from anyone on anychain on
-      <span class="font-bold text-blue-500">Chainbills</span>. Get Started with
+      <span class="font-bold text-primary">Chainbills</span>. Get Started with
       us today by Creating a Payable.
     </p>
     <p class="text-center">
       <router-link to="/start">
-        <Button class="bg-blue-500 text-white dark:text-black px-3 py-2"
+        <Button class="bg-primary text-white dark:text-black px-3 py-2"
           >Get Started</Button
         >
       </router-link>

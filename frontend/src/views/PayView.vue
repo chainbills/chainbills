@@ -38,7 +38,11 @@ const selectedToken = ref<Token>();
 const wallet = useWalletStore();
 
 const selectToken = (token: Token) => {
-  selectedConfig.value = new TokenAndAmount(token, amount.value);
+  selectedConfig.value = new TokenAndAmount(
+    token,
+    // TODO: Review the choice chain when cross-chain is enabled
+    amount.value * 10 ** token.details[payable.chain]!.decimals
+  );
 };
 
 const validateAmount = () => {

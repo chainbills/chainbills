@@ -4,7 +4,7 @@ import IconDashboard from '@/icons/IconDashboard.vue';
 import IconReplay from '@/icons/IconReplay.vue';
 import { useSidebarStore } from '@/stores/sidebar';
 import Sidebar from 'primevue/sidebar';
-import ConnectWalletButton from './ConnectWalletButton.vue';
+import ConnectWalletButton from './SignInButton.vue';
 
 const sidebar = useSidebarStore();
 </script>

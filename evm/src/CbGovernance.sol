@@ -2,51 +2,64 @@
 pragma solidity ^0.8.20;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 
-import './CbErrors.sol';
-import './CbGetters.sol';
+import './CbEvents.sol';
+import './CbState.sol';
 
-contract CbGovernance is Ownable, CbGetters, CbErrors {
+contract CbGovernance is Ownable, CbEvents, CbState, ReentrancyGuard {
   constructor() Ownable(msg.sender) {}
 
-  /// Registers foreign emitters (trusted Cb contracts).
+  error InvalidWormholeChainId();
+  error InvalidWormholeEmitterAddress();
+  error InvalidTokenAddress();
+  error ZeroAmountSpecified();
+
+  /// Registers foreign emitters (trusted contracts).
   /// @dev Only the deployer (owner) can invoke this method
   /// @param emitterChainId Wormhole ChainId of the contract being registered.
   /// @param emitterAddress Wormhole-normalized address of the contract being
   /// registered. For EVM, contracts' first 12 bytes should be zeros.
-  function registerEmitter(
+  function registerForeignContract(
     uint16 emitterChainId,
     bytes32 emitterAddress
   ) public onlyOwner {
-    if (emitterChainId == 0 || emitterChainId == chainId()) {
+    if (emitterChainId == 0 || emitterChainId == chainId) {
       revert InvalidWormholeChainId();
     } else if (emitterAddress == bytes32(0)) {
       revert InvalidWormholeEmitterAddress();
     }
-
     // update the registeredEmitters state variable
-    setEmitter(emitterChainId, emitterAddress);
+    registeredEmitters[emitterChainId] = emitterAddress;
+    emit RegisteredForeignContract(emitterChainId, emitterAddress);
   }
 
-  /// Updates the relayer's fee.
+  /// Updates the maximum withdrawal fees for the given token.
   /// @dev Only the deployer (owner) can invoke this method
-  /// @param relayerFee_ The relayer's fee
-  function updateRelayerFee(uint256 relayerFee_) public onlyOwner {
-    setRelayerFee(relayerFee_);
-  }
-
-  /// Withdraws the specified `amount` to the {owner}.
-  function ownerWithdraw(uint256 amount) public onlyOwner {
-    require(amount > 0);
-    require(address(this).balance >= amount);
-    payable(owner()).transfer(amount);
+  /// @param token The address of the token to update its max fees
+  /// @param maxFee The maximum cap of fees during withdrawal
+  function updateMaxWithdrawalFee(
+    address token,
+    uint256 maxFee
+  ) public onlyOwner {
+    if (token == address(0)) revert InvalidTokenAddress();
+    if (maxFee == 0) revert ZeroAmountSpecified();
+    maxFeesPerToken[token] = maxFee;
+    emit UpdatedMaxWithdrawalFee(token, maxFee);
   }
 
   /// Withdraws the specified `amount` of `token` to the {owner}.
-  function ownerWithdrawToken(uint256 amount, address token) public onlyOwner {
-    require(token != address(0));
+  /// If token is the same as this deployed contract's address, the
+  /// native token is transferred.
+  function ownerWithdraw(
+    address token,
+    uint256 amount
+  ) public onlyOwner nonReentrant {
     require(amount > 0);
-    require(IERC20(token).balanceOf(address(this)) >= amount);
-    require(IERC20(token).transfer(owner(), amount));
+    require(token != address(0));
+    if (token == address(this)) (payable(owner()).call{value: amount}(''));
+    else IERC20(token).transfer(owner(), amount);
+    emit OwnerWithdrew(token, amount);
   }
 }

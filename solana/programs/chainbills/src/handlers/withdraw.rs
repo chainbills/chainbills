@@ -1,10 +1,13 @@
-use crate::{constants::*, context::*, error::ChainbillsError, events::*, state::*};
+use crate::{context::*, error::ChainbillsError, events::*, state::*};
 use anchor_lang::{prelude::*, solana_program::clock};
 use anchor_spl::token::{self, Transfer as SplTransfer};
 use std::cmp::min;
-use wormhole_anchor_sdk::token_bridge;
 
-fn check_withdraw_inputs(amount: u64, mint: [u8; 32], payable: &Account<Payable>) -> Result<()> {
+fn check_withdraw_inputs(
+  amount: u64,
+  mint: Pubkey,
+  payable: &Account<Payable>,
+) -> Result<()> {
   // Ensure that amount is greater than zero
   require!(amount > 0, ChainbillsError::ZeroAmountSpecified);
 
@@ -30,16 +33,13 @@ fn check_withdraw_inputs(amount: u64, mint: [u8; 32], payable: &Account<Payable>
 
 fn update_state_for_withdrawal(
   amount: u64,
-  mint: [u8; 32],
-  global_stats: &mut Account<GlobalStats>,
+  mint: Pubkey,
   chain_stats: &mut Account<ChainStats>,
   payable: &mut Account<Payable>,
   host: &mut Account<User>,
   withdrawal: &mut Account<Withdrawal>,
+  payable_withdrawal_counter: &mut Account<PayableWithdrawalCounter>,
 ) -> Result<()> {
-  // Increment the global_stats for withdrawals_count.
-  global_stats.withdrawals_count = global_stats.next_withdrawal();
-
   // Increment the chain stats for payables_count.
   chain_stats.withdrawals_count = chain_stats.next_withdrawal();
 
@@ -58,11 +58,10 @@ fn update_state_for_withdrawal(
   }
 
   // Initialize the withdrawal.
-  withdrawal.global_count = global_stats.withdrawals_count;
   withdrawal.chain_count = chain_stats.payables_count;
-  withdrawal.payable = payable.key();
+  withdrawal.payable_id = payable.key();
   withdrawal.payable_count = payable.withdrawals_count;
-  withdrawal.host = host.key();
+  withdrawal.host = host.wallet_address;
   withdrawal.host_count = host.withdrawals_count;
   withdrawal.timestamp = clock::Clock::get()?.unix_timestamp as u64;
   withdrawal.details = TokenAndAmount {
@@ -70,15 +69,22 @@ fn update_state_for_withdrawal(
     amount,
   };
 
+  // Initialize the payable withdrawal counter. Record the host_count in it
+  // for the caller to use to get the main withdrawal account when retrieving
+  // withdrawals in context of payables.
+  payable_withdrawal_counter.host_count = host.withdrawals_count;
+
+  // Emit log and event.
   msg!(
-    "Withdrawal was made with global_count: {}, chain_count: {}, payable_count: {}, and host_count: {}.",
-    withdrawal.global_count,
+    "Withdrawal was made with chain_count: {}, payable_count: {}, and host_count: {}.",
     withdrawal.chain_count,
     withdrawal.payable_count,
     withdrawal.host_count
   );
   emit!(WithdrawalEvent {
-    global_count: withdrawal.global_count,
+    payable_id: payable.key(),
+    host_wallet: host.wallet_address,
+    withdrawal_id: withdrawal.key(),
     chain_count: withdrawal.chain_count,
     payable_count: withdrawal.payable_count,
     host_count: withdrawal.host_count,
@@ -86,206 +92,136 @@ fn update_state_for_withdrawal(
   Ok(())
 }
 
-fn calculate_amount_minus_fees(
-  max_withdrawal_fee_details: &Account<MaxFeeDetails>,
-  amount: u64,
-) -> u64 {
-  let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
-  let max_fee = max_withdrawal_fee_details.amount;
-  amount.checked_sub(min(two_percent, max_fee)).unwrap()
-}
-
 /// Transfers the amount of tokens from a payable to a host
 ///
 /// ### args
-/// * amount<u64>: The Wormhole-normalized amount to be withdrawn
-pub fn withdraw_handler(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-  // CHECKS
+/// * amount<u64>: The amount to be withdrawn
+pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
+  /* CHECKS */
   let payable = ctx.accounts.payable.as_mut();
   let mint = &ctx.accounts.mint;
-  let denormalized = token_bridge::denormalize_amount(amount, mint.decimals);
+  check_withdraw_inputs(amount, mint.key(), payable)?;
 
-  check_withdraw_inputs(amount, mint.key().to_bytes(), payable)?;
+  /* TRANSFERS */
+  // Prepare withdraw amounts and fees
+  let max_withdrawal_fee_details =
+    ctx.accounts.max_withdrawal_fee_details.as_ref();
+  let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
+  let fees = min(two_percent, max_withdrawal_fee_details.amount);
+  let amount_minus_fees = amount.checked_sub(fees).unwrap();
 
-  // TRANSFER
-  let destination = &ctx.accounts.host_token_account;
-  let source = &ctx.accounts.global_token_account;
+  // Extract Accounts needed for transferring
+  let host_ta = &ctx.accounts.host_token_account;
+  let fees_ta = &ctx.accounts.fees_token_account;
+  let source = &ctx.accounts.chain_token_account;
   let token_program = &ctx.accounts.token_program;
-  let authority = &ctx.accounts.global_stats;
-  let cpi_accounts = SplTransfer {
+  let authority = &ctx.accounts.chain_stats;
+
+  // Prepare accounts for withdrawing and for fees
+  let cpi_accounts_host = SplTransfer {
     from: source.to_account_info().clone(),
-    to: destination.to_account_info().clone(),
+    to: host_ta.to_account_info().clone(),
     authority: authority.to_account_info().clone(),
   };
-  let cpi_program = token_program.to_account_info();
-  let max_withdrawal_fee_details = ctx.accounts.max_withdrawal_fee_details.as_ref();
-  let amount_minus_fees = calculate_amount_minus_fees(max_withdrawal_fee_details, denormalized);
+  let cpi_accounts_fees = SplTransfer {
+    from: source.to_account_info().clone(),
+    to: fees_ta.to_account_info().clone(),
+    authority: authority.to_account_info().clone(),
+  };
+
+  // Transfer the amount minus fees to the host.
   token::transfer(
     CpiContext::new_with_signer(
-      cpi_program,
-      cpi_accounts,
-      &[&[GlobalStats::SEED_PREFIX, &[ctx.bumps.global_stats]]],
+      token_program.to_account_info(),
+      cpi_accounts_host,
+      &[&[ChainStats::SEED_PREFIX, &[ctx.bumps.chain_stats]]],
     ),
     amount_minus_fees,
   )?;
 
-  let global_stats = ctx.accounts.global_stats.as_mut();
+  // Transfer the fees to the fees collector.
+  token::transfer(
+    CpiContext::new_with_signer(
+      token_program.to_account_info(),
+      cpi_accounts_fees,
+      &[&[ChainStats::SEED_PREFIX, &[ctx.bumps.chain_stats]]],
+    ),
+    fees,
+  )?;
+
+  /* STATE CHANGES */
   let chain_stats = ctx.accounts.chain_stats.as_mut();
   let host = ctx.accounts.host.as_mut();
   let withdrawal = ctx.accounts.withdrawal.as_mut();
-
-  // STATE UPDATES
+  let payable_withdrawal_counter = ctx.accounts.payable_withdrawal_counter.as_mut();
   update_state_for_withdrawal(
     amount,
-    mint.key().to_bytes(),
-    global_stats,
+    mint.key(),
     chain_stats,
     payable,
     host,
     withdrawal,
+    payable_withdrawal_counter,
   )
 }
 
-/// Transfers the amount of tokens from a payable to its host on another
-/// chain network
+/// Transfers the amount of native tokens (Solana) from a payable to a host
 ///
 /// ### args
-/// * vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the
-///       source chain.
-/// * caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the
-///       creator of the payable on the source chain.
-/// * host_count<u64>: The nth count of the new withdrawal from the host.
-pub fn withdraw_received_handler(
-  ctx: Context<WithdrawReceived>,
-  vaa_hash: [u8; 32],
-  caller: [u8; 32],
-  host_count: u64,
+/// * amount<u64>: The amount to be withdrawn
+pub fn withdraw_native(
+  ctx: Context<WithdrawNative>,
+  amount: u64,
 ) -> Result<()> {
-  let vaa = &ctx.accounts.vaa;
-
-  // ensure the actionId is as expected
-  require!(
-    vaa.data().action_id == ACTION_ID_WITHDRAW,
-    ChainbillsError::InvalidActionId
-  );
-
-  // ensure the caller was expected and is valid
-  require!(
-    vaa.data().caller == caller && !caller.iter().all(|&x| x == 0),
-    ChainbillsError::InvalidCallerAddress
-  );
-
-  // save received info to prevent replay attacks
-  let wormhole_received = ctx.accounts.wormhole_received.as_mut();
-  wormhole_received.batch_id = vaa.batch_id();
-  wormhole_received.vaa_hash = vaa_hash;
-
-  let host = ctx.accounts.host.as_mut();
-  // Ensure matching chain id and user wallet address
-  require!(
-    host.owner_wallet == caller && host.chain_id == vaa.emitter_chain(),
-    ChainbillsError::UnauthorizedCallerAddress
-  );
-
-  // Ensure that the host count is that which is expected
-  require!(
-    host_count == host.next_withdrawal(),
-    ChainbillsError::WrongWithdrawalsHostCountProvided
-  );
-
-  let token_bridge_wrapped_mint = &ctx.accounts.token_bridge_wrapped_mint;
+  /* CHECKS */
   let payable = ctx.accounts.payable.as_mut();
+  check_withdraw_inputs(amount, crate::ID, payable)?;
 
-  // Ensure the decoded payable matches the account payable
-  require!(
-    payable.key().to_bytes() == vaa.data().payable_id,
-    ChainbillsError::NotMatchingPayableId
-  );
+  /* TRANSFERS */
+  // Prepare withdraw amounts and fees
+  let max_withdrawal_fee_details =
+    ctx.accounts.max_withdrawal_fee_details.as_ref();
+  let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
+  let fees = min(two_percent, max_withdrawal_fee_details.amount);
+  let amount_minus_fees = amount.checked_sub(fees).unwrap();
 
-  // Ensure matching token
-  let mint = token_bridge_wrapped_mint.key().to_bytes();
-  require!(
-    vaa.data().token == mint,
-    ChainbillsError::NotMatchingTransactionToken
-  );
+  // Extract Accounts needed for transferring
+  let chain_stats = ctx.accounts.chain_stats.to_account_info();
+  let signer = ctx.accounts.signer.to_account_info();
+  let fees_collector = ctx.accounts.fee_collector.to_account_info();
 
-  let amount = vaa.data().amount;
-  let denormalized = token_bridge::denormalize_amount(amount, token_bridge_wrapped_mint.decimals);
+  // Transfer the amount minus fees to the host.
+  chain_stats
+    .try_borrow_mut_lamports()?
+    .checked_sub(amount_minus_fees)
+    .unwrap();
+  signer
+    .try_borrow_mut_lamports()?
+    .checked_add(amount_minus_fees)
+    .unwrap();
 
-  // Check other inputs
-  check_withdraw_inputs(amount, mint, payable)?;
+  // Transfer the fees to the fees collector.
+  chain_stats
+    .try_borrow_mut_lamports()?
+    .checked_sub(fees)
+    .unwrap();
+  fees_collector
+    .try_borrow_mut_lamports()?
+    .checked_add(fees)
+    .unwrap();
 
-  // Obtain amount_minus_fees
-  let max_withdrawal_fee_details = ctx.accounts.max_withdrawal_fee_details.as_ref();
-  let amount_minus_fees = calculate_amount_minus_fees(max_withdrawal_fee_details, denormalized);
-
-  // TRANSFER
-  // Approve spending by token bridge
-  anchor_spl::token::approve(
-    CpiContext::new_with_signer(
-      ctx.accounts.token_program.to_account_info(),
-      anchor_spl::token::Approve {
-        to: ctx.accounts.global_token_account.to_account_info(),
-        delegate: ctx.accounts.token_bridge_authority_signer.to_account_info(),
-        authority: ctx.accounts.global_stats.to_account_info(),
-      },
-      &[&[GlobalStats::SEED_PREFIX, &[ctx.bumps.global_stats]]],
-    ),
-    amount_minus_fees,
-  )?;
-
-  // Bridge wrapped token with encoded payload.
-  token_bridge::transfer_wrapped_with_payload(
-    CpiContext::new_with_signer(
-      ctx.accounts.token_bridge_program.to_account_info(),
-      token_bridge::TransferWrappedWithPayload {
-        payer: ctx.accounts.signer.to_account_info(),
-        config: ctx.accounts.token_bridge_config.to_account_info(),
-        from: ctx.accounts.global_token_account.to_account_info(),
-        from_owner: ctx.accounts.global_stats.to_account_info(),
-        wrapped_mint: ctx.accounts.token_bridge_wrapped_mint.to_account_info(),
-        wrapped_metadata: ctx.accounts.token_bridge_wrapped_meta.to_account_info(),
-        authority_signer: ctx.accounts.token_bridge_authority_signer.to_account_info(),
-        wormhole_bridge: ctx.accounts.wormhole_bridge.to_account_info(),
-        wormhole_message: ctx.accounts.wormhole_message.to_account_info(),
-        wormhole_emitter: ctx.accounts.emitter.to_account_info(),
-        wormhole_sequence: ctx.accounts.sequence.to_account_info(),
-        wormhole_fee_collector: ctx.accounts.fee_collector.to_account_info(),
-        clock: ctx.accounts.clock.to_account_info(),
-        sender: ctx.accounts.global_stats.to_account_info(),
-        rent: ctx.accounts.rent.to_account_info(),
-        system_program: ctx.accounts.system_program.to_account_info(),
-        token_program: ctx.accounts.token_program.to_account_info(),
-        wormhole_program: ctx.accounts.wormhole_program.to_account_info(),
-      },
-      &[
-        &[GlobalStats::SEED_PREFIX, &[ctx.bumps.global_stats]],
-        &[
-          SEED_PREFIX_SENDING,
-          &ctx.accounts.sequence.next_value().to_le_bytes()[..],
-          &[ctx.bumps.wormhole_message],
-        ],
-      ],
-    ),
-    0, // 0 for batch_id. That is, no batching.
-    amount_minus_fees,
-    ctx.accounts.foreign_contract.address,
-    vaa.emitter_chain(),
-    vaa.payload.1.try_to_vec()?, // Send the payload message as what was originally received.
-    &ctx.program_id.key(),
-  )?;
-
-  // STATE UPDATES
-  let global_stats = ctx.accounts.global_stats.as_mut();
+  /* STATE CHANGES */
   let chain_stats = ctx.accounts.chain_stats.as_mut();
+  let host = ctx.accounts.host.as_mut();
   let withdrawal = ctx.accounts.withdrawal.as_mut();
+  let payable_withdrawal_counter = ctx.accounts.payable_withdrawal_counter.as_mut();
   update_state_for_withdrawal(
     amount,
-    mint,
-    global_stats,
+    crate::ID,
     chain_stats,
     payable,
     host,
     withdrawal,
+    payable_withdrawal_counter,
   )
 }

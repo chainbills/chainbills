@@ -11,7 +11,7 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "dependencies": {
@@ -22,6 +22,7 @@
     "express": "^4.19.2",
     "firebase-admin": "^12.1.1",
     "firebase-functions": "^5.0.1",
+    "isomorphic-dompurify": "^2.15.0",
     "morgan": "^1.10.0",
     "tweetnacl": "^1.0.3",
     "validator": "^13.12.0",

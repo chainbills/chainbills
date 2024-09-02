@@ -40,7 +40,7 @@ const beforeEnterPaymentDetails = async (to: RouteLocationNormalized) => {
   const result = await payment.get(to.params['id'] as string);
   if (result) {
     to.meta.payment = result;
-    to.meta.payable = await payable.get(result.payable);
+    to.meta.payable = await payable.get(result.payableId);
     appLoading.hide();
     return true;
   } else {

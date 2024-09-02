@@ -1,35 +1,36 @@
-import { type Chain } from '@/stores/chain';
-import { TokenAndAmount } from './tokens-and-amounts';
+import { TokenAndAmount } from '@/schemas';
+import { type Chain } from '@/stores';
 
 export class Withdrawal {
   id: string;
-  globalCount: number;
   chain: Chain;
   chainCount: number;
-  payable: string;
+  payableId: string;
   payableCount: number;
   host: string;
   hostCount: number;
-  hostWallet: Uint8Array;
   timestamp: Date;
   details: TokenAndAmount;
 
-  constructor(
-    id: string,
-    chain: Chain,
-    hostWallet: Uint8Array,
-    onChainData: any,
-  ) {
+  constructor(id: string, chain: Chain, onChainData: any) {
     this.id = id;
-    this.globalCount = onChainData.globalCount.toNumber();
     this.chain = chain;
-    this.chainCount = onChainData.chainCount.toNumber();
-    this.host = onChainData.host.toBase58();
-    this.hostCount = onChainData.hostCount.toNumber();
-    this.hostWallet = hostWallet;
-    this.payable = onChainData.payable.toBase58();
-    this.payableCount = onChainData.payableCount.toNumber();
-    this.details = TokenAndAmount.fromOnChain(onChainData.details);
-    this.timestamp = new Date(onChainData.timestamp.toNumber() * 1000);
+    this.chainCount = Number(onChainData.chainCount);
+
+    if (chain == 'Ethereum Sepolia') this.host = onChainData.host.toLowerCase();
+    else if (chain == 'Solana') this.host = onChainData.host.toBase58();
+    else throw `Unknown chain: ${chain}`;
+
+    this.hostCount = Number(onChainData.hostCount);
+
+    if (chain == 'Ethereum Sepolia') {
+      this.payableId = onChainData.payableId.toLowerCase();
+    } else if (chain == 'Solana') {
+      this.payableId = onChainData.payableId.toBase58();
+    } else throw `Unknown chain: ${chain}`;
+
+    this.payableCount = Number(onChainData.payableCount);
+    this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
+    this.timestamp = new Date(Number(onChainData.timestamp) * 1000);
   }
 }

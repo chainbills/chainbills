@@ -1,7 +1,7 @@
 import { wormhole } from '@wormhole-foundation/sdk';
 import evm from '@wormhole-foundation/sdk/evm';
 import solana from '@wormhole-foundation/sdk/solana';
-import { readContract } from '../utils';
+import { evmReadContract } from '../utils';
 
 export const relay = async (body: any) => {
   const { txHash, functionName } = body;
@@ -15,7 +15,7 @@ export const relay = async (body: any) => {
   const vaa = await wh.getVaa(txHash, 'Uint8Array');
   if (!vaa) throw 'Failed to get VAA or Invalid txHash';
 
-  return await readContract('decodePayloadMessage', [
+  return await evmReadContract('decodePayloadMessage', [
     Buffer.from(vaa.payload).toString('hex')
   ]);
 };

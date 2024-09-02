@@ -1,37 +1,60 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use wormhole_anchor_sdk::wormhole;
+
 
 #[derive(Accounts)]
-#[instruction(amount: u64)]
 pub struct Pay<'info> {
   #[account(
         init,
         seeds = [
-            signer.key().to_bytes().as_ref(),
-            Payment::SEED_PREFIX,
+            signer.key().as_ref(),
+            UserPayment::SEED_PREFIX,
             &payer.next_payment().to_le_bytes()[..]
         ],
         bump,
         payer = signer,
-        space = Payment::SPACE
+        space = UserPayment::SPACE
     )]
-  pub payment: Box<Account<'info, Payment>>,
+  pub user_payment: Box<Account<'info, UserPayment>>,
+
+  #[account(
+        init,
+        seeds = [
+            payable.key().as_ref(),
+            PayablePayment::SEED_PREFIX,
+            &payable.next_payment().to_le_bytes()[..]
+        ],
+        bump,
+        payer = signer,
+        space = UserPayment::SPACE
+    )]
+  pub payable_payment: Box<Account<'info, PayablePayment>>,
+
+  #[account(
+        mut,
+        seeds = [
+            payable.key().as_ref(),
+            &chain_stats.chain_id.to_le_bytes()[..],
+        ],
+        bump
+    )]
+  pub payable_chain_counter: Box<Account<'info, PayableChainCounter>>,
 
   #[account(mut)]
   pub payable: Box<Account<'info, Payable>>,
 
-  #[account(mut, seeds = [signer.key().to_bytes().as_ref()], bump)]
+  #[account(mut, seeds = [signer.key().as_ref()], bump)]
   pub payer: Box<Account<'info, User>>,
 
-  #[account(mut, seeds=[GlobalStats::SEED_PREFIX], bump)]
-  pub global_stats: Box<Account<'info, GlobalStats>>,
-
-  #[account(mut, seeds = [ChainStats::SEED_PREFIX, &wormhole::CHAIN_ID_SOLANA.to_le_bytes()[..]], bump)]
+  #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
   pub mint: Box<Account<'info, Mint>>,
+
+  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, mint.key().as_ref()], bump)]
+  /// Ensures that payers don't pay into unsupported tokens.
+  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
 
   #[account(
         mut,
@@ -43,9 +66,9 @@ pub struct Pay<'info> {
   #[account(
         mut,
         associated_token::mint = mint,
-        associated_token::authority = global_stats,
+        associated_token::authority = chain_stats,
     )]
-  pub global_token_account: Box<Account<'info, TokenAccount>>,
+  pub chain_token_account: Box<Account<'info, TokenAccount>>,
 
   #[account(mut)]
   pub signer: Signer<'info>,

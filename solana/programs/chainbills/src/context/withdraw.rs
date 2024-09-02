@@ -1,14 +1,12 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
-use wormhole_anchor_sdk::wormhole;
 
 #[derive(Accounts)]
-#[instruction(amount: u64)]
 pub struct Withdraw<'info> {
   #[account(
         init,
-        seeds = [signer.key().to_bytes().as_ref(),
+        seeds = [signer.key().as_ref(),
             Withdrawal::SEED_PREFIX,
             &host.next_withdrawal().to_le_bytes()[..]],
         bump,
@@ -17,16 +15,24 @@ pub struct Withdraw<'info> {
     )]
   pub withdrawal: Box<Account<'info, Withdrawal>>,
 
+  #[account(
+        init,
+        seeds = [payable.key().as_ref(),
+            PayableWithdrawalCounter::SEED_PREFIX,
+            &payable.next_withdrawal().to_le_bytes()[..]],
+        bump,
+        payer = signer,
+        space = PayableWithdrawalCounter::SPACE
+    )]
+  pub payable_withdrawal_counter: Box<Account<'info, PayableWithdrawalCounter>>,
+
   #[account(mut, has_one = host)]
   pub payable: Box<Account<'info, Payable>>,
 
-  #[account(mut, seeds = [signer.key().to_bytes().as_ref()], bump)]
+  #[account(mut, seeds = [signer.key().as_ref()], bump)]
   pub host: Box<Account<'info, User>>,
 
-  #[account(mut, seeds = [GlobalStats::SEED_PREFIX], bump)]
-  pub global_stats: Box<Account<'info, GlobalStats>>,
-
-  #[account(mut, seeds = [ChainStats::SEED_PREFIX, &wormhole::CHAIN_ID_SOLANA.to_le_bytes()[..]], bump)]
+  #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
   #[account(seeds = [Config::SEED_PREFIX], bump)]
@@ -34,7 +40,7 @@ pub struct Withdraw<'info> {
 
   pub mint: Box<Account<'info, Mint>>,
 
-  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, mint.key().to_bytes().as_ref()], bump)]
+  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, mint.key().as_ref()], bump)]
   pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
 
   #[account(
@@ -47,9 +53,19 @@ pub struct Withdraw<'info> {
   #[account(
         mut,
         associated_token::mint = mint,
-        associated_token::authority = global_stats,
+        associated_token::authority = chain_stats,
     )]
-  pub global_token_account: Box<Account<'info, TokenAccount>>,
+  pub chain_token_account: Box<Account<'info, TokenAccount>>,
+
+  #[account(
+        mut,
+        associated_token::mint = mint,
+        associated_token::authority = fee_collector,
+    )]
+  pub fees_token_account: Box<Account<'info, TokenAccount>>,
+
+  #[account(address = config.load()?.chainbills_fee_collector)]
+  pub fee_collector: SystemAccount<'info>,
 
   #[account(mut)]
   pub signer: Signer<'info>,

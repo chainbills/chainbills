@@ -1,75 +1,26 @@
 export type Chainbills = {
   version: '0.1.0';
   name: 'chainbills';
-  constants: [
-    {
-      name: 'ACTION_ID_INITIALIZE_PAYABLE';
-      type: 'u8';
-      value: '1';
-    },
-    {
-      name: 'ACTION_ID_CLOSE_PAYABLE';
-      type: 'u8';
-      value: '2';
-    },
-    {
-      name: 'ACTION_ID_REOPEN_PAYABLE';
-      type: 'u8';
-      value: '3';
-    },
-    {
-      name: 'ACTION_ID_UPDATE_PAYABLE_DESCRIPTION';
-      type: 'u8';
-      value: '4';
-    },
-    {
-      name: 'ACTION_ID_PAY';
-      type: 'u8';
-      value: '5';
-    },
-    {
-      name: 'ACTION_ID_WITHDRAW';
-      type: 'u8';
-      value: '6';
-    },
-    {
-      name: 'MAX_PAYABLES_DESCRIPTION_LENGTH';
-      type: {
-        defined: 'usize';
-      };
-      value: '3000';
-    },
-    {
-      name: 'MAX_PAYABLES_TOKENS';
-      type: {
-        defined: 'usize';
-      };
-      value: '20';
-    },
-    {
-      name: 'SEED_PREFIX_SENDING';
-      type: 'bytes';
-      value: '[115, 101, 110, 100, 105, 110, 103]';
-    }
-  ];
   instructions: [
     {
       name: 'initialize';
       docs: [
         "Initialize the program. Specifically initialize the program's",
-        "Config, GlobalStats, and Solana's ChainStats.",
+        "Config and Solana's ChainStats.",
         '',
         'Config holds addresses and infos that this program will use to interact',
         'with Wormhole. Other method handlers would reference properties of',
         'Config to execute Wormhole-related CPI calls.',
         '',
-        'GlobalStats keeps track of the count of all entities in this program.',
-        'Entities include Users, Payables, Payments, and Withdrawals.',
-        'Initializing any other entity must increment the appropriate count in',
-        'GlobalStats.',
+        'ChainStats keeps track of the count of all entities in this program,',
+        'that were created on this chain (and any other chain). Entities include',
+        'Users, Payables, Payments, and Withdrawals. Initializing any other entity',
+        'must increment the appropriate count in the appropriate ChainStats.',
         '',
-        'ChainStats is like GlobalStats but just for each BlockChain Network',
-        "involved in Chainbills. Solana's ChainStats also gets initialized here."
+        'ChainStats has to be initialized for each BlockChain Network',
+        "involved in Chainbills. Solana's ChainStats also gets initialized here.",
+        'ChainStats for other chains get initialized when their foreign contracts',
+        'are registered.'
       ];
       accounts: [
         {
@@ -80,33 +31,6 @@ export type Chainbills = {
             'Whoever initializes the config will be the owner of the program. Signer',
             'for creating the [`Config`] account and posting a Wormhole message',
             'indicating that the program is alive.'
-          ];
-        },
-        {
-          name: 'thisProgram';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Helps in ensuring that the provided `this_program_data` is the',
-            'correct one.'
-          ];
-        },
-        {
-          name: 'thisProgramData';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Helps in ensuring that the provided `owner` is a correct owner.'
-          ];
-        },
-        {
-          name: 'globalStats';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Keeps track of the counts of all entities (Users, Payables, Payments,',
-            'and Withdrawals) in Chainbills. It is also the signer PDA for the holding',
-            'balances in this program.'
           ];
         },
         {
@@ -129,16 +53,19 @@ export type Chainbills = {
           ];
         },
         {
+          name: 'chainbillsFeeCollector';
+          isMut: false;
+          isSigner: false;
+          docs: [
+            'An external address for collecting fees during withdrawals.',
+            'We save it in config and use it for withdrawals.'
+          ];
+        },
+        {
           name: 'wormholeProgram';
           isMut: false;
           isSigner: false;
           docs: ['Wormhole program.'];
-        },
-        {
-          name: 'tokenBridgeProgram';
-          isMut: false;
-          isSigner: false;
-          docs: ['Token Bridge program.'];
         },
         {
           name: 'wormholeBridge';
@@ -150,28 +77,16 @@ export type Chainbills = {
           ];
         },
         {
-          name: 'tokenBridgeConfig';
-          isMut: false;
+          name: 'wormholeEmitter';
+          isMut: true;
           isSigner: false;
           docs: [
-            'Token Bridge config. Token Bridge program needs this account to',
-            'invoke the Wormhole program to post messages. Even though it is a',
-            'required account for redeeming token transfers, it is not actually',
-            'used for completing these transfers.'
+            "This isn't an account that holds data; it is purely",
+            'just a signer for posting Wormhole messages directly.'
           ];
         },
         {
-          name: 'emitter';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            "Token Bridge. This isn't an account that holds data; it is purely",
-            'just a signer for posting Wormhole messages directly or on behalf of',
-            'the Token Bridge program.'
-          ];
-        },
-        {
-          name: 'feeCollector';
+          name: 'wormholeFeeCollector';
           isMut: true;
           isSigner: false;
           docs: [
@@ -181,7 +96,7 @@ export type Chainbills = {
           ];
         },
         {
-          name: 'sequence';
+          name: 'wormholeSequence';
           isMut: true;
           isSigner: false;
           docs: [
@@ -191,29 +106,12 @@ export type Chainbills = {
           ];
         },
         {
-          name: 'mintAuthority';
-          isMut: false;
+          name: 'wormholeMessage';
+          isMut: true;
           isSigner: false;
           docs: [
-            'data; it is purely just a signer (SPL mint authority) for Token Bridge',
-            'wrapped assets.'
-          ];
-        },
-        {
-          name: 'custodySigner';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'data; it is purely just a signer for Token Bridge SPL tranfers.'
-          ];
-        },
-        {
-          name: 'authoritySigner';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'data; it is purely just a signer for SPL tranfers when it is delegated',
-            'spending approval for the SPL token.'
+            "account, which requires this program's signature.",
+            '[`wormhole::post_message`] requires this account be mutable.'
           ];
         },
         {
@@ -250,12 +148,13 @@ export type Chainbills = {
       ];
       accounts: [
         {
-          name: 'owner';
+          name: 'foreignContract';
           isMut: true;
-          isSigner: true;
+          isSigner: false;
           docs: [
-            'Owner of the program set in the [`Config`] account. Signer for creating',
-            'the [`ForeignContract`] account.'
+            'Foreign Contract account. This account will be created if a contract has',
+            'not been registered yet for this Wormhole Chain ID. If there already is a',
+            'contract address saved in this account, its contents will be overwritted.'
           ];
         },
         {
@@ -263,45 +162,18 @@ export type Chainbills = {
           isMut: false;
           isSigner: false;
           docs: [
-            'Config account. This program requires that the `owner` specified in the',
-            'context equals the pubkey specified in this account. Read-only.'
+            'Config Account that stores important constant addresses that are used',
+            'across program instructions.'
           ];
         },
         {
-          name: 'chainStats';
+          name: 'owner';
           isMut: true;
-          isSigner: false;
+          isSigner: true;
           docs: [
-            'Keeps track of the counts of all entities (Users, Payables, Payments,',
-            'and Withdrawals) initialized on this new Chain in Chainbills.'
+            'Signer for this instruction. Should be the account that holds',
+            'the upgrade authority of this program.'
           ];
-        },
-        {
-          name: 'foreignContract';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Foreign Contract account. Create this account if a contract has not been',
-            'registered yet for this Wormhole chain ID. If there already is a contract',
-            'address saved in this account, overwrite it.'
-          ];
-        },
-        {
-          name: 'tokenBridgeForeignEndpoint';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Token Bridge foreign endpoint. This account should really be one',
-            "endpoint per chain, but Token Bridge's PDA allows for multiple",
-            'endpoints for each chain. We store the proper endpoint for the',
-            'emitter chain.'
-          ];
-        },
-        {
-          name: 'tokenBridgeProgram';
-          isMut: false;
-          isSigner: false;
-          docs: ['Token Bridge program.'];
         },
         {
           name: 'systemProgram';
@@ -324,33 +196,146 @@ export type Chainbills = {
       ];
     },
     {
-      name: 'updateMaximumWithdrawalFee';
+      name: 'updateMaxWithdrawalFee';
       docs: [
         'Updates the maximum withdrawal fees of the given token.',
         '',
         '### Args',
-        '* token<[u8; 32]>: The Wormhole-normalized address of the token for which',
-        'its maximum withdrawal fees is been set.',
+        '* token<Pubkey>: The address of the token for which its maximum',
+        'withdrawal fees is been set.',
         '* fee<u64>: The max fee to set.'
       ];
       accounts: [
-        {
-          name: 'owner';
-          isMut: true;
-          isSigner: true;
-          docs: ['Owner of the program set in the [`Config`] account.'];
-        },
-        {
-          name: 'config';
-          isMut: false;
-          isSigner: false;
-          docs: ['Config account to confirm owner status.'];
-        },
         {
           name: 'maxWithdrawalFeeDetails';
           isMut: true;
           isSigner: false;
           docs: ['Account that stores the max withdrawal fee details.'];
+        },
+        {
+          name: 'chainTokenAccount';
+          isMut: true;
+          isSigner: false;
+          docs: [
+            'Initialize the chain token account for storing payments of the token mint',
+            "if it doesn't exist."
+          ];
+        },
+        {
+          name: 'feeCollector';
+          isMut: false;
+          isSigner: false;
+          docs: [
+            "Chainbills' fee collector account. Not verifying it is correct",
+            'in the constraints inorder to bypass the stack offset error. However, the',
+            'check is carried out inside the instruction.'
+          ];
+        },
+        {
+          name: 'feesTokenAccount';
+          isMut: true;
+          isSigner: false;
+          docs: [
+            'Initialize the fees token account for storing payments of the token mint',
+            "if it doesn't exist."
+          ];
+        },
+        {
+          name: 'config';
+          isMut: false;
+          isSigner: false;
+          docs: [
+            'Config Account that stores important constant addresses that are used',
+            'across program instructions.'
+          ];
+        },
+        {
+          name: 'chainStats';
+          isMut: true;
+          isSigner: false;
+          docs: [
+            'Keeps track of entities on this chain. Would be used for initializing',
+            'the chain_token_account for the token whose max_withdrawl_fee is being',
+            'set/updated.'
+          ];
+        },
+        {
+          name: 'mint';
+          isMut: false;
+          isSigner: false;
+          docs: [
+            'The token mint whose max withdrawal fee is being set/updated.'
+          ];
+        },
+        {
+          name: 'owner';
+          isMut: true;
+          isSigner: true;
+          docs: [
+            'Signer for this instruction. Should be the account that holds',
+            'the upgrade authority of this program. Not verifying its owner status',
+            'in the constraints inorder to bypass the stack offset error. However, the',
+            'check is carried out inside the instruction.'
+          ];
+        },
+        {
+          name: 'associatedTokenProgram';
+          isMut: false;
+          isSigner: false;
+          docs: ['Associated Token Program.'];
+        },
+        {
+          name: 'tokenProgram';
+          isMut: false;
+          isSigner: false;
+          docs: ['Token Program.'];
+        },
+        {
+          name: 'systemProgram';
+          isMut: false;
+          isSigner: false;
+          docs: ['System Program.'];
+        }
+      ];
+      args: [
+        {
+          name: 'token';
+          type: 'publicKey';
+        },
+        {
+          name: 'fee';
+          type: 'u64';
+        }
+      ];
+    },
+    {
+      name: 'updateMaxWithdrawalFeeNative';
+      docs: [
+        'Updates the maximum withdrawal fees of the native token (Solana).',
+        '',
+        '### Args',
+        '* fee<u64>: The max fee to set.'
+      ];
+      accounts: [
+        {
+          name: 'maxWithdrawalFeeDetails';
+          isMut: true;
+          isSigner: false;
+          docs: ['Account that stores the max withdrawal fee details.'];
+        },
+        {
+          name: 'config';
+          isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'owner';
+          isMut: true;
+          isSigner: true;
+          docs: [
+            'Signer for this instruction. Should be the account that holds',
+            'the upgrade authority of this program.'
+          ];
         },
         {
           name: 'systemProgram';
@@ -359,12 +344,6 @@ export type Chainbills = {
         }
       ];
       args: [
-        {
-          name: 'token';
-          type: {
-            array: ['u8', 32];
-          };
-        },
         {
           name: 'fee';
           type: 'u64';
@@ -385,193 +364,101 @@ export type Chainbills = {
           name: 'user';
           isMut: true;
           isSigner: false;
-        },
-        {
-          name: 'globalStats';
-          isMut: true;
-          isSigner: false;
+          docs: [
+            'The PDA account to create. It houses details about the user. Keeps track',
+            'of the count of entities created by the user.'
+          ];
         },
         {
           name: 'chainStats';
           isMut: true;
           isSigner: false;
+          docs: [
+            'Keeps track of entities on this chain. Its user_count will be',
+            'incremented in this instruction.'
+          ];
         },
         {
           name: 'signer';
           isMut: true;
           isSigner: true;
+          docs: ['The signer of the transaction.'];
         },
         {
           name: 'systemProgram';
           isMut: false;
           isSigner: false;
+          docs: ['The system program account.'];
         }
       ];
       args: [];
     },
     {
-      name: 'initializePayable';
+      name: 'createPayable';
       docs: [
-        'Initialize a Payable',
+        'Create a Payable',
         '',
         '### args',
-        '* description<String>: what users see when they want to make payment.',
-        '* tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens',
-        '(and their amounts) on this payable.',
-        '* allows_free_payments<bool>: Whether this payable should allow payments',
-        'of any amounts of any token.'
+        '* allowed_tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens',
+        '(and their amounts) on this payable. If this vector is empty,',
+        'then the payable will accept payments in any token.'
       ];
       accounts: [
         {
           name: 'payable';
           isMut: true;
           isSigner: false;
+          docs: [
+            'The payable account to create. It houses details about the payable.'
+          ];
+        },
+        {
+          name: 'payableChainCounter';
+          isMut: true;
+          isSigner: false;
+          docs: [
+            'The payable chain counter account to create. It houses the payments_count',
+            'for the payable per chain.'
+          ];
         },
         {
           name: 'host';
           isMut: true;
           isSigner: false;
-        },
-        {
-          name: 'globalStats';
-          isMut: true;
-          isSigner: false;
+          docs: [
+            'The user account of the signer that is creating the payable.'
+          ];
         },
         {
           name: 'chainStats';
           isMut: true;
           isSigner: false;
+          docs: [
+            'Keeps track of entities on this chain. Its payable_count will be',
+            'incremented in this instruction.'
+          ];
         },
         {
           name: 'signer';
           isMut: true;
           isSigner: true;
+          docs: ['The signer of the transaction.'];
         },
         {
           name: 'systemProgram';
           isMut: false;
           isSigner: false;
+          docs: ['The system program account.'];
         }
       ];
       args: [
         {
-          name: 'description';
-          type: 'string';
-        },
-        {
-          name: 'tokensAndAmounts';
+          name: 'allowedTokensAndAmounts';
           type: {
             vec: {
               defined: 'TokenAndAmount';
             };
           };
-        },
-        {
-          name: 'allowsFreePayments';
-          type: 'bool';
-        }
-      ];
-    },
-    {
-      name: 'initializePayableReceived';
-      docs: [
-        'Initialize a Payable from another chain network',
-        '',
-        '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.',
-        '* host_count<u64>: The nth count of the new payable from the host.'
-      ];
-      accounts: [
-        {
-          name: 'payable';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'host';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'globalStats';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'chainStats';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'signer';
-          isMut: true;
-          isSigner: true;
-        },
-        {
-          name: 'config';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'wormholeProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'vaa';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ];
-        },
-        {
-          name: 'foreignContract';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ];
-        },
-        {
-          name: 'wormholeReceived';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Received account. [`receive_message`](crate::receive_message) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ];
-        },
-        {
-          name: 'systemProgram';
-          isMut: false;
-          isSigner: false;
-        }
-      ];
-      args: [
-        {
-          name: 'vaaHash';
-          type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'caller';
-          type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'hostCount';
-          type: 'u64';
         }
       ];
     },
@@ -601,96 +488,6 @@ export type Chainbills = {
       args: [];
     },
     {
-      name: 'closePayableReceived';
-      docs: [
-        'Stop a payable from accepting payments from contract call on',
-        'another chain. Should be called only by the host (user) that created',
-        'the payable.',
-        '',
-        '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.'
-      ];
-      accounts: [
-        {
-          name: 'payable';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'host';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'signer';
-          isMut: true;
-          isSigner: true;
-        },
-        {
-          name: 'config';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'wormholeProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'vaa';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ];
-        },
-        {
-          name: 'foreignContract';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ];
-        },
-        {
-          name: 'wormholeReceived';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Received account. [`wormhole_received`](crate::wormhole_received) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ];
-        },
-        {
-          name: 'systemProgram';
-          isMut: false;
-          isSigner: false;
-        }
-      ];
-      args: [
-        {
-          name: 'vaaHash';
-          type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'caller';
-          type: {
-            array: ['u8', 32];
-          };
-        }
-      ];
-    },
-    {
       name: 'reopenPayable';
       docs: [
         'Allow a closed payable to continue accepting payments.',
@@ -716,102 +513,13 @@ export type Chainbills = {
       args: [];
     },
     {
-      name: 'reopenPayableReceived';
+      name: 'updatePayableAllowedTokensAndAmounts';
       docs: [
-        'Allow a closed payable to continue accepting payments from contract',
-        'call on another chain. Should be called only by the host (user)',
-        'that owns the payable.',
+        "Allows a payable's host to update the payable's allowed_tokens_and_amounts.",
         '',
         '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.'
-      ];
-      accounts: [
-        {
-          name: 'payable';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'host';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'signer';
-          isMut: true;
-          isSigner: true;
-        },
-        {
-          name: 'config';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'wormholeProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'vaa';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ];
-        },
-        {
-          name: 'foreignContract';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ];
-        },
-        {
-          name: 'wormholeReceived';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Received account. [`wormhole_received`](crate::wormhole_received) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ];
-        },
-        {
-          name: 'systemProgram';
-          isMut: false;
-          isSigner: false;
-        }
-      ];
-      args: [
-        {
-          name: 'vaaHash';
-          type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'caller';
-          type: {
-            array: ['u8', 32];
-          };
-        }
-      ];
-    },
-    {
-      name: 'updatePayableDescription';
-      docs: [
-        "Allows a payable's host to update the payable's description.",
-        '',
-        '### args',
-        '* description: the new description of the payable.'
+        '* allowed_tokens_and_amounts: the new set of tokens and amounts that the payable',
+        'will accept.'
       ];
       accounts: [
         {
@@ -832,96 +540,11 @@ export type Chainbills = {
       ];
       args: [
         {
-          name: 'description';
-          type: 'string';
-        }
-      ];
-    },
-    {
-      name: 'updatePayableDescriptionReceived';
-      docs: [
-        "Allows a payable's host to update the payable's description from a",
-        'contract call on another chain.',
-        '',
-        '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.'
-      ];
-      accounts: [
-        {
-          name: 'payable';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'host';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'signer';
-          isMut: true;
-          isSigner: true;
-        },
-        {
-          name: 'config';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'wormholeProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'vaa';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ];
-        },
-        {
-          name: 'foreignContract';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ];
-        },
-        {
-          name: 'wormholeReceived';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Received account. [`wormhole_received`](crate::wormhole_received) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ];
-        },
-        {
-          name: 'systemProgram';
-          isMut: false;
-          isSigner: false;
-        }
-      ];
-      args: [
-        {
-          name: 'vaaHash';
+          name: 'allowedTokensAndAmounts';
           type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'caller';
-          type: {
-            array: ['u8', 32];
+            vec: {
+              defined: 'TokenAndAmount';
+            };
           };
         }
       ];
@@ -936,7 +559,17 @@ export type Chainbills = {
       ];
       accounts: [
         {
-          name: 'payment';
+          name: 'userPayment';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payablePayment';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payableChainCounter';
           isMut: true;
           isSigner: false;
         },
@@ -951,11 +584,6 @@ export type Chainbills = {
           isSigner: false;
         },
         {
-          name: 'globalStats';
-          isMut: true;
-          isSigner: false;
-        },
-        {
           name: 'chainStats';
           isMut: true;
           isSigner: false;
@@ -966,12 +594,18 @@ export type Chainbills = {
           isSigner: false;
         },
         {
+          name: 'maxWithdrawalFeeDetails';
+          isMut: false;
+          isSigner: false;
+          docs: ["Ensures that payers don't pay into unsupported tokens."];
+        },
+        {
           name: 'payerTokenAccount';
           isMut: true;
           isSigner: false;
         },
         {
-          name: 'globalTokenAccount';
+          name: 'chainTokenAccount';
           isMut: true;
           isSigner: false;
         },
@@ -999,20 +633,26 @@ export type Chainbills = {
       ];
     },
     {
-      name: 'payReceived';
+      name: 'payNative';
       docs: [
-        'Transfers the amount of tokens from another chain network to a payable',
+        'Transfers the amount of native tokens (Solana) to a payable',
         '',
         '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.',
-        '* payer_count<u64>: The nth count of the new payment from the payer.'
+        '* amount<u64>: The Wormhole-normalized amount to be paid'
       ];
       accounts: [
         {
-          name: 'payment';
+          name: 'userPayment';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payablePayment';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payableChainCounter';
           isMut: true;
           isSigner: false;
         },
@@ -1027,141 +667,19 @@ export type Chainbills = {
           isSigner: false;
         },
         {
-          name: 'globalStats';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'globalTokenAccount';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'config';
-          isMut: false;
-          isSigner: false;
-        },
-        {
           name: 'chainStats';
           isMut: true;
           isSigner: false;
         },
         {
-          name: 'foreignContract';
+          name: 'maxWithdrawalFeeDetails';
           isMut: false;
           isSigner: false;
-          docs: [
-            'Foreign Contract account. The registered contract specified in this',
-            "account must agree with the target address for the Token Bridge's token",
-            'transfer. Read-only.'
-          ];
-        },
-        {
-          name: 'tokenBridgeWrappedMint';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Token Bridge wrapped mint info. This is the SPL token that will be',
-            'bridged from the foreign contract. The wrapped mint PDA must agree',
-            "with the native token's metadata in the wormhole message. Mutable."
-          ];
-        },
-        {
-          name: 'tokenBridgeWrappedMeta';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            "Token Bridge program's wrapped metadata, which stores info",
-            'about the token from its native chain:',
-            '* Wormhole Chain ID',
-            "* Token's native contract address",
-            "* Token's native decimals"
-          ];
-        },
-        {
-          name: 'tokenBridgeClaim';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'is true if the bridged assets have been claimed. If the transfer has',
-            'not been redeemed, this account will not exist yet.'
-          ];
-        },
-        {
-          name: 'tokenBridgeForeignEndpoint';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Token Bridge foreign endpoint. This account should really be one',
-            'endpoint per chain, but the PDA allows for multiple endpoints for each',
-            'chain! We store the proper endpoint for the emitter chain.'
-          ];
-        },
-        {
-          name: 'tokenBridgeMintAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'tokenBridgeConfig';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'wormholeBridge';
-          isMut: true;
-          isSigner: false;
-          docs: ['Wormhole bridge data. Mutable.'];
-        },
-        {
-          name: 'vaa';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ];
-        },
-        {
-          name: 'wormholeReceived';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Received account. [`receive_message`](crate::receive_message) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ];
         },
         {
           name: 'signer';
           isMut: true;
           isSigner: true;
-        },
-        {
-          name: 'wormholeProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'tokenBridgeProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'associatedTokenProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'tokenProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'rent';
-          isMut: false;
-          isSigner: false;
         },
         {
           name: 'systemProgram';
@@ -1171,19 +689,7 @@ export type Chainbills = {
       ];
       args: [
         {
-          name: 'vaaHash';
-          type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'caller';
-          type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'payerCount';
+          name: 'amount';
           type: 'u64';
         }
       ];
@@ -1203,17 +709,17 @@ export type Chainbills = {
           isSigner: false;
         },
         {
+          name: 'payableWithdrawalCounter';
+          isMut: true;
+          isSigner: false;
+        },
+        {
           name: 'payable';
           isMut: true;
           isSigner: false;
         },
         {
           name: 'host';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'globalStats';
           isMut: true;
           isSigner: false;
         },
@@ -1243,8 +749,18 @@ export type Chainbills = {
           isSigner: false;
         },
         {
-          name: 'globalTokenAccount';
+          name: 'chainTokenAccount';
           isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'feesTokenAccount';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'feeCollector';
+          isMut: false;
           isSigner: false;
         },
         {
@@ -1271,21 +787,21 @@ export type Chainbills = {
       ];
     },
     {
-      name: 'withdrawReceivedHandler';
+      name: 'withdrawNative';
       docs: [
-        'Transfers the amount of tokens from a payable to its host on another',
-        'chain network',
+        'Transfers the amount of native tokens (Solana) from a payable to a host',
         '',
         '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.',
-        '* host_count<u64>: The nth count of the new withdrawal from the host.'
+        '* amount<u64>: The amount to be withdrawn'
       ];
       accounts: [
         {
           name: 'withdrawal';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payableWithdrawalCounter';
           isMut: true;
           isSigner: false;
         },
@@ -1300,12 +816,7 @@ export type Chainbills = {
           isSigner: false;
         },
         {
-          name: 'globalStats';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'globalTokenAccount';
+          name: 'chainStats';
           isMut: true;
           isSigner: false;
         },
@@ -1315,105 +826,14 @@ export type Chainbills = {
           isSigner: false;
         },
         {
-          name: 'chainStats';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'foreignContract';
+          name: 'feeCollector';
           isMut: false;
           isSigner: false;
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ];
-        },
-        {
-          name: 'vaa';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ];
-        },
-        {
-          name: 'wormholeReceived';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Received account. [`receive_message`](crate::receive_message) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ];
-        },
-        {
-          name: 'tokenBridgeWrappedMint';
-          isMut: true;
-          isSigner: false;
-          docs: [
-            'Token Bridge wrapped mint info. This is the SPL token that will be',
-            'bridged to the foreign contract. The wrapped mint PDA must agree',
-            "with the native token's metadata. Mutable."
-          ];
         },
         {
           name: 'maxWithdrawalFeeDetails';
           isMut: false;
           isSigner: false;
-          docs: ['Account that stores the max withdrawal fee details.'];
-        },
-        {
-          name: 'tokenBridgeWrappedMeta';
-          isMut: false;
-          isSigner: false;
-          docs: [
-            "Token Bridge program's wrapped metadata, which stores info",
-            'about the token from its native chain:',
-            '* Wormhole Chain ID',
-            "* Token's native contract address",
-            "* Token's native decimals"
-          ];
-        },
-        {
-          name: 'tokenBridgeAuthoritySigner';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'tokenBridgeConfig';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'wormholeBridge';
-          isMut: true;
-          isSigner: false;
-          docs: ['Wormhole bridge data. Mutable.'];
-        },
-        {
-          name: 'wormholeMessage';
-          isMut: true;
-          isSigner: false;
-          docs: ['tokens transferred in this account.'];
-        },
-        {
-          name: 'emitter';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'sequence';
-          isMut: true;
-          isSigner: false;
-        },
-        {
-          name: 'feeCollector';
-          isMut: true;
-          isSigner: false;
-          docs: ['Wormhole fee collector. Mutable.'];
         },
         {
           name: 'signer';
@@ -1421,56 +841,14 @@ export type Chainbills = {
           isSigner: true;
         },
         {
-          name: 'wormholeProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'tokenBridgeProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'associatedTokenProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'tokenProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
           name: 'systemProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'clock';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'rent';
           isMut: false;
           isSigner: false;
         }
       ];
       args: [
         {
-          name: 'vaaHash';
-          type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'caller';
-          type: {
-            array: ['u8', 32];
-          };
-        },
-        {
-          name: 'hostCount';
+          name: 'amount';
           type: 'u64';
         }
       ];
@@ -1491,33 +869,28 @@ export type Chainbills = {
           isSigner: false;
         },
         {
-          name: 'globalStats';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'thisProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'thisProgramData';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'globalTokenAccount';
+          name: 'chainStats';
           isMut: true;
           isSigner: false;
         },
         {
-          name: 'adminTokenAccount';
+          name: 'chainTokenAccount';
           isMut: true;
           isSigner: false;
         },
         {
-          name: 'admin';
+          name: 'ownerTokenAccount';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'config';
           isMut: false;
+          isSigner: false;
+        },
+        {
+          name: 'owner';
+          isMut: true;
           isSigner: true;
         },
         {
@@ -1536,8 +909,15 @@ export type Chainbills = {
   ];
   accounts: [
     {
+      name: 'empty';
+      type: {
+        kind: 'struct';
+        fields: [];
+      };
+    },
+    {
       name: 'chainStats';
-      docs: ['Keeps track of all activities on each chain.'];
+      docs: ['Keeps track of all activities on this chain.'];
       type: {
         kind: 'struct';
         fields: [
@@ -1587,7 +967,12 @@ export type Chainbills = {
         fields: [
           {
             name: 'owner';
-            docs: ["Program's owner."];
+            docs: ['Deployer of this program.'];
+            type: 'publicKey';
+          },
+          {
+            name: 'chainbillsFeeCollector';
+            docs: ["Chainbills' [FeeCollector](FeeCollector) address."];
             type: 'publicKey';
           },
           {
@@ -1599,20 +984,12 @@ export type Chainbills = {
             type: 'publicKey';
           },
           {
-            name: 'tokenBridgeConfig';
-            docs: [
-              "[TokenBridge's Config](wormhole_anchor_sdk::token_bridge::Config)",
-              'address. Needed by the TokenBridge to post messages to Wormhole.'
-            ];
+            name: 'wormholeEmitter';
+            docs: ['Used by Wormhole to send messages'];
             type: 'publicKey';
           },
           {
-            name: 'emitter';
-            docs: ['Used by Wormhole and TokenBridge to send messages'];
-            type: 'publicKey';
-          },
-          {
-            name: 'feeCollector';
+            name: 'wormholeFeeCollector';
             docs: [
               "Wormhole's [FeeCollector](wormhole_anchor_sdk::wormhole::FeeCollector)",
               'address.'
@@ -1620,34 +997,11 @@ export type Chainbills = {
             type: 'publicKey';
           },
           {
-            name: 'sequence';
+            name: 'wormholeSequence';
             docs: [
               'The [SequenceTracker](wormhole_anchor_sdk::wormhole::SequenceTracker)',
               'address for Wormhole messages. It tracks the number of messages posted',
               'by this program.'
-            ];
-            type: 'publicKey';
-          },
-          {
-            name: 'mintAuthority';
-            docs: [
-              "Doesn't hold data. Is SPL mint authority (signer) for Token Bridge",
-              'wrapped assets.'
-            ];
-            type: 'publicKey';
-          },
-          {
-            name: 'custodySigner';
-            docs: [
-              "Doesn't hold data. Signs custody (holding-balances) Token Bridge",
-              'SPL transfers.'
-            ];
-            type: 'publicKey';
-          },
-          {
-            name: 'authoritySigner';
-            docs: [
-              "Doesn't hold data. Signs outbound TokenBridge SPL transfers."
             ];
             type: 'publicKey';
           }
@@ -1671,40 +1025,6 @@ export type Chainbills = {
             type: {
               array: ['u8', 32];
             };
-          },
-          {
-            name: 'tokenBridgeForeignEndpoint';
-            docs: ["Token Bridge program's foreign endpoint account key."];
-            type: 'publicKey';
-          }
-        ];
-      };
-    },
-    {
-      name: 'globalStats';
-      docs: ['Keeps track of all activity accounts across Chainbills.'];
-      type: {
-        kind: 'struct';
-        fields: [
-          {
-            name: 'usersCount';
-            docs: ['Total number of users that have ever been initialized.'];
-            type: 'u64';
-          },
-          {
-            name: 'payablesCount';
-            docs: ['Total number of payables that have ever been created.'];
-            type: 'u64';
-          },
-          {
-            name: 'paymentsCount';
-            docs: ['Total number of payments that have ever been made.'];
-            type: 'u64';
-          },
-          {
-            name: 'withdrawalsCount';
-            docs: ['Total number of withdrawals that have ever been made.'];
-            type: 'u64';
           }
         ];
       };
@@ -1717,18 +1037,132 @@ export type Chainbills = {
         fields: [
           {
             name: 'token';
+            docs: ['The address of the token mint.'];
+            type: 'publicKey';
+          },
+          {
+            name: 'amount';
+            docs: ['The amount of the token (with its decimals).'];
+            type: 'u64';
+          }
+        ];
+      };
+    },
+    {
+      name: 'payableChainCounter';
+      docs: ['A counter for the PayablePayments per chain.'];
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'payableId';
+            docs: ['The ID of the Payable to which this Payment was made.'];
+            type: 'publicKey';
+          },
+          {
+            name: 'chainId';
             docs: [
-              'The Wormhole-normalized address of the token mint.',
-              'This should be the bridged address on Solana.'
+              'The Wormhole Chain ID of the chain from which the payment was made.'
+            ];
+            type: 'u16';
+          },
+          {
+            name: 'paymentsCount';
+            docs: [
+              'The nth count of payments to this payable from the payment source',
+              'chain at the point this payment was recorded.'
+            ];
+            type: 'u64';
+          }
+        ];
+      };
+    },
+    {
+      name: 'payablePayment';
+      docs: [
+        'Receipt of a payment from any blockchain network (this-chain inclusive)',
+        'made to a Payable in this chain.'
+      ];
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'payableId';
+            docs: ['The ID of the Payable to which this Payment was made.'];
+            type: 'publicKey';
+          },
+          {
+            name: 'payer';
+            docs: [
+              'The Wormhole-normalized wallet address that made this Payment.',
+              'If the payer is on Solana, then will be the bytes of their wallet address.'
             ];
             type: {
               array: ['u8', 32];
             };
           },
           {
-            name: 'amount';
+            name: 'payerChainId';
             docs: [
-              'The Wormhole-normalized (with 8 decimals) amount of the token.'
+              'The Wormhole Chain ID of the chain from which the payment was made.'
+            ];
+            type: 'u16';
+          },
+          {
+            name: 'localChainCount';
+            docs: [
+              'The nth count of payments to this payable from the payment source',
+              'chain at the point this payment was recorded.'
+            ];
+            type: 'u64';
+          },
+          {
+            name: 'payableCount';
+            docs: [
+              'The nth count of payments that the payable has received',
+              'at the point when this payment was made.'
+            ];
+            type: 'u64';
+          },
+          {
+            name: 'payerCount';
+            docs: [
+              'The nth count of payments that the payer has made',
+              'at the point of making this payment.'
+            ];
+            type: 'u64';
+          },
+          {
+            name: 'timestamp';
+            docs: ['When this payment was made.'];
+            type: 'u64';
+          },
+          {
+            name: 'details';
+            docs: ['The amount and token that the payer paid'];
+            type: {
+              defined: 'TokenAndAmount';
+            };
+          }
+        ];
+      };
+    },
+    {
+      name: 'payableWithdrawalCounter';
+      docs: [
+        'A counter for the Withdrawals per Payable. This is used to track',
+        "the nth withdrawal made from a payable. It contains the host's",
+        'count of withdrawals and the time the withdrawal was made',
+        'on the involved payable. The caller should then use the retrieved',
+        'host count to get the main Withdrawal account.'
+      ];
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'hostCount';
+            docs: [
+              'The host count of withdrawals at the point when the withdrawal was made.'
             ];
             type: 'u64';
           }
@@ -1737,27 +1171,23 @@ export type Chainbills = {
     },
     {
       name: 'payable';
+      docs: [
+        'A payable is like a public invoice through which anybody can pay to.'
+      ];
       type: {
         kind: 'struct';
         fields: [
           {
-            name: 'globalCount';
-            docs: [
-              'The nth count of global payables at the point this payable was created.'
-            ];
-            type: 'u64';
-          },
-          {
             name: 'chainCount';
             docs: [
-              'The nth count of payables on the calling chain at the point this payable',
+              'The nth count of payables on this chain at the point this payable',
               'was created.'
             ];
             type: 'u64';
           },
           {
             name: 'host';
-            docs: ['The address of the User account that owns this Payable.'];
+            docs: ['The wallet address of that created this Payable.'];
             type: 'publicKey';
           },
           {
@@ -1769,15 +1199,7 @@ export type Chainbills = {
             type: 'u64';
           },
           {
-            name: 'description';
-            docs: [
-              'Displayed to payers when the make payments to this payable.',
-              'Set by the host.'
-            ];
-            type: 'string';
-          },
-          {
-            name: 'tokensAndAmounts';
+            name: 'allowedTokensAndAmounts';
             docs: ['The allowed tokens (and their amounts) on this payable.'];
             type: {
               vec: {
@@ -1793,13 +1215,6 @@ export type Chainbills = {
                 defined: 'TokenAndAmount';
               };
             };
-          },
-          {
-            name: 'allowsFreePayments';
-            docs: [
-              'Whether this payable allows payments any amount in any token.'
-            ];
-            type: 'bool';
           },
           {
             name: 'createdAt';
@@ -1825,36 +1240,45 @@ export type Chainbills = {
       };
     },
     {
-      name: 'payment';
+      name: 'userPayment';
+      docs: [
+        "A user's receipt of a payment made in this chain to a Payable on any",
+        'blockchain network (this-chain inclusive).'
+      ];
       type: {
         kind: 'struct';
         fields: [
           {
-            name: 'globalCount';
+            name: 'payableId';
             docs: [
-              'The nth count of global payments at the point this payment was made.'
+              'The ID of the Payable to which this Payment was made.',
+              'If the payable was created in Solana, then this will be the bytes that',
+              "payable's Pubkey. Otherwise, it will be a valid 32-byte hash ID",
+              'from another chain.'
             ];
-            type: 'u64';
+            type: {
+              array: ['u8', 32];
+            };
+          },
+          {
+            name: 'payer';
+            docs: ['The wallet address that made this Payment.'];
+            type: 'publicKey';
+          },
+          {
+            name: 'payableChainId';
+            docs: [
+              'The Wormhole Chain ID of the chain into which the payment was made.'
+            ];
+            type: 'u16';
           },
           {
             name: 'chainCount';
             docs: [
-              'The nth count of payments on the calling chain at the point this payment',
+              'The nth count of payments on this chain at the point this payment',
               'was made.'
             ];
             type: 'u64';
-          },
-          {
-            name: 'payable';
-            docs: [
-              'The address of the Payable to which this Payment was made.'
-            ];
-            type: 'publicKey';
-          },
-          {
-            name: 'payer';
-            docs: ['The address of the User account that made this Payment.'];
-            type: 'publicKey';
           },
           {
             name: 'payerCount';
@@ -1889,34 +1313,19 @@ export type Chainbills = {
     },
     {
       name: 'user';
+      docs: ['A user is an entity that can create payables and make payments.'];
       type: {
         kind: 'struct';
         fields: [
           {
-            name: 'ownerWallet';
-            docs: [
-              'The Wormhole-normalized address of the person who owns this User account.'
-            ];
-            type: {
-              array: ['u8', 32];
-            };
-          },
-          {
-            name: 'chainId';
-            docs: ['The Wormhole Chain Id of the owner_wallet'];
-            type: 'u16';
-          },
-          {
-            name: 'globalCount';
-            docs: [
-              'The nth count of global users at the point this user was initialized.'
-            ];
-            type: 'u64';
+            name: 'walletAddress';
+            docs: ['The address of the wallet that owns this User account.'];
+            type: 'publicKey';
           },
           {
             name: 'chainCount';
             docs: [
-              'The nth count of users on the calling chain at the point this user was',
+              'The nth count of users on this chain at the point this user was',
               'initialized.'
             ];
             type: 'u64';
@@ -1941,27 +1350,12 @@ export type Chainbills = {
     },
     {
       name: 'withdrawal';
+      docs: ['A receipt of a withdrawal made by a Host from a Payable.'];
       type: {
         kind: 'struct';
         fields: [
           {
-            name: 'globalCount';
-            docs: [
-              'The nth count of global withdrawals at the point this',
-              'withdrawal was made.'
-            ];
-            type: 'u64';
-          },
-          {
-            name: 'chainCount';
-            docs: [
-              'The nth count of withdrawals on the calling chain at the point',
-              'this withdrawal was made.'
-            ];
-            type: 'u64';
-          },
-          {
-            name: 'payable';
+            name: 'payableId';
             docs: [
               'The address of the Payable from which this Withdrawal was made.'
             ];
@@ -1970,10 +1364,17 @@ export type Chainbills = {
           {
             name: 'host';
             docs: [
-              "The address of the User account (payable's owner)",
-              'that made this Withdrawal.'
+              "The wallet address (payable's owner) that made this Withdrawal."
             ];
             type: 'publicKey';
+          },
+          {
+            name: 'chainCount';
+            docs: [
+              'The nth count of withdrawals on this chain at the point',
+              'this withdrawal was made.'
+            ];
+            type: 'u64';
           },
           {
             name: 'hostCount';
@@ -2032,8 +1433,7 @@ export type Chainbills = {
     {
       name: 'TokenAndAmount';
       docs: [
-        'A combination of a Wormhole-normalized token address and its',
-        'Wormhole-normalized associated amount.',
+        'A combination of a token address and its associated amount.',
         '',
         'This combination is used to constrain how much of a token',
         'a payable can accept. It is also used to record the details',
@@ -2044,19 +1444,12 @@ export type Chainbills = {
         fields: [
           {
             name: 'token';
-            docs: [
-              'The Wormhole-normalized address of the associated token mint.',
-              'This should be the bridged address on Solana.'
-            ];
-            type: {
-              array: ['u8', 32];
-            };
+            docs: ['The associated token mint.'];
+            type: 'publicKey';
           },
           {
             name: 'amount';
-            docs: [
-              'The Wormhole-normalized (with 8 decimals) amount of the token.'
-            ];
+            docs: ['The amount of the token with its decimals.'];
             type: 'u64';
           }
         ];
@@ -2070,18 +1463,42 @@ export type Chainbills = {
     },
     {
       name: 'RegisteredForeignContractEvent';
-      fields: [];
+      fields: [
+        {
+          name: 'chainId';
+          type: 'u16';
+          index: false;
+        },
+        {
+          name: 'emitter';
+          type: {
+            array: ['u8', 32];
+          };
+          index: false;
+        }
+      ];
     },
     {
       name: 'UpdatedMaxWithdrawalFeeEvent';
-      fields: [];
+      fields: [
+        {
+          name: 'token';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'maxFee';
+          type: 'u64';
+          index: false;
+        }
+      ];
     },
     {
       name: 'InitializedUserEvent';
       fields: [
         {
-          name: 'globalCount';
-          type: 'u64';
+          name: 'wallet';
+          type: 'publicKey';
           index: false;
         },
         {
@@ -2092,11 +1509,16 @@ export type Chainbills = {
       ];
     },
     {
-      name: 'InitializedPayableEvent';
+      name: 'CreatedPayableEvent';
       fields: [
         {
-          name: 'globalCount';
-          type: 'u64';
+          name: 'payableId';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'hostWallet';
+          type: 'publicKey';
           index: false;
         },
         {
@@ -2113,22 +1535,72 @@ export type Chainbills = {
     },
     {
       name: 'ClosePayableEvent';
-      fields: [];
+      fields: [
+        {
+          name: 'payableId';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'hostWallet';
+          type: 'publicKey';
+          index: false;
+        }
+      ];
     },
     {
       name: 'ReopenPayableEvent';
-      fields: [];
-    },
-    {
-      name: 'UpdatePayableDescriptionEvent';
-      fields: [];
-    },
-    {
-      name: 'PayEvent';
       fields: [
         {
-          name: 'globalCount';
-          type: 'u64';
+          name: 'payableId';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'hostWallet';
+          type: 'publicKey';
+          index: false;
+        }
+      ];
+    },
+    {
+      name: 'UpdatedPayableAllowedTokensAndAmountsEvent';
+      fields: [
+        {
+          name: 'payableId';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'hostWallet';
+          type: 'publicKey';
+          index: false;
+        }
+      ];
+    },
+    {
+      name: 'PayablePayEvent';
+      fields: [
+        {
+          name: 'payableId';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'payerWallet';
+          type: {
+            array: ['u8', 32];
+          };
+          index: false;
+        },
+        {
+          name: 'paymentId';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'payerChainId';
+          type: 'u16';
           index: false;
         },
         {
@@ -2138,6 +1610,38 @@ export type Chainbills = {
         },
         {
           name: 'payableCount';
+          type: 'u64';
+          index: false;
+        }
+      ];
+    },
+    {
+      name: 'UserPayEvent';
+      fields: [
+        {
+          name: 'payableId';
+          type: {
+            array: ['u8', 32];
+          };
+          index: false;
+        },
+        {
+          name: 'payerWallet';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'paymentId';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'payableChainId';
+          type: 'u16';
+          index: false;
+        },
+        {
+          name: 'chainCount';
           type: 'u64';
           index: false;
         },
@@ -2152,8 +1656,18 @@ export type Chainbills = {
       name: 'WithdrawalEvent';
       fields: [
         {
-          name: 'globalCount';
-          type: 'u64';
+          name: 'payableId';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'hostWallet';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'withdrawalId';
+          type: 'publicKey';
           index: false;
         },
         {
@@ -2175,214 +1689,80 @@ export type Chainbills = {
     },
     {
       name: 'OwnerWithdrawalEvent';
-      fields: [];
+      fields: [
+        {
+          name: 'token';
+          type: 'publicKey';
+          index: false;
+        },
+        {
+          name: 'amount';
+          type: 'u64';
+          index: false;
+        }
+      ];
     }
   ];
   errors: [
     {
       code: 6000;
       name: 'MaxPayableTokensCapacityReached';
-      msg: 'payable tokens capacity has exceeded';
+      msg: 'MaxPayableTokensCapacityReached';
     },
     {
       code: 6001;
-      name: 'MaxPayableDescriptionReached';
-      msg: 'payable description maximum characters has exceeded';
+      name: 'ZeroAmountSpecified';
+      msg: 'ZeroAmountSpecified';
     },
     {
       code: 6002;
-      name: 'ImproperPayablesConfiguration';
-      msg: 'either allows_free_payments or specify tokens_and_amounts';
+      name: 'PayableIsClosed';
+      msg: 'PayableIsClosed';
     },
     {
       code: 6003;
-      name: 'ZeroAmountSpecified';
-      msg: 'payable amount must be greater than zero';
+      name: 'PayableIsAlreadyClosed';
+      msg: 'PayableIsAlreadyClosed';
     },
     {
       code: 6004;
-      name: 'PayableIsClosed';
-      msg: 'payable is currently not accepting payments';
+      name: 'PayableIsNotClosed';
+      msg: 'PayableIsNotClosed';
     },
     {
       code: 6005;
-      name: 'MatchingTokenAndAccountNotFound';
-      msg: 'specified payment token and amount is not allowed on this payable';
+      name: 'MatchingTokenAndAmountNotFound';
+      msg: 'MatchingTokenAndAmountNotFound';
     },
     {
       code: 6006;
       name: 'InsufficientWithdrawAmount';
-      msg: 'withdraw amount should be less than or equal to balance';
+      msg: 'InsufficientWithdrawAmount';
     },
     {
       code: 6007;
       name: 'NoBalanceForWithdrawalToken';
-      msg: 'no balance found for withdrawal token';
+      msg: 'NoBalanceForWithdrawalToken';
     },
     {
       code: 6008;
-      name: 'ProgramDataUnauthorized';
-      msg: 'wrong program data account provided';
+      name: 'OwnerUnauthorized';
+      msg: 'OwnerUnauthorized';
     },
     {
       code: 6009;
-      name: 'AdminUnauthorized';
-      msg: 'you are not an admin';
-    },
-    {
-      code: 6010;
-      name: 'EmptyDescriptionProvided';
-      msg: 'please provide a valid description';
-    },
-    {
-      code: 6011;
       name: 'InvalidWormholeBridge';
       msg: 'InvalidWormholeBridge';
     },
     {
-      code: 6012;
-      name: 'InvalidWormholeFeeCollector';
-      msg: 'InvalidWormholeFeeCollector';
-    },
-    {
-      code: 6013;
-      name: 'InvalidWormholeEmitter';
-      msg: 'InvalidWormholeEmitter';
-    },
-    {
-      code: 6014;
-      name: 'InvalidWormholeSequence';
-      msg: 'InvalidWormholeSequence';
-    },
-    {
-      code: 6015;
-      name: 'OwnerOnly';
-      msg: 'OwnerOnly';
-    },
-    {
-      code: 6016;
+      code: 6010;
       name: 'InvalidForeignContract';
       msg: 'InvalidForeignContract';
     },
     {
-      code: 6017;
-      name: 'InvalidPayloadMessage';
-      msg: 'InvalidPayloadMessage';
-    },
-    {
-      code: 6018;
-      name: 'InvalidActionId';
-      msg: 'InvalidActionId';
-    },
-    {
-      code: 6019;
-      name: 'InvalidCallerAddress';
-      msg: 'InvalidCallerAddress';
-    },
-    {
-      code: 6020;
-      name: 'UnauthorizedCallerAddress';
-      msg: 'UnauthorizedCallerAddress';
-    },
-    {
-      code: 6021;
-      name: 'WrongPayablesHostCountProvided';
-      msg: 'WrongPayablesHostCountProvided';
-    },
-    {
-      code: 6022;
-      name: 'WrongPaymentPayerCountProvided';
-      msg: 'WrongPaymentPayerCountProvided';
-    },
-    {
-      code: 6023;
-      name: 'WrongWithdrawalsHostCountProvided';
-      msg: 'WrongWithdrawalsHostCountProvided';
-    },
-    {
-      code: 6024;
-      name: 'ZeroBridgeAmount';
-      msg: 'ZeroBridgeAmount';
-    },
-    {
-      code: 6025;
-      name: 'InvalidTokenBridgeConfig';
-      msg: 'InvalidTokenBridgeConfig';
-    },
-    {
-      code: 6026;
-      name: 'InvalidTokenBridgeAuthoritySigner';
-      msg: 'InvalidTokenBridgeAuthoritySigner';
-    },
-    {
-      code: 6027;
-      name: 'InvalidTokenBridgeCustodySigner';
-      msg: 'InvalidTokenBridgeCustodySigner';
-    },
-    {
-      code: 6028;
-      name: 'InvalidTokenBridgeSender';
-      msg: 'InvalidTokenBridgeSender';
-    },
-    {
-      code: 6029;
-      name: 'InvalidRecipient';
-      msg: 'InvalidRecipient';
-    },
-    {
-      code: 6030;
-      name: 'InvalidTransferTokenAccount';
-      msg: 'InvalidTransferTokenAccount';
-    },
-    {
-      code: 6031;
-      name: 'InvalidTransferToChain';
-      msg: 'InvalidTransferTokenChain';
-    },
-    {
-      code: 6032;
-      name: 'InvalidTransferTokenChain';
-      msg: 'InvalidTransferTokenChain';
-    },
-    {
-      code: 6033;
-      name: 'InvalidTransferToAddress';
-      msg: 'InvalidTransferToAddress';
-    },
-    {
-      code: 6034;
-      name: 'AlreadyRedeemed';
-      msg: 'AlreadyRedeemed';
-    },
-    {
-      code: 6035;
-      name: 'InvalidTokenBridgeForeignEndpoint';
-      msg: 'InvalidTokenBridgeForeignEndpoint';
-    },
-    {
-      code: 6036;
-      name: 'InvalidTokenBridgeMintAuthority';
-      msg: 'InvalidTokenBridgeMintAuthority';
-    },
-    {
-      code: 6037;
-      name: 'NotMatchingPayableId';
-      msg: 'NotMatchingPayableId';
-    },
-    {
-      code: 6038;
-      name: 'NotMatchingTransactionAmount';
-      msg: 'NotMatchingTransactionAmount';
-    },
-    {
-      code: 6039;
-      name: 'NotMatchingTransactionToken';
-      msg: 'NotMatchingTransactionToken';
-    },
-    {
-      code: 6040;
-      name: 'WrongChainStatsProvided';
-      msg: 'WrongChainStatsProvided';
+      code: 6011;
+      name: 'WrongFeeCollectorAddress';
+      msg: 'WrongFeeCollectorAddress';
     }
   ];
 };
@@ -2390,75 +1770,26 @@ export type Chainbills = {
 export const IDL: Chainbills = {
   version: '0.1.0',
   name: 'chainbills',
-  constants: [
-    {
-      name: 'ACTION_ID_INITIALIZE_PAYABLE',
-      type: 'u8',
-      value: '1'
-    },
-    {
-      name: 'ACTION_ID_CLOSE_PAYABLE',
-      type: 'u8',
-      value: '2'
-    },
-    {
-      name: 'ACTION_ID_REOPEN_PAYABLE',
-      type: 'u8',
-      value: '3'
-    },
-    {
-      name: 'ACTION_ID_UPDATE_PAYABLE_DESCRIPTION',
-      type: 'u8',
-      value: '4'
-    },
-    {
-      name: 'ACTION_ID_PAY',
-      type: 'u8',
-      value: '5'
-    },
-    {
-      name: 'ACTION_ID_WITHDRAW',
-      type: 'u8',
-      value: '6'
-    },
-    {
-      name: 'MAX_PAYABLES_DESCRIPTION_LENGTH',
-      type: {
-        defined: 'usize'
-      },
-      value: '3000'
-    },
-    {
-      name: 'MAX_PAYABLES_TOKENS',
-      type: {
-        defined: 'usize'
-      },
-      value: '20'
-    },
-    {
-      name: 'SEED_PREFIX_SENDING',
-      type: 'bytes',
-      value: '[115, 101, 110, 100, 105, 110, 103]'
-    }
-  ],
   instructions: [
     {
       name: 'initialize',
       docs: [
         "Initialize the program. Specifically initialize the program's",
-        "Config, GlobalStats, and Solana's ChainStats.",
+        "Config and Solana's ChainStats.",
         '',
         'Config holds addresses and infos that this program will use to interact',
         'with Wormhole. Other method handlers would reference properties of',
         'Config to execute Wormhole-related CPI calls.',
         '',
-        'GlobalStats keeps track of the count of all entities in this program.',
-        'Entities include Users, Payables, Payments, and Withdrawals.',
-        'Initializing any other entity must increment the appropriate count in',
-        'GlobalStats.',
+        'ChainStats keeps track of the count of all entities in this program,',
+        'that were created on this chain (and any other chain). Entities include',
+        'Users, Payables, Payments, and Withdrawals. Initializing any other entity',
+        'must increment the appropriate count in the appropriate ChainStats.',
         '',
-        'ChainStats is like GlobalStats but just for each BlockChain Network',
-        "involved in Chainbills. Solana's ChainStats also gets initialized here."
+        'ChainStats has to be initialized for each BlockChain Network',
+        "involved in Chainbills. Solana's ChainStats also gets initialized here.",
+        'ChainStats for other chains get initialized when their foreign contracts',
+        'are registered.'
       ],
       accounts: [
         {
@@ -2469,33 +1800,6 @@ export const IDL: Chainbills = {
             'Whoever initializes the config will be the owner of the program. Signer',
             'for creating the [`Config`] account and posting a Wormhole message',
             'indicating that the program is alive.'
-          ]
-        },
-        {
-          name: 'thisProgram',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Helps in ensuring that the provided `this_program_data` is the',
-            'correct one.'
-          ]
-        },
-        {
-          name: 'thisProgramData',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Helps in ensuring that the provided `owner` is a correct owner.'
-          ]
-        },
-        {
-          name: 'globalStats',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Keeps track of the counts of all entities (Users, Payables, Payments,',
-            'and Withdrawals) in Chainbills. It is also the signer PDA for the holding',
-            'balances in this program.'
           ]
         },
         {
@@ -2518,16 +1822,19 @@ export const IDL: Chainbills = {
           ]
         },
         {
+          name: 'chainbillsFeeCollector',
+          isMut: false,
+          isSigner: false,
+          docs: [
+            'An external address for collecting fees during withdrawals.',
+            'We save it in config and use it for withdrawals.'
+          ]
+        },
+        {
           name: 'wormholeProgram',
           isMut: false,
           isSigner: false,
           docs: ['Wormhole program.']
-        },
-        {
-          name: 'tokenBridgeProgram',
-          isMut: false,
-          isSigner: false,
-          docs: ['Token Bridge program.']
         },
         {
           name: 'wormholeBridge',
@@ -2539,28 +1846,16 @@ export const IDL: Chainbills = {
           ]
         },
         {
-          name: 'tokenBridgeConfig',
-          isMut: false,
+          name: 'wormholeEmitter',
+          isMut: true,
           isSigner: false,
           docs: [
-            'Token Bridge config. Token Bridge program needs this account to',
-            'invoke the Wormhole program to post messages. Even though it is a',
-            'required account for redeeming token transfers, it is not actually',
-            'used for completing these transfers.'
+            "This isn't an account that holds data; it is purely",
+            'just a signer for posting Wormhole messages directly.'
           ]
         },
         {
-          name: 'emitter',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            "Token Bridge. This isn't an account that holds data; it is purely",
-            'just a signer for posting Wormhole messages directly or on behalf of',
-            'the Token Bridge program.'
-          ]
-        },
-        {
-          name: 'feeCollector',
+          name: 'wormholeFeeCollector',
           isMut: true,
           isSigner: false,
           docs: [
@@ -2570,7 +1865,7 @@ export const IDL: Chainbills = {
           ]
         },
         {
-          name: 'sequence',
+          name: 'wormholeSequence',
           isMut: true,
           isSigner: false,
           docs: [
@@ -2580,29 +1875,12 @@ export const IDL: Chainbills = {
           ]
         },
         {
-          name: 'mintAuthority',
-          isMut: false,
+          name: 'wormholeMessage',
+          isMut: true,
           isSigner: false,
           docs: [
-            'data; it is purely just a signer (SPL mint authority) for Token Bridge',
-            'wrapped assets.'
-          ]
-        },
-        {
-          name: 'custodySigner',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'data; it is purely just a signer for Token Bridge SPL tranfers.'
-          ]
-        },
-        {
-          name: 'authoritySigner',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'data; it is purely just a signer for SPL tranfers when it is delegated',
-            'spending approval for the SPL token.'
+            "account, which requires this program's signature.",
+            '[`wormhole::post_message`] requires this account be mutable.'
           ]
         },
         {
@@ -2639,12 +1917,13 @@ export const IDL: Chainbills = {
       ],
       accounts: [
         {
-          name: 'owner',
+          name: 'foreignContract',
           isMut: true,
-          isSigner: true,
+          isSigner: false,
           docs: [
-            'Owner of the program set in the [`Config`] account. Signer for creating',
-            'the [`ForeignContract`] account.'
+            'Foreign Contract account. This account will be created if a contract has',
+            'not been registered yet for this Wormhole Chain ID. If there already is a',
+            'contract address saved in this account, its contents will be overwritted.'
           ]
         },
         {
@@ -2652,45 +1931,18 @@ export const IDL: Chainbills = {
           isMut: false,
           isSigner: false,
           docs: [
-            'Config account. This program requires that the `owner` specified in the',
-            'context equals the pubkey specified in this account. Read-only.'
+            'Config Account that stores important constant addresses that are used',
+            'across program instructions.'
           ]
         },
         {
-          name: 'chainStats',
+          name: 'owner',
           isMut: true,
-          isSigner: false,
+          isSigner: true,
           docs: [
-            'Keeps track of the counts of all entities (Users, Payables, Payments,',
-            'and Withdrawals) initialized on this new Chain in Chainbills.'
+            'Signer for this instruction. Should be the account that holds',
+            'the upgrade authority of this program.'
           ]
-        },
-        {
-          name: 'foreignContract',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Foreign Contract account. Create this account if a contract has not been',
-            'registered yet for this Wormhole chain ID. If there already is a contract',
-            'address saved in this account, overwrite it.'
-          ]
-        },
-        {
-          name: 'tokenBridgeForeignEndpoint',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Token Bridge foreign endpoint. This account should really be one',
-            "endpoint per chain, but Token Bridge's PDA allows for multiple",
-            'endpoints for each chain. We store the proper endpoint for the',
-            'emitter chain.'
-          ]
-        },
-        {
-          name: 'tokenBridgeProgram',
-          isMut: false,
-          isSigner: false,
-          docs: ['Token Bridge program.']
         },
         {
           name: 'systemProgram',
@@ -2713,33 +1965,146 @@ export const IDL: Chainbills = {
       ]
     },
     {
-      name: 'updateMaximumWithdrawalFee',
+      name: 'updateMaxWithdrawalFee',
       docs: [
         'Updates the maximum withdrawal fees of the given token.',
         '',
         '### Args',
-        '* token<[u8; 32]>: The Wormhole-normalized address of the token for which',
-        'its maximum withdrawal fees is been set.',
+        '* token<Pubkey>: The address of the token for which its maximum',
+        'withdrawal fees is been set.',
         '* fee<u64>: The max fee to set.'
       ],
       accounts: [
-        {
-          name: 'owner',
-          isMut: true,
-          isSigner: true,
-          docs: ['Owner of the program set in the [`Config`] account.']
-        },
-        {
-          name: 'config',
-          isMut: false,
-          isSigner: false,
-          docs: ['Config account to confirm owner status.']
-        },
         {
           name: 'maxWithdrawalFeeDetails',
           isMut: true,
           isSigner: false,
           docs: ['Account that stores the max withdrawal fee details.']
+        },
+        {
+          name: 'chainTokenAccount',
+          isMut: true,
+          isSigner: false,
+          docs: [
+            'Initialize the chain token account for storing payments of the token mint',
+            "if it doesn't exist."
+          ]
+        },
+        {
+          name: 'feeCollector',
+          isMut: false,
+          isSigner: false,
+          docs: [
+            "Chainbills' fee collector account. Not verifying it is correct",
+            'in the constraints inorder to bypass the stack offset error. However, the',
+            'check is carried out inside the instruction.'
+          ]
+        },
+        {
+          name: 'feesTokenAccount',
+          isMut: true,
+          isSigner: false,
+          docs: [
+            'Initialize the fees token account for storing payments of the token mint',
+            "if it doesn't exist."
+          ]
+        },
+        {
+          name: 'config',
+          isMut: false,
+          isSigner: false,
+          docs: [
+            'Config Account that stores important constant addresses that are used',
+            'across program instructions.'
+          ]
+        },
+        {
+          name: 'chainStats',
+          isMut: true,
+          isSigner: false,
+          docs: [
+            'Keeps track of entities on this chain. Would be used for initializing',
+            'the chain_token_account for the token whose max_withdrawl_fee is being',
+            'set/updated.'
+          ]
+        },
+        {
+          name: 'mint',
+          isMut: false,
+          isSigner: false,
+          docs: [
+            'The token mint whose max withdrawal fee is being set/updated.'
+          ]
+        },
+        {
+          name: 'owner',
+          isMut: true,
+          isSigner: true,
+          docs: [
+            'Signer for this instruction. Should be the account that holds',
+            'the upgrade authority of this program. Not verifying its owner status',
+            'in the constraints inorder to bypass the stack offset error. However, the',
+            'check is carried out inside the instruction.'
+          ]
+        },
+        {
+          name: 'associatedTokenProgram',
+          isMut: false,
+          isSigner: false,
+          docs: ['Associated Token Program.']
+        },
+        {
+          name: 'tokenProgram',
+          isMut: false,
+          isSigner: false,
+          docs: ['Token Program.']
+        },
+        {
+          name: 'systemProgram',
+          isMut: false,
+          isSigner: false,
+          docs: ['System Program.']
+        }
+      ],
+      args: [
+        {
+          name: 'token',
+          type: 'publicKey'
+        },
+        {
+          name: 'fee',
+          type: 'u64'
+        }
+      ]
+    },
+    {
+      name: 'updateMaxWithdrawalFeeNative',
+      docs: [
+        'Updates the maximum withdrawal fees of the native token (Solana).',
+        '',
+        '### Args',
+        '* fee<u64>: The max fee to set.'
+      ],
+      accounts: [
+        {
+          name: 'maxWithdrawalFeeDetails',
+          isMut: true,
+          isSigner: false,
+          docs: ['Account that stores the max withdrawal fee details.']
+        },
+        {
+          name: 'config',
+          isMut: false,
+          isSigner: false
+        },
+        {
+          name: 'owner',
+          isMut: true,
+          isSigner: true,
+          docs: [
+            'Signer for this instruction. Should be the account that holds',
+            'the upgrade authority of this program.'
+          ]
         },
         {
           name: 'systemProgram',
@@ -2748,12 +2113,6 @@ export const IDL: Chainbills = {
         }
       ],
       args: [
-        {
-          name: 'token',
-          type: {
-            array: ['u8', 32]
-          }
-        },
         {
           name: 'fee',
           type: 'u64'
@@ -2773,194 +2132,100 @@ export const IDL: Chainbills = {
         {
           name: 'user',
           isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'globalStats',
-          isMut: true,
-          isSigner: false
+          isSigner: false,
+          docs: [
+            'The PDA account to create. It houses details about the user. Keeps track',
+            'of the count of entities created by the user.'
+          ]
         },
         {
           name: 'chainStats',
           isMut: true,
-          isSigner: false
+          isSigner: false,
+          docs: [
+            'Keeps track of entities on this chain. Its user_count will be',
+            'incremented in this instruction.'
+          ]
         },
         {
           name: 'signer',
           isMut: true,
-          isSigner: true
+          isSigner: true,
+          docs: ['The signer of the transaction.']
         },
         {
           name: 'systemProgram',
           isMut: false,
-          isSigner: false
+          isSigner: false,
+          docs: ['The system program account.']
         }
       ],
       args: []
     },
     {
-      name: 'initializePayable',
+      name: 'createPayable',
       docs: [
-        'Initialize a Payable',
+        'Create a Payable',
         '',
         '### args',
-        '* description<String>: what users see when they want to make payment.',
-        '* tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens',
-        '(and their amounts) on this payable.',
-        '* allows_free_payments<bool>: Whether this payable should allow payments',
-        'of any amounts of any token.'
+        '* allowed_tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens',
+        '(and their amounts) on this payable. If this vector is empty,',
+        'then the payable will accept payments in any token.'
       ],
       accounts: [
         {
           name: 'payable',
           isMut: true,
-          isSigner: false
+          isSigner: false,
+          docs: [
+            'The payable account to create. It houses details about the payable.'
+          ]
+        },
+        {
+          name: 'payableChainCounter',
+          isMut: true,
+          isSigner: false,
+          docs: [
+            'The payable chain counter account to create. It houses the payments_count',
+            'for the payable per chain.'
+          ]
         },
         {
           name: 'host',
           isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'globalStats',
-          isMut: true,
-          isSigner: false
+          isSigner: false,
+          docs: ['The user account of the signer that is creating the payable.']
         },
         {
           name: 'chainStats',
           isMut: true,
-          isSigner: false
+          isSigner: false,
+          docs: [
+            'Keeps track of entities on this chain. Its payable_count will be',
+            'incremented in this instruction.'
+          ]
         },
         {
           name: 'signer',
           isMut: true,
-          isSigner: true
+          isSigner: true,
+          docs: ['The signer of the transaction.']
         },
         {
           name: 'systemProgram',
           isMut: false,
-          isSigner: false
+          isSigner: false,
+          docs: ['The system program account.']
         }
       ],
       args: [
         {
-          name: 'description',
-          type: 'string'
-        },
-        {
-          name: 'tokensAndAmounts',
+          name: 'allowedTokensAndAmounts',
           type: {
             vec: {
               defined: 'TokenAndAmount'
             }
           }
-        },
-        {
-          name: 'allowsFreePayments',
-          type: 'bool'
-        }
-      ]
-    },
-    {
-      name: 'initializePayableReceived',
-      docs: [
-        'Initialize a Payable from another chain network',
-        '',
-        '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.',
-        '* host_count<u64>: The nth count of the new payable from the host.'
-      ],
-      accounts: [
-        {
-          name: 'payable',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'host',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'globalStats',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'chainStats',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'signer',
-          isMut: true,
-          isSigner: true
-        },
-        {
-          name: 'config',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'wormholeProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'vaa',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ]
-        },
-        {
-          name: 'foreignContract',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ]
-        },
-        {
-          name: 'wormholeReceived',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Received account. [`receive_message`](crate::receive_message) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ]
-        },
-        {
-          name: 'systemProgram',
-          isMut: false,
-          isSigner: false
-        }
-      ],
-      args: [
-        {
-          name: 'vaaHash',
-          type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'caller',
-          type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'hostCount',
-          type: 'u64'
         }
       ]
     },
@@ -2990,96 +2255,6 @@ export const IDL: Chainbills = {
       args: []
     },
     {
-      name: 'closePayableReceived',
-      docs: [
-        'Stop a payable from accepting payments from contract call on',
-        'another chain. Should be called only by the host (user) that created',
-        'the payable.',
-        '',
-        '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.'
-      ],
-      accounts: [
-        {
-          name: 'payable',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'host',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'signer',
-          isMut: true,
-          isSigner: true
-        },
-        {
-          name: 'config',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'wormholeProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'vaa',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ]
-        },
-        {
-          name: 'foreignContract',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ]
-        },
-        {
-          name: 'wormholeReceived',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Received account. [`wormhole_received`](crate::wormhole_received) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ]
-        },
-        {
-          name: 'systemProgram',
-          isMut: false,
-          isSigner: false
-        }
-      ],
-      args: [
-        {
-          name: 'vaaHash',
-          type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'caller',
-          type: {
-            array: ['u8', 32]
-          }
-        }
-      ]
-    },
-    {
       name: 'reopenPayable',
       docs: [
         'Allow a closed payable to continue accepting payments.',
@@ -3105,102 +2280,13 @@ export const IDL: Chainbills = {
       args: []
     },
     {
-      name: 'reopenPayableReceived',
+      name: 'updatePayableAllowedTokensAndAmounts',
       docs: [
-        'Allow a closed payable to continue accepting payments from contract',
-        'call on another chain. Should be called only by the host (user)',
-        'that owns the payable.',
+        "Allows a payable's host to update the payable's allowed_tokens_and_amounts.",
         '',
         '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.'
-      ],
-      accounts: [
-        {
-          name: 'payable',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'host',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'signer',
-          isMut: true,
-          isSigner: true
-        },
-        {
-          name: 'config',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'wormholeProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'vaa',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ]
-        },
-        {
-          name: 'foreignContract',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ]
-        },
-        {
-          name: 'wormholeReceived',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Received account. [`wormhole_received`](crate::wormhole_received) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ]
-        },
-        {
-          name: 'systemProgram',
-          isMut: false,
-          isSigner: false
-        }
-      ],
-      args: [
-        {
-          name: 'vaaHash',
-          type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'caller',
-          type: {
-            array: ['u8', 32]
-          }
-        }
-      ]
-    },
-    {
-      name: 'updatePayableDescription',
-      docs: [
-        "Allows a payable's host to update the payable's description.",
-        '',
-        '### args',
-        '* description: the new description of the payable.'
+        '* allowed_tokens_and_amounts: the new set of tokens and amounts that the payable',
+        'will accept.'
       ],
       accounts: [
         {
@@ -3221,96 +2307,11 @@ export const IDL: Chainbills = {
       ],
       args: [
         {
-          name: 'description',
-          type: 'string'
-        }
-      ]
-    },
-    {
-      name: 'updatePayableDescriptionReceived',
-      docs: [
-        "Allows a payable's host to update the payable's description from a",
-        'contract call on another chain.',
-        '',
-        '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.'
-      ],
-      accounts: [
-        {
-          name: 'payable',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'host',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'signer',
-          isMut: true,
-          isSigner: true
-        },
-        {
-          name: 'config',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'wormholeProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'vaa',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ]
-        },
-        {
-          name: 'foreignContract',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ]
-        },
-        {
-          name: 'wormholeReceived',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Received account. [`wormhole_received`](crate::wormhole_received) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ]
-        },
-        {
-          name: 'systemProgram',
-          isMut: false,
-          isSigner: false
-        }
-      ],
-      args: [
-        {
-          name: 'vaaHash',
+          name: 'allowedTokensAndAmounts',
           type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'caller',
-          type: {
-            array: ['u8', 32]
+            vec: {
+              defined: 'TokenAndAmount'
+            }
           }
         }
       ]
@@ -3325,7 +2326,17 @@ export const IDL: Chainbills = {
       ],
       accounts: [
         {
-          name: 'payment',
+          name: 'userPayment',
+          isMut: true,
+          isSigner: false
+        },
+        {
+          name: 'payablePayment',
+          isMut: true,
+          isSigner: false
+        },
+        {
+          name: 'payableChainCounter',
           isMut: true,
           isSigner: false
         },
@@ -3340,11 +2351,6 @@ export const IDL: Chainbills = {
           isSigner: false
         },
         {
-          name: 'globalStats',
-          isMut: true,
-          isSigner: false
-        },
-        {
           name: 'chainStats',
           isMut: true,
           isSigner: false
@@ -3355,12 +2361,18 @@ export const IDL: Chainbills = {
           isSigner: false
         },
         {
+          name: 'maxWithdrawalFeeDetails',
+          isMut: false,
+          isSigner: false,
+          docs: ["Ensures that payers don't pay into unsupported tokens."]
+        },
+        {
           name: 'payerTokenAccount',
           isMut: true,
           isSigner: false
         },
         {
-          name: 'globalTokenAccount',
+          name: 'chainTokenAccount',
           isMut: true,
           isSigner: false
         },
@@ -3388,20 +2400,26 @@ export const IDL: Chainbills = {
       ]
     },
     {
-      name: 'payReceived',
+      name: 'payNative',
       docs: [
-        'Transfers the amount of tokens from another chain network to a payable',
+        'Transfers the amount of native tokens (Solana) to a payable',
         '',
         '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.',
-        '* payer_count<u64>: The nth count of the new payment from the payer.'
+        '* amount<u64>: The Wormhole-normalized amount to be paid'
       ],
       accounts: [
         {
-          name: 'payment',
+          name: 'userPayment',
+          isMut: true,
+          isSigner: false
+        },
+        {
+          name: 'payablePayment',
+          isMut: true,
+          isSigner: false
+        },
+        {
+          name: 'payableChainCounter',
           isMut: true,
           isSigner: false
         },
@@ -3416,141 +2434,19 @@ export const IDL: Chainbills = {
           isSigner: false
         },
         {
-          name: 'globalStats',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'globalTokenAccount',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'config',
-          isMut: false,
-          isSigner: false
-        },
-        {
           name: 'chainStats',
           isMut: true,
           isSigner: false
         },
         {
-          name: 'foreignContract',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Foreign Contract account. The registered contract specified in this',
-            "account must agree with the target address for the Token Bridge's token",
-            'transfer. Read-only.'
-          ]
-        },
-        {
-          name: 'tokenBridgeWrappedMint',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Token Bridge wrapped mint info. This is the SPL token that will be',
-            'bridged from the foreign contract. The wrapped mint PDA must agree',
-            "with the native token's metadata in the wormhole message. Mutable."
-          ]
-        },
-        {
-          name: 'tokenBridgeWrappedMeta',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            "Token Bridge program's wrapped metadata, which stores info",
-            'about the token from its native chain:',
-            '* Wormhole Chain ID',
-            "* Token's native contract address",
-            "* Token's native decimals"
-          ]
-        },
-        {
-          name: 'tokenBridgeClaim',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'is true if the bridged assets have been claimed. If the transfer has',
-            'not been redeemed, this account will not exist yet.'
-          ]
-        },
-        {
-          name: 'tokenBridgeForeignEndpoint',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Token Bridge foreign endpoint. This account should really be one',
-            'endpoint per chain, but the PDA allows for multiple endpoints for each',
-            'chain! We store the proper endpoint for the emitter chain.'
-          ]
-        },
-        {
-          name: 'tokenBridgeMintAuthority',
+          name: 'maxWithdrawalFeeDetails',
           isMut: false,
           isSigner: false
-        },
-        {
-          name: 'tokenBridgeConfig',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'wormholeBridge',
-          isMut: true,
-          isSigner: false,
-          docs: ['Wormhole bridge data. Mutable.']
-        },
-        {
-          name: 'vaa',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ]
-        },
-        {
-          name: 'wormholeReceived',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Received account. [`receive_message`](crate::receive_message) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ]
         },
         {
           name: 'signer',
           isMut: true,
           isSigner: true
-        },
-        {
-          name: 'wormholeProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'tokenBridgeProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'associatedTokenProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'tokenProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'rent',
-          isMut: false,
-          isSigner: false
         },
         {
           name: 'systemProgram',
@@ -3560,19 +2456,7 @@ export const IDL: Chainbills = {
       ],
       args: [
         {
-          name: 'vaaHash',
-          type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'caller',
-          type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'payerCount',
+          name: 'amount',
           type: 'u64'
         }
       ]
@@ -3592,17 +2476,17 @@ export const IDL: Chainbills = {
           isSigner: false
         },
         {
+          name: 'payableWithdrawalCounter',
+          isMut: true,
+          isSigner: false
+        },
+        {
           name: 'payable',
           isMut: true,
           isSigner: false
         },
         {
           name: 'host',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'globalStats',
           isMut: true,
           isSigner: false
         },
@@ -3632,8 +2516,18 @@ export const IDL: Chainbills = {
           isSigner: false
         },
         {
-          name: 'globalTokenAccount',
+          name: 'chainTokenAccount',
           isMut: true,
+          isSigner: false
+        },
+        {
+          name: 'feesTokenAccount',
+          isMut: true,
+          isSigner: false
+        },
+        {
+          name: 'feeCollector',
+          isMut: false,
           isSigner: false
         },
         {
@@ -3660,21 +2554,21 @@ export const IDL: Chainbills = {
       ]
     },
     {
-      name: 'withdrawReceivedHandler',
+      name: 'withdrawNative',
       docs: [
-        'Transfers the amount of tokens from a payable to its host on another',
-        'chain network',
+        'Transfers the amount of native tokens (Solana) from a payable to a host',
         '',
         '### args',
-        '* vaa_hash<[u8; 32]>: The wormhole encoded hash of the inputs from the',
-        'source chain.',
-        '* caller<[u8; 32]>: The Wormhole-normalized address of the wallet of the',
-        'creator of the payable on the source chain.',
-        '* host_count<u64>: The nth count of the new withdrawal from the host.'
+        '* amount<u64>: The amount to be withdrawn'
       ],
       accounts: [
         {
           name: 'withdrawal',
+          isMut: true,
+          isSigner: false
+        },
+        {
+          name: 'payableWithdrawalCounter',
           isMut: true,
           isSigner: false
         },
@@ -3689,12 +2583,7 @@ export const IDL: Chainbills = {
           isSigner: false
         },
         {
-          name: 'globalStats',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'globalTokenAccount',
+          name: 'chainStats',
           isMut: true,
           isSigner: false
         },
@@ -3704,105 +2593,14 @@ export const IDL: Chainbills = {
           isSigner: false
         },
         {
-          name: 'chainStats',
-          isMut: true,
+          name: 'feeCollector',
+          isMut: false,
           isSigner: false
-        },
-        {
-          name: 'foreignContract',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            "Foreign contract account. The vaa's `emitter_address` must",
-            "agree with the one we have registered for this message's `emitter_chain`",
-            '(chain ID). Read-only.'
-          ]
-        },
-        {
-          name: 'vaa',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            'Verified Wormhole message account. The Wormhole program verified',
-            'signatures and posted the account data here. Read-only.'
-          ]
-        },
-        {
-          name: 'wormholeReceived',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Received account. [`receive_message`](crate::receive_message) will',
-            "deserialize the Wormhole message's payload and save it to this account.",
-            'This account cannot be overwritten, and will prevent Wormhole message',
-            'replay with the same sequence.'
-          ]
-        },
-        {
-          name: 'tokenBridgeWrappedMint',
-          isMut: true,
-          isSigner: false,
-          docs: [
-            'Token Bridge wrapped mint info. This is the SPL token that will be',
-            'bridged to the foreign contract. The wrapped mint PDA must agree',
-            "with the native token's metadata. Mutable."
-          ]
         },
         {
           name: 'maxWithdrawalFeeDetails',
           isMut: false,
-          isSigner: false,
-          docs: ['Account that stores the max withdrawal fee details.']
-        },
-        {
-          name: 'tokenBridgeWrappedMeta',
-          isMut: false,
-          isSigner: false,
-          docs: [
-            "Token Bridge program's wrapped metadata, which stores info",
-            'about the token from its native chain:',
-            '* Wormhole Chain ID',
-            "* Token's native contract address",
-            "* Token's native decimals"
-          ]
-        },
-        {
-          name: 'tokenBridgeAuthoritySigner',
-          isMut: false,
           isSigner: false
-        },
-        {
-          name: 'tokenBridgeConfig',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'wormholeBridge',
-          isMut: true,
-          isSigner: false,
-          docs: ['Wormhole bridge data. Mutable.']
-        },
-        {
-          name: 'wormholeMessage',
-          isMut: true,
-          isSigner: false,
-          docs: ['tokens transferred in this account.']
-        },
-        {
-          name: 'emitter',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'sequence',
-          isMut: true,
-          isSigner: false
-        },
-        {
-          name: 'feeCollector',
-          isMut: true,
-          isSigner: false,
-          docs: ['Wormhole fee collector. Mutable.']
         },
         {
           name: 'signer',
@@ -3810,56 +2608,14 @@ export const IDL: Chainbills = {
           isSigner: true
         },
         {
-          name: 'wormholeProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'tokenBridgeProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'associatedTokenProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'tokenProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
           name: 'systemProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'clock',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'rent',
           isMut: false,
           isSigner: false
         }
       ],
       args: [
         {
-          name: 'vaaHash',
-          type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'caller',
-          type: {
-            array: ['u8', 32]
-          }
-        },
-        {
-          name: 'hostCount',
+          name: 'amount',
           type: 'u64'
         }
       ]
@@ -3880,33 +2636,28 @@ export const IDL: Chainbills = {
           isSigner: false
         },
         {
-          name: 'globalStats',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'thisProgram',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'thisProgramData',
-          isMut: false,
-          isSigner: false
-        },
-        {
-          name: 'globalTokenAccount',
+          name: 'chainStats',
           isMut: true,
           isSigner: false
         },
         {
-          name: 'adminTokenAccount',
+          name: 'chainTokenAccount',
           isMut: true,
           isSigner: false
         },
         {
-          name: 'admin',
+          name: 'ownerTokenAccount',
+          isMut: true,
+          isSigner: false
+        },
+        {
+          name: 'config',
           isMut: false,
+          isSigner: false
+        },
+        {
+          name: 'owner',
+          isMut: true,
           isSigner: true
         },
         {
@@ -3925,8 +2676,15 @@ export const IDL: Chainbills = {
   ],
   accounts: [
     {
+      name: 'empty',
+      type: {
+        kind: 'struct',
+        fields: []
+      }
+    },
+    {
       name: 'chainStats',
-      docs: ['Keeps track of all activities on each chain.'],
+      docs: ['Keeps track of all activities on this chain.'],
       type: {
         kind: 'struct',
         fields: [
@@ -3976,7 +2734,12 @@ export const IDL: Chainbills = {
         fields: [
           {
             name: 'owner',
-            docs: ["Program's owner."],
+            docs: ['Deployer of this program.'],
+            type: 'publicKey'
+          },
+          {
+            name: 'chainbillsFeeCollector',
+            docs: ["Chainbills' [FeeCollector](FeeCollector) address."],
             type: 'publicKey'
           },
           {
@@ -3988,20 +2751,12 @@ export const IDL: Chainbills = {
             type: 'publicKey'
           },
           {
-            name: 'tokenBridgeConfig',
-            docs: [
-              "[TokenBridge's Config](wormhole_anchor_sdk::token_bridge::Config)",
-              'address. Needed by the TokenBridge to post messages to Wormhole.'
-            ],
+            name: 'wormholeEmitter',
+            docs: ['Used by Wormhole to send messages'],
             type: 'publicKey'
           },
           {
-            name: 'emitter',
-            docs: ['Used by Wormhole and TokenBridge to send messages'],
-            type: 'publicKey'
-          },
-          {
-            name: 'feeCollector',
+            name: 'wormholeFeeCollector',
             docs: [
               "Wormhole's [FeeCollector](wormhole_anchor_sdk::wormhole::FeeCollector)",
               'address.'
@@ -4009,34 +2764,11 @@ export const IDL: Chainbills = {
             type: 'publicKey'
           },
           {
-            name: 'sequence',
+            name: 'wormholeSequence',
             docs: [
               'The [SequenceTracker](wormhole_anchor_sdk::wormhole::SequenceTracker)',
               'address for Wormhole messages. It tracks the number of messages posted',
               'by this program.'
-            ],
-            type: 'publicKey'
-          },
-          {
-            name: 'mintAuthority',
-            docs: [
-              "Doesn't hold data. Is SPL mint authority (signer) for Token Bridge",
-              'wrapped assets.'
-            ],
-            type: 'publicKey'
-          },
-          {
-            name: 'custodySigner',
-            docs: [
-              "Doesn't hold data. Signs custody (holding-balances) Token Bridge",
-              'SPL transfers.'
-            ],
-            type: 'publicKey'
-          },
-          {
-            name: 'authoritySigner',
-            docs: [
-              "Doesn't hold data. Signs outbound TokenBridge SPL transfers."
             ],
             type: 'publicKey'
           }
@@ -4060,40 +2792,6 @@ export const IDL: Chainbills = {
             type: {
               array: ['u8', 32]
             }
-          },
-          {
-            name: 'tokenBridgeForeignEndpoint',
-            docs: ["Token Bridge program's foreign endpoint account key."],
-            type: 'publicKey'
-          }
-        ]
-      }
-    },
-    {
-      name: 'globalStats',
-      docs: ['Keeps track of all activity accounts across Chainbills.'],
-      type: {
-        kind: 'struct',
-        fields: [
-          {
-            name: 'usersCount',
-            docs: ['Total number of users that have ever been initialized.'],
-            type: 'u64'
-          },
-          {
-            name: 'payablesCount',
-            docs: ['Total number of payables that have ever been created.'],
-            type: 'u64'
-          },
-          {
-            name: 'paymentsCount',
-            docs: ['Total number of payments that have ever been made.'],
-            type: 'u64'
-          },
-          {
-            name: 'withdrawalsCount',
-            docs: ['Total number of withdrawals that have ever been made.'],
-            type: 'u64'
           }
         ]
       }
@@ -4106,18 +2804,132 @@ export const IDL: Chainbills = {
         fields: [
           {
             name: 'token',
+            docs: ['The address of the token mint.'],
+            type: 'publicKey'
+          },
+          {
+            name: 'amount',
+            docs: ['The amount of the token (with its decimals).'],
+            type: 'u64'
+          }
+        ]
+      }
+    },
+    {
+      name: 'payableChainCounter',
+      docs: ['A counter for the PayablePayments per chain.'],
+      type: {
+        kind: 'struct',
+        fields: [
+          {
+            name: 'payableId',
+            docs: ['The ID of the Payable to which this Payment was made.'],
+            type: 'publicKey'
+          },
+          {
+            name: 'chainId',
             docs: [
-              'The Wormhole-normalized address of the token mint.',
-              'This should be the bridged address on Solana.'
+              'The Wormhole Chain ID of the chain from which the payment was made.'
+            ],
+            type: 'u16'
+          },
+          {
+            name: 'paymentsCount',
+            docs: [
+              'The nth count of payments to this payable from the payment source',
+              'chain at the point this payment was recorded.'
+            ],
+            type: 'u64'
+          }
+        ]
+      }
+    },
+    {
+      name: 'payablePayment',
+      docs: [
+        'Receipt of a payment from any blockchain network (this-chain inclusive)',
+        'made to a Payable in this chain.'
+      ],
+      type: {
+        kind: 'struct',
+        fields: [
+          {
+            name: 'payableId',
+            docs: ['The ID of the Payable to which this Payment was made.'],
+            type: 'publicKey'
+          },
+          {
+            name: 'payer',
+            docs: [
+              'The Wormhole-normalized wallet address that made this Payment.',
+              'If the payer is on Solana, then will be the bytes of their wallet address.'
             ],
             type: {
               array: ['u8', 32]
             }
           },
           {
-            name: 'amount',
+            name: 'payerChainId',
             docs: [
-              'The Wormhole-normalized (with 8 decimals) amount of the token.'
+              'The Wormhole Chain ID of the chain from which the payment was made.'
+            ],
+            type: 'u16'
+          },
+          {
+            name: 'localChainCount',
+            docs: [
+              'The nth count of payments to this payable from the payment source',
+              'chain at the point this payment was recorded.'
+            ],
+            type: 'u64'
+          },
+          {
+            name: 'payableCount',
+            docs: [
+              'The nth count of payments that the payable has received',
+              'at the point when this payment was made.'
+            ],
+            type: 'u64'
+          },
+          {
+            name: 'payerCount',
+            docs: [
+              'The nth count of payments that the payer has made',
+              'at the point of making this payment.'
+            ],
+            type: 'u64'
+          },
+          {
+            name: 'timestamp',
+            docs: ['When this payment was made.'],
+            type: 'u64'
+          },
+          {
+            name: 'details',
+            docs: ['The amount and token that the payer paid'],
+            type: {
+              defined: 'TokenAndAmount'
+            }
+          }
+        ]
+      }
+    },
+    {
+      name: 'payableWithdrawalCounter',
+      docs: [
+        'A counter for the Withdrawals per Payable. This is used to track',
+        "the nth withdrawal made from a payable. It contains the host's",
+        'count of withdrawals and the time the withdrawal was made',
+        'on the involved payable. The caller should then use the retrieved',
+        'host count to get the main Withdrawal account.'
+      ],
+      type: {
+        kind: 'struct',
+        fields: [
+          {
+            name: 'hostCount',
+            docs: [
+              'The host count of withdrawals at the point when the withdrawal was made.'
             ],
             type: 'u64'
           }
@@ -4126,27 +2938,23 @@ export const IDL: Chainbills = {
     },
     {
       name: 'payable',
+      docs: [
+        'A payable is like a public invoice through which anybody can pay to.'
+      ],
       type: {
         kind: 'struct',
         fields: [
           {
-            name: 'globalCount',
-            docs: [
-              'The nth count of global payables at the point this payable was created.'
-            ],
-            type: 'u64'
-          },
-          {
             name: 'chainCount',
             docs: [
-              'The nth count of payables on the calling chain at the point this payable',
+              'The nth count of payables on this chain at the point this payable',
               'was created.'
             ],
             type: 'u64'
           },
           {
             name: 'host',
-            docs: ['The address of the User account that owns this Payable.'],
+            docs: ['The wallet address of that created this Payable.'],
             type: 'publicKey'
           },
           {
@@ -4158,15 +2966,7 @@ export const IDL: Chainbills = {
             type: 'u64'
           },
           {
-            name: 'description',
-            docs: [
-              'Displayed to payers when the make payments to this payable.',
-              'Set by the host.'
-            ],
-            type: 'string'
-          },
-          {
-            name: 'tokensAndAmounts',
+            name: 'allowedTokensAndAmounts',
             docs: ['The allowed tokens (and their amounts) on this payable.'],
             type: {
               vec: {
@@ -4182,13 +2982,6 @@ export const IDL: Chainbills = {
                 defined: 'TokenAndAmount'
               }
             }
-          },
-          {
-            name: 'allowsFreePayments',
-            docs: [
-              'Whether this payable allows payments any amount in any token.'
-            ],
-            type: 'bool'
           },
           {
             name: 'createdAt',
@@ -4214,36 +3007,45 @@ export const IDL: Chainbills = {
       }
     },
     {
-      name: 'payment',
+      name: 'userPayment',
+      docs: [
+        "A user's receipt of a payment made in this chain to a Payable on any",
+        'blockchain network (this-chain inclusive).'
+      ],
       type: {
         kind: 'struct',
         fields: [
           {
-            name: 'globalCount',
+            name: 'payableId',
             docs: [
-              'The nth count of global payments at the point this payment was made.'
+              'The ID of the Payable to which this Payment was made.',
+              'If the payable was created in Solana, then this will be the bytes that',
+              "payable's Pubkey. Otherwise, it will be a valid 32-byte hash ID",
+              'from another chain.'
             ],
-            type: 'u64'
+            type: {
+              array: ['u8', 32]
+            }
+          },
+          {
+            name: 'payer',
+            docs: ['The wallet address that made this Payment.'],
+            type: 'publicKey'
+          },
+          {
+            name: 'payableChainId',
+            docs: [
+              'The Wormhole Chain ID of the chain into which the payment was made.'
+            ],
+            type: 'u16'
           },
           {
             name: 'chainCount',
             docs: [
-              'The nth count of payments on the calling chain at the point this payment',
+              'The nth count of payments on this chain at the point this payment',
               'was made.'
             ],
             type: 'u64'
-          },
-          {
-            name: 'payable',
-            docs: [
-              'The address of the Payable to which this Payment was made.'
-            ],
-            type: 'publicKey'
-          },
-          {
-            name: 'payer',
-            docs: ['The address of the User account that made this Payment.'],
-            type: 'publicKey'
           },
           {
             name: 'payerCount',
@@ -4278,34 +3080,19 @@ export const IDL: Chainbills = {
     },
     {
       name: 'user',
+      docs: ['A user is an entity that can create payables and make payments.'],
       type: {
         kind: 'struct',
         fields: [
           {
-            name: 'ownerWallet',
-            docs: [
-              'The Wormhole-normalized address of the person who owns this User account.'
-            ],
-            type: {
-              array: ['u8', 32]
-            }
-          },
-          {
-            name: 'chainId',
-            docs: ['The Wormhole Chain Id of the owner_wallet'],
-            type: 'u16'
-          },
-          {
-            name: 'globalCount',
-            docs: [
-              'The nth count of global users at the point this user was initialized.'
-            ],
-            type: 'u64'
+            name: 'walletAddress',
+            docs: ['The address of the wallet that owns this User account.'],
+            type: 'publicKey'
           },
           {
             name: 'chainCount',
             docs: [
-              'The nth count of users on the calling chain at the point this user was',
+              'The nth count of users on this chain at the point this user was',
               'initialized.'
             ],
             type: 'u64'
@@ -4330,27 +3117,12 @@ export const IDL: Chainbills = {
     },
     {
       name: 'withdrawal',
+      docs: ['A receipt of a withdrawal made by a Host from a Payable.'],
       type: {
         kind: 'struct',
         fields: [
           {
-            name: 'globalCount',
-            docs: [
-              'The nth count of global withdrawals at the point this',
-              'withdrawal was made.'
-            ],
-            type: 'u64'
-          },
-          {
-            name: 'chainCount',
-            docs: [
-              'The nth count of withdrawals on the calling chain at the point',
-              'this withdrawal was made.'
-            ],
-            type: 'u64'
-          },
-          {
-            name: 'payable',
+            name: 'payableId',
             docs: [
               'The address of the Payable from which this Withdrawal was made.'
             ],
@@ -4359,10 +3131,17 @@ export const IDL: Chainbills = {
           {
             name: 'host',
             docs: [
-              "The address of the User account (payable's owner)",
-              'that made this Withdrawal.'
+              "The wallet address (payable's owner) that made this Withdrawal."
             ],
             type: 'publicKey'
+          },
+          {
+            name: 'chainCount',
+            docs: [
+              'The nth count of withdrawals on this chain at the point',
+              'this withdrawal was made.'
+            ],
+            type: 'u64'
           },
           {
             name: 'hostCount',
@@ -4421,8 +3200,7 @@ export const IDL: Chainbills = {
     {
       name: 'TokenAndAmount',
       docs: [
-        'A combination of a Wormhole-normalized token address and its',
-        'Wormhole-normalized associated amount.',
+        'A combination of a token address and its associated amount.',
         '',
         'This combination is used to constrain how much of a token',
         'a payable can accept. It is also used to record the details',
@@ -4433,19 +3211,12 @@ export const IDL: Chainbills = {
         fields: [
           {
             name: 'token',
-            docs: [
-              'The Wormhole-normalized address of the associated token mint.',
-              'This should be the bridged address on Solana.'
-            ],
-            type: {
-              array: ['u8', 32]
-            }
+            docs: ['The associated token mint.'],
+            type: 'publicKey'
           },
           {
             name: 'amount',
-            docs: [
-              'The Wormhole-normalized (with 8 decimals) amount of the token.'
-            ],
+            docs: ['The amount of the token with its decimals.'],
             type: 'u64'
           }
         ]
@@ -4459,18 +3230,42 @@ export const IDL: Chainbills = {
     },
     {
       name: 'RegisteredForeignContractEvent',
-      fields: []
+      fields: [
+        {
+          name: 'chainId',
+          type: 'u16',
+          index: false
+        },
+        {
+          name: 'emitter',
+          type: {
+            array: ['u8', 32]
+          },
+          index: false
+        }
+      ]
     },
     {
       name: 'UpdatedMaxWithdrawalFeeEvent',
-      fields: []
+      fields: [
+        {
+          name: 'token',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'maxFee',
+          type: 'u64',
+          index: false
+        }
+      ]
     },
     {
       name: 'InitializedUserEvent',
       fields: [
         {
-          name: 'globalCount',
-          type: 'u64',
+          name: 'wallet',
+          type: 'publicKey',
           index: false
         },
         {
@@ -4481,11 +3276,16 @@ export const IDL: Chainbills = {
       ]
     },
     {
-      name: 'InitializedPayableEvent',
+      name: 'CreatedPayableEvent',
       fields: [
         {
-          name: 'globalCount',
-          type: 'u64',
+          name: 'payableId',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'hostWallet',
+          type: 'publicKey',
           index: false
         },
         {
@@ -4502,22 +3302,72 @@ export const IDL: Chainbills = {
     },
     {
       name: 'ClosePayableEvent',
-      fields: []
+      fields: [
+        {
+          name: 'payableId',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'hostWallet',
+          type: 'publicKey',
+          index: false
+        }
+      ]
     },
     {
       name: 'ReopenPayableEvent',
-      fields: []
-    },
-    {
-      name: 'UpdatePayableDescriptionEvent',
-      fields: []
-    },
-    {
-      name: 'PayEvent',
       fields: [
         {
-          name: 'globalCount',
-          type: 'u64',
+          name: 'payableId',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'hostWallet',
+          type: 'publicKey',
+          index: false
+        }
+      ]
+    },
+    {
+      name: 'UpdatedPayableAllowedTokensAndAmountsEvent',
+      fields: [
+        {
+          name: 'payableId',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'hostWallet',
+          type: 'publicKey',
+          index: false
+        }
+      ]
+    },
+    {
+      name: 'PayablePayEvent',
+      fields: [
+        {
+          name: 'payableId',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'payerWallet',
+          type: {
+            array: ['u8', 32]
+          },
+          index: false
+        },
+        {
+          name: 'paymentId',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'payerChainId',
+          type: 'u16',
           index: false
         },
         {
@@ -4527,6 +3377,38 @@ export const IDL: Chainbills = {
         },
         {
           name: 'payableCount',
+          type: 'u64',
+          index: false
+        }
+      ]
+    },
+    {
+      name: 'UserPayEvent',
+      fields: [
+        {
+          name: 'payableId',
+          type: {
+            array: ['u8', 32]
+          },
+          index: false
+        },
+        {
+          name: 'payerWallet',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'paymentId',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'payableChainId',
+          type: 'u16',
+          index: false
+        },
+        {
+          name: 'chainCount',
           type: 'u64',
           index: false
         },
@@ -4541,8 +3423,18 @@ export const IDL: Chainbills = {
       name: 'WithdrawalEvent',
       fields: [
         {
-          name: 'globalCount',
-          type: 'u64',
+          name: 'payableId',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'hostWallet',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'withdrawalId',
+          type: 'publicKey',
           index: false
         },
         {
@@ -4564,214 +3456,80 @@ export const IDL: Chainbills = {
     },
     {
       name: 'OwnerWithdrawalEvent',
-      fields: []
+      fields: [
+        {
+          name: 'token',
+          type: 'publicKey',
+          index: false
+        },
+        {
+          name: 'amount',
+          type: 'u64',
+          index: false
+        }
+      ]
     }
   ],
   errors: [
     {
       code: 6000,
       name: 'MaxPayableTokensCapacityReached',
-      msg: 'payable tokens capacity has exceeded'
+      msg: 'MaxPayableTokensCapacityReached'
     },
     {
       code: 6001,
-      name: 'MaxPayableDescriptionReached',
-      msg: 'payable description maximum characters has exceeded'
+      name: 'ZeroAmountSpecified',
+      msg: 'ZeroAmountSpecified'
     },
     {
       code: 6002,
-      name: 'ImproperPayablesConfiguration',
-      msg: 'either allows_free_payments or specify tokens_and_amounts'
+      name: 'PayableIsClosed',
+      msg: 'PayableIsClosed'
     },
     {
       code: 6003,
-      name: 'ZeroAmountSpecified',
-      msg: 'payable amount must be greater than zero'
+      name: 'PayableIsAlreadyClosed',
+      msg: 'PayableIsAlreadyClosed'
     },
     {
       code: 6004,
-      name: 'PayableIsClosed',
-      msg: 'payable is currently not accepting payments'
+      name: 'PayableIsNotClosed',
+      msg: 'PayableIsNotClosed'
     },
     {
       code: 6005,
-      name: 'MatchingTokenAndAccountNotFound',
-      msg: 'specified payment token and amount is not allowed on this payable'
+      name: 'MatchingTokenAndAmountNotFound',
+      msg: 'MatchingTokenAndAmountNotFound'
     },
     {
       code: 6006,
       name: 'InsufficientWithdrawAmount',
-      msg: 'withdraw amount should be less than or equal to balance'
+      msg: 'InsufficientWithdrawAmount'
     },
     {
       code: 6007,
       name: 'NoBalanceForWithdrawalToken',
-      msg: 'no balance found for withdrawal token'
+      msg: 'NoBalanceForWithdrawalToken'
     },
     {
       code: 6008,
-      name: 'ProgramDataUnauthorized',
-      msg: 'wrong program data account provided'
+      name: 'OwnerUnauthorized',
+      msg: 'OwnerUnauthorized'
     },
     {
       code: 6009,
-      name: 'AdminUnauthorized',
-      msg: 'you are not an admin'
-    },
-    {
-      code: 6010,
-      name: 'EmptyDescriptionProvided',
-      msg: 'please provide a valid description'
-    },
-    {
-      code: 6011,
       name: 'InvalidWormholeBridge',
       msg: 'InvalidWormholeBridge'
     },
     {
-      code: 6012,
-      name: 'InvalidWormholeFeeCollector',
-      msg: 'InvalidWormholeFeeCollector'
-    },
-    {
-      code: 6013,
-      name: 'InvalidWormholeEmitter',
-      msg: 'InvalidWormholeEmitter'
-    },
-    {
-      code: 6014,
-      name: 'InvalidWormholeSequence',
-      msg: 'InvalidWormholeSequence'
-    },
-    {
-      code: 6015,
-      name: 'OwnerOnly',
-      msg: 'OwnerOnly'
-    },
-    {
-      code: 6016,
+      code: 6010,
       name: 'InvalidForeignContract',
       msg: 'InvalidForeignContract'
     },
     {
-      code: 6017,
-      name: 'InvalidPayloadMessage',
-      msg: 'InvalidPayloadMessage'
-    },
-    {
-      code: 6018,
-      name: 'InvalidActionId',
-      msg: 'InvalidActionId'
-    },
-    {
-      code: 6019,
-      name: 'InvalidCallerAddress',
-      msg: 'InvalidCallerAddress'
-    },
-    {
-      code: 6020,
-      name: 'UnauthorizedCallerAddress',
-      msg: 'UnauthorizedCallerAddress'
-    },
-    {
-      code: 6021,
-      name: 'WrongPayablesHostCountProvided',
-      msg: 'WrongPayablesHostCountProvided'
-    },
-    {
-      code: 6022,
-      name: 'WrongPaymentPayerCountProvided',
-      msg: 'WrongPaymentPayerCountProvided'
-    },
-    {
-      code: 6023,
-      name: 'WrongWithdrawalsHostCountProvided',
-      msg: 'WrongWithdrawalsHostCountProvided'
-    },
-    {
-      code: 6024,
-      name: 'ZeroBridgeAmount',
-      msg: 'ZeroBridgeAmount'
-    },
-    {
-      code: 6025,
-      name: 'InvalidTokenBridgeConfig',
-      msg: 'InvalidTokenBridgeConfig'
-    },
-    {
-      code: 6026,
-      name: 'InvalidTokenBridgeAuthoritySigner',
-      msg: 'InvalidTokenBridgeAuthoritySigner'
-    },
-    {
-      code: 6027,
-      name: 'InvalidTokenBridgeCustodySigner',
-      msg: 'InvalidTokenBridgeCustodySigner'
-    },
-    {
-      code: 6028,
-      name: 'InvalidTokenBridgeSender',
-      msg: 'InvalidTokenBridgeSender'
-    },
-    {
-      code: 6029,
-      name: 'InvalidRecipient',
-      msg: 'InvalidRecipient'
-    },
-    {
-      code: 6030,
-      name: 'InvalidTransferTokenAccount',
-      msg: 'InvalidTransferTokenAccount'
-    },
-    {
-      code: 6031,
-      name: 'InvalidTransferToChain',
-      msg: 'InvalidTransferTokenChain'
-    },
-    {
-      code: 6032,
-      name: 'InvalidTransferTokenChain',
-      msg: 'InvalidTransferTokenChain'
-    },
-    {
-      code: 6033,
-      name: 'InvalidTransferToAddress',
-      msg: 'InvalidTransferToAddress'
-    },
-    {
-      code: 6034,
-      name: 'AlreadyRedeemed',
-      msg: 'AlreadyRedeemed'
-    },
-    {
-      code: 6035,
-      name: 'InvalidTokenBridgeForeignEndpoint',
-      msg: 'InvalidTokenBridgeForeignEndpoint'
-    },
-    {
-      code: 6036,
-      name: 'InvalidTokenBridgeMintAuthority',
-      msg: 'InvalidTokenBridgeMintAuthority'
-    },
-    {
-      code: 6037,
-      name: 'NotMatchingPayableId',
-      msg: 'NotMatchingPayableId'
-    },
-    {
-      code: 6038,
-      name: 'NotMatchingTransactionAmount',
-      msg: 'NotMatchingTransactionAmount'
-    },
-    {
-      code: 6039,
-      name: 'NotMatchingTransactionToken',
-      msg: 'NotMatchingTransactionToken'
-    },
-    {
-      code: 6040,
-      name: 'WrongChainStatsProvided',
-      msg: 'WrongChainStatsProvided'
+      code: 6011,
+      name: 'WrongFeeCollectorAddress',
+      msg: 'WrongFeeCollectorAddress'
     }
   ]
 };

@@ -27,7 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   onMounted(() => {
-    watch([() => chain.currentId, () => wallet.address], ensureSigned);
+    watch(() => wallet.address, ensureSigned);
   });
 
   return { signature };

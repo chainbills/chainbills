@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
+import ConnectWalletButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
+import { useUserStore } from '@/stores';
 import { usePayableStore } from '@/stores/payable';
 import { useTimeStore } from '@/stores/time';
 import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
 import { onMounted, ref, watch } from 'vue';
 
-const isLoading = ref(false);
+const isLoading = ref(true);
 const mines = ref<Payable[] | null>();
 const payable = usePayableStore();
 const time = useTimeStore();
+const user = useUserStore();
 const wallet = useWalletStore();
 const getMines = async () => {
   isLoading.value = true;
@@ -19,20 +21,20 @@ const getMines = async () => {
   isLoading.value = false;
 };
 onMounted(async () => {
-  if (wallet.connected) await getMines();
+  if (user.current) await getMines();
   watch(
-    () => wallet.connected,
-    async (connected) => {
-      if (connected) await getMines();
+    () => user.current,
+    async (currentUser) => {
+      if (currentUser) await getMines();
       else mines.value = null;
-    },
+    }
   );
 });
 </script>
 
 <template>
   <section class="max-w-screen-lg mx-auto pb-20">
-    <div class="mb-8 flex mb-8 justify-between items-center">
+    <div class="mb-8 flex justify-between items-center">
       <h2 class="text-3xl font-bold">Your Payables</h2>
       <router-link to="/start">
         <Button class="bg-blue-500 text-white dark:text-black px-4 py-1"
@@ -87,15 +89,16 @@ onMounted(async () => {
             id,
             hostCount,
             paymentsCount,
+            chain,
             balances,
             createdAt,
             isClosed,
           } of mines"
           :to="`/payable/${id}`"
-          class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0"
+          class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0 rounded-md shadow"
         >
           <Button
-            class="p-6 mx-auto block w-full bg-blue-100 dark:bg-slate-900 rounded-md shadow-inner shadow"
+            class="p-6 mx-auto block w-full bg-blue-100 dark:bg-slate-900 rounded-md shadow-inner"
           >
             <p class="text-xs text-left text-gray-500 mb-1">#{{ hostCount }}</p>
             <p class="text-left mb-1">
@@ -117,11 +120,11 @@ onMounted(async () => {
             </p>
             <div class="flex gap-2 flex-wrap mb-4">
               <p
-                v-for="{ amount, name } of balances"
+                v-for="bal of balances"
                 class="px-2 py-1 shadow rounded"
                 style="background-color: var(--app-bg)"
               >
-                {{ amount }}&nbsp;{{ name }}
+                {{ bal.display(chain) }}
               </p>
             </div>
             <span

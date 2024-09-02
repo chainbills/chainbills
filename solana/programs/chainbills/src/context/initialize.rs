@@ -1,10 +1,16 @@
-use crate::{error::ChainbillsError, program::Chainbills, state::*};
+use crate::state::*;
 use anchor_lang::prelude::*;
-use wormhole_anchor_sdk::{token_bridge, wormhole};
+use wormhole_anchor_sdk::wormhole;
+
+/// AKA `b"sent"`.
+pub const SEED_PREFIX_SENT: &[u8; 4] = b"sent";
+
+#[account]
+pub struct Empty {}
 
 #[derive(Accounts)]
-/// Context used to Initialize core program data (Config, GlobalStats,
-/// Solana's ChainStats).
+/// Context used to Initialize core program data (Config and Solana's
+/// ChainStats).
 pub struct Initialize<'info> {
   #[account(mut)]
   /// Whoever initializes the config will be the owner of the program. Signer
@@ -13,35 +19,9 @@ pub struct Initialize<'info> {
   pub owner: Signer<'info>,
 
   #[account(
-      address = crate::ID,
-      constraint = this_program.programdata_address()? == Some(this_program_data.key()) @ ChainbillsError::ProgramDataUnauthorized
-  )]
-  /// Helps in ensuring that the provided `this_program_data` is the
-  /// correct one.
-  pub this_program: Program<'info, Chainbills>,
-
-  #[account(
-    constraint = this_program_data.upgrade_authority_address == Some(owner.key()) @ ChainbillsError::AdminUnauthorized
-  )]
-  /// Helps in ensuring that the provided `owner` is a correct owner.
-  pub this_program_data: Box<Account<'info, ProgramData>>,
-
-  #[account(
       init,
       payer = owner,
-      seeds = [GlobalStats::SEED_PREFIX],
-      bump,
-      space = GlobalStats::SPACE
-  )]
-  /// Keeps track of the counts of all entities (Users, Payables, Payments,
-  /// and Withdrawals) in Chainbills. It is also the signer PDA for the holding
-  /// balances in this program.
-  pub global_stats: Box<Account<'info, GlobalStats>>,
-
-  #[account(
-      init,
-      payer = owner,
-      seeds = [ChainStats::SEED_PREFIX, &wormhole::CHAIN_ID_SOLANA.to_le_bytes()[..]],
+      seeds = [ChainStats::SEED_PREFIX],
       bump,
       space = ChainStats::SPACE
   )]
@@ -62,11 +42,12 @@ pub struct Initialize<'info> {
   /// as the program's owner.
   pub config: AccountLoader<'info, Config>,
 
+  /// An external address for collecting fees during withdrawals.
+  /// We save it in config and use it for withdrawals.
+  pub chainbills_fee_collector: SystemAccount<'info>,
+
   /// Wormhole program.
   pub wormhole_program: Program<'info, wormhole::program::Wormhole>,
-
-  /// Token Bridge program.
-  pub token_bridge_program: Program<'info, token_bridge::program::TokenBridge>,
 
   #[account(
         mut,
@@ -79,26 +60,16 @@ pub struct Initialize<'info> {
   pub wormhole_bridge: Box<Account<'info, wormhole::BridgeData>>,
 
   #[account(
-        seeds = [token_bridge::Config::SEED_PREFIX],
-        bump,
-        seeds::program = token_bridge_program,
-    )]
-  /// Token Bridge config. Token Bridge program needs this account to
-  /// invoke the Wormhole program to post messages. Even though it is a
-  /// required account for redeeming token transfers, it is not actually
-  /// used for completing these transfers.
-  pub token_bridge_config: Box<Account<'info, token_bridge::Config>>,
-
-  #[account(
+        init,
+        payer = owner,
         seeds = [wormhole::SEED_PREFIX_EMITTER],
         bump,
-        seeds::program = wormhole_program
+        space = 8, // 8 bytes for the discriminator
     )]
-  /// CHECK: This program's emitter account for Wormhole messages and for
-  /// Token Bridge. This isn't an account that holds data; it is purely
-  /// just a signer for posting Wormhole messages directly or on behalf of
-  /// the Token Bridge program.
-  pub emitter: UncheckedAccount<'info>,
+  /// CHECK: This program's emitter account for Wormhole messages.
+  /// This isn't an account that holds data; it is purely
+  /// just a signer for posting Wormhole messages directly.
+  pub wormhole_emitter: Account<'info, Empty>,
 
   #[account(
         mut,
@@ -109,13 +80,13 @@ pub struct Initialize<'info> {
   /// Wormhole fee collector account, which requires lamports before the
   /// program can post a message (if there is a fee).
   /// [`wormhole::post_message`] requires this account be mutable.
-  pub fee_collector: Box<Account<'info, wormhole::FeeCollector>>,
+  pub wormhole_fee_collector: Box<Account<'info, wormhole::FeeCollector>>,
 
   #[account(
         mut,
         seeds = [
             wormhole::SequenceTracker::SEED_PREFIX,
-            emitter.key().as_ref()
+            wormhole_emitter.key().as_ref()
         ],
         bump,
         seeds::program = wormhole_program
@@ -124,36 +95,20 @@ pub struct Initialize<'info> {
   /// message is posted, so it needs to be an [UncheckedAccount] for the
   /// [`initialize`](crate::initialize) instruction.
   /// [`wormhole::post_message`] requires this account be mutable.
-  pub sequence: UncheckedAccount<'info>,
+  pub wormhole_sequence: UncheckedAccount<'info>,
 
   #[account(
-        seeds = [token_bridge::SEED_PREFIX_MINT_AUTHORITY],
+        mut,
+        seeds = [
+            SEED_PREFIX_SENT,
+            &wormhole::INITIAL_SEQUENCE.to_le_bytes()[..]
+        ],
         bump,
-        seeds::program = token_bridge_program,
     )]
-  /// CHECK: Token Bridge mint authority. This isn't an account that holds
-  /// data; it is purely just a signer (SPL mint authority) for Token Bridge
-  /// wrapped assets.
-  pub mint_authority: UncheckedAccount<'info>,
-
-  #[account(
-        seeds = [token_bridge::SEED_PREFIX_CUSTODY_SIGNER],
-        bump,
-        seeds::program = token_bridge_program,
-    )]
-  /// CHECK: Token Bridge custody signer. This isn't an account that holds
-  /// data; it is purely just a signer for Token Bridge SPL tranfers.
-  pub custody_signer: UncheckedAccount<'info>,
-
-  #[account(
-        seeds = [token_bridge::SEED_PREFIX_AUTHORITY_SIGNER],
-        bump,
-        seeds::program = token_bridge_program,
-    )]
-  /// CHECK: Token Bridge authority signer. This isn't an account that holds
-  /// data; it is purely just a signer for SPL tranfers when it is delegated
-  /// spending approval for the SPL token.
-  pub authority_signer: UncheckedAccount<'info>,
+  /// CHECK: Wormhole message account. The Wormhole program writes to this
+  /// account, which requires this program's signature.
+  /// [`wormhole::post_message`] requires this account be mutable.
+  pub wormhole_message: UncheckedAccount<'info>,
 
   /// Clock sysvar.
   pub clock: Sysvar<'info, Clock>,

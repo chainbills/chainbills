@@ -1,9 +1,7 @@
 import type { Chain } from '@/stores/chain';
-import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 
-// TODO: Ensure that the amount is in the decimals of Wormhole-normalization 
-// the chains have different decimals for the same token
+export const CONTRACT_ADDRESS = '0x5c9c9e008e73689b37575e36c4ad654f16799bef';
 
 export interface TokenChainDetails {
   address: string;
@@ -16,8 +14,8 @@ export interface Token {
 }
 
 export interface TokenAndAmountOnChain {
-  token: Uint8Array;
-  amount: BN;
+  token: string;
+  amount: bigint;
 }
 
 export class TokenAndAmount {
@@ -31,14 +29,24 @@ export class TokenAndAmount {
     this.amount = amount;
   }
 
-  // TODO: Add a reconcile method for decimals of Ethereum Sepolia
-  // When there will be tokens with difference in decimals in both chains
+  static fromOnChain(
+    { token, amount }: TokenAndAmountOnChain,
+    chain: Chain
+  ): TokenAndAmount {
+    let found: Token | undefined;
+    if (chain == 'Ethereum Sepolia') {
+      found = tokens.find(
+        (t) => `${t.details['Ethereum Sepolia'].address}` == token.toLowerCase()
+      );
+    } else if (chain == 'Solana') {
+      if ((token as any) instanceof PublicKey) {
+        token = (token as unknown as PublicKey).toBase58();
+      }
+      found = tokens.find((t) => t.details.Solana.address == token);
+    } else throw `Unknown Chain: ${chain}`;
 
-  static fromOnChain({ token, amount }: TokenAndAmountOnChain): TokenAndAmount {
-    const address = new PublicKey(token).toBase58();
-    const found = tokens.find((t) => t.details.Solana.address == address);
-    if (!found) throw `Couldn't find token details for ${address}`;
-    return new TokenAndAmount(found, amount.toNumber());
+    if (!found) throw `Couldn't find token details for ${token}`;
+    return new TokenAndAmount(found, Number(amount));
   }
 
   display(chain: Chain) {
@@ -56,11 +64,15 @@ export class TokenAndAmount {
     };
   }
 
-  toOnChain(): TokenAndAmountOnChain {
+  toOnChain(chain: Chain): TokenAndAmountOnChain {
+    // if (chain == 'Ethereum Sepolia') {
+    //   return [this.details[chain].address, BigInt(this.amount)];
+    // } else {
     return {
-      token: new PublicKey(this.details.Solana.address).toBytes(),
-      amount: new BN(this.amount),
+      token: this.details[chain].address,
+      amount: BigInt(this.amount),
     };
+    // }
   }
 }
 
@@ -73,8 +85,21 @@ export const tokens: Token[] = [
         decimals: 6,
       },
       'Ethereum Sepolia': {
-        address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
         decimals: 6,
+      },
+    },
+  },
+  {
+    name: 'ETH',
+    details: {
+      Solana: {
+        address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+        decimals: 6,
+      },
+      'Ethereum Sepolia': {
+        address: CONTRACT_ADDRESS,
+        decimals: 18,
       },
     },
   },

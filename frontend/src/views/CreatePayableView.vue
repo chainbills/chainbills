@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
+import ConnectWalletButton from '@/components/SignInButton.vue';
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import {
-  tokens,
   TokenAndAmount,
+  tokens,
   type Token,
 } from '@/schemas/tokens-and-amounts';
+import { useChainStore } from '@/stores';
 import { usePayableStore } from '@/stores/payable';
 import { useWalletStore } from '@/stores/wallet';
 import DomPurify from 'dompurify';
@@ -19,6 +20,7 @@ import { useRouter } from 'vue-router';
 const allowsFreePayments = ref(false);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
+const chain = useChainStore();
 const configError = ref('');
 const displayedConfig = ref<TokenAndAmount[]>([]);
 const isCreating = ref(false);
@@ -81,7 +83,6 @@ const validateDescription = () => {
   const v = description.value.trim();
   if (v.length == 0) descriptionError.value = 'Required';
   else if (v.length < 15) descriptionError.value = 'Min. 15 characters';
-  // From MAX_PAYABLES_DESCRIPTION_LENGTH in the solana program
   else if (v.length > 3000) descriptionError.value = 'Max. 3000 characters';
   else descriptionError.value = '';
 };
@@ -109,20 +110,18 @@ const create = async () => {
         tokensAndAmounts.push(
           new TokenAndAmount(
             selectedTokens.value[i],
-            // TODO: Factor in the correct decimals (Wormhole-normalized)
             amounts.value[i].value *
-              10 ** selectedTokens.value[i].details.Solana.decimals,
+              10 ** selectedTokens.value[i].details[chain.current!].decimals,
           ),
         );
     }
   }
 
   isCreating.value = true;
-  const id = await payable.initialize(
+  const id = await payable.create(
     email.value.trim(),
     DomPurify.sanitize(description.value.trim()),
-    tokensAndAmounts,
-    allowsFreePayments.value,
+    tokensAndAmounts
   );
   isCreating.value = false;
 

@@ -1,16 +1,16 @@
-import { Payable } from '@/schemas/payable';
-import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
-import { BN } from '@project-serum/anchor';
-import { PublicKey } from '@solana/web3.js';
+import { Payable, TokenAndAmount } from '@/schemas';
+import {
+  useChainStore,
+  useEvmStore,
+  useNotificationsStore,
+  useServerStore,
+  useSolanaStore,
+  useUserStore,
+  useWalletStore,
+  type Chain,
+} from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { useChainStore } from './chain';
-import { useEvmStore } from './evm';
-import { useNotificationsStore } from './notifications';
-import { useServerStore } from './server';
-import { PROGRAM_ID, useSolanaStore } from './solana';
-import { useUserStore } from './user';
-import { useWalletStore } from './wallet';
 
 export const usePayableStore = defineStore('payable', () => {
   const chain = useChainStore();
@@ -22,31 +22,24 @@ export const usePayableStore = defineStore('payable', () => {
   const user = useUserStore();
   const wallet = useWalletStore();
 
-  const initialize = async (
+  const create = async (
     email: string,
     description: string,
-    tokensAndAmounts: TokenAndAmount[],
-    allowsFreePayments: boolean,
+    tokensAndAmounts: TokenAndAmount[]
   ): Promise<string | null> => {
     if (!wallet.connected || !chain.current) return null;
-    if (allowsFreePayments) tokensAndAmounts = [];
 
     try {
       const method =
-        chain.current == 'Solana'
-          ? solana.initializePayable
-          : evm.initializePayable;
-      const result = await method(
-        description,
-        tokensAndAmounts,
-        allowsFreePayments,
-      );
+        chain.current == 'Solana' ? solana.createPayable : evm.createPayable;
+      const result = await method(tokensAndAmounts);
       if (!result) return null;
+      await user.refresh();
 
       console.log(
-        `Created Payable Transaction Details: ${result.explorerUrl()}`,
+        `Created Payable Transaction Details: ${result.explorerUrl()}`
       );
-      await server.createdPayable(result.created, email);
+      await server.createPayable(result.created, email, description);
       toast.add({
         severity: 'success',
         summary: 'Successful Payable Creation',
@@ -63,38 +56,49 @@ export const usePayableStore = defineStore('payable', () => {
   };
 
   const get = async (id: string): Promise<Payable | null> => {
+    const dbData = await server.getPayable(id);
+    if (!dbData) return null;
+
     try {
-      const data = (await solana
-        .program()
-        .account.payable.fetch(new PublicKey(id))) as any;
-      const { chain, ownerWallet } = await user.get(data.host);
-      return new Payable(id, chain, ownerWallet, data);
+      const raw =
+        dbData.chain == 'Solana'
+          ? await solana.fetchEntity('payable', id)
+          : await evm.fetchPayable(id);
+      if (raw) return new Payable(id, dbData.chain, dbData.description, raw);
     } catch (e) {
       console.error(e);
       toastError(`${e}`);
-      return null;
     }
+    return null;
+  };
+
+  const getPaymentId = async (
+    payableId: string,
+    chain: Chain,
+    count: number
+  ): Promise<string | null> => {
+    if (chain === 'Solana') return solana.getPayablePaymentId(payableId, count);
+    else return await evm.getPayablePaymentId(payableId, count);
   };
 
   const mines = async (): Promise<Payable[] | null> => {
-    if (!wallet.connected) return null;
-    if (!(await user.isInitialized())) return [];
+    if (!user.current) return null;
+    const { payablesCount: count } = user.current;
+    if (count === 0) return [];
 
     try {
-      const { payablesCount: count } = (await user.data())!;
-      if (count == 0) return [];
-
       const payables: Payable[] = [];
       // TODO: Implement pagination instead of this set maximum of 25
-      for (let i = Math.min(count, 25); i >= 1; i--) {
-        const _pubkey = pubkey(i)!;
-        const data = (await solana
-          .program()
-          .account.payable.fetch(_pubkey)) as any;
-        const { chain, ownerWallet } = await user.get(data.host);
-        payables.push(
-          new Payable(_pubkey.toBase58(), chain, ownerWallet, data),
-        );
+      let fetched = 0;
+      for (let i = count; i >= 1; i--) {
+        if (fetched >= 25) break;
+        const id = await user.getPayableId(i);
+        if (id) {
+          const payable = await get(id);
+          if (payable) payables.push(payable);
+          else return null;
+        } else return null;
+        fetched++;
       }
       return payables;
     } catch (e) {
@@ -104,20 +108,8 @@ export const usePayableStore = defineStore('payable', () => {
     }
   };
 
-  const pubkey = (count: number): PublicKey | null => {
-    if (!wallet.whAddress) return null;
-    return PublicKey.findProgramAddressSync(
-      [
-        wallet.whAddress,
-        Buffer.from('payable'),
-        new BN(count).toArrayLike(Buffer, 'le', 8),
-      ],
-      new PublicKey(PROGRAM_ID),
-    )[0];
-  };
-
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { get, initialize, mines, pubkey };
+  return { create, get, getPaymentId, mines };
 });

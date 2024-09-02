@@ -1,4 +1,6 @@
-use crate::{context::OwnerWithdraw, error::ChainbillsError, events::*, state::GlobalStats};
+use crate::{
+  context::OwnerWithdraw, error::ChainbillsError, events::*, state::ChainStats,
+};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Transfer as SplTransfer};
 
@@ -7,13 +9,16 @@ use anchor_spl::token::{self, Transfer as SplTransfer};
 ///
 /// ### args
 /// * amount<u64>: The amount to be withdrawn
-pub fn owner_withdraw_handler(ctx: Context<OwnerWithdraw>, amount: u64) -> Result<()> {
+pub fn owner_withdraw_handler(
+  ctx: Context<OwnerWithdraw>,
+  amount: u64,
+) -> Result<()> {
   require!(amount > 0, ChainbillsError::ZeroAmountSpecified);
 
-  let destination = &ctx.accounts.admin_token_account;
-  let source = &ctx.accounts.global_token_account;
+  let destination = &ctx.accounts.owner_token_account;
+  let source = &ctx.accounts.chain_token_account;
   let token_program = &ctx.accounts.token_program;
-  let authority = &ctx.accounts.global_stats;
+  let authority = &ctx.accounts.chain_stats;
   let cpi_accounts = SplTransfer {
     from: source.to_account_info().clone(),
     to: destination.to_account_info().clone(),
@@ -24,12 +29,15 @@ pub fn owner_withdraw_handler(ctx: Context<OwnerWithdraw>, amount: u64) -> Resul
     CpiContext::new_with_signer(
       cpi_program,
       cpi_accounts,
-      &[&[GlobalStats::SEED_PREFIX, &[ctx.bumps.global_stats]]],
+      &[&[ChainStats::SEED_PREFIX, &[ctx.bumps.chain_stats]]],
     ),
     amount,
   )?;
 
   msg!("Owner made a withdrawal.");
-  emit!(OwnerWithdrawalEvent {});
+  emit!(OwnerWithdrawalEvent {
+    token: ctx.accounts.mint.key(),
+    amount
+  });
   Ok(())
 }

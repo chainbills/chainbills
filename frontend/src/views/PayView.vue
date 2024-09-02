@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/ConnectWalletButton.vue';
+import ConnectWalletButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
 import {
@@ -26,8 +26,9 @@ const emailError = ref('');
 const isPaying = ref(false);
 const payment = usePaymentStore();
 const route = useRoute();
-const details = route.meta.details as Payable;
-const { allowsFreePayments, tokensAndAmounts } = details;
+const payable = route.meta.details as Payable;
+const { allowedTokensAndAmounts } = payable;
+const allowsFreePayments = allowedTokensAndAmounts.length == 0;
 const router = useRouter();
 const selectedConfig = ref<TokenAndAmount>();
 const selectedToken = ref<Token>();
@@ -71,7 +72,7 @@ const validateBalance = async () => {
 
 const validateConfig = () => {
   if (!selectedConfig.value) {
-    configError.value = details.allowsFreePayments
+    configError.value = allowsFreePayments
       ? 'Please select a token'
       : 'Please make a choice';
   } else configError.value = '';
@@ -100,7 +101,7 @@ const pay = async () => {
   }
 
   isPaying.value = true;
-  const id = await payment.pay(email.value, details.id, selectedConfig.value!);
+  const id = await payment.exec(email.value, payable.id, selectedConfig.value!);
 
   if (id) router.push(`/receipt/${id}`);
   else isPaying.value = false;
@@ -114,12 +115,12 @@ onMounted(() => {
     async () => {
       validateConfig();
       await validateBalance();
-    },
+    }
   );
   watch(() => wallet.connected, validateBalance);
 
-  if (!allowsFreePayments && tokensAndAmounts.length == 1) {
-    selectedConfig.value = tokensAndAmounts[0];
+  if (!allowsFreePayments && allowedTokensAndAmounts.length == 1) {
+    selectedConfig.value = allowedTokensAndAmounts[0];
   }
 });
 </script>
@@ -130,7 +131,7 @@ onMounted(() => {
 
     <p class="mb-8 leading-tight">
       <span>Payable ID:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ details.id }}</span>
+      <span class="text-xs break-all text-gray-500">{{ payable.id }}</span>
     </p>
 
     <div class="max-w-lg">
@@ -138,7 +139,7 @@ onMounted(() => {
       <div class="mb-8 sm:flex items-end">
         <textarea
           readonly
-          v-model="details.description"
+          v-model="payable.description"
           class="outline-none w-full px-3 py-2 bg-blue-50 dark:bg-slate-900 rounded-md shadow-inner mb-2 sm:mb-0 sm:mr-4"
         ></textarea>
       </div>
@@ -203,15 +204,19 @@ onMounted(() => {
 
       <div class="pb-4" v-else>
         <p class="mb-1">
-          {{ tokensAndAmounts.length == 1 ? 'Pay' : 'Select an Option' }}
+          {{ allowedTokensAndAmounts.length == 1 ? 'Pay' : 'Select an Option' }}
         </p>
-        <p class="font-bold text-3xl" v-if="tokensAndAmounts.length == 1">
-          {{ tokensAndAmounts[0].display(chain.current ?? 'Solana') }}
+        <p
+          class="font-bold text-3xl"
+          v-if="allowedTokensAndAmounts.length == 1"
+        >
+          <!-- TODO: Review whether to use the payable's chain for 
+           formatting tokenAndAmount display especially when swaps start -->
+          {{ allowedTokensAndAmounts[0].display(payable.chain) }}
         </p>
         <div class="flex gap-2 flex-wrap mb-1" v-else>
-          <!-- TODO: Review whether to use the current chain for formatting -->
           <Button
-            v-for="taa of tokensAndAmounts"
+            v-for="taa of allowedTokensAndAmounts"
             :class="
               'shadow-md px-3 py-2 ' +
               (selectedConfig?.name == taa.name
@@ -220,7 +225,9 @@ onMounted(() => {
             "
             @click="selectedConfig = taa"
           >
-            {{ taa.display(chain.current ?? 'Solana') }}
+            <!-- TODO: Review whether to use the payable's chain for 
+           formatting tokenAndAmount display especially when swaps start -->
+            {{ taa.display(payable.chain) }}
           </Button>
         </div>
         <small class="text-xs block text-red-500">{{ configError }}</small>
@@ -230,15 +237,17 @@ onMounted(() => {
         <p
           v-if="
             (allowsFreePayments ||
-              (!allowsFreePayments && tokensAndAmounts.length != 1)) &&
+              (!allowsFreePayments && allowedTokensAndAmounts.length != 1)) &&
             selectedConfig &&
             selectedConfig.amount
           "
           class="mb-4"
         >
           You are paying
+          <!-- TODO: Review whether to use the payable's chain for 
+           formatting tokenAndAmount display especially when swaps start -->
           <span class="font-bold text-2xl">{{
-            selectedConfig.display(chain.current ?? 'Solana')
+            selectedConfig.display(payable.chain)
           }}</span>
         </p>
 

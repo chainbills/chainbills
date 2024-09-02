@@ -1,16 +1,42 @@
 <script setup lang="ts">
-import type { Payable } from '@/schemas/payable';
-import type { Payment } from '@/schemas/payment';
-import { useTimeStore } from '@/stores/time';
-import { useWalletStore } from '@/stores/wallet';
+import {
+  PayablePayment,
+  UserPayment,
+  type Payable,
+  type Payment,
+} from '@/schemas';
+import {
+  denormalizeBytes,
+  useChainStore,
+  useTimeStore,
+  useWalletStore,
+} from '@/stores';
 import Button from 'primevue/button';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
+const chain = useChainStore();
 const route = useRoute();
 const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
 const time = useTimeStore();
 const wallet = useWalletStore();
+const payerChain =
+  payment instanceof UserPayment
+    ? payment.chain
+    : (payment as PayablePayment).payerChain;
+const payableChain =
+  payment instanceof PayablePayment
+    ? payment.chain
+    : (payment as UserPayment).payableChain;
+const isMine = computed(
+  () =>
+    wallet.whAddress &&
+    denormalizeBytes(wallet.whAddress, chain.current!) == payableDetails.host
+);
+const payableRoute = computed(
+  () => `/${isMine ? 'payable' : 'pay'}/${payment.payableId}`
+);
 </script>
 
 <template>
@@ -24,19 +50,19 @@ const wallet = useWalletStore();
 
     <p class="mb-8 leading-tight">
       <span>Payer's Wallet Address:</span><br />
-      <span class="text-xs break-all text-gray-500">{{
-        wallet.canonical(payment.payerWallet, payment.chain)
-      }}</span>
+      <span class="text-xs break-all text-gray-500">{{ payment.payer }}</span>
     </p>
 
-    <p class="mb-8 leading-tight">
+    <p class="mb-8 leading-tight" v-if="payerChain != payableChain">
       <span>Payer's Chain:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ payment.chain }}</span>
+      <span class="text-xs break-all text-gray-500">{{ payerChain }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
       <span>Paid:</span><br />
-      <span class="text-xl font-bold">{{ payment.displayDetails() }}</span>
+      <span class="text-xl font-bold">{{
+        payment.details.display(payment.chain)
+      }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
@@ -47,20 +73,18 @@ const wallet = useWalletStore();
     </p>
 
     <p class="mb-8 leading-tight">
-      <span>Payable ID:</span><br />
+      <span>Paid To (Payable ID):</span><br />
       <router-link
-        :to="`/payable/${payment.payable}`"
+        :to="payableRoute"
         class="text-xs break-all text-gray-500 underline"
-        v-if="
-          wallet.whAddress &&
-          wallet.areSame(wallet.whAddress, payableDetails.hostWallet)
-        "
       >
-        {{ payment.payable }}
+        {{ payment.payableId }}
       </router-link>
-      <span class="text-xs break-all text-gray-500" v-else>{{
-        payment.payable
-      }}</span>
+    </p>
+
+    <p class="mb-8 leading-tight" v-if="payableChain != payerChain">
+      <span>Payable's Chain:</span><br />
+      <span class="text-xs break-all text-gray-500">{{ payableChain }}</span>
     </p>
 
     <div class="max-w-lg" v-if="payableDetails">

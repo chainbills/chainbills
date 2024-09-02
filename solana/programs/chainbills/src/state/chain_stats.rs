@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 #[account]
-/// Keeps track of all activities on each chain.
+/// Keeps track of all activities on this chain.
 pub struct ChainStats {
   /// Wormhole-Chain ID for this chain.
   pub chain_id: u16, // 2 bytes

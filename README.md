@@ -1,6 +1,6 @@
 # Chainbills
 
-Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive any amount of cryptocurrency from everybody (payers), powered by WormHole. ChainBills deducts 2% from all withdrawals for fees and maintenance.
+Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive any amount of cryptocurrency from everybody (payers), powered by WormHole. ChainBills deducts 2% (with a fixed maximum) from all withdrawals for fees and maintenance.
 
 ## Table Of Contents
 
@@ -9,16 +9,9 @@ Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receiv
   - [Payables' Configuration](#payables-configuration)
   - [Hosts' Controls](#hosts-controls)
   - [Payers' Experience](#payers-experience)
-- [Cross-Chain Architecture](#cross-chain-architecture)
-  - [Wormhole](#wormhole)
-- [Solana](#solana)
-  - [Entities (Structs)](#entities-structs)
-  - ["Global"](#global)
-  - [More on the Program](#more-on-the-program)
-- [EVM](#evm)
-- [Relayer](#relayer)
+- [Cross-Chain Architecture and Wormhole](#cross-chain-architecture-and-wormhole)
+- [Smart Contracts and Entities (Structs)](#smart-contracts-and-entities-structs)
 - [Server](#server)
-- [Frontend](#frontend)
 - [Roadmap](#roadmap)
 
 ## Features
@@ -37,7 +30,7 @@ A payable specifies the amount of a token that can be paid to it. Also, it could
 
 If a payable allows free payments, it can't specify any accepted tokens and amounts. The payable's host (creator) specifies this payable configuration (allowing free payments or specifying accepted tokens and amounts) at the time when they create the payable.
 
-Payables' configurations are permanent. They can't be updated. If you want to change how your payable accepts money, please create a new payable.
+Hosts can update the configuration of their payables'. However, they should do this with caution to ensure smooth payer experience.
 
 ### Hosts' Controls
 
@@ -59,76 +52,64 @@ If the payable specified only one accepted token (and its amount), the payer pay
 
 After a successful payment, Chainbills generates a receipt with the payment's details and redirects the payer to the receipt link. Receipts are public. Hosts and payers can view receipts at anytime.
 
-## Cross-Chain Architecture
+## Cross-Chain Architecture and Wormhole
 
 Chainbills permits the same activity set across multiple chains.
 
-For now, only Ethereum and Solana are supported. More chains will be added.
+For now Ethereum Sepolia and Solana Devnet are supported. More chains will be added.
 
-Our mission is to provide a seamless payment-receiving experience to content creators, merchants, and foundations. To enable them receive money for donations, products, and services from a large user base (across multiple chains).
+Our mission is to provide a seamless payment-receiving experience to content creators, merchants, and foundations. To enable them receive money for donations, products, and services from a large user base (across multiple chains). Chainbills also makes money easy by providing all these payments in one dashboard.
 
-Chainbills does this by allowing users to create payables and make payments and withdrawals from all chain networks (Ethereum and Solana for now). However, Solana is the choice central data and assets store because of its performance and inexpensiveness.
+Chainbills does this by allowing users to create payables and make payments and withdrawals on all chain networks (supported ones for now). So a payable can be created on any chain. Withdrawals are on the same chain in which the Payable was created. However, with payments, a payment can be done from the same or different chain as that of the Payable.
 
-In other words, while anyone can carry out the same set of actions from any chain, data and assets are stored on Solana. In effect, Chainbills is built as a hub-and-spoke model with Solana as the hub.
+When the blockchain networks of the payable and the payer are the same, no cross-chain activity is needed and payment proceeds directly. However, in the case of different chains, we need to reconcile money and data across the invovled chains. This is powered by Wormhole.
 
-Sending action data across contract calls and bridging tokens at payment and withdrawal times is made possible by Wormhole.
+[Wormhole](https://wormhole.com) is an open source blockchain development platform connecting the decentralized web. Wormhole powers Chainbills by enabling [cross-chain messaging](https://wormhole.com/messaging/) and with payment [routes](https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/main/examples/src/router.ts).
 
-### Wormhole
+## Smart Contracts and Entities (Structs)
 
-[Wormhole](https://wormhole.com) is an open source blockchain development platform connecting the decentralized web.
-
-Wormhole powers Chainbills by enabling [cross-chain messaging](https://wormhole.com/messaging/) and with the [Token Bridge](https://docs.wormhole.com/wormhole/explore-wormhole/core-contracts#token-bridge).
-
-If a user connects a Solana wallet, they can directly create payables and make payments and withdrawals with the Solana program.
-
-If on the other hand, a given user connects but an Ethereum wallet, while they can still carry out all those actions, their Ethereum-activity (contract calls) will be forwarded to the Solana program through Wormhole.
-
-Chainbills' EVM contract and Solana program both integrate the Wormhole SDK to achieve messaging [contract-controlled transfers](https://docs.wormhole.com/wormhole/explore-wormhole/vaa#token--message). Chainbills also maintains a [Specialized Relayer](#relayer) for submitting the VAAs from Wormhole [Guardians](https://docs.wormhole.com/wormhole/explore-wormhole/guardian) to the EVM contract or Solana program.
-
-## Solana
-
-### Entities (Structs)
-
-The Chainbills program is built with the Anchor framework. It is built around 6 core entities:
+For each supported smart contract ecosystem (EVM and Solana), the contract code lives in the respective directories. Each Chainbills contract on each chain is built with a solid data framework backing it. It is built around the following core entities:
 
 - `TokenAndAmount`: A helper struct to specify a payable's configuration or record details of a payment or a withdrawal.
 
-- `Payable`: Where payments can be made. Has a description and a configuration. Created by a host and holds balances of its payments. Is Closeable.
+- `Payable`: Where payments can be made. Created by a host and holds balances of its payments. Is Closeable. Specifies its accepted TokensAndAmounts. If the TokensAndAmounts array/vector is empty, then the given payable allows free payments.
 
-- `Payment`: Created when payers pay into a payable. Holds payment-related info like the payer (of course), payable, timestamp, and payment details (the paid token and amount).
+- `UserPayment`: Created when payers pay into a payable. Holds payment-related info like the payer (of course), payableId, payable's chain timestamp, and payment details (the paid token and amount). This is stored on the chain in which the payer's address resides.
+
+- `PayablePayment`: Created when a payable receives a payment. Holds payment info relative to the payable like the payer and the payer's chain among others. This is stored on the chain in which the payable was created. Effectively payment info is duplicated for both users and payables to allow optimum data access with cross-chain features.
 
 - `Withdrawal`: Created when hosts withdraw money from a payable. Holds withdrawal-related info like the host (of course), payable, timestamp, and withdrawal details (the withdrawn token and its amount).
 
-- `User`: A struct that keeps track of the counts of payables, payments, and withdrawals made by wallet addresses on Chainbills. It also stores the wallet address itself.
+- `User`: A struct that keeps track of the counts of payables, payments, and withdrawals made by wallet addresses on Chainbills.
 
-- `GlobalStats`: A struct that keeps track of the counts of all users, payables, payments, and withdrawals on Chainbills. It is a singleton and is involved in most methods of the Chainbills program.
-
-### "Global"
-
-The `GlobalStats` singleton account keeps track of all entities ever created on Chainbills. It is a PDA (Program Derived Address) whose seed is the word "global".
-
-It is also the signer PDA for Chainbills. When payers make payments for any given token, the token gets transferred from the payers' token account for that token mint, into GlobalStats' token account for the same mint.
-
-When hosts make withdrawals, the specified amount (minus 2% fees) is transferred from GlobalStats' token account for the requested token mint, into the hosts' token account for the same mint.
-
-### More on the Program
-
-## EVM
-
-## Relayer
+- `ChainStats`: A struct that keeps track of the counts of all users, payables, payments, and withdrawals on Chainbills on a given chain.
 
 ## Server
 
-The server also helps with handling other off-chain processes. Specifically, Chainbills sends notification emails from within the server.
+The server helps with handling other off-chain processes. Specifically, Chainbills sends notification emails from within the server.
 
-The server is a NodeJS Firebase Cloud Function that exposes endpoints for the frontend. The frontend call them after any of the 3 main entities (Payables, Payments, and Withdrawals) have been created or initialized.
+The server is a NodeJS Firebase Cloud Function that exposes endpoints for the frontend. The frontend call them after any of the main entities (Payables, Payments, and Withdrawals) have been created or initialized.
 
-Users' emails shouldn't be seen inside the blockchain. Also, we can't send an email from within the chain. These brought about the necessity of a Web2 server.
+Users' emails and payable descriptions are stored and managed by users off-chain. For now, relaying calls are done here too.
 
-[Know more about the server here](./server)
-
-## Frontend
+One important thing about the server is keeping track of all payables from any chain. So instead of the frontend to guess the chain on which the payable was created (when the payable's page is visited), the server records the chain alongside the payable ID during the payable's creation and returns those when queried.
 
 ## Roadmap
 
-passing the 2% charge to the payer
+- Completing Cross-Chain Architecture.
+
+- Implement custom Wormhole route to add token swaps to the USDC CCTP bridging.
+
+- Build a custom relayer.
+
+- Adding a CosmWasm Chain.
+
+- Passing the 2% charge to payers.
+
+- Making widgets or embeddables that hosts can add to their websites.
+
+- Enabling subscription payments for hosts.
+
+- Enable Event Ticketing.
+
+- Supporting More Chains.

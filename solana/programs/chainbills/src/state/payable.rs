@@ -1,37 +1,27 @@
-use crate::constants::*;
 use crate::state::TokenAndAmount;
 use anchor_lang::prelude::*;
 
 #[account]
+/// A payable is like a public invoice through which anybody can pay to.
 pub struct Payable {
-  /// The nth count of global payables at the point this payable was created.
-  pub global_count: u64, // 8 bytes
-
-  /// The nth count of payables on the calling chain at the point this payable
+  /// The nth count of payables on this chain at the point this payable
   /// was created.
   pub chain_count: u64, // 8 bytes
 
-  /// The address of the User account that owns this Payable.
+  /// The wallet address of that created this Payable.
   pub host: Pubkey, // 32 bytes
 
   /// The nth count of payables that the host has created at the point of
   /// this payable's creation.
   pub host_count: u64, // 8 bytes
 
-  /// Displayed to payers when the make payments to this payable.
-  /// Set by the host.
-  pub description: String, // MAX_PAYABLES_DESCRIPTION_LENGTH
-
   /// The allowed tokens (and their amounts) on this payable.
   /* TokenAndAmount::SPACE * MAX_PAYABLES_TOKENS */
-  pub tokens_and_amounts: Vec<TokenAndAmount>,
+  pub allowed_tokens_and_amounts: Vec<TokenAndAmount>,
 
   /// Records of how much is in this payable.
   /* TokenAndAmount::SPACE * MAX_PAYABLES_TOKENS */
   pub balances: Vec<TokenAndAmount>,
-
-  /// Whether this payable allows payments any amount in any token.
-  pub allows_free_payments: bool, // 1 byte
 
   /// The timestamp of when this payable was created.
   pub created_at: u64, // 8 bytes
@@ -47,12 +37,17 @@ pub struct Payable {
 }
 
 impl Payable {
+  /// The maximum number of tokens a payable can hold balances in.
+  /// Also the maximum number of tokens that a payable can specify
+  /// that it can accept payments in.
+  #[constant]
+  pub const MAX_PAYABLES_TOKENS: usize = 10;
+
   // discriminator (8) included
-  pub const SPACE: usize = (2 * 1)
-    + (7 * 8)
+  pub const SPACE: usize = 1
+    + (6 * 8)
     + 32
-    + MAX_PAYABLES_DESCRIPTION_LENGTH
-    + (2 * MAX_PAYABLES_TOKENS * TokenAndAmount::SPACE);
+    + (2 * Payable::MAX_PAYABLES_TOKENS * TokenAndAmount::SPACE);
 
   /// AKA `b"payable"`.
   #[constant]

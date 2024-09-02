@@ -1,5 +1,5 @@
 pub mod initialize;
-pub mod initialize_payable;
+pub mod create_payable;
 pub mod initialize_user;
 pub mod owner_withdraw;
 pub mod pay;
@@ -9,7 +9,7 @@ pub mod update_payable;
 pub mod withdraw;
 
 pub use initialize::*;
-pub use initialize_payable::*;
+pub use create_payable::*;
 pub use initialize_user::*;
 pub use owner_withdraw::*;
 pub use pay::*;

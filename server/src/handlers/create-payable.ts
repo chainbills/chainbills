@@ -2,7 +2,7 @@ import { Network } from '@wormhole-foundation/sdk';
 import { sanitize } from 'isomorphic-dompurify';
 import { isEmail } from 'validator';
 import { Payable } from '../schemas';
-import { Chain, evmFetchPayable, firestore, solanaFetch } from '../utils';
+import { Chain, devDb, evmFetchPayable, prodDb, solanaFetch } from '../utils';
 
 export const createPayable = async (
   body: any,
@@ -22,15 +22,16 @@ export const createPayable = async (
   if (typeof payableId !== 'string') throw 'Invalid payableId';
   payableId = payableId.trim();
 
+  // Set Database based on Network mode
+  const db = network === 'Mainnet' ? prodDb : devDb;
+
   // Ensure the payable is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
-  let payableSnap = await firestore.doc(`/payables/${payableId}`).get();
+  let payableSnap = await db.doc(`/payables/${payableId}`).get();
   if (payableSnap.exists) throw 'Payable already exists';
 
   // Repeating the search with lowercase equivalent to account for EVM addresses
-  payableSnap = await firestore
-    .doc(`/payables/${payableId.toLowerCase()}`)
-    .get();
+  payableSnap = await db.doc(`/payables/${payableId.toLowerCase()}`).get();
   if (payableSnap.exists) throw 'Payable already exists';
 
   // Extract On-Chain Data
@@ -52,7 +53,7 @@ export const createPayable = async (
   // TODO: Send email to host
 
   // Save the payable to the database
-  await firestore
+  await db
     .doc(`/payables/${payableId}`)
     .set({ email, description, ...payable }, { merge: true });
 };

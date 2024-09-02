@@ -2,9 +2,10 @@ import { Network } from '@wormhole-foundation/sdk';
 import { Withdrawal } from '../schemas';
 import {
   Chain,
+  devDb,
   evmFetchWithdrawal,
-  firestore,
   notifyHost,
+  prodDb,
   solanaFetch
 } from '../utils';
 
@@ -15,15 +16,16 @@ export const withdrew = async (body: any, chain: Chain, network: Network) => {
   if (typeof withdrawalId !== 'string') throw 'Invalid withdrawalId';
   withdrawalId = withdrawalId.trim();
 
+  // Set Database based on Network mode
+  const db = network === 'Mainnet' ? prodDb : devDb;
+
   // Ensure the withdrawal is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
-  let withDSnap = await firestore.doc(`/withdrawals/${withdrawalId}`).get();
+  let withDSnap = await db.doc(`/withdrawals/${withdrawalId}`).get();
   if (withDSnap.exists) throw 'Withdrawal has already been recorded';
 
   // Repeating the search with lowercase equivalent to account for EVM addresses
-  withDSnap = await firestore
-    .doc(`/withdrawals/${withdrawalId.toLowerCase()}`)
-    .get();
+  withDSnap = await db.doc(`/withdrawals/${withdrawalId.toLowerCase()}`).get();
   if (withDSnap.exists) throw 'Withdrawal has already been recorded';
 
   // Extract On-Chain Data
@@ -42,7 +44,7 @@ export const withdrew = async (body: any, chain: Chain, network: Network) => {
   notifyHost({ ...withdrawal, activity: 'withdrawal' });
 
   // Save the withdrawal to the database
-  await firestore
+  await db
     .doc(`/withdrawals/${withdrawalId}`)
     .set({ ...withdrawal }, { merge: true });
 };

@@ -1,6 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore';
 
-import { firestore, messaging } from '../utils';
+import { defaultDb, messaging } from '../utils';
 
 export const saveNotificationToken = async (body: any) => {
   const { walletAddress, fcmToken } = body;
@@ -14,7 +14,7 @@ export const saveNotificationToken = async (body: any) => {
   // not checking validity of the wallet address because its already validated
   // in the middleware against the signed auth message
 
-  await firestore
+  await defaultDb
     .doc(`/users/${walletAddress}`)
     .set(
       { address: walletAddress, fcmTokens: FieldValue.arrayUnion(fcmToken) },

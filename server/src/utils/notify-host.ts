@@ -1,24 +1,28 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { TokenAndAmountDB } from '../schemas';
-import { firestore, messaging } from './firebase';
+import { defaultDb, devDb, messaging, prodDb } from './firebase';
+import { Network } from '@wormhole-foundation/sdk';
 
 export interface NotifyHostInputs {
   id: string;
   activity: 'payment' | 'withdrawal';
   details: TokenAndAmountDB;
   payableId: string;
+  network: Network
 }
 
 export const notifyHost = async (inputs: NotifyHostInputs) => {
-  const { activity, details, id, payableId } = inputs;
-  const payableSnap = await firestore.doc(`/payables/${payableId}`).get();
+  const { activity, details, id, payableId, network } = inputs;
+  
+  const db = network === 'Mainnet' ? prodDb : devDb;
+  const payableSnap = await db.doc(`/payables/${payableId}`).get();
   if (!payableSnap.exists) {
     // TODO: Alert developers in some way
     return;
   }
 
   const { email, host } = payableSnap.data()!;
-  const hostSnap = await firestore.doc(`/users/${host}`).get();
+  const hostSnap = await defaultDb.doc(`/users/${host}`).get();
   if (!hostSnap.exists) {
     // TODO: Alert developers in some way
     return;
@@ -54,7 +58,7 @@ export const notifyHost = async (inputs: NotifyHostInputs) => {
         );
       } catch (e) {
         if (`${e}`.toLowerCase().includes('not found')) {
-          await firestore
+          await defaultDb
             .doc(`/users/${host}`)
             .set({ fcmTokens: FieldValue.arrayRemove(token) }, { merge: true });
         } else {

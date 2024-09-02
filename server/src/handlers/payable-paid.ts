@@ -2,9 +2,10 @@ import { Network } from '@wormhole-foundation/sdk';
 import { PayablePayment } from '../schemas';
 import {
   Chain,
+  devDb,
   evmFetchPayablePayment,
-  firestore,
   notifyHost,
+  prodDb,
   solanaFetch
 } from '../utils';
 
@@ -19,15 +20,16 @@ export const payablePaid = async (
   if (typeof paymentId !== 'string') throw 'Invalid paymentId';
   paymentId = paymentId.trim();
 
+  // Set Database based on Network mode
+  const db = network === 'Mainnet' ? prodDb : devDb;
+
   // Ensure the payment is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
-  let paidSnap = await firestore.doc(`/payablePayments/${paymentId}`).get();
+  let paidSnap = await db.doc(`/payablePayments/${paymentId}`).get();
   if (paidSnap.exists) throw 'Payment has already been recorded';
 
   // Repeating the search with lowercase equivalent to account for EVM addresses
-  paidSnap = await firestore
-    .doc(`/payablePayments/${paymentId.toLowerCase()}`)
-    .get();
+  paidSnap = await db.doc(`/payablePayments/${paymentId.toLowerCase()}`).get();
   if (paidSnap.exists) throw 'Payment has already been recorded';
 
   // Extract On-Chain Data
@@ -46,7 +48,7 @@ export const payablePaid = async (
   notifyHost({ ...payment, activity: 'payment' });
 
   // Save the userPayment to the database
-  await firestore
+  await db
     .doc(`/payablePayments/${paymentId}`)
     .set({ ...payment }, { merge: true });
 };

@@ -205,6 +205,68 @@ import Button from 'primevue/button';
   </section>
 
   <section
+    class="bg-primary bg-opacity-10 dark:bg-opacity-30 -ml-8 -mr-8 px-8 pt-12 pb-24 sm:p-12 mb-24 lg:-ml-12 lg:-mr-12"
+  >
+    <h2
+      class="text-2xl sm:text-3xl max-lg:text-center mb-8 max-w-screen-xl mx-auto"
+    >
+      Cross-Chain & Wormhole
+    </h2>
+
+    <div
+      class="bg-gray-700 rounded-2xl p-4 text-white dark:bg-white dark:text-black max-lg:max-w-lg lg:max-w-screen-xl mx-auto lg:flex md:gap-8"
+    >
+      <img
+        src="/assets/wormhole.png"
+        alt="Wormhole"
+        class="rounded-md max-lg:w-full max-lg:mb-8 lg:w-1/3 h-fit"
+      />
+
+      <div>
+        <p class="mb-6 max-sm:text-sm">
+          Our mission is to enable you receive money a large user base (across
+          multiple chains). We are able to achieve this thanks to Wormhole's
+          <a
+            class="underline"
+            href="https://wormhole.com/messaging/"
+            target="_blank"
+            rel="noopener noreferrer"
+            >cross-chain messaging</a
+          >
+          and with payment
+          <a
+            class="underline"
+            href="https://docs.wormhole.com/wormhole/wormhole-connect/routes"
+            target="_blank"
+            rel="noopener noreferrer"
+            >routes</a
+          >.
+        </p>
+
+        <p class="mb-6 max-sm:text-sm">
+          When the blockchain network of a payer's wallet is different from your
+          payable's chain, the payment goes through the route and info about
+          your payable goes alongside through Wormhole messaging.
+        </p>
+
+        <p class="max-md:mb-2">
+          <a
+            class="underline"
+            href="https://wormhole.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button
+              class="bg-black text-white rounded-full px-6 py-2 md:text-lg"
+              >Learn More</Button
+            >
+          </a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section
     class="px-4 py-8 sm:px-8 sm:py-12 mb-16 sm:mb-32 rounded-3xl text-white bg-primary text-center md:mx-16 lg:mx-32"
     data-aos="fade-up"
   >

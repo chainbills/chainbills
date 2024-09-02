@@ -20,7 +20,7 @@ import Button from 'primevue/button';
       <div class="max-sm:block max-md:flex sm:gap-x-4 sm:items-center">
         <div>
           <p class="mb-4 lg:text-lg">
-            Welcome to ChainBills! We help you easily manage your crypto
+            Welcome to Chainbills! We help you easily manage your crypto
             transactions. Connect your wallet and handle your finances with our
             simple dashboard.
           </p>

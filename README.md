@@ -1,6 +1,6 @@
 # Chainbills
 
-Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive any amount of cryptocurrency from everybody (payers), powered by WormHole. ChainBills deducts 2% (with a fixed maximum) from all withdrawals for fees and maintenance.
+Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive any amount of cryptocurrency from everybody (payers), powered by WormHole. Chainbills deducts 2% (with a fixed maximum) from all withdrawals for fees and maintenance.
 
 ## Table Of Contents
 
@@ -20,7 +20,7 @@ Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receiv
 
 Anyone can connect their wallet on chainbills and create a _Payable_.
 
-A payable is like a public invoice through which anybody can pay to. Users that create payables are the hosts of those payables. Whereas, users that make payments to payables are their payers. Hosts can view the balances of their payables and can withdraw at anytime. However, ChainBills deducts 2% from all withdrawals for fees and maintenance.
+A payable is like a public invoice through which anybody can pay to. Users that create payables are the hosts of those payables. Whereas, users that make payments to payables are their payers. Hosts can view the balances of their payables and can withdraw at anytime. However, Chainbills deducts 2% from all withdrawals for fees and maintenance.
 
 On the dashboard on the frontend, hosts can view all the payables they created and can withdraw from anyone that has a positive balance.
 

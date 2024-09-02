@@ -2,7 +2,7 @@ import type { Chain } from '@/stores/chain';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 
-export const CONTRACT_ADDRESS = '0x5c9c9e008e73689b37575e36c4ad654f16799bef';
+export const CONTRACT_ADDRESS = '0x77eb76be1b283145ebc49d7d40e904b70c3b06ab';
 export const PROGRAM_ID = '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND';
 
 export interface TokenChainDetails {

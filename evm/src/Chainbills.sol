@@ -259,17 +259,15 @@ contract Chainbills is CbGovernance, CbPayload {
     payableChainPaymentsCount[payableId][chainId]++;
 
     // Update payable's balances to add this token and its amount.
+    bool wasMatchingBalanceUpdated = false;
     for (uint8 i = 0; i < _payable.balancesCount; i++) {
       if (payableBalances[payableId][i].token == token) {
         payableBalances[payableId][i].amount += amount;
+        wasMatchingBalanceUpdated = true;
         break;
       }
-      if (i == _payable.balancesCount - 1) {
-        payableBalances[payableId].push(TokenAndAmount(token, amount));
-        _payable.balancesCount++;
-      }
     }
-    if (_payable.balancesCount == 0) {
+    if (!wasMatchingBalanceUpdated) {
       payableBalances[payableId].push(TokenAndAmount(token, amount));
       _payable.balancesCount++;
     }

@@ -1,4 +1,4 @@
-use crate::state::*;
+use crate::{error::ChainbillsError, state::*};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -25,7 +25,7 @@ pub struct WithdrawNative<'info> {
     )]
   pub payable_withdrawal_counter: Box<Account<'info, PayableWithdrawalCounter>>,
 
-  #[account(mut, has_one = host)]
+  #[account(mut, constraint = payable.host == *signer.key @ ChainbillsError::NotYourPayable)]
   pub payable: Box<Account<'info, Payable>>,
 
   #[account(mut, seeds = [signer.key().as_ref()], bump)]

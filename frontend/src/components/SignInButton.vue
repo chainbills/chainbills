@@ -58,7 +58,7 @@ onMounted(() => {
         isModalVisible.value = false;
         sidebar.close();
       }
-    },
+    }
   );
 });
 </script>
@@ -70,7 +70,7 @@ onMounted(() => {
   ></wallet-multi-button>
   <Button
     v-else-if="account.connected"
-    @click="evmMenu.toggle"
+    @click="($event) => evmMenu.toggle($event)"
     aria-haspopup="true"
     aria-controls="evm-menu"
     class="bg-primary text-white px-4 py-2"

@@ -1,5 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
-import { evmVerify, solanaVerify, WH_CHAIN_ID_SOLANA } from '../utils';
+import {
+  evmVerify,
+  solanaVerify,
+  WH_CHAIN_ID_ETH_SEPOLIA,
+  WH_CHAIN_ID_SOLANA
+} from '../utils';
 
 export const AUTH_MESSAGE = 'Authentication';
 
@@ -22,7 +27,10 @@ export const validateAuth = async (
     const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
     if (!isVerified) throw 'Unauthorized. Signature and Address Not Matching.';
 
-    res.locals.walletAddress = walletAddress.toLowerCase();
+    res.locals.walletAddress =
+      chainId == WH_CHAIN_ID_ETH_SEPOLIA
+        ? walletAddress.toLowerCase()
+        : walletAddress;
     next();
   } catch (e: any) {
     console.error('Error at validating auth ... ');

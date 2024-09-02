@@ -3,7 +3,12 @@ import Footer from '@/components/Footer.vue';
 import Header from '@/components/Header.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { useAuthStore, useChainStore, useThemeStore } from '@/stores';
+import {
+  useAuthStore,
+  useChainStore,
+  useThemeStore,
+  useUserStore,
+} from '@/stores';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import { account as evmWallet } from '@kolirt/vue-web3-auth';
 import Toast from 'primevue/toast';
@@ -15,12 +20,12 @@ const anchorWallet = useAnchorWallet();
 const appLoading = useAppLoadingStore();
 const chain = useChainStore();
 
-// ensures a signature is available
+// ensures necessary stores are initialized
 useAuthStore();
+useThemeStore();
+useUserStore();
 
 onMounted(() => {
-  // this forces the theme refresh when the app loads
-  useThemeStore();
   watch(
     () => evmWallet.connected,
     (v) => chain.setChain(v ? 'Ethereum Sepolia' : null)

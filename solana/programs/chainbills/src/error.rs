@@ -26,6 +26,10 @@ pub enum ChainbillsError {
   /// No matching token and amount found for payment.
   MatchingTokenAndAmountNotFound,
 
+  #[msg("NotYourPayable")]
+  /// The payable is not owned by the caller.
+  NotYourPayable,
+
   #[msg("InsufficientWithdrawAmount")]
   /// The specified withdrawal amount is greater than the available balance.
   InsufficientWithdrawAmount,

@@ -33,7 +33,7 @@ export const payablePaid = async (
   // Extract On-Chain Data
   let raw: any;
   if (chain === 'Solana') {
-    raw = await solanaFetch('userPayment', paymentId, network);
+    raw = await solanaFetch('payablePayment', paymentId, network);
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchPayablePayment(paymentId);
     paymentId = paymentId.toLowerCase();

@@ -1,10 +1,9 @@
-use crate::state::{Payable, User};
+use crate::{error::ChainbillsError, state::{Payable, User}};
 use anchor_lang::prelude::*;
-
 
 #[derive(Accounts)]
 pub struct UpdatePayable<'info> {
-  #[account(mut, has_one = host)]
+  #[account(mut, constraint = payable.host == *signer.key @ ChainbillsError::NotYourPayable)]
   pub payable: Box<Account<'info, Payable>>,
 
   #[account(seeds = [signer.key().as_ref()], bump)]

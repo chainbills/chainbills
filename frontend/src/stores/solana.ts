@@ -73,7 +73,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
     const payable = getPDA(getSeeds('payable', hostCount));
     const payableChainCounter = getPDA([
-      new PublicKey(payable).toBytes(),
+      new PublicKey(payable).toBuffer(),
       new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
     ]);
     const call = program()
@@ -93,7 +93,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
     return new OnChainSuccess({
       created: payable,
-      txHash: await call.rpc(),
+      txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
       chain: 'Solana',
     });
   };
@@ -133,7 +133,7 @@ export const useSolanaStore = defineStore('solana', () => {
   };
 
   const getCurrentUserPDA = (): string =>
-    getPDA([anchorWallet.value!.publicKey.toBytes()]);
+    getPDA([anchorWallet.value!.publicKey.toBuffer()]);
 
   const getPayablePaymentId = (payableId: string, count: number): string =>
     getPDA(getSeeds('payable_payment', count, new PublicKey(payableId)));
@@ -144,7 +144,7 @@ export const useSolanaStore = defineStore('solana', () => {
     pubkey?: PublicKey
   ): Uint8Array[] => {
     return [
-      (pubkey ?? anchorWallet.value!.publicKey).toBytes(),
+      (pubkey ?? anchorWallet.value!.publicKey).toBuffer(),
       Buffer.from(prefix),
       new BN(count).toArrayLike(Buffer, 'le', 8),
     ];
@@ -176,7 +176,7 @@ export const useSolanaStore = defineStore('solana', () => {
     const currentUser = (await getCurrentUser())!;
     const isExistingUser = currentUser.chainCount > 0;
     let payerCount = 1;
-    if (isExistingUser) payerCount = currentUser.payablesCount + 1;
+    if (isExistingUser) payerCount = currentUser.paymentsCount + 1;
 
     const mint = new PublicKey(details.Solana.address);
     const userPayment = getPDA(getSeeds('user_payment', payerCount));
@@ -186,7 +186,7 @@ export const useSolanaStore = defineStore('solana', () => {
       getSeeds('payable_payment', payableCount, new PublicKey(payableId))
     );
     const payableChainCounter = getPDA([
-      new PublicKey(payableId).toBytes(),
+      new PublicKey(payableId).toBuffer(),
       new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
     ]);
     const signer = anchorWallet.value.publicKey;
@@ -194,6 +194,10 @@ export const useSolanaStore = defineStore('solana', () => {
     if (!(await doesATAExists(payerTokenAccount))) {
       throw `You don't have any ${tokenName}`;
     }
+    const maxWithdrawalFeeDetails = getPDA([
+      Buffer.from('max_withdrawal_fee'),
+      mint.toBuffer(),
+    ]);
     const chainTokenAccount = getATA(mint, new PublicKey(chainStats), true);
 
     const call = program()
@@ -208,6 +212,7 @@ export const useSolanaStore = defineStore('solana', () => {
         mint,
         payerTokenAccount,
         chainTokenAccount,
+        maxWithdrawalFeeDetails,
         signer,
         tokenProgram,
         systemProgram,
@@ -219,7 +224,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
     return new OnChainSuccess({
       created: userPayment,
-      txHash: await call.rpc(),
+      txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
       chain: 'Solana',
     });
   };
@@ -276,7 +281,7 @@ export const useSolanaStore = defineStore('solana', () => {
     );
     const maxWithdrawalFeeDetails = getPDA([
       Buffer.from('max_withdrawal_fee'),
-      mint.toBytes(),
+      mint.toBuffer(),
     ]);
     const signer = anchorWallet.value!.publicKey;
     const hostTokenAccount = getATA(mint, signer, false);
@@ -290,7 +295,8 @@ export const useSolanaStore = defineStore('solana', () => {
       .methods.withdraw(new BN(amount))
       .accounts({
         withdrawal,
-        payable: new PublicKey(payableId),
+        payableWithdrawalCounter,
+        payable: payableId,
         host: getCurrentUserPDA(),
         chainStats,
         config,
@@ -313,7 +319,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
     return new OnChainSuccess({
       created: withdrawal,
-      txHash: await call.rpc(),
+      txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
       chain: 'Solana',
     });
   };

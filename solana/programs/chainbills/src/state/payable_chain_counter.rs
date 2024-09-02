@@ -16,7 +16,7 @@ pub struct PayableChainCounter {
 
 impl PayableChainCounter {
   // discriminator (8) included
-  pub const SPACE: usize = 2 + 32 + 2 + 8;
+  pub const SPACE: usize = 8 + 32 + 2 + 8;
 
   pub fn next_payment(&self) -> u64 {
     self.payments_count.checked_add(1).unwrap()

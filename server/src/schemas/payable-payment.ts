@@ -28,20 +28,15 @@ export class PayablePayment {
       this.payableId = onChainData.payableId.toLowerCase();
 
       if (this.payerChain == 'Ethereum Sepolia') {
-        this.payer = new UniversalAddress(onChainData.payer, 'hex').toNative(
-          'Sepolia'
-        ).address.toLowerCase();
+        this.payer = new UniversalAddress(onChainData.payer, 'hex')
+          .toNative('Sepolia')
+          .address.toLowerCase();
       } else if (this.payerChain == 'Solana') {
         this.payer = denormalizeBytes(onChainData.payer, 'Solana');
       } else throw `Unknown payerChain: ${this.payerChain}`;
     } else if (chain == 'Solana') {
       this.payableId = onChainData.payableId.toBase58();
-
-      if (this.payerChain == 'Solana') {
-        this.payer = onChainData.payer.toBase58();
-      } else if (this.payerChain == 'Ethereum Sepolia') {
-        this.payer = denormalizeBytes(onChainData.payer, 'Ethereum Sepolia');
-      } else throw `Unknown payerChain: ${this.payerChain}`;
+      this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
     } else throw `Unknown chain: ${chain}`;
 
     this.payableCount = Number(onChainData.payableCount);

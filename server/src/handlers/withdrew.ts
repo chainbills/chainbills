@@ -22,14 +22,14 @@ export const withdrew = async (body: any, chain: Chain, network: Network) => {
 
   // Repeating the search with lowercase equivalent to account for EVM addresses
   withDSnap = await firestore
-    .doc(`/userPayments/${withdrawalId.toLowerCase()}`)
+    .doc(`/withdrawals/${withdrawalId.toLowerCase()}`)
     .get();
   if (withDSnap.exists) throw 'Withdrawal has already been recorded';
 
   // Extract On-Chain Data
   let raw: any;
   if (chain === 'Solana') {
-    raw = await solanaFetch('payable', withdrawalId, network);
+    raw = await solanaFetch('withdrawal', withdrawalId, network);
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchWithdrawal(withdrawalId);
     withdrawalId = withdrawalId.toLowerCase();

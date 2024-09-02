@@ -257,7 +257,30 @@ onMounted(() => {
         </p>
 
         <small class="text-xs block text-red-500">{{ balanceError }}</small>
-        <p class="mt-8 sm:mt-20 mb-24 text-right sm:text-center">
+
+        <div
+          class="my-8 sm:text-center"
+          v-if="chain.current && chain.current != payable.chain"
+        >
+          <p class="mb-8">
+            Our Cross-Chain Features with
+            <a
+              href="https://wormhole.com"
+              target="_blank"
+              rel="noopener noreferer"
+              class="underline text-primary"
+              >Wormhole</a
+            >
+            are almost complete. As for now, as this Payable is on
+            {{ payable.chain }}, you can only pay from
+            {{ payable.chain }} wallets. Please switch wallets to continue.
+          </p>
+          <SignInButton />
+        </div>
+        <p
+          class="mt-8 sm:mt-20 mb-24 text-right sm:text-center"
+          v-if="!chain.current || chain.current == payable.chain"
+        >
           <Button
             type="submit"
             class="bg-blue-500 text-white dark:text-black text-xl px-6 py-2"

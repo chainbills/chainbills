@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/SignInButton.vue';
+import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
 import { useUserStore } from '@/stores';
@@ -47,7 +47,7 @@ onMounted(async () => {
       <p class="pt-8 mb-8 text-center text-xl">
         Please connect your wallet to continue
       </p>
-      <p class="mx-auto w-fit"><ConnectWalletButton /></p>
+      <p class="mx-auto w-fit"><SignInButton /></p>
     </template>
 
     <template v-else-if="isLoading">
@@ -95,7 +95,7 @@ onMounted(async () => {
             isClosed,
           } of mines"
           :to="`/payable/${id}`"
-          class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0 rounded-md shadow"
+          class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0 rounded-md shadow h-fit"
         >
           <Button
             class="p-6 mx-auto block w-full bg-blue-100 dark:bg-slate-900 rounded-md shadow-inner"

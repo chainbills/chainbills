@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/SignInButton.vue';
+import SignInButton from '@/components/SignInButton.vue';
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import {
@@ -159,7 +159,7 @@ onMounted(() => {
 
     <div class="text-center pb-20" v-if="!wallet.connected">
       <p class="mb-8">Please connect your wallet to continue.</p>
-      <p class="mx-auto w-fit"><ConnectWalletButton /></p>
+      <p class="mx-auto w-fit"><SignInButton /></p>
     </div>
 
     <div class="text-center" v-else-if="isCreating">

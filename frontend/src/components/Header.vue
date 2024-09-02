@@ -4,7 +4,7 @@ import IconMenu from '@/icons/IconMenu.vue';
 import { useSidebarStore } from '@/stores/sidebar';
 import { useThemeStore } from '@/stores/theme';
 import Button from 'primevue/button';
-import ConnectWalletButton from './SignInButton.vue';
+import SignInButton from './SignInButton.vue';
 
 const sidebar = useSidebarStore();
 const theme = useThemeStore()
@@ -28,7 +28,7 @@ const theme = useThemeStore()
           <li class="mr-6">
             <router-link to="/activity">My Activity</router-link>
           </li class="mr-6">
-         <li class="hidden sm:inline mr-4"><ConnectWalletButton /></li>
+         <li class="hidden sm:inline mr-4"><SignInButton /></li>
           <li><ThemeMenu :full="false" /></li>
         </ul>
       </nav>

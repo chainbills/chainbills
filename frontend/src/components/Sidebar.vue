@@ -4,7 +4,7 @@ import IconDashboard from '@/icons/IconDashboard.vue';
 import IconReplay from '@/icons/IconReplay.vue';
 import { useSidebarStore } from '@/stores/sidebar';
 import Sidebar from 'primevue/sidebar';
-import ConnectWalletButton from './SignInButton.vue';
+import SignInButton from './SignInButton.vue';
 
 const sidebar = useSidebarStore();
 </script>
@@ -35,7 +35,7 @@ const sidebar = useSidebarStore();
           </router-link>
         </li>
         <li><ThemeMenu :full="true" /></li>
-        <li class="mt-6"><ConnectWalletButton /></li>
+        <li class="mt-6"><SignInButton /></li>
       </ul>
     </nav>
   </Sidebar>

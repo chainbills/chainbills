@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ConnectWalletButton from '@/components/SignInButton.vue';
+import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
 import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
@@ -138,7 +138,7 @@ onMounted(() => {
       <p class="my-12 text-center text-xl">
         Please connect your wallet to continue
       </p>
-      <p class="mx-auto w-fit"><ConnectWalletButton /></p>
+      <p class="mx-auto w-fit"><SignInButton /></p>
     </template>
 
     <template class="" v-else-if="!isMine">

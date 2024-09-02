@@ -10,15 +10,22 @@ import {
   useUserStore,
 } from '@/stores';
 import { useAppLoadingStore } from '@/stores/app-loading';
-import { account as evmWallet } from '@kolirt/vue-web3-auth';
+import {
+  disconnect as disconnectEvmWallet,
+  account as evmWallet,
+} from '@kolirt/vue-web3-auth';
 import Toast from 'primevue/toast';
-import { useAnchorWallet } from 'solana-wallets-vue';
+import {
+  useAnchorWallet,
+  useWallet as useSolanaWallet,
+} from 'solana-wallets-vue';
 import { onMounted, watch } from 'vue';
 import { RouterView } from 'vue-router';
 
 const anchorWallet = useAnchorWallet();
 const appLoading = useAppLoadingStore();
 const chain = useChainStore();
+const solanaWallet = useSolanaWallet();
 
 // ensures necessary stores are initialized
 useAuthStore();
@@ -28,11 +35,17 @@ useUserStore();
 onMounted(() => {
   watch(
     () => evmWallet.connected,
-    (v) => chain.setChain(v ? 'Ethereum Sepolia' : null)
+    (v) => {
+      chain.setChain(v ? 'Ethereum Sepolia' : null);
+      if (v) solanaWallet.disconnect();
+    }
   );
   watch(
     () => anchorWallet.value,
-    (v) => chain.setChain(v ? 'Solana' : null)
+    (v) => {
+      chain.setChain(v ? 'Solana' : null);
+      if (v) disconnectEvmWallet();
+    }
   );
 });
 </script>

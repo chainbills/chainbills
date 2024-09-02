@@ -269,6 +269,10 @@ contract Chainbills is CbGovernance, CbPayload {
         _payable.balancesCount++;
       }
     }
+    if (_payable.balancesCount == 0) {
+      payableBalances[payableId].push(TokenAndAmount(token, amount));
+      _payable.balancesCount++;
+    }
 
     // Record payment details of payable.
     paymentId = createId(msg.sender, users[msg.sender].paymentsCount);
@@ -338,6 +342,7 @@ contract Chainbills is CbGovernance, CbPayload {
     // - Ensure that this payable has enough of the provided amount in its balance.
     // - Ensure that the specified token for withdrawal exists in the
     //   payable's balances.
+    if (_payable.balancesCount == 0) revert NoBalanceForWithdrawalToken();
     for (uint8 i = 0; i < _payable.balancesCount; i++) {
       if (payableBalances[payableId][i].token == token) {
         if (payableBalances[payableId][i].amount < amount) {

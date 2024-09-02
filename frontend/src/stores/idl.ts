@@ -78,7 +78,7 @@ export type Chainbills = {
         },
         {
           name: 'wormholeEmitter';
-          isMut: false;
+          isMut: true;
           isSigner: false;
           docs: [
             "This isn't an account that holds data; it is purely",
@@ -106,6 +106,15 @@ export type Chainbills = {
           ];
         },
         {
+          name: 'wormholeMessage';
+          isMut: true;
+          isSigner: false;
+          docs: [
+            "account, which requires this program's signature.",
+            '[`wormhole::post_message`] requires this account be mutable.',
+          ];
+        },
+        {
           name: 'clock';
           isMut: false;
           isSigner: false;
@@ -122,16 +131,6 @@ export type Chainbills = {
           isMut: false;
           isSigner: false;
           docs: ['System program.'];
-        },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
         },
       ];
       args: [];
@@ -181,16 +180,6 @@ export type Chainbills = {
           isMut: false;
           isSigner: false;
           docs: ['System program.'];
-        },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
         },
       ];
       args: [
@@ -307,16 +296,6 @@ export type Chainbills = {
           isSigner: false;
           docs: ['System Program.'];
         },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
-        },
       ];
       args: [
         {
@@ -360,16 +339,6 @@ export type Chainbills = {
         },
         {
           name: 'systemProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
           isMut: false;
           isSigner: false;
         },
@@ -420,16 +389,6 @@ export type Chainbills = {
           isMut: false;
           isSigner: false;
           docs: ['The system program account.'];
-        },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
         },
       ];
       args: [];
@@ -491,16 +450,6 @@ export type Chainbills = {
           isSigner: false;
           docs: ['The system program account.'];
         },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
-        },
       ];
       args: [
         {
@@ -535,16 +484,6 @@ export type Chainbills = {
           isMut: true;
           isSigner: true;
         },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
-        },
       ];
       args: [];
     },
@@ -569,16 +508,6 @@ export type Chainbills = {
           name: 'signer';
           isMut: true;
           isSigner: true;
-        },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
         },
       ];
       args: [];
@@ -607,16 +536,6 @@ export type Chainbills = {
           name: 'signer';
           isMut: true;
           isSigner: true;
-        },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
         },
       ];
       args: [
@@ -705,16 +624,6 @@ export type Chainbills = {
           isMut: false;
           isSigner: false;
         },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
-        },
       ];
       args: [
         {
@@ -777,16 +686,6 @@ export type Chainbills = {
           isMut: false;
           isSigner: false;
         },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
-        },
       ];
       args: [
         {
@@ -806,6 +705,11 @@ export type Chainbills = {
       accounts: [
         {
           name: 'withdrawal';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payableWithdrawalCounter';
           isMut: true;
           isSigner: false;
         },
@@ -874,16 +778,6 @@ export type Chainbills = {
           isMut: false;
           isSigner: false;
         },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
-        },
       ];
       args: [
         {
@@ -903,6 +797,11 @@ export type Chainbills = {
       accounts: [
         {
           name: 'withdrawal';
+          isMut: true;
+          isSigner: false;
+        },
+        {
+          name: 'payableWithdrawalCounter';
           isMut: true;
           isSigner: false;
         },
@@ -943,16 +842,6 @@ export type Chainbills = {
         },
         {
           name: 'systemProgram';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
           isMut: false;
           isSigner: false;
         },
@@ -1009,16 +898,6 @@ export type Chainbills = {
           isMut: false;
           isSigner: false;
         },
-        {
-          name: 'eventAuthority';
-          isMut: false;
-          isSigner: false;
-        },
-        {
-          name: 'program';
-          isMut: false;
-          isSigner: false;
-        },
       ];
       args: [
         {
@@ -1029,6 +908,13 @@ export type Chainbills = {
     },
   ];
   accounts: [
+    {
+      name: 'empty';
+      type: {
+        kind: 'struct';
+        fields: [];
+      };
+    },
     {
       name: 'chainStats';
       docs: ['Keeps track of all activities on this chain.'];
@@ -1257,6 +1143,28 @@ export type Chainbills = {
             type: {
               defined: 'TokenAndAmount';
             };
+          },
+        ];
+      };
+    },
+    {
+      name: 'payableWithdrawalCounter';
+      docs: [
+        'A counter for the Withdrawals per Payable. This is used to track',
+        "the nth withdrawal made from a payable. It contains the host's",
+        'count of withdrawals and the time the withdrawal was made',
+        'on the involved payable. The caller should then use the retrieved',
+        'host count to get the main Withdrawal account.',
+      ];
+      type: {
+        kind: 'struct';
+        fields: [
+          {
+            name: 'hostCount';
+            docs: [
+              'The host count of withdrawals at the point when the withdrawal was made.',
+            ];
+            type: 'u64';
           },
         ];
       };
@@ -1939,7 +1847,7 @@ export const IDL: Chainbills = {
         },
         {
           name: 'wormholeEmitter',
-          isMut: false,
+          isMut: true,
           isSigner: false,
           docs: [
             "This isn't an account that holds data; it is purely",
@@ -1967,6 +1875,15 @@ export const IDL: Chainbills = {
           ],
         },
         {
+          name: 'wormholeMessage',
+          isMut: true,
+          isSigner: false,
+          docs: [
+            "account, which requires this program's signature.",
+            '[`wormhole::post_message`] requires this account be mutable.',
+          ],
+        },
+        {
           name: 'clock',
           isMut: false,
           isSigner: false,
@@ -1983,16 +1900,6 @@ export const IDL: Chainbills = {
           isMut: false,
           isSigner: false,
           docs: ['System program.'],
-        },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
         },
       ],
       args: [],
@@ -2042,16 +1949,6 @@ export const IDL: Chainbills = {
           isMut: false,
           isSigner: false,
           docs: ['System program.'],
-        },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
         },
       ],
       args: [
@@ -2168,16 +2065,6 @@ export const IDL: Chainbills = {
           isSigner: false,
           docs: ['System Program.'],
         },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [
         {
@@ -2221,16 +2108,6 @@ export const IDL: Chainbills = {
         },
         {
           name: 'systemProgram',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
           isMut: false,
           isSigner: false,
         },
@@ -2282,23 +2159,13 @@ export const IDL: Chainbills = {
           isSigner: false,
           docs: ['The system program account.'],
         },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [],
     },
     {
       name: 'createPayable',
       docs: [
-        'Initialize a Payable',
+        'Create a Payable',
         '',
         '### args',
         '* allowed_tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens',
@@ -2352,16 +2219,6 @@ export const IDL: Chainbills = {
           isSigner: false,
           docs: ['The system program account.'],
         },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [
         {
@@ -2396,16 +2253,6 @@ export const IDL: Chainbills = {
           isMut: true,
           isSigner: true,
         },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [],
     },
@@ -2430,16 +2277,6 @@ export const IDL: Chainbills = {
           name: 'signer',
           isMut: true,
           isSigner: true,
-        },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
         },
       ],
       args: [],
@@ -2468,16 +2305,6 @@ export const IDL: Chainbills = {
           name: 'signer',
           isMut: true,
           isSigner: true,
-        },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
         },
       ],
       args: [
@@ -2566,16 +2393,6 @@ export const IDL: Chainbills = {
           isMut: false,
           isSigner: false,
         },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [
         {
@@ -2638,16 +2455,6 @@ export const IDL: Chainbills = {
           isMut: false,
           isSigner: false,
         },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [
         {
@@ -2667,6 +2474,11 @@ export const IDL: Chainbills = {
       accounts: [
         {
           name: 'withdrawal',
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: 'payableWithdrawalCounter',
           isMut: true,
           isSigner: false,
         },
@@ -2735,16 +2547,6 @@ export const IDL: Chainbills = {
           isMut: false,
           isSigner: false,
         },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [
         {
@@ -2764,6 +2566,11 @@ export const IDL: Chainbills = {
       accounts: [
         {
           name: 'withdrawal',
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: 'payableWithdrawalCounter',
           isMut: true,
           isSigner: false,
         },
@@ -2804,16 +2611,6 @@ export const IDL: Chainbills = {
         },
         {
           name: 'systemProgram',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
           isMut: false,
           isSigner: false,
         },
@@ -2870,16 +2667,6 @@ export const IDL: Chainbills = {
           isMut: false,
           isSigner: false,
         },
-        {
-          name: 'eventAuthority',
-          isMut: false,
-          isSigner: false,
-        },
-        {
-          name: 'program',
-          isMut: false,
-          isSigner: false,
-        },
       ],
       args: [
         {
@@ -2890,6 +2677,13 @@ export const IDL: Chainbills = {
     },
   ],
   accounts: [
+    {
+      name: 'empty',
+      type: {
+        kind: 'struct',
+        fields: [],
+      },
+    },
     {
       name: 'chainStats',
       docs: ['Keeps track of all activities on this chain.'],
@@ -3118,6 +2912,28 @@ export const IDL: Chainbills = {
             type: {
               defined: 'TokenAndAmount',
             },
+          },
+        ],
+      },
+    },
+    {
+      name: 'payableWithdrawalCounter',
+      docs: [
+        'A counter for the Withdrawals per Payable. This is used to track',
+        "the nth withdrawal made from a payable. It contains the host's",
+        'count of withdrawals and the time the withdrawal was made',
+        'on the involved payable. The caller should then use the retrieved',
+        'host count to get the main Withdrawal account.',
+      ],
+      type: {
+        kind: 'struct',
+        fields: [
+          {
+            name: 'hostCount',
+            docs: [
+              'The host count of withdrawals at the point when the withdrawal was made.',
+            ],
+            type: 'u64',
           },
         ],
       },

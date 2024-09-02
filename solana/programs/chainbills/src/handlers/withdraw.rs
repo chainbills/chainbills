@@ -38,6 +38,7 @@ fn update_state_for_withdrawal(
   payable: &mut Account<Payable>,
   host: &mut Account<User>,
   withdrawal: &mut Account<Withdrawal>,
+  payable_withdrawal_counter: &mut Account<PayableWithdrawalCounter>,
 ) -> Result<()> {
   // Increment the chain stats for payables_count.
   chain_stats.withdrawals_count = chain_stats.next_withdrawal();
@@ -67,6 +68,11 @@ fn update_state_for_withdrawal(
     token: mint,
     amount,
   };
+
+  // Initialize the payable withdrawal counter. Record the host_count in it
+  // for the caller to use to get the main withdrawal account when retrieving
+  // withdrawals in context of payables.
+  payable_withdrawal_counter.host_count = host.withdrawals_count;
 
   // Emit log and event.
   msg!(
@@ -147,6 +153,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   let chain_stats = ctx.accounts.chain_stats.as_mut();
   let host = ctx.accounts.host.as_mut();
   let withdrawal = ctx.accounts.withdrawal.as_mut();
+  let payable_withdrawal_counter = ctx.accounts.payable_withdrawal_counter.as_mut();
   update_state_for_withdrawal(
     amount,
     mint.key(),
@@ -154,6 +161,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     payable,
     host,
     withdrawal,
+    payable_withdrawal_counter,
   )
 }
 
@@ -206,6 +214,7 @@ pub fn withdraw_native(
   let chain_stats = ctx.accounts.chain_stats.as_mut();
   let host = ctx.accounts.host.as_mut();
   let withdrawal = ctx.accounts.withdrawal.as_mut();
+  let payable_withdrawal_counter = ctx.accounts.payable_withdrawal_counter.as_mut();
   update_state_for_withdrawal(
     amount,
     crate::ID,
@@ -213,5 +222,6 @@ pub fn withdraw_native(
     payable,
     host,
     withdrawal,
+    payable_withdrawal_counter,
   )
 }

@@ -2,7 +2,6 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
   #[account(
@@ -15,6 +14,17 @@ pub struct Withdraw<'info> {
         space = Withdrawal::SPACE
     )]
   pub withdrawal: Box<Account<'info, Withdrawal>>,
+
+  #[account(
+        init,
+        seeds = [payable.key().as_ref(),
+            PayableWithdrawalCounter::SEED_PREFIX,
+            &payable.next_withdrawal().to_le_bytes()[..]],
+        bump,
+        payer = signer,
+        space = PayableWithdrawalCounter::SPACE
+    )]
+  pub payable_withdrawal_counter: Box<Account<'info, PayableWithdrawalCounter>>,
 
   #[account(mut, has_one = host)]
   pub payable: Box<Account<'info, Payable>>,

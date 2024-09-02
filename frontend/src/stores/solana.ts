@@ -265,6 +265,15 @@ export const useSolanaStore = defineStore('solana', () => {
     const withdrawal = getPDA(
       getSeeds('withdrawal', (await getCurrentUser())!.withdrawalsCount + 1)
     );
+    const payable = await fetchEntity('payable', payableId);
+    const payableCount = Number(payable.withdrawalsCount) + 1;
+    const payableWithdrawalCounter = getPDA(
+      getSeeds(
+        'payable_withdrawal_counter',
+        payableCount,
+        new PublicKey(payableId)
+      )
+    );
     const maxWithdrawalFeeDetails = getPDA([
       Buffer.from('max_withdrawal_fee'),
       mint.toBytes(),

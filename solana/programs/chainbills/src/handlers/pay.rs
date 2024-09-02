@@ -134,7 +134,6 @@ fn update_state_for_payment(
     user_payment.chain_count,
     user_payment.payer_count
   );
-  // TODO: Make this to be emit! instead of emit!
   emit!(PayablePayEvent {
     payable_id: payable.key(),
     payer_wallet: payer.wallet_address.to_bytes(),
@@ -143,7 +142,6 @@ fn update_state_for_payment(
     chain_count: payable_payment.local_chain_count,
     payable_count: payable_payment.payer_count,
   });
-  // TODO: Make this to be emit! instead of emit!
   emit!(UserPayEvent {
     payable_id: payable.key().to_bytes(),
     payer_wallet: payer.wallet_address,

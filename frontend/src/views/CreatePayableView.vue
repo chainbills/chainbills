@@ -14,13 +14,16 @@ import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import InputSwitch from 'primevue/inputswitch';
-import { onMounted, ref, watch, type Ref } from 'vue';
+import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const allowsFreePayments = ref(false);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
 const chain = useChainStore();
+const availableTokens = computed(() =>
+  tokens.filter((t) => chain.current && !!t.details[chain.current!])
+);
 const configError = ref('');
 const displayedConfig = ref<TokenAndAmount[]>([]);
 const isCreating = ref(false);
@@ -43,8 +46,13 @@ const removeToken = (index: number) => {
 
 const chooseToken = (token: any) => {
   selectedTokens.value = [...selectedTokens.value, token];
-  amounts.value.push(ref(0));
-  amountErrors.value.push(ref(''));
+  // wrapping in set time out to allow the other listeners to finish
+  setTimeout(() => {
+    // undefined is to keep the placeholder (Amount) in the input field
+    amounts.value.push(ref(undefined));
+    amountErrors.value.push(ref('Required'));
+    displayedConfig.value = [];
+  });
 };
 
 const updateDisplayedConfig = () => {
@@ -57,7 +65,7 @@ const updateDisplayedConfig = () => {
         return;
       } else {
         tokensAndAmounts.push(
-          new TokenAndAmount(selectedTokens.value[i], amounts.value[i].value),
+          new TokenAndAmount(selectedTokens.value[i], amounts.value[i].value)
         );
       }
     }
@@ -74,7 +82,7 @@ const validateAmount = (v: any) => {
 const validateConfig = () => {
   configError.value =
     !allowsFreePayments.value && selectedTokens.value.length == 0
-      ? 'Either allow free payments OR specify at least one accepted ' +
+      ? 'Either allow free payments OR specify at least one allowed ' +
         'token and its amount.'
       : '';
 };
@@ -111,8 +119,8 @@ const create = async () => {
           new TokenAndAmount(
             selectedTokens.value[i],
             amounts.value[i].value *
-              10 ** selectedTokens.value[i].details[chain.current!].decimals,
-          ),
+              10 ** selectedTokens.value[i].details[chain.current!]!.decimals
+          )
         );
     }
   }
@@ -219,8 +227,7 @@ onMounted(() => {
           >Allow Free Payments ?
         </label>
         <small class="text-xs text-gray-500 block mb-4"
-          >Do you want to accept any token and any amount? This is Permanent.
-          You can't change this after creating this payable.</small
+          >Do you want to accept any token and any amount?</small
         >
         <p class="flex items-center">
           <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')"
@@ -234,9 +241,9 @@ onMounted(() => {
       </div>
 
       <template v-if="!allowsFreePayments">
-        <p>Accepted Tokens and Amounts</p>
+        <p>Allowed Tokens and Amounts</p>
         <small class="text-xs text-gray-500 block mb-4"
-          >Permanent. You can't change this after creating this payable.</small
+          >If no above, please specify the payments you want.</small
         >
         <label
           v-for="(token, i) of selectedTokens"
@@ -273,12 +280,12 @@ onMounted(() => {
         </label>
         <Dropdown
           :options="
-            tokens.filter(
-              (t) => !selectedTokens.find((st) => st.name == t.name),
+            availableTokens.filter(
+              (t) => !selectedTokens.find((st) => st.name == t.name)
             )
           "
           optionLabel="name"
-          v-if="tokens.length > selectedTokens.length"
+          v-if="availableTokens.length > selectedTokens.length"
           @change="(e) => chooseToken(e.value)"
           placeholder="Select a Token"
           class="mb-2"
@@ -287,7 +294,7 @@ onMounted(() => {
       <small class="text-xs block mb-2 text-red-500">{{ configError }}</small>
 
       <p v-if="allowsFreePayments" class="text-xl mb-2">
-        This payable will accept payments of any amounts of any token.
+        This payable will accept payments of any amounts in any token.
       </p>
       <p v-else-if="displayedConfig.length == 1">
         This payable will accept

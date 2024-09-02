@@ -38,6 +38,7 @@ export const useEvmStore = defineStore('evm', () => {
 
   const balance = async (token: Token): Promise<number | null> => {
     if (!account.connected) return null;
+    if (!token.details['Ethereum Sepolia']) return null;
     try {
       const addr = token.details['Ethereum Sepolia'].address as `0x${string}`;
       const balance =
@@ -186,6 +187,11 @@ export const useEvmStore = defineStore('evm', () => {
       return null;
     }
 
+    if (!details['Ethereum Sepolia']) {
+      toastError('Token not supported on Ethereum Sepolia for now');
+      return null;
+    }
+
     const token = details['Ethereum Sepolia'].address as `0x${string}`;
     if (token != CONTRACT_ADDRESS) {
       const approval = await rawWriteContract({
@@ -254,6 +260,10 @@ export const useEvmStore = defineStore('evm', () => {
   ): Promise<OnChainSuccess | null> => {
     if (!account.connected) {
       toastError('Connect EVM Wallet First!');
+      return null;
+    }
+    if (!details['Ethereum Sepolia']) {
+      toastError('Token not supported on Ethereum Sepolia for now');
       return null;
     }
     const { hash, wait } = await rawWriteContract({

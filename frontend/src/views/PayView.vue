@@ -12,13 +12,16 @@ import { usePaymentStore } from '@/stores/payment';
 import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
-import { onMounted, ref, watch, type Ref } from 'vue';
+import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const amount = ref<any>('');
 const amountError = ref('');
 const balanceError = ref('');
 const chain = useChainStore();
+const availableTokens = computed(() =>
+  tokens.filter((t) => !chain.current || !!t.details[chain.current!])
+);
 const configError = ref('');
 const emailInput = ref(null) as unknown as Ref<HTMLInputElement>;
 const email = ref('');
@@ -46,7 +49,9 @@ const validateAmount = () => {
   if (allowsFreePayments && selectedConfig.value) {
     selectedConfig.value.amount =
       v *
-      10 ** selectedConfig.value.details[chain.current ?? 'Solana'].decimals;
+      10 **
+        (selectedConfig.value.details[chain.current ?? payable.chain]
+          ?.decimals ?? 0);
   }
   validateBalance();
 };
@@ -189,7 +194,7 @@ onMounted(() => {
           </div>
           <div class="flex flex-col">
             <Dropdown
-              :options="tokens"
+              :options="availableTokens"
               optionLabel="name"
               v-model="selectedToken"
               @change="(e) => selectToken(e.value)"

@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { Chain, CONTRACT_ADDRESS } from '../utils';
+import { Chain, CONTRACT_ADDRESS, PROGRAM_ID } from '../utils';
 
 export interface TokenChainDetails {
   address: string;
@@ -8,7 +8,7 @@ export interface TokenChainDetails {
 
 export interface Token {
   name: string;
-  details: { [key in Chain]: TokenChainDetails };
+  details: { [key in Chain]?: TokenChainDetails };
 }
 
 export interface TokenAndAmountDB {
@@ -23,7 +23,7 @@ export interface TokenAndAmountOnChain {
 
 export class TokenAndAmount {
   name: string;
-  details: { [key in Chain]: TokenChainDetails };
+  details: { [key in Chain]?: TokenChainDetails };
   amount: number;
 
   constructor(token: Token, amount: number) {
@@ -39,39 +39,21 @@ export class TokenAndAmount {
     let found: Token | undefined;
     if (chain == 'Ethereum Sepolia') {
       found = tokens.find(
-        (t) => `${t.details['Ethereum Sepolia'].address}` == token.toLowerCase()
+        (t) => t.details['Ethereum Sepolia']?.address == token.toLowerCase()
       );
     } else if (chain == 'Solana') {
       if ((token as any) instanceof PublicKey) {
         token = (token as unknown as PublicKey).toBase58();
       }
-      found = tokens.find((t) => t.details.Solana.address == token);
+      found = tokens.find((t) => t.details.Solana?.address == token);
     } else throw `Unknown Chain: ${chain}`;
 
     if (!found) throw `Couldn't find token details for ${token}`;
     return new TokenAndAmount(found, Number(amount));
   }
 
-  display(chain: Chain) {
-    return this.format(chain) + ' ' + this.name;
-  }
-
   format(chain: Chain) {
-    return this.amount / 10 ** this.details[chain].decimals;
-  }
-
-  token(): Token {
-    return {
-      name: this.name,
-      details: this.details
-    };
-  }
-
-  toOnChain(chain: Chain): TokenAndAmountOnChain {
-    return {
-      token: this.details[chain].address,
-      amount: BigInt(this.amount)
-    };
+    return this.amount / 10 ** (this.details[chain]?.decimals ?? 0);
   }
 }
 
@@ -92,13 +74,18 @@ export const tokens: Token[] = [
   {
     name: 'ETH',
     details: {
-      Solana: {
-        address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-        decimals: 6
-      },
       'Ethereum Sepolia': {
         address: CONTRACT_ADDRESS,
         decimals: 18
+      }
+    }
+  },
+  {
+    name: 'SOL',
+    details: {
+      Solana: {
+        address: PROGRAM_ID,
+        decimals: 9
       }
     }
   }

@@ -1,4 +1,10 @@
-import { OnChainSuccess, TokenAndAmount, User, type Token } from '@/schemas';
+import {
+  OnChainSuccess,
+  PROGRAM_ID,
+  TokenAndAmount,
+  User,
+  type Token,
+} from '@/schemas';
 import { SOLANA_CLUSTER, WH_CHAIN_ID_SOLANA } from '@/stores/chain';
 import { IDL, type Chainbills } from '@/stores/idl';
 import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
@@ -23,8 +29,6 @@ import {
   useWallet as useSolanaWallet,
 } from 'solana-wallets-vue';
 
-export const PROGRAM_ID = '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND';
-
 export const useSolanaStore = defineStore('solana', () => {
   const getPDA = (seeds: (Buffer | Uint8Array)[]): string =>
     PublicKey.findProgramAddressSync(
@@ -43,14 +47,21 @@ export const useSolanaStore = defineStore('solana', () => {
   const balance = async (token: Token): Promise<number | null> => {
     try {
       if (!anchorWallet.value) return null;
-      return (
-        await connection.getTokenAccountBalance(
-          getATA(
-            new PublicKey(token.details.Solana.address),
-            anchorWallet.value!.publicKey
+      if (!token.details.Solana) return null;
+      if (token.details.Solana.address == PROGRAM_ID) {
+        return (
+          (await connection.getBalance(anchorWallet.value!.publicKey)) / 10 ** 9
+        );
+      } else {
+        return (
+          await connection.getTokenAccountBalance(
+            getATA(
+              new PublicKey(token.details.Solana.address),
+              anchorWallet.value!.publicKey
+            )
           )
-        )
-      ).value.uiAmount;
+        ).value.uiAmount;
+      }
     } catch (e) {
       if (`${e}`.includes('could not find account')) return 0;
       toastError(`Couldn't fetch ${token.name} balance: ${e}`);
@@ -173,12 +184,16 @@ export const useSolanaStore = defineStore('solana', () => {
       return null;
     }
 
+    if (!details.Solana) {
+      toastError('Token not supported on Solana for now');
+      return null;
+    }
+
     const currentUser = (await getCurrentUser())!;
     const isExistingUser = currentUser.chainCount > 0;
     let payerCount = 1;
     if (isExistingUser) payerCount = currentUser.paymentsCount + 1;
 
-    const mint = new PublicKey(details.Solana.address);
     const userPayment = getPDA(getSeeds('user_payment', payerCount));
     const payable = await fetchEntity('payable', payableId);
     const payableCount = Number(payable.paymentsCount) + 1;
@@ -190,18 +205,31 @@ export const useSolanaStore = defineStore('solana', () => {
       new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
     ]);
     const signer = anchorWallet.value.publicKey;
-    const payerTokenAccount = getATA(mint, signer, true);
-    if (!(await doesATAExists(payerTokenAccount))) {
-      throw `You don't have any ${tokenName}`;
-    }
+    const mint = new PublicKey(details.Solana.address);
     const maxWithdrawalFeeDetails = getPDA([
       Buffer.from('max_withdrawal_fee'),
       mint.toBuffer(),
     ]);
-    const chainTokenAccount = getATA(mint, new PublicKey(chainStats), true);
 
+    const isNativePayment = details.Solana.address == PROGRAM_ID;
+    let splAccounts = {};
+    if (!isNativePayment) {
+      const payerTokenAccount = getATA(mint, signer, true);
+      if (!(await doesATAExists(payerTokenAccount))) {
+        throw `You don't have any ${tokenName}`;
+      }
+      const chainTokenAccount = getATA(mint, new PublicKey(chainStats), true);
+      splAccounts = {
+        mint,
+        payerTokenAccount,
+        chainTokenAccount,
+        tokenProgram,
+      };
+    }
+
+    const method = isNativePayment ? 'payNative' : 'pay';
     const call = program()
-      .methods.pay(new BN(amount))
+      .methods[method](new BN(amount))
       .accounts({
         userPayment,
         payablePayment,
@@ -209,13 +237,10 @@ export const useSolanaStore = defineStore('solana', () => {
         payable: new PublicKey(payableId),
         payer: getCurrentUserPDA(),
         chainStats,
-        mint,
-        payerTokenAccount,
-        chainTokenAccount,
         maxWithdrawalFeeDetails,
         signer,
-        tokenProgram,
         systemProgram,
+        ...(!isNativePayment ? splAccounts : {}),
       });
 
     call.preInstructions([
@@ -265,7 +290,11 @@ export const useSolanaStore = defineStore('solana', () => {
       return null;
     }
 
-    const mint = new PublicKey(details.Solana.address);
+    if (!details.Solana) {
+      toastError('Token not supported on Solana for now');
+      return null;
+    }
+
     const config = getPDA([Buffer.from('config')]);
     const withdrawal = getPDA(
       getSeeds('withdrawal', (await getCurrentUser())!.withdrawalsCount + 1)
@@ -279,20 +308,33 @@ export const useSolanaStore = defineStore('solana', () => {
         new PublicKey(payableId)
       )
     );
+    const mint = new PublicKey(details.Solana.address);
     const maxWithdrawalFeeDetails = getPDA([
       Buffer.from('max_withdrawal_fee'),
       mint.toBuffer(),
     ]);
     const signer = anchorWallet.value!.publicKey;
-    const hostTokenAccount = getATA(mint, signer, false);
-    const hostTAExists = await doesATAExists(hostTokenAccount);
-    const chainTokenAccount = getATA(mint, new PublicKey(chainStats), true);
     const configData = await fetchEntity('config', config);
     const feeCollector = configData.chainbillsFeeCollector;
-    const feesTokenAccount = getATA(mint, feeCollector, false);
 
+    const isNativePayment = details.Solana.address == PROGRAM_ID;
+    let splAccounts = {};
+    if (!isNativePayment) {
+      const hostTokenAccount = getATA(mint, signer, false);
+      const chainTokenAccount = getATA(mint, new PublicKey(chainStats), true);
+      const feesTokenAccount = getATA(mint, feeCollector, false);
+      splAccounts = {
+        mint,
+        hostTokenAccount,
+        chainTokenAccount,
+        feesTokenAccount,
+        tokenProgram,
+      };
+    }
+
+    const method = isNativePayment ? 'withdrawNative' : 'withdraw';
     const call = program()
-      .methods.withdraw(new BN(amount))
+      .methods[method](new BN(amount))
       .accounts({
         withdrawal,
         payableWithdrawalCounter,
@@ -300,21 +342,21 @@ export const useSolanaStore = defineStore('solana', () => {
         host: getCurrentUserPDA(),
         chainStats,
         config,
-        mint,
         maxWithdrawalFeeDetails,
-        hostTokenAccount,
-        chainTokenAccount,
         feeCollector,
-        feesTokenAccount,
         signer,
-        tokenProgram,
         systemProgram,
+        ...(!isNativePayment ? splAccounts : {}),
       });
 
-    if (!hostTAExists) {
-      call.preInstructions([
-        createATAIx(signer, hostTokenAccount, signer, mint),
-      ]);
+    if (!isNativePayment) {
+      const hostTokenAccount = getATA(mint, signer, false);
+      const hostTAExists = await doesATAExists(hostTokenAccount);
+      if (!hostTAExists) {
+        call.preInstructions([
+          createATAIx(signer, hostTokenAccount, signer, mint),
+        ]);
+      }
     }
 
     return new OnChainSuccess({

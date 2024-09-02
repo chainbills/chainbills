@@ -1,7 +1,9 @@
 import type { Chain } from '@/stores/chain';
+import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 
 export const CONTRACT_ADDRESS = '0x5c9c9e008e73689b37575e36c4ad654f16799bef';
+export const PROGRAM_ID = '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND';
 
 export interface TokenChainDetails {
   address: string;
@@ -10,17 +12,17 @@ export interface TokenChainDetails {
 
 export interface Token {
   name: string;
-  details: { [key in Chain]: TokenChainDetails };
+  details: { [key in Chain]?: TokenChainDetails };
 }
 
 export interface TokenAndAmountOnChain {
-  token: string;
-  amount: bigint;
+  token: string | PublicKey;
+  amount: bigint | BN;
 }
 
 export class TokenAndAmount {
   name: string;
-  details: { [key in Chain]: TokenChainDetails };
+  details: { [key in Chain]?: TokenChainDetails };
   amount: number;
 
   constructor(token: Token, amount: number) {
@@ -36,13 +38,14 @@ export class TokenAndAmount {
     let found: Token | undefined;
     if (chain == 'Ethereum Sepolia') {
       found = tokens.find(
-        (t) => `${t.details['Ethereum Sepolia'].address}` == token.toLowerCase()
+        (t) =>
+          t.details['Ethereum Sepolia']?.address == `${token}`.toLowerCase()
       );
     } else if (chain == 'Solana') {
       if ((token as any) instanceof PublicKey) {
         token = (token as unknown as PublicKey).toBase58();
       }
-      found = tokens.find((t) => t.details.Solana.address == token);
+      found = tokens.find((t) => t.details.Solana?.address == token);
     } else throw `Unknown Chain: ${chain}`;
 
     if (!found) throw `Couldn't find token details for ${token}`;
@@ -54,7 +57,7 @@ export class TokenAndAmount {
   }
 
   format(chain: Chain) {
-    return this.amount / 10 ** this.details[chain].decimals;
+    return this.amount / 10 ** (this.details[chain]?.decimals ?? 0);
   }
 
   token(): Token {
@@ -65,14 +68,11 @@ export class TokenAndAmount {
   }
 
   toOnChain(chain: Chain): TokenAndAmountOnChain {
-    // if (chain == 'Ethereum Sepolia') {
-    //   return [this.details[chain].address, BigInt(this.amount)];
-    // } else {
-    return {
-      token: this.details[chain].address,
-      amount: BigInt(this.amount),
-    };
-    // }
+    let token: any = this.details[chain]?.address ?? '';
+    if (!!token && chain == 'Solana') token = new PublicKey(token);
+    const amount =
+      chain == 'Solana' ? new BN(this.amount) : BigInt(this.amount);
+    return { token, amount };
   }
 }
 
@@ -93,13 +93,18 @@ export const tokens: Token[] = [
   {
     name: 'ETH',
     details: {
-      Solana: {
-        address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-        decimals: 6,
-      },
       'Ethereum Sepolia': {
         address: CONTRACT_ADDRESS,
         decimals: 18,
+      },
+    },
+  },
+  {
+    name: 'SOL',
+    details: {
+      Solana: {
+        address: PROGRAM_ID,
+        decimals: 9,
       },
     },
   },

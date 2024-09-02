@@ -1,18 +1,16 @@
 import { FieldValue } from 'firebase-admin/firestore';
-import { TokenAndAmount } from '../schemas';
-import { Chain } from './chain';
+import { TokenAndAmountDB } from '../schemas';
 import { firestore, messaging } from './firebase';
 
 export interface NotifyHostInputs {
   id: string;
-  chain: Chain;
   activity: 'payment' | 'withdrawal';
-  details: TokenAndAmount;
+  details: TokenAndAmountDB;
   payableId: string;
 }
 
 export const notifyHost = async (inputs: NotifyHostInputs) => {
-  const { activity, chain, details, id, payableId } = inputs;
+  const { activity, details, id, payableId } = inputs;
   const payableSnap = await firestore.doc(`/payables/${payableId}`).get();
   if (!payableSnap.exists) {
     // TODO: Alert developers in some way
@@ -42,7 +40,7 @@ export const notifyHost = async (inputs: NotifyHostInputs) => {
           await messaging.send({
             token,
             notification: {
-              title: `You just got paid ${details.display(chain)}`,
+              title: `You just got paid ${details.amount} ${details.token}`,
               body: 'Click to View the Payment Receipt'
               // image: 'https://chainbills.xyz/assets/chainbills-light.png'
             },

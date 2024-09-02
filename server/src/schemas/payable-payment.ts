@@ -1,13 +1,12 @@
-import { ChainId, Network } from '@wormhole-foundation/sdk';
+import { ChainId, Network, UniversalAddress } from '@wormhole-foundation/sdk';
 import { Timestamp } from 'firebase-admin/firestore';
 import { Chain, denormalizeBytes, getChain, getChainId } from '../utils';
-import { TokenAndAmount } from './tokens-and-amounts';
+import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
 
 export class PayablePayment {
   id: string;
   chain: Chain;
   chainId: ChainId;
-  chainCount: number;
   network: Network;
   payableId: string;
   payableCount: number;
@@ -16,26 +15,40 @@ export class PayablePayment {
   payerChain: Chain;
   payerCount: number;
   timestamp: Timestamp;
-  details: TokenAndAmount;
+  details: TokenAndAmountDB;
 
   constructor(id: string, chain: Chain, network: Network, onChainData: any) {
     this.id = id;
     this.chain = chain;
     this.chainId = getChainId(chain);
-    this.chainCount = Number(onChainData.chainCount);
     this.network = network;
+    this.payerChain = getChain(onChainData.payerChainId);
 
-    if (chain == 'Ethereum Sepolia') this.payableId = onChainData.payableId;
-    else if (chain == 'Solana') {
+    if (chain == 'Ethereum Sepolia') {
+      this.payableId = onChainData.payableId.toLowerCase();
+
+      if (this.payerChain == 'Ethereum Sepolia') {
+        this.payer = new UniversalAddress(onChainData.payer, 'hex').toNative(
+          'Sepolia'
+        ).address.toLowerCase();
+      } else if (this.payerChain == 'Solana') {
+        this.payer = denormalizeBytes(onChainData.payer, 'Solana');
+      } else throw `Unknown payerChain: ${this.payerChain}`;
+    } else if (chain == 'Solana') {
       this.payableId = onChainData.payableId.toBase58();
+
+      if (this.payerChain == 'Solana') {
+        this.payer = onChainData.payer.toBase58();
+      } else if (this.payerChain == 'Ethereum Sepolia') {
+        this.payer = denormalizeBytes(onChainData.payer, 'Ethereum Sepolia');
+      } else throw `Unknown payerChain: ${this.payerChain}`;
     } else throw `Unknown chain: ${chain}`;
 
     this.payableCount = Number(onChainData.payableCount);
     this.localChainCount = Number(onChainData.localChainCount);
-    this.payerChain = getChain(onChainData.payerChainId);
-    this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
     this.payerCount = Number(onChainData.payerCount);
-    this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
+    const taa = TokenAndAmount.fromOnChain(onChainData.details, chain);
+    this.details = { token: taa.name, amount: taa.format(chain) };
     this.timestamp = Timestamp.fromMillis(Number(onChainData.timestamp) * 1000);
   }
 }

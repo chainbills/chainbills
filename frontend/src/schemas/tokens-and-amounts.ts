@@ -1,7 +1,7 @@
 import type { Chain } from '@/stores/chain';
 import { PublicKey } from '@solana/web3.js';
 
-export const CONTRACT_ADDRESS = '0xA825FFC41e91992d159F465cAA06bF973CdEdAF6';
+export const CONTRACT_ADDRESS = '0x5c9c9e008e73689b37575e36c4ad654f16799bef';
 
 export interface TokenChainDetails {
   address: string;
@@ -36,7 +36,7 @@ export class TokenAndAmount {
     let found: Token | undefined;
     if (chain == 'Ethereum Sepolia') {
       found = tokens.find(
-        (t) => `${t.details['Ethereum Sepolia'].address}` == token
+        (t) => `${t.details['Ethereum Sepolia'].address}` == token.toLowerCase()
       );
     } else if (chain == 'Solana') {
       if ((token as any) instanceof PublicKey) {
@@ -68,10 +68,10 @@ export class TokenAndAmount {
     // if (chain == 'Ethereum Sepolia') {
     //   return [this.details[chain].address, BigInt(this.amount)];
     // } else {
-      return {
-        token: this.details[chain].address,
-        amount: BigInt(this.amount),
-      };  
+    return {
+      token: this.details[chain].address,
+      amount: BigInt(this.amount),
+    };
     // }
   }
 }
@@ -85,7 +85,7 @@ export const tokens: Token[] = [
         decimals: 6,
       },
       'Ethereum Sepolia': {
-        address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
         decimals: 6,
       },
     },

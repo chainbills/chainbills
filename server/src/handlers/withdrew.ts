@@ -2,7 +2,7 @@ import { Network } from '@wormhole-foundation/sdk';
 import { Withdrawal } from '../schemas';
 import {
   Chain,
-  evmReadContract,
+  evmFetchWithdrawal,
   firestore,
   notifyHost,
   solanaFetch
@@ -13,11 +13,17 @@ export const withdrew = async (body: any, chain: Chain, network: Network) => {
   let { withdrawalId } = body;
   if (!withdrawalId) throw 'Missing required withdrawalId';
   if (typeof withdrawalId !== 'string') throw 'Invalid withdrawalId';
-  withdrawalId = withdrawalId.toLowerCase().trim();
+  withdrawalId = withdrawalId.trim();
 
   // Ensure the withdrawal is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
-  const withDSnap = await firestore.doc(`/withdrawals/${withdrawalId}`).get();
+  let withDSnap = await firestore.doc(`/withdrawals/${withdrawalId}`).get();
+  if (withDSnap.exists) throw 'Withdrawal has already been recorded';
+
+  // Repeating the search with lowercase equivalent to account for EVM addresses
+  withDSnap = await firestore
+    .doc(`/userPayments/${withdrawalId.toLowerCase()}`)
+    .get();
   if (withDSnap.exists) throw 'Withdrawal has already been recorded';
 
   // Extract On-Chain Data
@@ -25,8 +31,8 @@ export const withdrew = async (body: any, chain: Chain, network: Network) => {
   if (chain === 'Solana') {
     raw = await solanaFetch('payable', withdrawalId, network);
   } else if (chain === 'Ethereum Sepolia') {
-    if (!withdrawalId.startsWith('0x')) withdrawalId = `0x${withdrawalId}`;
-    raw = await evmReadContract('withdrawals', [withdrawalId]);
+    raw = await evmFetchWithdrawal(withdrawalId);
+    withdrawalId = withdrawalId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 
   // Construct new Withdrawal to save.
@@ -38,5 +44,5 @@ export const withdrew = async (body: any, chain: Chain, network: Network) => {
   // Save the withdrawal to the database
   await firestore
     .doc(`/withdrawals/${withdrawalId}`)
-    .set(withdrawal, { merge: true });
+    .set({ ...withdrawal }, { merge: true });
 };

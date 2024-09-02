@@ -17,14 +17,15 @@ export class Withdrawal {
     this.chain = chain;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain == 'Ethereum Sepolia') this.host = onChainData.host;
+    if (chain == 'Ethereum Sepolia') this.host = onChainData.host.toLowerCase();
     else if (chain == 'Solana') this.host = onChainData.host.toBase58();
     else throw `Unknown chain: ${chain}`;
 
     this.hostCount = Number(onChainData.hostCount);
 
-    if (chain == 'Ethereum Sepolia') this.payableId = onChainData.payableId;
-    else if (chain == 'Solana') {
+    if (chain == 'Ethereum Sepolia') {
+      this.payableId = onChainData.payableId.toLowerCase();
+    } else if (chain == 'Solana') {
       this.payableId = onChainData.payableId.toBase58();
     } else throw `Unknown chain: ${chain}`;
 

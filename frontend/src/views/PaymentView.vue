@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import type { Payable, Payment } from '@/schemas';
+import {
+  PayablePayment,
+  UserPayment,
+  type Payable,
+  type Payment,
+} from '@/schemas';
 import {
   denormalizeBytes,
   useChainStore,
@@ -7,6 +12,7 @@ import {
   useWalletStore,
 } from '@/stores';
 import Button from 'primevue/button';
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 const chain = useChainStore();
@@ -15,6 +21,22 @@ const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
 const time = useTimeStore();
 const wallet = useWalletStore();
+const payerChain =
+  payment instanceof UserPayment
+    ? payment.chain
+    : (payment as PayablePayment).payerChain;
+const payableChain =
+  payment instanceof PayablePayment
+    ? payment.chain
+    : (payment as UserPayment).payableChain;
+const isMine = computed(
+  () =>
+    wallet.whAddress &&
+    denormalizeBytes(wallet.whAddress, chain.current!) == payableDetails.host
+);
+const payableRoute = computed(
+  () => `/${isMine ? 'payable' : 'pay'}/${payment.payableId}`
+);
 </script>
 
 <template>
@@ -31,9 +53,9 @@ const wallet = useWalletStore();
       <span class="text-xs break-all text-gray-500">{{ payment.payer }}</span>
     </p>
 
-    <p class="mb-8 leading-tight">
+    <p class="mb-8 leading-tight" v-if="payerChain != payableChain">
       <span>Payer's Chain:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ payment.chain }}</span>
+      <span class="text-xs break-all text-gray-500">{{ payerChain }}</span>
     </p>
 
     <p class="mb-8 leading-tight">
@@ -51,21 +73,18 @@ const wallet = useWalletStore();
     </p>
 
     <p class="mb-8 leading-tight">
-      <span>Payable ID:</span><br />
+      <span>Paid To (Payable ID):</span><br />
       <router-link
-        :to="`/payable/${payment.payableId}`"
+        :to="payableRoute"
         class="text-xs break-all text-gray-500 underline"
-        v-if="
-          wallet.whAddress &&
-          denormalizeBytes(wallet.whAddress, chain.current!) ==
-            payableDetails.host
-        "
       >
         {{ payment.payableId }}
       </router-link>
-      <span class="text-xs break-all text-gray-500" v-else>{{
-        payment.payableId
-      }}</span>
+    </p>
+
+    <p class="mb-8 leading-tight" v-if="payableChain != payerChain">
+      <span>Payable's Chain:</span><br />
+      <span class="text-xs break-all text-gray-500">{{ payableChain }}</span>
     </p>
 
     <div class="max-w-lg" v-if="payableDetails">

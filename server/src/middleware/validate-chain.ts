@@ -16,7 +16,7 @@ export const validateChain = async (
   if (!isChainId(chainId)) message = `Unsupported chain-id: ${chainId}`;
   if (message) {
     console.error('Error at validating chain ...');
-    console.log(message);
+    console.error(message);
     res.status(400).json({ success: false, message });
   } else {
     res.locals.chainId = +chainId!;

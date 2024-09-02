@@ -1,7 +1,7 @@
 import { ChainId, Network } from '@wormhole-foundation/sdk';
 import { Timestamp } from 'firebase-admin/firestore';
 import { Chain, getChainId } from '../utils';
-import { TokenAndAmount } from './tokens-and-amounts';
+import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
 
 export class Withdrawal {
   id: string;
@@ -14,7 +14,7 @@ export class Withdrawal {
   host: string;
   hostCount: number;
   timestamp: Timestamp;
-  details: TokenAndAmount;
+  details: TokenAndAmountDB;
 
   constructor(id: string, chain: Chain, network: Network, onChainData: any) {
     this.id = id;
@@ -23,19 +23,21 @@ export class Withdrawal {
     this.network = network;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain == 'Ethereum Sepolia') this.host = onChainData.host;
+    if (chain == 'Ethereum Sepolia') this.host = onChainData.host.toLowerCase();
     else if (chain == 'Solana') this.host = onChainData.host.toBase58();
     else throw `Unknown chain: ${chain}`;
 
     this.hostCount = Number(onChainData.hostCount);
 
-    if (chain == 'Ethereum Sepolia') this.payableId = onChainData.payableId;
-    else if (chain == 'Solana') {
+    if (chain == 'Ethereum Sepolia') {
+      this.payableId = onChainData.payableId.toLowerCase();
+    } else if (chain == 'Solana') {
       this.payableId = onChainData.payableId.toBase58();
     } else throw `Unknown chain: ${chain}`;
 
     this.payableCount = Number(onChainData.payableCount);
-    this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
+    const taa = TokenAndAmount.fromOnChain(onChainData.details, chain);
+    this.details = { token: taa.name, amount: taa.format(chain) };
     this.timestamp = Timestamp.fromMillis(Number(onChainData.timestamp) * 1000);
   }
 }

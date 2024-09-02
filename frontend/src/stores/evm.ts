@@ -13,9 +13,22 @@ import {
 } from '@kolirt/vue-web3-auth';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { createPublicClient, http, zeroAddress } from 'viem';
+import {
+  createPublicClient,
+  http,
+  zeroAddress,
+  type ContractFunctionArgs,
+  type ContractFunctionName,
+} from 'viem';
 import { sepolia } from 'viem/chains';
 import { abi } from './abi';
+
+export type AbiFunctionName = ContractFunctionName<typeof abi, 'pure' | 'view'>;
+export type AbiArgs = ContractFunctionArgs<
+  typeof abi,
+  'pure' | 'view',
+  AbiFunctionName
+>;
 
 export const useEvmStore = defineStore('evm', () => {
   const publicClient = createPublicClient({
@@ -26,14 +39,17 @@ export const useEvmStore = defineStore('evm', () => {
   const balance = async (token: Token): Promise<number | null> => {
     if (!account.connected) return null;
     try {
-      return Number(
-        await publicClient.readContract({
-          address: token.details['Ethereum Sepolia'].address as `0x${string}`,
-          abi: erc20ABI,
-          functionName: 'balanceOf',
-          args: [account.address],
-        })
-      );
+      const addr = token.details['Ethereum Sepolia'].address as `0x${string}`;
+      const balance =
+        addr == CONTRACT_ADDRESS
+          ? await publicClient.getBalance({ address: account.address! })
+          : await publicClient.readContract({
+              address: addr,
+              abi: erc20ABI,
+              functionName: 'balanceOf',
+              args: [account.address],
+            });
+      return Number(balance);
     } catch (e) {
       console.error(e);
       toastError(`Couldn't fetch ${token.name} balance: ${e}`);
@@ -60,7 +76,7 @@ export const useEvmStore = defineStore('evm', () => {
     // TODO: Extract the newly created payable ID from the receipt logs in
     // simulate contract call instead of constructing as below
     return new OnChainSuccess({
-      created: await getUserPayableId((await getCurrentUser())?.payablesCount),
+      created: await getUserPayableId((await getCurrentUser())?.payablesCount!),
       txHash: hash,
       chain: 'Ethereum Sepolia',
     });
@@ -68,16 +84,75 @@ export const useEvmStore = defineStore('evm', () => {
 
   const getCurrentUser = async () => {
     if (!account.connected) return null;
-    const raw = await readContract('users', [account.address]);
-    if (raw) return User.fromEvm(account.address, raw);
+    const raw = await readContract('users', [account.address!]);
+    if (raw) return User.fromEvm(account.address!, raw);
     return null;
+  };
+
+  const fetchPayable = async (id: string) => {
+    const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
+    const raw = await readContract('payables', [xId]);
+    const aTAAs = await readContract('getAllowedTokensAndAmounts', [xId]);
+    const balances = await readContract('getBalances', [xId]);
+    if (!raw || !aTAAs || !balances) return null;
+    // the following was just to reduce the number of code lines
+    const [host, chainCount, hostCount, createdAt, paymentsCount] = raw;
+    const [withdrawalsCount, , , isClosed] = raw.splice(5);
+    return {
+      ...{ host, chainCount, hostCount, createdAt, paymentsCount, balances },
+      ...{ withdrawalsCount, isClosed, allowedTokensAndAmounts: aTAAs },
+    };
+  };
+
+  const fetchUserPayment = async (id: string) => {
+    const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
+    const raw = await readContract('userPayments', [xId]);
+    const details = await readContract('getUserPaymentDetails', [xId]);
+    if (!raw || !details) return null;
+    // the following was just to reduce the number of code lines
+    const [payableId, payer, payableChainId, chainCount, payerCount] = raw;
+    const [payableCount, timestamp] = raw.splice(5);
+    return {
+      ...{ payableId, payer, payableChainId, chainCount, payerCount },
+      ...{ details, payableCount, timestamp },
+    };
+  };
+
+  const fetchPayablePayment = async (id: string) => {
+    const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
+    const raw = await readContract('payablePayments', [xId]);
+    const details = await readContract('getPayablePaymentDetails', [xId]);
+    if (!raw || !details) return null;
+    // the following was just to reduce the number of code lines
+    const [payableId, payer, payerChainId, localChainCount, payableCount] = raw;
+    const [payerCount, timestamp] = raw.splice(5);
+    return {
+      ...{ payableId, payer, payerChainId, localChainCount, payableCount },
+      ...{ payerCount, timestamp, details },
+    };
+  };
+
+  const fetchWithdrawal = async (id: string) => {
+    const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
+    const raw = await readContract('withdrawals', [xId]);
+    const details = await readContract('getWithdrawalDetails', [xId]);
+    if (!raw || !details) return null;
+    const [payableId, host, chainCount, hostCount, payableCount] = raw;
+    return {
+      ...{ payableId, host, chainCount, hostCount, payableCount },
+      ...{ timestamp: raw[5], details },
+    };
   };
 
   const getPayablePaymentId = async (
     payableId: string,
     count: number
   ): Promise<string | null> => {
-    const id = await readContract('payablePaymentIds', [payableId, count - 1]);
+    if (!payableId.startsWith('0x')) payableId = `0x${payableId}`;
+    const id = await readContract('payablePaymentIds', [
+      payableId as `0x${string}`,
+      count - 1,
+    ]);
     if (!id || id === zeroAddress) return null;
     return id;
   };
@@ -87,7 +162,8 @@ export const useEvmStore = defineStore('evm', () => {
     count: number
   ): Promise<string | null> => {
     if (!account.connected) return null;
-    const id = await readContract(`user${entity}Ids`, [account.address, count]);
+    const setNames = `user${entity}Ids` as AbiFunctionName;
+    const id = await readContract(setNames, [account.address!, count]);
     if (!id || id === zeroAddress) return null;
     return id;
   };
@@ -123,27 +199,27 @@ export const useEvmStore = defineStore('evm', () => {
     }
 
     const { hash, wait } = await rawWriteContract({
-      address: token,
-      abi: erc20ABI,
+      address: CONTRACT_ADDRESS,
+      abi,
       functionName: 'pay',
       args: [payableId, token, BigInt(amount)],
       ...(token == CONTRACT_ADDRESS ? { value: BigInt(amount) } : {}),
     });
-    
+
     await wait();
 
     // TODO: Extract the newly created payable ID from the receipt logs in
     // simulate contract call instead of constructing as below
     return new OnChainSuccess({
-      created: await getUserPaymentId((await getCurrentUser())?.paymentsCount),
+      created: await getUserPaymentId((await getCurrentUser())?.paymentsCount!),
       txHash: hash,
       chain: 'Ethereum Sepolia',
     });
   };
 
   const readContract = async (
-    functionName: string,
-    args: any[] = []
+    functionName: AbiFunctionName,
+    args: AbiArgs = []
   ): Promise<any> => {
     try {
       return await publicClient.readContract({
@@ -191,7 +267,7 @@ export const useEvmStore = defineStore('evm', () => {
     // simulate contract call instead of constructing as below
     return new OnChainSuccess({
       created: await getUserWithdrawalId(
-        (await getCurrentUser())?.withdrawalsCount
+        (await getCurrentUser())?.withdrawalsCount!
       ),
       txHash: hash,
       chain: 'Ethereum Sepolia',
@@ -201,6 +277,10 @@ export const useEvmStore = defineStore('evm', () => {
   return {
     balance,
     createPayable,
+    fetchPayable,
+    fetchPayablePayment,
+    fetchUserPayment,
+    fetchWithdrawal,
     getCurrentUser,
     getPayablePaymentId,
     getUserPayableId,

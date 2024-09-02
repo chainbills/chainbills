@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { Chain } from '../utils/chain';
+import { Chain, CONTRACT_ADDRESS } from '../utils';
 
 export interface TokenChainDetails {
   address: string;
@@ -9,6 +9,11 @@ export interface TokenChainDetails {
 export interface Token {
   name: string;
   details: { [key in Chain]: TokenChainDetails };
+}
+
+export interface TokenAndAmountDB {
+  token: string;
+  amount: number;
 }
 
 export interface TokenAndAmountOnChain {
@@ -34,7 +39,7 @@ export class TokenAndAmount {
     let found: Token | undefined;
     if (chain == 'Ethereum Sepolia') {
       found = tokens.find(
-        (t) => `${t.details['Ethereum Sepolia'].address}` == token
+        (t) => `${t.details['Ethereum Sepolia'].address}` == token.toLowerCase()
       );
     } else if (chain == 'Solana') {
       if ((token as any) instanceof PublicKey) {
@@ -79,8 +84,21 @@ export const tokens: Token[] = [
         decimals: 6
       },
       'Ethereum Sepolia': {
-        address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
         decimals: 6
+      }
+    }
+  },
+  {
+    name: 'ETH',
+    details: {
+      Solana: {
+        address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+        decimals: 6
+      },
+      'Ethereum Sepolia': {
+        address: CONTRACT_ADDRESS,
+        decimals: 18
       }
     }
   }

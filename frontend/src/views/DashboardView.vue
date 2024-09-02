@@ -2,30 +2,30 @@
 import ConnectWalletButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
+import { useUserStore } from '@/stores';
 import { usePayableStore } from '@/stores/payable';
 import { useTimeStore } from '@/stores/time';
 import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
 import { onMounted, ref, watch } from 'vue';
 
-const isLoading = ref(false);
+const isLoading = ref(true);
 const mines = ref<Payable[] | null>();
 const payable = usePayableStore();
 const time = useTimeStore();
+const user = useUserStore();
 const wallet = useWalletStore();
 const getMines = async () => {
   isLoading.value = true;
   mines.value = await payable.mines();
   isLoading.value = false;
 };
-onMounted(() => {
-  console.log('before')
-  if (wallet.connected) getMines().then(() => {});
-  console.log('after')
+onMounted(async () => {
+  if (user.current) await getMines();
   watch(
-    () => wallet.connected,
-    async (connected) => {
-      if (connected) await getMines();
+    () => user.current,
+    async (currentUser) => {
+      if (currentUser) await getMines();
       else mines.value = null;
     }
   );
@@ -95,10 +95,10 @@ onMounted(() => {
             isClosed,
           } of mines"
           :to="`/payable/${id}`"
-          class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0"
+          class="block w-full max-w-sm mx-auto mb-8 sm:mx-0 sm:mb-0 rounded-md shadow"
         >
           <Button
-            class="p-6 mx-auto block w-full bg-blue-100 dark:bg-slate-900 rounded-md shadow-inner shadow"
+            class="p-6 mx-auto block w-full bg-blue-100 dark:bg-slate-900 rounded-md shadow-inner"
           >
             <p class="text-xs text-left text-gray-500 mb-1">#{{ hostCount }}</p>
             <p class="text-left mb-1">

@@ -95,7 +95,7 @@ export const usePaymentStore = defineStore('payment', () => {
       const raw =
         chain == 'Solana'
           ? await solana.fetchEntity('userPayment', id)
-          : await evm.readContract('userPayments', [id]);
+          : await evm.fetchUserPayment(id);
       if (raw) payment = new UserPayment(id, chain, raw);
     } catch (_) {}
 
@@ -105,7 +105,7 @@ export const usePaymentStore = defineStore('payment', () => {
         const raw =
           chain == 'Solana'
             ? await solana.fetchEntity('payablePayment', id)
-            : await evm.readContract('payablePayments', [id]);
+            : await evm.fetchPayablePayment(id);
         if (raw) payment = new PayablePayment(id, chain, raw);
       } catch (_) {}
     }
@@ -121,7 +121,7 @@ export const usePaymentStore = defineStore('payment', () => {
       const raw =
         chain == 'Solana'
           ? await solana.fetchEntity('payablePayment', id)
-          : await evm.readContract('payablePayments', [id]);
+          : await evm.fetchPayablePayment(id);
       if (raw) return new PayablePayment(id, chain, raw);
     } catch (e) {
       console.error(e);
@@ -138,7 +138,7 @@ export const usePaymentStore = defineStore('payment', () => {
       const raw =
         chain == 'Solana'
           ? await solana.fetchEntity('userPayment', id)
-          : await evm.readContract('userPayments', [id]);
+          : await evm.fetchUserPayment(id);
       if (raw) return new UserPayment(id, chain, raw);
     } catch (e) {
       console.error(e);

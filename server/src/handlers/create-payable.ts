@@ -2,7 +2,7 @@ import { Network } from '@wormhole-foundation/sdk';
 import { sanitize } from 'isomorphic-dompurify';
 import { isEmail } from 'validator';
 import { Payable } from '../schemas';
-import { Chain, evmReadContract, firestore, solanaFetch } from '../utils';
+import { Chain, evmFetchPayable, firestore, solanaFetch } from '../utils';
 
 export const createPayable = async (
   body: any,
@@ -20,11 +20,17 @@ export const createPayable = async (
   if (!isEmail(email)) throw `Invalid Email: ${email}`;
   if (!payableId) throw 'Missing required payableId';
   if (typeof payableId !== 'string') throw 'Invalid payableId';
-  payableId = payableId.toLowerCase().trim();
+  payableId = payableId.trim();
 
   // Ensure the payable is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
-  const payableSnap = await firestore.doc(`/payables/${payableId}`).get();
+  let payableSnap = await firestore.doc(`/payables/${payableId}`).get();
+  if (payableSnap.exists) throw 'Payable already exists';
+
+  // Repeating the search with lowercase equivalent to account for EVM addresses
+  payableSnap = await firestore
+    .doc(`/payables/${payableId.toLowerCase()}`)
+    .get();
   if (payableSnap.exists) throw 'Payable already exists';
 
   // Extract On-Chain Data
@@ -32,7 +38,8 @@ export const createPayable = async (
   if (chain === 'Solana') {
     raw = await solanaFetch('payable', payableId, network);
   } else if (chain === 'Ethereum Sepolia') {
-    raw = await evmReadContract('payables', [payableId]);
+    raw = await evmFetchPayable(payableId);
+    payableId = payableId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 
   // Construct new Payable to save. This constructor takes only immutable data.

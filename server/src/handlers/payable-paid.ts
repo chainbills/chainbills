@@ -2,7 +2,7 @@ import { Network } from '@wormhole-foundation/sdk';
 import { PayablePayment } from '../schemas';
 import {
   Chain,
-  evmReadContract,
+  evmFetchPayablePayment,
   firestore,
   notifyHost,
   solanaFetch
@@ -17,11 +17,17 @@ export const payablePaid = async (
   let { paymentId } = body;
   if (!paymentId) throw 'Missing required paymentId';
   if (typeof paymentId !== 'string') throw 'Invalid paymentId';
-  paymentId = paymentId.toLowerCase().trim();
+  paymentId = paymentId.trim();
 
   // Ensure the payment is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
-  const paidSnap = await firestore.doc(`/payablePayments/${paymentId}`).get();
+  let paidSnap = await firestore.doc(`/payablePayments/${paymentId}`).get();
+  if (paidSnap.exists) throw 'Payment has already been recorded';
+
+  // Repeating the search with lowercase equivalent to account for EVM addresses
+  paidSnap = await firestore
+    .doc(`/payablePayments/${paymentId.toLowerCase()}`)
+    .get();
   if (paidSnap.exists) throw 'Payment has already been recorded';
 
   // Extract On-Chain Data
@@ -29,7 +35,8 @@ export const payablePaid = async (
   if (chain === 'Solana') {
     raw = await solanaFetch('userPayment', paymentId, network);
   } else if (chain === 'Ethereum Sepolia') {
-    raw = await evmReadContract('userPayments', [paymentId]);
+    raw = await evmFetchPayablePayment(paymentId);
+    paymentId = paymentId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 
   // Construct new UserPayment to save.
@@ -41,5 +48,5 @@ export const payablePaid = async (
   // Save the userPayment to the database
   await firestore
     .doc(`/payablePayments/${paymentId}`)
-    .set(payment, { merge: true });
+    .set({ ...payment }, { merge: true });
 };

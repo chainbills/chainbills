@@ -2,7 +2,7 @@ import { Network } from '@wormhole-foundation/sdk';
 import { isEmail } from 'validator';
 
 import { UserPayment } from '../schemas';
-import { Chain, evmReadContract, firestore, solanaFetch } from '../utils';
+import { Chain, evmFetchUserPayment, firestore, solanaFetch } from '../utils';
 
 export const userPaid = async (
   body: any,
@@ -15,11 +15,17 @@ export const userPaid = async (
   if (!isEmail(payerEmail)) throw `Invalid Email: ${payerEmail}`;
   if (!paymentId) throw 'Missing required paymentId';
   if (typeof paymentId !== 'string') throw 'Invalid paymentId';
-  paymentId = paymentId.toLowerCase().trim();
+  paymentId = paymentId.trim();
 
   // Ensure the payment is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
-  const paymentSnap = await firestore.doc(`/userPayments/${paymentId}`).get();
+  let paymentSnap = await firestore.doc(`/userPayments/${paymentId}`).get();
+  if (paymentSnap.exists) throw 'Payment has already been recorded';
+
+  // Repeating the search with lowercase equivalent to account for EVM addresses
+  paymentSnap = await firestore
+    .doc(`/userPayments/${paymentId.toLowerCase()}`)
+    .get();
   if (paymentSnap.exists) throw 'Payment has already been recorded';
 
   // Extract On-Chain Data
@@ -27,7 +33,8 @@ export const userPaid = async (
   if (chain === 'Solana') {
     raw = await solanaFetch('userPayment', paymentId, network);
   } else if (chain === 'Ethereum Sepolia') {
-    raw = await evmReadContract('userPayments', [paymentId]);
+    raw = await evmFetchUserPayment(paymentId);
+    paymentId = paymentId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 
   // Construct new UserPayment to save.

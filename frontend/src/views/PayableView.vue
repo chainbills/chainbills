@@ -102,17 +102,19 @@ const withdraw = async (balance: TokenAndAmount) => {
     });
   } else {
     appLoading.show('Withdrawing');
+    balance.amount = balance.amount / 2;
     const result = await withdrawal.exec(payable.value.id, balance);
     if (result) {
       const newPayable = await payableStore.get(payable.value.id);
+      // TODO: Trigger UI update or check why the data is still stale
       if (newPayable) {
         payable.value = newPayable;
         balsDisplay.value = getBalsDisplay();
         appLoading.hide();
-        // reloading the page if updates failed to ensure we don't have 
+        // reloading the page if updates failed to ensure we don't have
         // stale data in the UI
       } else window.location.reload();
-    }
+    } else appLoading.hide();
   }
 };
 

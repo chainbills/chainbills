@@ -56,7 +56,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       const raw =
         chain == 'Solana'
           ? await solana.fetchEntity('withdrawal', id)
-          : await evm.readContract('withdrawals', [id]);
+          : await evm.fetchWithdrawal(id);
       if (raw) return new Withdrawal(id, chain, raw);
     } catch (e) {
       console.error(e);

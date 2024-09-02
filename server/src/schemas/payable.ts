@@ -21,7 +21,7 @@ export class Payable {
     this.network = network;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain == 'Ethereum Sepolia') this.host = onChainData.host;
+    if (chain == 'Ethereum Sepolia') this.host = onChainData.host.toLowerCase();
     else if (chain == 'Solana') this.host = onChainData.host.toBase58();
     else throw `Unknown chain: ${chain}`;
 

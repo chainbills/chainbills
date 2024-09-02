@@ -63,8 +63,8 @@ export const usePayableStore = defineStore('payable', () => {
       const raw =
         dbData.chain == 'Solana'
           ? await solana.fetchEntity('payable', id)
-          : await evm.readContract('payables', [id]);
-      if (raw) return new Payable(id, dbData.chain, dbData.chain, raw);
+          : await evm.fetchPayable(id);
+      if (raw) return new Payable(id, dbData.chain, dbData.description, raw);
     } catch (e) {
       console.error(e);
       toastError(`${e}`);
@@ -93,8 +93,6 @@ export const usePayableStore = defineStore('payable', () => {
       for (let i = count; i >= 1; i--) {
         if (fetched >= 25) break;
         const id = await user.getPayableId(i);
-        console.log(id);
-        if (i === 3) await server.createPayable(id, 'obumnwabude@gmail.com', 'Ethereum Consultation')
         if (id) {
           const payable = await get(id);
           if (payable) payables.push(payable);

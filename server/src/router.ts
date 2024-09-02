@@ -65,7 +65,7 @@ router.post(
   async (req: Request, res: Response) => {
     const { chain, whNetwork } = res.locals;
     await wrapper(
-      async () => await payablePaid(req.params.body, chain, whNetwork),
+      async () => await payablePaid(req.body, chain, whNetwork),
       'payment/payable finalizer',
       res
     );

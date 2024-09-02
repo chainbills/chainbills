@@ -4,7 +4,6 @@ import { type Chain } from '@/stores';
 export interface Payment {
   id: string;
   chain: Chain;
-  chainCount: number;
   payer: string;
   payerCount: number;
   payableId: string;

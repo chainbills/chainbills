@@ -3,8 +3,8 @@ import Footer from '@/components/Footer.vue';
 import Header from '@/components/Header.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
+import { useAuthStore, useChainStore, useThemeStore } from '@/stores';
 import { useAppLoadingStore } from '@/stores/app-loading';
-import { useChainStore, useThemeStore } from '@/stores';
 import { account as evmWallet } from '@kolirt/vue-web3-auth';
 import Toast from 'primevue/toast';
 import { useAnchorWallet } from 'solana-wallets-vue';
@@ -14,6 +14,9 @@ import { RouterView } from 'vue-router';
 const anchorWallet = useAnchorWallet();
 const appLoading = useAppLoadingStore();
 const chain = useChainStore();
+
+// ensures a signature is available
+useAuthStore();
 
 onMounted(() => {
   // this forces the theme refresh when the app loads

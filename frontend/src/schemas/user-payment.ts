@@ -17,14 +17,30 @@ export class UserPayment implements Payment {
     this.id = id;
     this.chain = chain;
     this.chainCount = Number(onChainData.chainCount);
+    this.payableChain = getChain(onChainData.payableChainId);
 
-    if (chain == 'Ethereum Sepolia') this.payer = onChainData.payer;
-    else if (chain == 'Solana') this.payer = onChainData.payer.toBase58();
-    else throw `Unknown chain: ${chain}`;
+    if (chain == 'Ethereum Sepolia') {
+      this.payer = onChainData.payer.toLowerCase();
+
+      if (this.payableChain == 'Ethereum Sepolia') {
+        this.payableId = onChainData.payableId.toLowerCase();
+      } else if (this.payableChain == 'Solana') {
+        this.payableId = denormalizeBytes(onChainData.payableId, 'Solana');
+      } else throw `Unknown payableChain: ${this.payableChain}`;
+    } else if (chain == 'Solana') {
+      this.payer = onChainData.payer.toBase58();
+
+      if (this.payableChain == 'Solana') {
+        this.payableId = onChainData.payableId.toBase58();
+      } else if (this.payableChain == 'Ethereum Sepolia') {
+        this.payableId = denormalizeBytes(
+          onChainData.payableId,
+          'Ethereum Sepolia'
+        );
+      } else throw `Unknown payableChain: ${this.payableChain}`;
+    } else throw `Unknown chain: ${chain}`;
 
     this.payerCount = Number(onChainData.payerCount);
-    this.payableChain = getChain(onChainData.payableChainId);
-    this.payableId = denormalizeBytes(onChainData.payable, this.payableChain);
     this.payableCount = Number(onChainData.payableCount);
     this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
     this.timestamp = new Date(Number(onChainData.timestamp) * 1000);

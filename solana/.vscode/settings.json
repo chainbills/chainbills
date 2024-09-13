@@ -1,0 +1,3 @@
+{
+  "rust-analyzer.linkedProjects": ["./solana/programs/chainbills/Cargo.toml"]
+}

@@ -16,3 +16,25 @@ wallet = "~/.config/solana/chainbills.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test]
+startup_wait = 10000
+
+[test.validator]
+url = "https://api.devnet.solana.com"  
+
+[[test.genesis]]
+address = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"
+program = "tests/wormhole.so"
+upgradeable = true
+
+[[test.validator.clone]]
+address = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"
+
+[[test.validator.account]]
+address = "6bi4JGDoRwUs9TYBuvoA7dUVyikTJDrJsJU1ew6KVLiu"
+filename = "tests/wormhole-bridge.json"
+
+[[test.validator.account]]
+address = "7s3a1ycs16d6SNDumaRtjcoyMaTDZPavzgsmS3uUZYWX"
+filename = "tests/wormhole-fee-collector.json"

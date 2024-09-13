@@ -8,14 +8,13 @@ import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import './CbEvents.sol';
 import './CbState.sol';
 
-contract CbGovernance is Ownable, CbEvents, CbState, ReentrancyGuard {
+error InvalidWormholeChainId();
+error InvalidWormholeEmitterAddress();
+error InvalidTokenAddress();
+error ZeroAmountSpecified();
+
+contract CbGovernance is Ownable, CbState, ReentrancyGuard {
   constructor() Ownable(msg.sender) {}
-
-  error InvalidWormholeChainId();
-  error InvalidWormholeEmitterAddress();
-  error InvalidTokenAddress();
-  error ZeroAmountSpecified();
-
   /// Registers foreign emitters (trusted contracts).
   /// @dev Only the deployer (owner) can invoke this method
   /// @param emitterChainId Wormhole ChainId of the contract being registered.

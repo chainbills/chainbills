@@ -7,25 +7,25 @@ import 'wormhole/Utils.sol';
 import './CbGovernance.sol';
 import './CbPayload.sol';
 
+error InvalidFeeCollector();
+error InvalidWormholeAddress();
+error InvalidWormholeFinality();
+error MaxPayableTokensCapacityReached();
+error EmitterNotRegistered();
+error NotYourPayable();
+error PayableIsAlreadyClosed();
+error PayableIsNotClosed();
+error PayableIsClosed();
+error MatchingTokenAndAmountNotFound();
+error InsufficientPaymentValue();
+error IncorrectPaymentValue();
+error UnsuccessfulPayment();
+error InsufficientWithdrawAmount();
+error NoBalanceForWithdrawalToken();
+error UnsuccessfulWithdrawal();
+
 /// A Cross-Chain Payment Gateway.
 contract Chainbills is CbGovernance, CbPayload {
-  error InvalidFeeCollector();
-  error InvalidWormholeAddress();
-  error InvalidWormholeFinality();
-  error MaxPayableTokensCapacityReached();
-  error EmitterNotRegistered();
-  error NotYourPayable();
-  error PayableIsAlreadyClosed();
-  error PayableIsNotClosed();
-  error PayableIsClosed();
-  error MatchingTokenAndAmountNotFound();
-  error InsufficientPaymentValue();
-  error IncorrectPaymentValue();
-  error UnsuccessfulPayment();
-  error InsufficientWithdrawAmount();
-  error NoBalanceForWithdrawalToken();
-  error UnsuccessfulWithdrawal();
-
   fallback() external payable {}
 
   receive() external payable {}

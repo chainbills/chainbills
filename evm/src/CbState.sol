@@ -1,13 +1,141 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.20;
 
-contract CbState {
-  error InvalidChainId();
-  error InvalidPageNumber();
-  error InvalidPayableId();
-  error InvalidPaymentId();
-  error InvalidWithdrawalId();
+error InvalidChainId();
+error InvalidPageNumber();
+error InvalidPayableId();
+error InvalidPaymentId();
+error InvalidWithdrawalId();
 
+/// Keeps track of all activities on this chain. Counters for the
+/// users, payables, userPayments, and withdrawals mappings.
+struct ChainStats {
+  /// Total number of users that have ever interacted on this chain.
+  uint256 usersCount;
+  /// Total number of payables that have ever been created on this chain.
+  uint256 payablesCount;
+  /// Total number of payments that have ever been made on this chain.
+  uint256 paymentsCount;
+  /// Total number of withdrawals that have ever been made on this chain.
+  uint256 withdrawalsCount;
+}
+
+/// A user is an entity that can create payables and make payments.
+struct User {
+  /// The nth count of users on this chain at the point this user was
+  /// initialized.
+  uint256 chainCount;
+  /// Total number of payables that this user has ever created.
+  uint256 payablesCount;
+  /// Total number of payments that this user has ever made.
+  uint256 paymentsCount;
+  /// Total number of withdrawals that this user has ever made.
+  uint256 withdrawalsCount;
+}
+
+/// A combination of a token address and its associated amount.
+///
+/// This combination is used to constrain how much of a token
+/// a payable can accept. It is also used to record the details
+/// of a payment or a withdrawal.
+struct TokenAndAmount {
+  /// The address of the associated token.
+  address token;
+  /// The amount of the token.
+  uint256 amount;
+}
+
+/// A payable is like a public invoice through which anybody can pay to.
+struct Payable {
+  /// The address of the User account that owns this Payable.
+  address host;
+  /// The nth count of payables on this chain at the point this payable
+  /// was created.
+  uint256 chainCount;
+  /// The nth count of payables that the host has created at the point of
+  /// this payable's creation.
+  uint256 hostCount;
+  /// The timestamp of when this payable was created.
+  uint256 createdAt;
+  /// The total number of payments made to this payable, from all chains.
+  uint256 paymentsCount;
+  /// The total number of withdrawals made from this payable.
+  uint256 withdrawalsCount;
+  /// The number of the allowedTokensAndAmounts of this Payable.
+  uint8 allowedTokensAndAmountsCount;
+  /// The length of the balances array in this Payable.
+  uint8 balancesCount;
+  /// Whether this payable is currently accepting payments.
+  bool isClosed;
+}
+
+/// Receipt of a payment from any blockchain network (this-chain inclusive)
+/// made to a Payable in this chain.
+struct PayablePayment {
+  /// The ID of the Payable to which this Payment was made.
+  bytes32 payableId;
+  /// The Wormhole-normalized wallet address that made this Payment.
+  /// If the payer is on this chain, this will be their address with
+  /// front-padded zeros.
+  bytes32 payer;
+  /// The Wormhole Chain ID of the chain from which the payment was made.
+  uint16 payerChainId;
+  /// The nth count of payments to this payable from the payment source
+  /// chain at the point this payment was recorded.
+  uint256 localChainCount;
+  /// The nth count of payments that the payable has received
+  /// at the point when this payment was made.
+  uint256 payableCount;
+  /// The nth count of payments that the payer has made
+  /// at the point this payment was recorded.
+  uint256 payerCount;
+  /// When this payment was made.
+  uint256 timestamp;
+}
+
+/// A user's receipt of a payment made in this chain to a Payable on any
+/// blockchain network (this-chain inclusive).
+struct UserPayment {
+  /// The ID of the Payable to which this Payment was made.
+  bytes32 payableId;
+  /// The address of the User account that made this Payment.
+  address payer;
+  /// The Wormhole Chain ID of the chain into which the payment was made.
+  uint16 payableChainId;
+  /// The nth count of payments on this chain at the point this payment
+  /// was made.
+  uint256 chainCount;
+  /// The nth count of payments that the payer has made
+  /// at the point of making this payment.
+  uint256 payerCount;
+  /// The nth count of payments that the payable has received
+  /// at the point when this payment was made.
+  uint256 payableCount;
+  /// When this payment was made.
+  uint256 timestamp;
+}
+
+/// A receipt of a withdrawal made by a Host from a Payable.
+struct Withdrawal {
+  /// The ID of the Payable from which this Withdrawal was made.
+  bytes32 payableId;
+  /// The address of the User account (payable's owner)
+  /// that made this Withdrawal.
+  address host;
+  /// The nth count of withdrawals on this chain at the point
+  /// this withdrawal was made.
+  uint256 chainCount;
+  /// The nth count of withdrawals that the host has made
+  /// at the point of making this withdrawal.
+  uint256 hostCount;
+  /// The nth count of withdrawals that has been made from
+  /// this payable at the point when this withdrawal was made.
+  uint256 payableCount;
+  /// When this withdrawal was made.
+  uint256 timestamp;
+}
+
+contract CbState {
   /// The maximum number of tokens a payable can hold balances in.
   /// Also the maximum number of tokens that a payable can specify
   /// that it can accept payments in.
@@ -55,12 +183,11 @@ contract CbState {
   mapping(bytes32 => bytes32[]) public payablePaymentIds;
   /// Total Number of payments made to this payable, from each chain by
   /// their Wormhole Chain IDs.
-  mapping(bytes32 => mapping(uint16 => uint256))
-    public payableChainPaymentsCount;
+  mapping(bytes32 => mapping(uint16 => uint256)) public
+    payableChainPaymentsCount;
   /// Payment IDs of payments made to this payable, from each chain by
   /// their Wormhole Chain IDs.
-  mapping(bytes32 => mapping(uint16 => bytes32[]))
-    public payableChainPaymentIds;
+  mapping(bytes32 => mapping(uint16 => bytes32[])) public payableChainPaymentIds;
   /// Withdrawals on this chain by their IDs
   mapping(bytes32 => Withdrawal) public withdrawals;
   /// Array of IDs of Withdrawals made by users.
@@ -70,161 +197,41 @@ contract CbState {
   /// The amount and token that a host withdrew
   mapping(bytes32 => TokenAndAmount) withdrawalDetails;
 
-  /// Keeps track of all activities on this chain. Counters for the
-  /// users, payables, userPayments, and withdrawals mappings.
-  struct ChainStats {
-    /// Total number of users that have ever interacted on this chain.
-    uint256 usersCount;
-    /// Total number of payables that have ever been created on this chain.
-    uint256 payablesCount;
-    /// Total number of payments that have ever been made on this chain.
-    uint256 paymentsCount;
-    /// Total number of withdrawals that have ever been made on this chain.
-    uint256 withdrawalsCount;
-  }
-
-  /// A user is an entity that can create payables and make payments.
-  struct User {
-    /// The nth count of users on this chain at the point this user was
-    /// initialized.
-    uint256 chainCount;
-    /// Total number of payables that this user has ever created.
-    uint256 payablesCount;
-    /// Total number of payments that this user has ever made.
-    uint256 paymentsCount;
-    /// Total number of withdrawals that this user has ever made.
-    uint256 withdrawalsCount;
-  }
-
-  /// A combination of a token address and its associated amount.
-  ///
-  /// This combination is used to constrain how much of a token
-  /// a payable can accept. It is also used to record the details
-  /// of a payment or a withdrawal.
-  struct TokenAndAmount {
-    /// The address of the associated token.
-    address token;
-    /// The amount of the token.
-    uint256 amount;
-  }
-
-  /// A payable is like a public invoice through which anybody can pay to.
-  struct Payable {
-    /// The address of the User account that owns this Payable.
-    address host;
-    /// The nth count of payables on this chain at the point this payable
-    /// was created.
-    uint256 chainCount;
-    /// The nth count of payables that the host has created at the point of
-    /// this payable's creation.
-    uint256 hostCount;
-    /// The timestamp of when this payable was created.
-    uint256 createdAt;
-    /// The total number of payments made to this payable, from all chains.
-    uint256 paymentsCount;
-    /// The total number of withdrawals made from this payable.
-    uint256 withdrawalsCount;
-    /// The number of the allowedTokensAndAmounts of this Payable.
-    uint8 allowedTokensAndAmountsCount;
-    /// The length of the balances array in this Payable.
-    uint8 balancesCount;
-    /// Whether this payable is currently accepting payments.
-    bool isClosed;
-  }
-
-  /// Receipt of a payment from any blockchain network (this-chain inclusive)
-  /// made to a Payable in this chain.
-  struct PayablePayment {
-    /// The ID of the Payable to which this Payment was made.
-    bytes32 payableId;
-    /// The Wormhole-normalized wallet address that made this Payment.
-    /// If the payer is on this chain, this will be their address with
-    /// front-padded zeros.
-    bytes32 payer;
-    /// The Wormhole Chain ID of the chain from which the payment was made.
-    uint16 payerChainId;
-    /// The nth count of payments to this payable from the payment source
-    /// chain at the point this payment was recorded.
-    uint256 localChainCount;
-    /// The nth count of payments that the payable has received
-    /// at the point when this payment was made.
-    uint256 payableCount;
-    /// The nth count of payments that the payer has made
-    /// at the point this payment was recorded.
-    uint256 payerCount;
-    /// When this payment was made.
-    uint256 timestamp;
-  }
-
-  /// A user's receipt of a payment made in this chain to a Payable on any
-  /// blockchain network (this-chain inclusive).
-  struct UserPayment {
-    /// The ID of the Payable to which this Payment was made.
-    bytes32 payableId;
-    /// The address of the User account that made this Payment.
-    address payer;
-    /// The Wormhole Chain ID of the chain into which the payment was made.
-    uint16 payableChainId;
-    /// The nth count of payments on this chain at the point this payment
-    /// was made.
-    uint256 chainCount;
-    /// The nth count of payments that the payer has made
-    /// at the point of making this payment.
-    uint256 payerCount;
-    /// The nth count of payments that the payable has received
-    /// at the point when this payment was made.
-    uint256 payableCount;
-    /// When this payment was made.
-    uint256 timestamp;
-  }
-
-  /// A receipt of a withdrawal made by a Host from a Payable.
-  struct Withdrawal {
-    /// The ID of the Payable from which this Withdrawal was made.
-    bytes32 payableId;
-    /// The address of the User account (payable's owner)
-    /// that made this Withdrawal.
-    address host;
-    /// The nth count of withdrawals on this chain at the point
-    /// this withdrawal was made.
-    uint256 chainCount;
-    /// The nth count of withdrawals that the host has made
-    /// at the point of making this withdrawal.
-    uint256 hostCount;
-    /// The nth count of withdrawals that has been made from
-    /// this payable at the point when this withdrawal was made.
-    uint256 payableCount;
-    /// When this withdrawal was made.
-    uint256 timestamp;
-  }
-
-  function getAllowedTokensAndAmounts(
-    bytes32 payableId
-  ) external view returns (TokenAndAmount[] memory) {
+  function getAllowedTokensAndAmounts(bytes32 payableId)
+    external
+    view
+    returns (TokenAndAmount[] memory)
+  {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
     return payableAllowedTokensAndAmounts[payableId];
   }
 
-  function getBalances(
-    bytes32 payableId
-  ) external view returns (TokenAndAmount[] memory) {
+  function getBalances(bytes32 payableId)
+    external
+    view
+    returns (TokenAndAmount[] memory)
+  {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
     return payableBalances[payableId];
   }
 
-  function getUserPaymentDetails(
-    bytes32 paymentId
-  ) external view returns (TokenAndAmount memory) {
+  function getUserPaymentDetails(bytes32 paymentId)
+    external
+    view
+    returns (TokenAndAmount memory)
+  {
     if (paymentId == bytes32(0)) revert InvalidPaymentId();
     if (userPayments[paymentId].payer == address(0)) revert InvalidPaymentId();
     return userPaymentDetails[paymentId];
   }
 
-  function getPayablePaymentDetails(
-    bytes32 paymentId
-  ) external view returns (TokenAndAmount memory) {
+  function getPayablePaymentDetails(bytes32 paymentId)
+    external
+    view
+    returns (TokenAndAmount memory)
+  {
     if (paymentId == bytes32(0)) revert InvalidPaymentId();
     if (payablePayments[paymentId].payableId == bytes32(0)) {
       revert InvalidPaymentId();
@@ -232,9 +239,11 @@ contract CbState {
     return payablePaymentDetails[paymentId];
   }
 
-  function getWithdrawalDetails(
-    bytes32 withdrawalId
-  ) external view returns (TokenAndAmount memory) {
+  function getWithdrawalDetails(bytes32 withdrawalId)
+    external
+    view
+    returns (TokenAndAmount memory)
+  {
     if (withdrawalId == bytes32(0)) revert InvalidWithdrawalId();
     if (withdrawals[withdrawalId].host == address(0)) {
       revert InvalidWithdrawalId();
@@ -242,10 +251,11 @@ contract CbState {
     return withdrawalDetails[withdrawalId];
   }
 
-  function getPayableChainPaymentsCount(
-    bytes32 payableId,
-    uint16 chainId_
-  ) external view returns (uint256) {
+  function getPayableChainPaymentsCount(bytes32 payableId, uint16 chainId_)
+    external
+    view
+    returns (uint256)
+  {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
     return payableChainPaymentsCount[payableId][chainId_];

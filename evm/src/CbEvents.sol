@@ -51,10 +51,10 @@ event UserPaid(
 event Withdrew(
   bytes32 indexed payableId,
   address indexed host,
-  bytes32 withdrawalId,
+  bytes32 indexed withdrawalId,
   uint256 chainCount,
-  uint256 payableCount,
-  uint256 hostCount
+  uint256 hostCount,
+  uint256 payableCount
 );
 
 /// Emitted when owner (deployer) registers/updates an emitter contract.

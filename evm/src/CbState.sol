@@ -7,6 +7,8 @@ error InvalidPayableId();
 error InvalidPaymentId();
 error InvalidWithdrawalId();
 
+uint256 constant WITHDRAWAL_FEE_PERCENTAGE = 2;
+
 /// Keeps track of all activities on this chain. Counters for the
 /// users, payables, userPayments, and withdrawals mappings.
 struct ChainStats {

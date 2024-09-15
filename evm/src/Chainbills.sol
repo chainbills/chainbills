@@ -6,6 +6,7 @@ import 'wormhole/Utils.sol';
 
 import './CbGovernance.sol';
 import './CbPayload.sol';
+import './CbState.sol';
 
 error InvalidFeeCollector();
 error InvalidWormholeAddress();
@@ -209,8 +210,9 @@ contract Chainbills is CbGovernance, CbPayload {
     // Ensure that amount is greater than zero
     if (amount == 0) revert ZeroAmountSpecified();
 
-    // Ensure that the payable is not closed
+    // Ensure that the payable exists and it is not closed
     Payable storage _payable = payables[payableId];
+    if (_payable.host == address(0)) revert InvalidPayableId();
     if (_payable.isClosed) revert PayableIsClosed();
 
     // Ensure that the payable can still accept new tokens, if this
@@ -330,8 +332,9 @@ contract Chainbills is CbGovernance, CbPayload {
     uint256 amount
   ) public payable nonReentrant returns (bytes32 withdrawalId) {
     /* CHECKS */
-    // Ensure that the caller owns the payable.
+    // Ensure that the payable exists and that the caller owns the payable.
     Payable storage _payable = payables[payableId];
+    if (_payable.host == address(0)) revert InvalidPayableId();
     if (_payable.host != msg.sender) revert NotYourPayable();
 
     // Ensure that the amount to be withdrawn is not zero.
@@ -356,9 +359,9 @@ contract Chainbills is CbGovernance, CbPayload {
 
     /* TRANSFER */
     // Prepare withdraw amounts and fees
-    uint256 twoPercent = (amount * 2) / 100;
+    uint256 percent = (amount * WITHDRAWAL_FEE_PERCENTAGE) / 100;
     uint256 maxFee = maxFeesPerToken[token];
-    uint256 fee = twoPercent > maxFee ? maxFee : twoPercent;
+    uint256 fee = percent > maxFee ? maxFee : percent;
     uint256 amtDue = amount - fee;
 
     // Transfer the amount minus fees to the owner.
@@ -415,8 +418,8 @@ contract Chainbills is CbGovernance, CbPayload {
       msg.sender,
       withdrawalId,
       chainStats.withdrawalsCount,
-      _payable.withdrawalsCount,
-      users[msg.sender].withdrawalsCount
+      users[msg.sender].withdrawalsCount,
+      _payable.withdrawalsCount
     );
   }
 }

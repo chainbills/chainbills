@@ -15,6 +15,7 @@ error ZeroAmountSpecified();
 
 contract CbGovernance is Ownable, CbState, ReentrancyGuard {
   constructor() Ownable(msg.sender) {}
+  
   /// Registers foreign emitters (trusted contracts).
   /// @dev Only the deployer (owner) can invoke this method
   /// @param emitterChainId Wormhole ChainId of the contract being registered.

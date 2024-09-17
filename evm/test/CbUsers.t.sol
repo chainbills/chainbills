@@ -118,6 +118,7 @@ contract CbUsersTest is Test {
       bytes32(0), user, prevPayablesCount + 1, prevUserPayableCount + 1
     );
     bytes32 payableId1 = chainbills.createPayable(new TokenAndAmount[](0));
+    bytes32 fetchedP1Id = chainbills.userPayableIds(user, 0);
     (
       address p1Host,
       uint256 p1ChainCount,
@@ -135,6 +136,7 @@ contract CbUsersTest is Test {
       bytes32(0), user, prevPayablesCount + 2, prevUserPayableCount + 2
     );
     bytes32 payableId2 = chainbills.createPayable(new TokenAndAmount[](0));
+    bytes32 fetchedP2Id = chainbills.userPayableIds(user, 1);
     (
       address p2Host,
       uint256 p2ChainCount,
@@ -149,6 +151,10 @@ contract CbUsersTest is Test {
     (, uint256 newUserPayableCount,,) = chainbills.users(user);
     (, uint256 newPayablesCount,,) = chainbills.chainStats();
     vm.stopPrank();
+
+    // check stored IDs
+    assertEq(payableId1, fetchedP1Id);
+    assertEq(payableId2, fetchedP2Id);
 
     // check counts
     assertEq(prevUserPayableCount, 0);
@@ -235,6 +241,8 @@ contract CbUsersTest is Test {
 
     uint256 newCbEthBal = address(chainbills).balance;
     uint256 newUserEthBal = user.balance;
+    bytes32 fetchedP1Id = chainbills.userPaymentIds(user, 0);
+    (address p1Token, uint256 p1Amt) = chainbills.userPaymentDetails(paymentId1);
     (
       bytes32 p1PayableId,
       address p1Payer,
@@ -264,6 +272,8 @@ contract CbUsersTest is Test {
 
     uint256 newCbUsdcBal = usdc.balanceOf(address(chainbills));
     uint256 newUserUsdcBal = usdc.balanceOf(user);
+    bytes32 fetchedP2Id = chainbills.userPaymentIds(user, 1);
+    (address p2Token, uint256 p2Amt) = chainbills.userPaymentDetails(paymentId2);
     (
       bytes32 p2PayableId,
       address p2Payer,
@@ -276,6 +286,7 @@ contract CbUsersTest is Test {
 
     (,, uint256 newUserPaymentCount,) = chainbills.users(user);
     (,, uint256 newPaymentsCount,) = chainbills.chainStats();
+    (,,,, uint256 newPayablePaymentsCount,,,,) = chainbills.payables(payableId);
     vm.stopPrank();
 
     // check balances
@@ -284,11 +295,17 @@ contract CbUsersTest is Test {
     assertEq(prevCbEthBal + ethAmt, newCbEthBal);
     assertEq(prevCbUsdcBal + usdcAmt, newCbUsdcBal);
 
+    // check stored IDs
+    assertEq(paymentId1, fetchedP1Id);
+    assertEq(paymentId2, fetchedP2Id);
+
     // check counts
     assertEq(prevUserPaymentCount, 0);
     assertEq(prevUserPaymentCount + 2, newUserPaymentCount);
     assertEq(prevPaymentsCount, 0);
     assertEq(prevPaymentsCount + 2, newPaymentsCount);
+    assertEq(prevPayablePaymentsCount, 0);
+    assertEq(prevPayablePaymentsCount + 2, newPayablePaymentsCount);
 
     // check payment 1's details
     assertEq(p1PayableId, payableId);
@@ -299,6 +316,8 @@ contract CbUsersTest is Test {
     assertEq(p1PayableCount, prevPayablePaymentsCount + 1);
     assertGt(p1Timestamp, 0);
     assertGe(p1Timestamp, block.timestamp);
+    assertEq(p1Token, address(chainbills));
+    assertEq(p1Amt, ethAmt);
 
     // check payment 2's details
     assertEq(p2PayableId, payableId);
@@ -309,6 +328,8 @@ contract CbUsersTest is Test {
     assertEq(p2PayableCount, prevPayablePaymentsCount + 2);
     assertGt(p2Timestamp, 0);
     assertGe(p2Timestamp, block.timestamp);
+    assertEq(p2Token, address(usdc));
+    assertEq(p2Amt, usdcAmt);
   }
 
   function testUserMakingWithdrawal() public {
@@ -330,7 +351,7 @@ contract CbUsersTest is Test {
     vm.expectRevert(NoBalanceForWithdrawalToken.selector);
     chainbills.withdraw(payableId, address(usdc), 1);
 
-    // stop user's prank to simulate a failed withdrawal with this contract's 
+    // stop user's prank to simulate a failed withdrawal with this contract's
     // address as the caller and also to make payments to the payable
     // with this contract's address as the caller too.
     vm.stopPrank();
@@ -356,7 +377,7 @@ contract CbUsersTest is Test {
     chainbills.withdraw(payableId, address(chainbills), 0);
 
     // withdrawal should revert if payable doesn't have balance in given token.
-    // well specifically for this case, if the token is not supported (doesn't 
+    // well specifically for this case, if the token is not supported (doesn't
     // have maxWithdrawalFee set). though this is redundant, it is worth having.
     vm.expectRevert(NoBalanceForWithdrawalToken.selector);
     chainbills.withdraw(payableId, address(this), 1);
@@ -383,6 +404,8 @@ contract CbUsersTest is Test {
       prevPayableWithdrawalCount + 1
     );
     bytes32 wId1 = chainbills.withdraw(payableId, address(chainbills), ethAmt);
+    bytes32 fetchedW1Id = chainbills.userWithdrawalIds(user, 0);
+    (address w1Token, uint256 w1Amt) = chainbills.withdrawalDetails(wId1);
     (
       bytes32 w1PayableId,
       address w1Host,
@@ -403,6 +426,8 @@ contract CbUsersTest is Test {
       prevPayableWithdrawalCount + 2
     );
     bytes32 wId2 = chainbills.withdraw(payableId, address(usdc), usdcAmt);
+    bytes32 fetchedW2Id = chainbills.userWithdrawalIds(user, 1);
+    (address w2Token, uint256 w2Amt) = chainbills.withdrawalDetails(wId2);
     (
       bytes32 w2PayableId,
       address w2Host,
@@ -443,6 +468,10 @@ contract CbUsersTest is Test {
     assertEq(prevFeeCollectorUsdcBal + usdcFee, newFeeCollectorUsdcBal);
     assertEq(prevUserUsdcBal + usdcAmtDue, newUserUsdcBal);
 
+    // check stored IDs
+    assertEq(wId1, fetchedW1Id);
+    assertEq(wId2, fetchedW2Id);
+
     // check counts
     assertEq(prevUserWithdrawalCount, 0);
     assertEq(prevUserWithdrawalCount + 2, newUserWithdrawalCount);
@@ -459,6 +488,8 @@ contract CbUsersTest is Test {
     assertEq(w1PayableCount, prevPayableWithdrawalCount + 1);
     assertGt(w1Timestamp, 0);
     assertGe(w1Timestamp, block.timestamp);
+    assertEq(w1Token, address(chainbills));
+    assertEq(w1Amt, ethAmt);
 
     // check withdrawal 2's details
     assertEq(w2PayableId, payableId);
@@ -468,5 +499,7 @@ contract CbUsersTest is Test {
     assertEq(w2PayableCount, prevPayableWithdrawalCount + 2);
     assertGt(w2Timestamp, 0);
     assertGe(w2Timestamp, block.timestamp);
+    assertEq(w2Token, address(usdc));
+    assertEq(w2Amt, usdcAmt);
   }
 }

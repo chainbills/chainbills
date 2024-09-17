@@ -177,14 +177,11 @@ contract CbUsersTest is Test {
     assertGe(p2CreatedAt, block.timestamp);
   }
 
-  function testUserMakingPayment() public {
+  function testUserMakingFailedPayments() public {
     // create a payable to make payment to. use this test contract as the host.
     bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
 
     vm.startPrank(user);
-    (,, uint256 prevUserPaymentCount,) = chainbills.users(user);
-    (,, uint256 prevPaymentsCount,) = chainbills.chainStats();
-    (,,,, uint256 prevPayablePaymentsCount,,,,) = chainbills.payables(payableId);
 
     // payment should revert if given token is address zero, or if token is
     // not allowed (doesn't have its maxWithdrawalFee set).
@@ -220,7 +217,19 @@ contract CbUsersTest is Test {
     // payment should revert if token is ERC20 and amount is not approved.
     deal(address(usdc), user, 1);
     vm.expectRevert();
-    chainbills.pay(payableId, address(usdc), 1);
+    chainbills.pay(payableId, address(usdc), 1);   
+
+    vm.stopPrank(); 
+  }
+
+  function testUserMakingSuccessfulPayments() public {
+    // create a payable to make payment to. use this test contract as the host.
+    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
+
+    vm.startPrank(user);
+    (,, uint256 prevUserPaymentCount,) = chainbills.users(user);
+    (,, uint256 prevPaymentsCount,) = chainbills.chainStats();
+    (,,,, uint256 prevPayablePaymentsCount,,,,) = chainbills.payables(payableId);
 
     // testing successful first payment with native token (ETH)
     deal(user, ethAmt);
@@ -332,59 +341,70 @@ contract CbUsersTest is Test {
     assertEq(p2Amt, usdcAmt);
   }
 
-  function testUserMakingWithdrawal() public {
-    vm.startPrank(user);
-    (,,, uint256 prevUserWithdrawalCount) = chainbills.users(user);
-    (,,, uint256 prevWithdrawalsCount) = chainbills.chainStats();
-    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
-    (,,,,, uint256 prevPayableWithdrawalCount,,,) =
-      chainbills.payables(payableId);
-
+  function testUserMakingFailedWithdrawals() public {
     // withdrawal should revert if payable doesn't exist.
     vm.expectRevert(InvalidPayableId.selector);
     chainbills.withdraw(bytes32(0), address(chainbills), 1);
 
-    // withdrawal should revert if payable hasn't received payments in
-    // the requested token.
-    vm.expectRevert(NoBalanceForWithdrawalToken.selector);
-    chainbills.withdraw(payableId, address(chainbills), 1);
-    vm.expectRevert(NoBalanceForWithdrawalToken.selector);
-    chainbills.withdraw(payableId, address(usdc), 1);
-
-    // stop user's prank to simulate a failed withdrawal with this contract's
-    // address as the caller and also to make payments to the payable
-    // with this contract's address as the caller too.
-    vm.stopPrank();
+    // create payable to be used for testing failed withdrawals
+    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
 
     // withdrawal should revert if caller is not the payable's host.
+    vm.prank(user);
     vm.expectRevert(NotYourPayable.selector);
     chainbills.withdraw(payableId, address(chainbills), 1);
+
+    // withdrawal should revert if zero amount was requested.
+    vm.expectRevert(ZeroAmountSpecified.selector);
+    chainbills.withdraw(payableId, address(chainbills), 0);
+
+    // withdrawal should revert if payable hasn't received any payments yet.
+    vm.expectRevert(NoBalanceForWithdrawalToken.selector);
+    chainbills.withdraw(payableId, address(chainbills), 1);
+  }
+
+  function testUserMakingSuccessfulWithdrawals() public {
+    // create a payable as the user
+    vm.prank(user);
+    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
+    
+    (,,, uint256 prevUserWithdrawalCount) = chainbills.users(user);
+    (,,, uint256 prevWithdrawalsCount) = chainbills.chainStats();
+    (,,,,, uint256 prevPayableWithdrawalCount,,,) =
+      chainbills.payables(payableId);
 
     // make payments as the test contract to the user's payable.
     deal(address(this), ethAmt);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
+
+    // withdrawal should revert if payable hasn't received payments in
+    // the requested token. 
+    vm.prank(user);
+    vm.expectRevert(NoBalanceForWithdrawalToken.selector);
+    chainbills.withdraw(payableId, address(usdc), 1);
+
+    // make payments as the test contract to the user's payable.
     deal(address(usdc), address(this), usdcAmt * 2);
     usdc.approve(address(chainbills), usdcAmt * 2);
     chainbills.pay(payableId, address(usdc), usdcAmt); // paying USDC twice
     chainbills.pay(payableId, address(usdc), usdcAmt); // is intentional
     // to simulate more payments and check balances later.
 
-    // resume prank to continue testing withdrawals as user
+    // start prank to test withdrawals as user
     vm.startPrank(user);
-
-    // withdrawal should revert if zero amount was requested.
-    vm.expectRevert(ZeroAmountSpecified.selector);
-    chainbills.withdraw(payableId, address(chainbills), 0);
-
-    // withdrawal should revert if payable doesn't have balance in given token.
-    // well specifically for this case, if the token is not supported (doesn't
-    // have maxWithdrawalFee set). though this is redundant, it is worth having.
-    vm.expectRevert(NoBalanceForWithdrawalToken.selector);
-    chainbills.withdraw(payableId, address(this), 1);
 
     // withdrawal should revert if more than available amount was requested.
     vm.expectRevert(InsufficientWithdrawAmount.selector);
     chainbills.withdraw(payableId, address(chainbills), ethAmt * 2);
+
+    // withdrawal should revert if payable doesn't have balance in given token.
+    // well specifically for this case, withdrawal should revert if the token 
+    // is not supported (doesn't have maxWithdrawalFee set). though this is 
+    // redundant, it is worth having.
+    // NOTE: ETH and USDC are allowed in the top-level setUp function for this
+    // test contract.
+    vm.expectRevert(NoBalanceForWithdrawalToken.selector);
+    chainbills.withdraw(payableId, address(this), 1);
 
     uint256 prevCbEthBal = address(chainbills).balance;
     uint256 prevFeeCollectorEthBal = feeCollector.balance;

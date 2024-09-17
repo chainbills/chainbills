@@ -168,19 +168,19 @@ contract CbState {
   /// Payments on this chain by their IDs by users.
   mapping(bytes32 => UserPayment) public userPayments;
   /// The amount and token that the payers paid
-  mapping(bytes32 => TokenAndAmount) userPaymentDetails;
+  mapping(bytes32 => TokenAndAmount) public userPaymentDetails;
   /// Payables on this chain by their IDs
   mapping(bytes32 => Payable) public payables;
   /// The allowed tokens (and their amounts) on payables.
-  mapping(bytes32 => TokenAndAmount[]) payableAllowedTokensAndAmounts;
+  mapping(bytes32 => TokenAndAmount[]) public payableAllowedTokensAndAmounts;
   /// Records of how much is in payables.
-  mapping(bytes32 => TokenAndAmount[]) payableBalances;
+  mapping(bytes32 => TokenAndAmount[]) public payableBalances;
   /// Payments to Payables, from all chains, by their IDs. The Payment IDs
   /// will be the same as the IDs of userPayments if the payment was made
   /// by a User on this chain. Otherwise, the payment ID will be different.
   mapping(bytes32 => PayablePayment) public payablePayments;
   /// The amount and token that payers paid to Payables
-  mapping(bytes32 => TokenAndAmount) payablePaymentDetails;
+  mapping(bytes32 => TokenAndAmount) public payablePaymentDetails;
   /// IDs of Payments to Payables, from all chains.
   mapping(bytes32 => bytes32[]) public payablePaymentIds;
   /// Total Number of payments made to this payable, from each chain by
@@ -197,7 +197,7 @@ contract CbState {
   /// Array of IDs of Withdrawals made in a payable.
   mapping(bytes32 => bytes32[]) public payableWithdrawalIds;
   /// The amount and token that a host withdrew
-  mapping(bytes32 => TokenAndAmount) withdrawalDetails;
+  mapping(bytes32 => TokenAndAmount) public withdrawalDetails;
 
   function getAllowedTokensAndAmounts(bytes32 payableId)
     external

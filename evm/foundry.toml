@@ -14,4 +14,9 @@ sepolia = "${SEPOLIA_RPC_URL}"
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
 
+[fmt]
+line_length = 80
+quote_style = "single"
+tab_width = 2
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

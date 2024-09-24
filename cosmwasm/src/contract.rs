@@ -1,156 +1,128 @@
+use cosmwasm_schema::cw_serde;
+use cw_storage_plus::Item;
 #[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
-use cw2::set_contract_version;
+use sylvia::cw_std::Empty;
+use sylvia::cw_std::{Response, StdResult};
 
-use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, GetCountResponse, InstantiateMsg, QueryMsg};
-use crate::state::{State, STATE};
+use sylvia::contract;
+use sylvia::types::{
+  CustomMsg, CustomQuery, ExecCtx, InstantiateCtx, QueryCtx,
+};
 
-// version info for migration info
-const CONTRACT_NAME: &str = "crates.io:chainbills";
-const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn instantiate(
-    deps: DepsMut,
-    _env: Env,
-    info: MessageInfo,
-    msg: InstantiateMsg,
-) -> Result<Response, ContractError> {
-    let state = State {
-        count: msg.count,
-        owner: info.sender.clone(),
-    };
-    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    STATE.save(deps.storage, &state)?;
-
-    Ok(Response::new()
-        .add_attribute("method", "instantiate")
-        .add_attribute("owner", info.sender)
-        .add_attribute("count", msg.count.to_string()))
+pub struct CounterContract<E, Q> {
+  pub count: Item<u64>,
+  _phantom: std::marker::PhantomData<(E, Q)>,
 }
 
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn execute(
-    deps: DepsMut,
-    _env: Env,
-    info: MessageInfo,
-    msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
-    match msg {
-        ExecuteMsg::Increment {} => execute::increment(deps),
-        ExecuteMsg::Reset { count } => execute::reset(deps, info, count),
+#[cfg_attr(not(feature = "library"), sylvia::entry_points(generics<Empty, Empty>))]
+#[contract]
+#[sv::custom(msg = E, query = Q)]
+impl<E, Q> CounterContract<E, Q>
+where
+  E: CustomMsg + 'static,
+  Q: CustomQuery + 'static,
+{
+  pub const fn new() -> Self {
+    Self {
+      count: Item::new("count"),
+      _phantom: std::marker::PhantomData,
     }
+  }
+
+  #[sv::msg(instantiate)]
+  fn instantiate(&self, ctx: InstantiateCtx<Q>) -> StdResult<Response<E>> {
+    self.count.save(ctx.deps.storage, &0)?;
+    Ok(Response::new())
+  }
+
+  #[sv::msg(exec)]
+  fn increment(&self, ctx: ExecCtx<Q>) -> StdResult<Response<E>> {
+    self
+      .count
+      .update(ctx.deps.storage, |count| -> StdResult<u64> {
+        Ok(count + 1)
+      })?;
+    Ok(Response::new())
+  }
+
+  #[sv::msg(query)]
+  fn count(&self, ctx: QueryCtx<Q>) -> StdResult<CountResponse> {
+    let count = self.count.load(ctx.deps.storage)?;
+    Ok(CountResponse { count })
+  }
 }
 
-pub mod execute {
-    use super::*;
-
-    pub fn increment(deps: DepsMut) -> Result<Response, ContractError> {
-        STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
-            state.count += 1;
-            Ok(state)
-        })?;
-
-        Ok(Response::new().add_attribute("action", "increment"))
-    }
-
-    pub fn reset(deps: DepsMut, info: MessageInfo, count: i32) -> Result<Response, ContractError> {
-        STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
-            if info.sender != state.owner {
-                return Err(ContractError::Unauthorized {});
-            }
-            state.count = count;
-            Ok(state)
-        })?;
-        Ok(Response::new().add_attribute("action", "reset"))
-    }
-}
-
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    match msg {
-        QueryMsg::GetCount {} => to_json_binary(&query::count(deps)?),
-    }
-}
-
-pub mod query {
-    use super::*;
-
-    pub fn count(deps: Deps) -> StdResult<GetCountResponse> {
-        let state = STATE.load(deps.storage)?;
-        Ok(GetCountResponse { count: state.count })
-    }
+#[cw_serde]
+pub struct CountResponse {
+  pub count: u64,
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, from_json};
+  use super::*;
 
-    #[test]
-    fn proper_initialization() {
-        let mut deps = mock_dependencies();
+  use sylvia::cw_multi_test::IntoAddr;
+  use sylvia::cw_std::testing::{message_info, mock_dependencies, mock_env};
+  use sylvia::cw_std::Empty;
 
-        let msg = InstantiateMsg { count: 17 };
-        let info = mock_info("creator", &coins(1000, "earth"));
+  // Unit tests don't have to use a testing framework for simple things.
+  //
+  // For more complex tests (particularly involving cross-contract calls), you
+  // may want to check out `cw-multi-test`:
+  // https://github.com/CosmWasm/cw-multi-test
+  #[test]
+  fn init() {
+    let sender = "alice".into_addr();
+    let contract = CounterContract::<Empty, Empty>::new();
+    let mut deps = mock_dependencies();
+    let ctx = InstantiateCtx::from((
+      deps.as_mut(),
+      mock_env(),
+      message_info(&sender, &[]),
+    ));
+    contract.instantiate(ctx).unwrap();
 
-        // we can just call .unwrap() to assert this was a success
-        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(0, res.messages.len());
+    // We're inspecting the raw storage here, which is fine in unit tests. In
+    // integration tests, you should not inspect the internal state like this,
+    // but observe the external results.
+    assert_eq!(0, contract.count.load(deps.as_ref().storage).unwrap());
+  }
 
-        // it worked, let's query the state
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::GetCount {}).unwrap();
-        let value: GetCountResponse = from_json(&res).unwrap();
-        assert_eq!(17, value.count);
-    }
+  #[test]
+  fn query() {
+    let sender = "alice".into_addr();
+    let contract = CounterContract::<Empty, Empty>::new();
+    let mut deps = mock_dependencies();
+    let ctx = InstantiateCtx::from((
+      deps.as_mut(),
+      mock_env(),
+      message_info(&sender, &[]),
+    ));
+    contract.instantiate(ctx).unwrap();
 
-    #[test]
-    fn increment() {
-        let mut deps = mock_dependencies();
+    let ctx = QueryCtx::from((deps.as_ref(), mock_env()));
+    let res = contract.count(ctx).unwrap();
+    assert_eq!(0, res.count);
+  }
 
-        let msg = InstantiateMsg { count: 17 };
-        let info = mock_info("creator", &coins(2, "token"));
-        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+  #[test]
+  fn inc() {
+    let sender = "alice".into_addr();
+    let contract = CounterContract::<Empty, Empty>::new();
+    let mut deps = mock_dependencies();
+    let ctx = InstantiateCtx::from((
+      deps.as_mut(),
+      mock_env(),
+      message_info(&sender, &[]),
+    ));
+    contract.instantiate(ctx).unwrap();
 
-        // beneficiary can release it
-        let info = mock_info("anyone", &coins(2, "token"));
-        let msg = ExecuteMsg::Increment {};
-        let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let ctx =
+      ExecCtx::from((deps.as_mut(), mock_env(), message_info(&sender, &[])));
+    contract.increment(ctx).unwrap();
 
-        // should increase counter by 1
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::GetCount {}).unwrap();
-        let value: GetCountResponse = from_json(&res).unwrap();
-        assert_eq!(18, value.count);
-    }
-
-    #[test]
-    fn reset() {
-        let mut deps = mock_dependencies();
-
-        let msg = InstantiateMsg { count: 17 };
-        let info = mock_info("creator", &coins(2, "token"));
-        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // beneficiary can release it
-        let unauth_info = mock_info("anyone", &coins(2, "token"));
-        let msg = ExecuteMsg::Reset { count: 5 };
-        let res = execute(deps.as_mut(), mock_env(), unauth_info, msg);
-        match res {
-            Err(ContractError::Unauthorized {}) => {}
-            _ => panic!("Must return unauthorized error"),
-        }
-
-        // only the original creator can reset the counter
-        let auth_info = mock_info("creator", &coins(2, "token"));
-        let msg = ExecuteMsg::Reset { count: 5 };
-        let _res = execute(deps.as_mut(), mock_env(), auth_info, msg).unwrap();
-
-        // should now be 5
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::GetCount {}).unwrap();
-        let value: GetCountResponse = from_json(&res).unwrap();
-        assert_eq!(5, value.count);
-    }
+    let ctx = QueryCtx::from((deps.as_ref(), mock_env()));
+    let res = contract.count(ctx).unwrap();
+    assert_eq!(1, res.count);
+  }
 }

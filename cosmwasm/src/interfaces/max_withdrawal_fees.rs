@@ -1,9 +1,8 @@
 use crate::contract::Chainbills;
 use crate::error::ChainbillsError;
-use crate::messages::{
-  FetchMaxFeeMessage, FetchMaxFeeResponse, TokenAndAmountMessage,
-};
-use sylvia::cw_std::{Event, Response, StdError};
+use crate::messages::FetchMaxFeeMessage;
+use crate::state::MaxWithdrawalFeeDetails;
+use sylvia::cw_std::{Response, StdError};
 use sylvia::interface;
 use sylvia::types::{ExecCtx, QueryCtx};
 
@@ -16,13 +15,13 @@ pub trait MaxWithdrawalFees {
     &self,
     ctx: QueryCtx,
     msg: FetchMaxFeeMessage,
-  ) -> Result<FetchMaxFeeResponse, Self::Error>;
+  ) -> Result<MaxWithdrawalFeeDetails, Self::Error>;
 
   #[sv::msg(exec)]
   fn update_max_withdrawal_fee(
     &self,
     ctx: ExecCtx,
-    msg: TokenAndAmountMessage,
+    msg: MaxWithdrawalFeeDetails,
   ) -> Result<Response, Self::Error>;
 }
 
@@ -33,46 +32,49 @@ impl MaxWithdrawalFees for Chainbills {
     &self,
     ctx: QueryCtx,
     msg: FetchMaxFeeMessage,
-  ) -> Result<FetchMaxFeeResponse, Self::Error> {
-    // load and return the max fee for the token or throw an error if
+  ) -> Result<MaxWithdrawalFeeDetails, Self::Error> {
+    // load and return the max fee details for the token or throw an error if
     // the token is invalid.
     match self
       .max_fees_per_token
-      .may_load(ctx.deps.storage, &ctx.deps.api.addr_validate(&msg.token)?)?
+      .may_load(ctx.deps.storage, msg.token.clone())?
     {
-      Some(max_fee) => Ok(FetchMaxFeeResponse { max_fee }),
-      None => Err(ChainbillsError::InvalidToken {}),
+      Some(details) => Ok(details),
+      None => Err(ChainbillsError::InvalidToken {
+        token: msg.token.clone(),
+      }),
     }
   }
 
   fn update_max_withdrawal_fee(
     &self,
     ctx: ExecCtx,
-    msg: TokenAndAmountMessage,
+    msg: MaxWithdrawalFeeDetails,
   ) -> Result<Response, Self::Error> {
     // Only the owner can update the max withdrawal fee.
     let owner = self.config.load(ctx.deps.storage)?.owner;
     if ctx.info.sender != owner {
-      return Err(ChainbillsError::Unauthorized {});
+      return Err(ChainbillsError::OwnerUnauthorized {});
     }
 
-    // Update the max withdrawal fee.
-    let token = ctx.deps.api.addr_validate(&msg.token)?;
-    self
-      .max_fees_per_token
-      .save(ctx.deps.storage, &token, &msg.amount)?;
+    // If the token is not a native one, ensure it is a valid token address.
+    if !msg.is_native_token {
+      ctx.deps.api.addr_validate(&msg.token)?;
+    }
 
-    // Emit an event and return a response.
-    let attributes = [
-      ("token", token.as_str()),
-      ("max_fee", &msg.amount.to_string()),
-    ];
-    let res = Response::new()
-      .add_event(
-        Event::new("updated_max_withdrawal_fee").add_attributes(attributes),
-      )
-      .add_attribute("action", "update_max_withdrawal_fee")
-      .add_attributes(attributes);
-    Ok(res)
+    // Update the max withdrawal fee details.
+    self.max_fees_per_token.save(
+      ctx.deps.storage,
+      msg.clone().token,
+      &msg.clone(),
+    )?;
+
+    // Return the Response.
+    Ok(Response::new().add_attributes([
+      ("action", "update_max_withdrawal_fee".to_string()),
+      ("token", msg.token),
+      ("is_native_token", msg.is_native_token.to_string()),
+      ("max_fee", msg.max_fee.to_string()),
+    ]))
   }
 }

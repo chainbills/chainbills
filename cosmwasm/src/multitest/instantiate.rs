@@ -12,9 +12,7 @@ fn instantiate() {
   let fee_collector = "fee_collector".into_addr();
   let init_msg = InstantiateMessage {
     chain_id: 1,
-    owner: owner.to_string(),
     chainbills_fee_collector: fee_collector.to_string(),
-    native_denom: "native".to_string(),
   };
   let contract = code_id.instantiate(init_msg).call(&owner).unwrap();
 

@@ -3,9 +3,10 @@ use crate::interfaces::max_withdrawal_fees::sv::mt::MaxWithdrawalFeesProxy;
 use crate::interfaces::payables::sv::mt::PayablesProxy;
 use crate::interfaces::payments::sv::mt::PaymentsProxy;
 use crate::messages::{
-    CreatePayableMessage, FetchIdMessage, IdMessage, InstantiateMessage,
-    TokenAndAmountMessage, TransactionInfoMessage,
+  CreatePayableMessage, FetchIdMessage, IdMessage, InstantiateMessage,
+  TransactionInfoMessage,
 };
+use crate::state::MaxWithdrawalFeeDetails;
 use cw20::{BalanceResponse, Cw20Coin};
 use cw20_base::msg::InstantiateMsg;
 use sylvia::cw_multi_test::{Contract, ContractWrapper, Executor, IntoAddr};
@@ -59,9 +60,7 @@ fn making_payments() {
   let fee_collector = "fee_collector".into_addr();
   let init_msg = InstantiateMessage {
     chain_id: 1,
-    owner: owner.to_string(),
     chainbills_fee_collector: fee_collector.to_string(),
-    native_denom: "native".to_string(),
   };
   let contract = code_id.instantiate(init_msg).call(&owner).unwrap();
 
@@ -133,18 +132,20 @@ fn making_payments() {
 
   // Set MaxFee for Native Token
   contract
-    .update_max_withdrawal_fee(TokenAndAmountMessage {
-      token: contract.contract_addr.to_string(),
-      amount: Uint128::new(100),
+    .update_max_withdrawal_fee(MaxWithdrawalFeeDetails {
+      token: "native".to_string(),
+      max_fee: Uint128::new(100),
+      is_native_token: true,
     })
     .call(&owner)
     .unwrap();
 
   // Set MaxFee for Cw20 Token
   contract
-    .update_max_withdrawal_fee(TokenAndAmountMessage {
+    .update_max_withdrawal_fee(MaxWithdrawalFeeDetails {
       token: usdc_addr.clone().to_string(),
-      amount: Uint128::new(100),
+      max_fee: Uint128::new(100),
+      is_native_token: false,
     })
     .call(&owner)
     .unwrap();
@@ -153,7 +154,7 @@ fn making_payments() {
   contract
     .pay(TransactionInfoMessage {
       payable_id: payable_id.clone(),
-      token: contract.contract_addr.to_string(),
+      token: "native".to_string(),
       amount: Uint128::new(100),
     })
     .with_funds(&coins(100, "native"))

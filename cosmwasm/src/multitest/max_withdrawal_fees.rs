@@ -1,7 +1,8 @@
 use crate::contract::sv::mt::CodeId;
+use crate::error::ChainbillsError;
 use crate::interfaces::max_withdrawal_fees::sv::mt::MaxWithdrawalFeesProxy;
 use crate::messages::{FetchMaxFeeMessage, InstantiateMessage};
-use crate::{error::ChainbillsError, messages::TokenAndAmountMessage};
+use crate::state::MaxWithdrawalFeeDetails;
 use sylvia::cw_multi_test::IntoAddr;
 use sylvia::cw_std::Uint128;
 use sylvia::multitest::App;
@@ -15,9 +16,7 @@ fn max_withdrawal_fees() {
   let fee_collector = "fee_collector".into_addr();
   let init_msg = InstantiateMessage {
     chain_id: 1,
-    owner: owner.to_string(),
     chainbills_fee_collector: fee_collector.to_string(),
-    native_denom: "native".to_string(),
   };
   let contract = code_id.instantiate(init_msg).call(&owner).unwrap();
 
@@ -25,7 +24,11 @@ fn max_withdrawal_fees() {
   let token = "token".into_addr().to_string();
   let amount = Uint128::new(100);
   let resp = contract
-    .update_max_withdrawal_fee(TokenAndAmountMessage { token, amount })
+    .update_max_withdrawal_fee(MaxWithdrawalFeeDetails {
+      token,
+      max_fee: amount,
+      is_native_token: false,
+    })
     .call(&owner)
     .unwrap();
 
@@ -51,22 +54,6 @@ fn max_withdrawal_fees() {
     amount.to_string()
   );
 
-  let events: Vec<_> = resp
-    .events
-    .iter()
-    .filter(|ev| ev.ty == "wasm-updated_max_withdrawal_fee")
-    .collect();
-  assert_eq!(events.len(), 1);
-  assert_eq!(
-    events[0]
-      .attributes
-      .iter()
-      .find(|attr| attr.key == "max_fee")
-      .unwrap()
-      .value,
-    amount.to_string()
-  );
-
   let max_fee_resp = contract
     .max_fee(FetchMaxFeeMessage {
       token: "token".into_addr().to_string(),
@@ -78,10 +65,14 @@ fn max_withdrawal_fees() {
   let token = "token".into_addr().to_string();
   let other = "other".into_addr();
   let err = contract
-    .update_max_withdrawal_fee(TokenAndAmountMessage { token, amount })
+    .update_max_withdrawal_fee(MaxWithdrawalFeeDetails {
+      token,
+      max_fee: amount,
+      is_native_token: false,
+    })
     .call(&other)
     .unwrap_err();
-  assert_eq!(err, ChainbillsError::Unauthorized {});
+  assert_eq!(err, ChainbillsError::OwnerUnauthorized {});
 
   // Nonexistent token
   let err = contract

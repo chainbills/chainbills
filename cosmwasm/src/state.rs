@@ -51,8 +51,6 @@ pub struct Config {
   pub owner: Addr,
   /// Chainbills' FeeCollector address.
   pub chainbills_fee_collector: Addr,
-  /// Denom for native token
-  pub native_denom: String,
   /// Percentage of withdrawal for fees.
   pub withdrawal_fee_percentage: Uint128,
 }
@@ -95,14 +93,29 @@ impl User {
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
+/// Indicates supported tokens. Stores the maximum withdrawal fees for each
+/// token. Also tells whether the token is a native token (its denom) or
+/// a Cw20 (its Addr).
+pub struct MaxWithdrawalFeeDetails {
+  /// The associated token.
+  pub token: String,
+  /// Whether this token is a native token or a Cw20 token.
+  pub is_native_token: bool,
+  /// The maximum withdrawal fee for this token.
+  pub max_fee: Uint128,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
 /// A combination of a token address and its associated amount.
 ///
-/// This combination is used to constrain how much of a token
-/// a payable can accept. It is also used to record the details
-/// of a payment or a withdrawal.
+/// This combination is used to constrain how much of a token a payable can
+/// accept. It is also used to record the details of a payment or a withdrawal.
+///
+/// Token is stored as a string to allow for the storage of native tokens
+/// (different denoms).
 pub struct TokenAndAmount {
   /// The address of the associated token.
-  pub token: Addr,
+  pub token: String,
   /// The amount of the token with its decimals.
   pub amount: Uint128,
 }

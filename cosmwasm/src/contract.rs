@@ -1,14 +1,18 @@
+use crate::error::ChainbillsError;
 use crate::messages::{IdMessage, InstantiateMessage};
 use crate::state::{
-  ChainStats, Config, Payable, PayablePayment, User, UserPayment, Withdrawal,
+  ChainStats, Config, MaxWithdrawalFeeDetails, Payable, PayablePayment, User,
+  UserPayment, Withdrawal,
 };
 use cw2::set_contract_version;
+use cw20::Cw20ExecuteMsg;
 use cw_storage_plus::{Item, Map};
 use sha2::{Digest, Sha256};
 use sylvia::cw_std::{
-  Addr, Api, Env, Event, Response, StdResult, Storage, Uint128,
+  to_json_binary, Addr, Api, Attribute, BankMsg, Coin, Env, Event, Response,
+  StdResult, Storage, Uint128, WasmMsg,
 };
-use sylvia::types::{InstantiateCtx, QueryCtx};
+use sylvia::types::{ExecCtx, InstantiateCtx, QueryCtx};
 #[allow(unused_imports)]
 // RustRover IDE doesn't see the use of `entry_points` macro.
 use sylvia::{contract, entry_points};
@@ -19,7 +23,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub struct Chainbills {
   pub config: Item<Config>,
   pub chain_stats: Item<ChainStats>,
-  pub max_fees_per_token: Map<&'static Addr, Uint128>,
+  pub max_fees_per_token: Map<String, MaxWithdrawalFeeDetails>,
   pub users: Map<&'static Addr, User>,
   pub user_payable_ids: Map<&'static Addr, Vec<[u8; 32]>>,
   pub user_payments: Map<[u8; 32], UserPayment>,
@@ -29,7 +33,8 @@ pub struct Chainbills {
   pub payable_payments: Map<[u8; 32], PayablePayment>,
   pub payable_payment_ids: Map<[u8; 32], Vec<[u8; 32]>>,
   pub payable_withdrawal_ids: Map<[u8; 32], Vec<[u8; 32]>>,
-  pub payable_chain_payments_count: Map<(Vec<u8>, u16), u64>,
+  pub per_chain_payable_payments_count: Map<(Vec<u8>, u16), u64>,
+  pub per_chain_payable_payment_ids: Map<(Vec<u8>, u16), Vec<[u8; 32]>>,
   pub withdrawals: Map<[u8; 32], Withdrawal>,
 }
 
@@ -55,7 +60,10 @@ impl Chainbills {
       payable_payments: Map::new("payable_payments"),
       payable_payment_ids: Map::new("payable_payment_ids"),
       payable_withdrawal_ids: Map::new("payable_withdrawal_ids"),
-      payable_chain_payments_count: Map::new("payable_chain_payments_count"),
+      per_chain_payable_payments_count: Map::new(
+        "per_chain_payable_payments_count",
+      ),
+      per_chain_payable_payment_ids: Map::new("per_chain_payable_payment_ids"),
       withdrawals: Map::new("withdrawals"),
     }
   }
@@ -81,7 +89,6 @@ impl Chainbills {
       &Config {
         owner: ctx.info.sender.clone(),
         chainbills_fee_collector: cbfc,
-        native_denom: msg.native_denom,
         withdrawal_fee_percentage: Uint128::new(2),
       },
     )?;
@@ -117,13 +124,74 @@ impl Chainbills {
     Ok(fetched_user.unwrap_or(User::initialize(0)))
   }
 
-  pub fn initialize_user_if_need_be(
+  #[sv::msg(exec)]
+  fn owner_withdraw(
+    &self,
+    ctx: ExecCtx,
+    msg: MaxWithdrawalFeeDetails,
+  ) -> Result<Response, ChainbillsError> {
+    // Ensure the caller is the owner.
+    let config = self.config.load(ctx.deps.storage)?;
+    if ctx.info.sender != config.owner {
+      return Err(ChainbillsError::OwnerUnauthorized {});
+    }
+
+    // Extract the details token and amount for the withdrawal.
+    let MaxWithdrawalFeeDetails {
+      token,
+      max_fee: amount,
+      is_native_token,
+    } = msg;
+
+    // If the token is not a native one, ensure it is a valid token address.
+    if !is_native_token {
+      ctx.deps.api.addr_validate(&token.clone())?;
+    }
+
+    // Prepare messages for transfer to add to the response.
+    let mut bank_messages = vec![];
+    let mut cw20_messages = vec![];
+    if is_native_token {
+      bank_messages.push(BankMsg::Send {
+        to_address: ctx.info.sender.to_string(),
+        amount: vec![Coin {
+          denom: token.clone(),
+          amount,
+        }],
+      });
+    } else {
+      cw20_messages.push(WasmMsg::Execute {
+        contract_addr: token.clone(),
+        funds: vec![],
+        msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
+          recipient: ctx.info.sender.to_string(),
+          amount,
+        })?,
+      });
+    }
+
+    // Return the Response.
+    Ok(
+      Response::new()
+          .add_messages(bank_messages) // Add the bank messages
+          .add_messages(cw20_messages) // Add the cw20 me
+          .add_attributes([
+            ("action", "owner_withdraw".to_string()),
+            ("token", token),
+            ("is_native_token", is_native_token.to_string()),
+            ("amount", amount.to_string()),
+          ]),
+    )
+  }
+
+  pub fn initialize_user_if_is_new(
     &self,
     storage: &mut dyn Storage,
     wallet: &Addr,
-  ) -> StdResult<Vec<Event>> {
-    let mut events = vec![];
+  ) -> StdResult<Vec<Attribute>> {
+    let mut response_attribs: Vec<Attribute> = vec![];
 
+    // If this is the first time this wallet is interacting with the contract
     if !self.users.has(storage, wallet) {
       // Increment chain count for users.
       let mut chain_stats = self.chain_stats.load(storage)?;
@@ -137,14 +205,15 @@ impl Chainbills {
         &User::initialize(chain_stats.users_count),
       )?;
 
-      // Emit an event.
-      events.push(Event::new("initialized_user").add_attributes(vec![
-        ("wallet", wallet.as_str()),
-        ("chain_count", &chain_stats.users_count.to_string()),
-      ]));
+      // Set the response attributes
+      response_attribs.append(&mut vec![
+        Attribute::from(("action", "initialize_user".to_string())),
+        Attribute::from(("wallet", wallet.as_str())),
+        Attribute::from(("chain_count", chain_stats.users_count.to_string())),
+      ]);
     }
 
-    Ok(events)
+    Ok(response_attribs)
   }
 
   pub fn create_id(

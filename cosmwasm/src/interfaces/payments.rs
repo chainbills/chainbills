@@ -1,10 +1,14 @@
 use crate::contract::Chainbills;
 use crate::error::ChainbillsError;
-use crate::messages::{FetchIdMessage, IdMessage, TransactionInfoMessage};
-use crate::state::{PayablePayment, TokenAndAmount, User, UserPayment};
-use cosmwasm_std::{to_json_binary, WasmMsg};
+use crate::messages::{
+  CountMessage, FetchIdMessage, IdMessage, PerChainPayablePaymentIdMessage,
+  PerChainPayablePaymentsCountMessage, TransactionInfoMessage,
+};
+use crate::state::{
+  MaxWithdrawalFeeDetails, PayablePayment, TokenAndAmount, User, UserPayment,
+};
 use cw20::Cw20ExecuteMsg;
-use sylvia::cw_std::{Event, HexBinary, Response, StdError};
+use sylvia::cw_std::{to_json_binary, HexBinary, Response, StdError, WasmMsg};
 use sylvia::interface;
 use sylvia::types::{ExecCtx, QueryCtx};
 
@@ -40,6 +44,20 @@ pub trait Payments {
     msg: IdMessage,
   ) -> Result<PayablePayment, Self::Error>;
 
+  #[sv::msg(query)]
+  fn per_chain_payable_payment_count(
+    &self,
+    ctx: QueryCtx,
+    msg: PerChainPayablePaymentsCountMessage,
+  ) -> Result<CountMessage, Self::Error>;
+
+  #[sv::msg(query)]
+  fn per_chain_payable_payment_id(
+    &self,
+    ctx: QueryCtx,
+    msg: PerChainPayablePaymentIdMessage,
+  ) -> Result<IdMessage, Self::Error>;
+
   #[sv::msg(exec)]
   fn pay(
     &self,
@@ -58,21 +76,22 @@ impl Payments for Chainbills {
   ) -> Result<IdMessage, Self::Error> {
     // Validate the wallet address.
     let valid_wallet = ctx.deps.api.addr_validate(&msg.reference)?;
+    let count = msg.count;
 
     // Ensure the requested count is valid.
     let user = self
       .users
       .load(ctx.deps.storage, &valid_wallet)
       .unwrap_or(User::initialize(0));
-    if msg.count > user.payments_count {
-      return Err(ChainbillsError::InvalidUserPaymentCount {});
+    if count > user.payments_count {
+      return Err(ChainbillsError::InvalidUserPaymentCount { count });
     }
 
     // Get and return the Payment ID.
     let payment_ids = self
       .user_payment_ids
       .load(ctx.deps.storage, &valid_wallet)?;
-    let id = HexBinary::from(payment_ids[(msg.count - 1) as usize]).to_hex();
+    let id = HexBinary::from(payment_ids[(count - 1) as usize]).to_hex();
     Ok(IdMessage { id })
   }
 
@@ -86,7 +105,7 @@ impl Payments for Chainbills {
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.id)?.as_slice()).unwrap(),
     )? {
       Some(payment) => Ok(payment),
-      None => Err(ChainbillsError::InvalidPaymentId {}),
+      None => Err(ChainbillsError::InvalidPaymentId { id: msg.id }),
     }
   }
 
@@ -96,23 +115,24 @@ impl Payments for Chainbills {
     msg: FetchIdMessage,
   ) -> Result<IdMessage, Self::Error> {
     // Ensure that the payable_id is valid.
-    let valid_pybl_id =
+    let payable_id =
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.reference)?.as_slice())
         .unwrap();
-    if !self.payables.has(ctx.deps.storage, valid_pybl_id) {
-      return Err(ChainbillsError::InvalidPayableId {});
+    if !self.payables.has(ctx.deps.storage, payable_id) {
+      return Err(ChainbillsError::InvalidPayableId { id: msg.reference });
     }
-    let payable = self.payables.load(ctx.deps.storage, valid_pybl_id)?;
+    let payable = self.payables.load(ctx.deps.storage, payable_id)?;
+    let count = msg.count;
 
     // Ensure the requested count is valid.
     if msg.count > payable.payments_count {
-      return Err(ChainbillsError::InvalidPayablePaymentCount {});
+      return Err(ChainbillsError::InvalidPayablePaymentCount { count });
     }
 
     // Get and return the Payment ID.
     let payment_ids = self
       .payable_payment_ids
-      .load(ctx.deps.storage, valid_pybl_id)?;
+      .load(ctx.deps.storage, payable_id)?;
     let id = HexBinary::from(payment_ids[(msg.count - 1) as usize]).to_hex();
     Ok(IdMessage { id })
   }
@@ -127,8 +147,71 @@ impl Payments for Chainbills {
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.id)?.as_slice()).unwrap(),
     )? {
       Some(payment) => Ok(payment),
-      None => Err(ChainbillsError::InvalidPaymentId {}),
+      None => Err(ChainbillsError::InvalidPaymentId { id: msg.id }),
     }
+  }
+
+  fn per_chain_payable_payment_count(
+    &self,
+    ctx: QueryCtx,
+    msg: PerChainPayablePaymentsCountMessage,
+  ) -> Result<CountMessage, Self::Error> {
+    // Ensure that the payable_id is valid.
+    let payable_id =
+      <[u8; 32]>::try_from(HexBinary::from_hex(&msg.payable_id)?.as_slice())
+        .unwrap();
+    if !self.payables.has(ctx.deps.storage, payable_id) {
+      return Err(ChainbillsError::InvalidPayableId { id: msg.payable_id });
+    }
+
+    // Ensure that the chain_id is valid and Return the Count if so.
+    let chain_id = msg.chain_id;
+    match self
+      .per_chain_payable_payments_count
+      .may_load(ctx.deps.storage, (payable_id.to_vec(), chain_id))?
+    {
+      Some(count) => Ok(CountMessage { count }),
+      None => Err(ChainbillsError::InvalidChainId { chain_id }),
+    }
+  }
+
+  fn per_chain_payable_payment_id(
+    &self,
+    ctx: QueryCtx,
+    msg: PerChainPayablePaymentIdMessage,
+  ) -> Result<IdMessage, Self::Error> {
+    // Ensure that the payable_id is valid.
+    let payable_id =
+      <[u8; 32]>::try_from(HexBinary::from_hex(&msg.payable_id)?.as_slice())
+        .unwrap();
+    if !self.payables.has(ctx.deps.storage, payable_id) {
+      return Err(ChainbillsError::InvalidPayableId { id: msg.payable_id });
+    }
+
+    // Ensure that the chain_id is valid and Obtain the current count if so.
+    let chain_id = msg.chain_id;
+    let payments_count = match self
+      .per_chain_payable_payments_count
+      .may_load(ctx.deps.storage, (payable_id.to_vec(), chain_id))?
+    {
+      Some(count) => Ok(count),
+      None => Err(ChainbillsError::InvalidChainId { chain_id }),
+    }?;
+
+    // Ensure the requested count is valid.
+    let count = msg.count;
+    if count > payments_count {
+      return Err(ChainbillsError::InvalidPerChainPayablePaymentCount {
+        count,
+      });
+    }
+
+    // Obtains the payment_ids and return the requested one.
+    let payment_ids = self
+      .per_chain_payable_payment_ids
+      .load(ctx.deps.storage, (payable_id.to_vec(), chain_id))?;
+    let id = HexBinary::from(payment_ids[(count - 1) as usize]).to_hex();
+    Ok(IdMessage { id })
   }
 
   fn pay(
@@ -142,7 +225,7 @@ impl Payments for Chainbills {
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.payable_id)?.as_slice())
         .unwrap();
     if !self.payables.has(ctx.deps.storage, payable_id) {
-      return Err(ChainbillsError::InvalidPayableId {});
+      return Err(ChainbillsError::InvalidPayableId { id: msg.payable_id });
     }
     let mut payable = self.payables.load(ctx.deps.storage, payable_id)?;
 
@@ -151,19 +234,29 @@ impl Payments for Chainbills {
       return Err(ChainbillsError::PayableIsClosed {});
     }
 
+    // Extract the token and amount for the payment.
+    let TransactionInfoMessage { token, amount, .. } = msg;
+
     // Ensure that amount is greater than zero.
-    if msg.amount.is_zero() {
+    if amount.is_zero() {
       return Err(ChainbillsError::ZeroAmountSpecified {});
     }
 
     // Ensure that the token is valid and is supported. Basically if a token's
-    // max fees is not set, then it isn't supported.
-    let token = &ctx.deps.api.addr_validate(&msg.token)?;
-    if !self.max_fees_per_token.has(ctx.deps.storage, token) {
-      return Err(ChainbillsError::InvalidToken {});
-    }
-
-    let amount = msg.amount;
+    // max withdrawal fees is not set, then it isn't supported.
+    //
+    // Also determine if the token is a native one in the process.
+    let MaxWithdrawalFeeDetails {
+      is_native_token, ..
+    } = match self
+      .max_fees_per_token
+      .may_load(ctx.deps.storage, token.clone())?
+    {
+      Some(details) => Ok(details),
+      None => Err(ChainbillsError::InvalidToken {
+        token: token.clone(),
+      }),
+    }?;
 
     // Ensure that the specified token to be transferred is an allowed token
     // for this payable, if this payable specified the tokens and amounts it
@@ -182,12 +275,9 @@ impl Payments for Chainbills {
 
     /* TRANSFER */
     let mut cw20_messages = vec![];
-    if token == ctx.env.contract.address {
+    if is_native_token {
       // Verify Native Token Payment was made.
-      let verified_amount = cw_utils::must_pay(
-        &ctx.info,
-        &self.config.load(ctx.deps.storage)?.native_denom,
-      )?;
+      let verified_amount = cw_utils::must_pay(&ctx.info, &token.clone())?;
       if verified_amount != amount {
         return Err(ChainbillsError::InvalidNativeTokenPayment {});
       }
@@ -211,8 +301,8 @@ impl Payments for Chainbills {
     self.chain_stats.save(ctx.deps.storage, &chain_stats)?;
 
     // Increment paymentsCount on the payer (address) making this payable.
-    let mut events =
-      self.initialize_user_if_need_be(ctx.deps.storage, &ctx.info.sender)?;
+    let user_resp_attrib =
+      self.initialize_user_if_is_new(ctx.deps.storage, &ctx.info.sender)?;
     let mut user = self.users.load(ctx.deps.storage, &ctx.info.sender)?;
     user.payments_count = user.next_payment();
     self.users.save(ctx.deps.storage, &ctx.info.sender, &user)?;
@@ -227,7 +317,7 @@ impl Payments for Chainbills {
     let mut was_matching_balance_updated = false;
     {
       for balance in payable.balances.iter_mut() {
-        if balance.token == token {
+        if balance.token == token.clone() {
           balance.amount = balance.amount.checked_add(amount).unwrap();
           was_matching_balance_updated = true;
           break;
@@ -248,14 +338,14 @@ impl Payments for Chainbills {
 
     // Increment the local-chain paymentsCount for the payable.
     let mut local_chain_count = self
-      .payable_chain_payments_count
+      .per_chain_payable_payments_count
       .may_load(
         ctx.deps.storage,
         (payable_id.to_vec(), chain_stats.chain_id),
       )?
       .unwrap_or_default();
     local_chain_count = local_chain_count.checked_add(1).unwrap();
-    self.payable_chain_payments_count.save(
+    self.per_chain_payable_payments_count.save(
       ctx.deps.storage,
       (payable_id.to_vec(), chain_stats.chain_id),
       &local_chain_count,
@@ -311,6 +401,21 @@ impl Payments for Chainbills {
       &payable_payment_ids,
     )?;
 
+    // Save the Payment ID to the per_chain_payable_payment_ids.
+    let mut per_chain_payable_payment_ids = self
+      .per_chain_payable_payment_ids
+      .may_load(
+        ctx.deps.storage,
+        (payable_id.to_vec(), chain_stats.chain_id),
+      )?
+      .unwrap_or_default();
+    per_chain_payable_payment_ids.push(payment_id);
+    self.per_chain_payable_payment_ids.save(
+      ctx.deps.storage,
+      (payable_id.to_vec(), chain_stats.chain_id),
+      &per_chain_payable_payment_ids,
+    )?;
+
     // Create and Save the PayablePayment.
     let payable_payment = PayablePayment {
       payable_id,
@@ -331,36 +436,26 @@ impl Payments for Chainbills {
       &payable_payment,
     )?;
 
-    // Emit events and return a response.
-    let attributes = vec![
-      ("payable_id", HexBinary::from(&payable_id).to_hex()),
-      ("payer_wallet", ctx.info.sender.to_string()),
-      ("payment_id", HexBinary::from(&payment_id).to_hex()),
-      ("chain_count", chain_stats.payments_count.to_string()),
-    ];
-    let user_pymt_attribs = vec![
-      ("payable_chain_id", chain_stats.chain_id.to_string()),
-      ("payer_count", user.payments_count.to_string()),
-    ];
-    let pybl_pymt_attribs = vec![
-      ("payer_chain_id", chain_stats.chain_id.to_string()),
-      ("payable_count", payable.payments_count.to_string()),
-    ];
-    events.push(
-      Event::new("user_paid")
-        .add_attributes(attributes.clone())
-        .add_attributes(user_pymt_attribs),
-    );
-    events.push(
-      Event::new("payable_paid")
-        .add_attributes(attributes.clone())
-        .add_attributes(pybl_pymt_attribs),
-    );
-    let res = Response::new()
-      .add_messages(cw20_messages) // Add the cw20 messages
-      .add_events(events)
-      .add_attribute("action", "pay")
-      .add_attributes(attributes.clone());
-    Ok(res)
+    // Return the Response.
+    Ok(
+      Response::new()
+        .add_messages(cw20_messages) // Add the cw20 messages
+        .add_attributes(user_resp_attrib) // Add the user init attributes
+        .add_attributes([
+          ("action", "pay".to_string()),
+          ("payable_id", HexBinary::from(&payable_id).to_hex()),
+          ("payer_wallet", ctx.info.sender.to_string()),
+          ("payment_id", HexBinary::from(&payment_id).to_hex()),
+          ("chain_count", chain_stats.payments_count.to_string()),
+          // Details relative to the user
+          ("action", "user_pay".to_string()),
+          ("payable_chain_id", chain_stats.chain_id.to_string()),
+          ("payer_count", user.payments_count.to_string()),
+          // Details relative to the payable
+          ("action", "payable_pay".to_string()),
+          ("payer_chain_id", chain_stats.chain_id.to_string()),
+          ("payable_count", payable.payments_count.to_string()),
+        ]),
+    )
   }
 }

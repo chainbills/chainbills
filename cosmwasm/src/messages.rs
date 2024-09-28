@@ -1,18 +1,11 @@
 use sylvia::cw_schema::cw_serde;
 use sylvia::cw_std::Uint128;
+use crate::state::TokenAndAmount;
 
 #[cw_serde(crate = "sylvia::cw_schema")]
 pub struct InstantiateMessage {
   pub chain_id: u16,
-  pub owner: String,
   pub chainbills_fee_collector: String,
-  pub native_denom: String,
-}
-
-#[cw_serde(crate = "sylvia::cw_schema")]
-pub struct TokenAndAmountMessage {
-  pub token: String,
-  pub amount: Uint128,
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
@@ -21,18 +14,19 @@ pub struct FetchMaxFeeMessage {
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
-pub struct FetchMaxFeeResponse {
-  pub max_fee: Uint128,
-}
-
-#[cw_serde(crate = "sylvia::cw_schema")]
 pub struct CreatePayableMessage {
-  pub allowed_tokens_and_amounts: Vec<TokenAndAmountMessage>,
+  pub allowed_tokens_and_amounts: Vec<TokenAndAmount>,
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
 pub struct IdMessage {
   pub id: String,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+pub struct UpdatePayableTokensAndAmountsMessage {
+  pub payable_id: String,
+  pub allowed_tokens_and_amounts: Vec<TokenAndAmount>,
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
@@ -42,9 +36,22 @@ pub struct FetchIdMessage {
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
-pub struct UpdatePayableTokensAndAmountsMessage {
+pub struct PerChainPayablePaymentsCountMessage {
   pub payable_id: String,
-  pub allowed_tokens_and_amounts: Vec<TokenAndAmountMessage>,
+  pub chain_id: u16,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+pub struct CountMessage {
+  pub count: u64,
+}
+
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+pub struct PerChainPayablePaymentIdMessage {
+  pub payable_id: String,
+  pub chain_id: u16,
+  pub count: u64,
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]

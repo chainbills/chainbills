@@ -2,9 +2,9 @@ use crate::messages::{
   CreatePayableMessage, FetchIdMessage, IdMessage,
   UpdatePayableTokensAndAmountsMessage,
 };
-use crate::state::{Payable, TokenAndAmount, User};
+use crate::state::{Payable, User};
 use crate::{contract::Chainbills, error::ChainbillsError};
-use sylvia::cw_std::{Event, HexBinary, Response, StdError};
+use sylvia::cw_std::{HexBinary, Response, StdError};
 use sylvia::interface;
 use sylvia::types::{ExecCtx, QueryCtx};
 
@@ -65,21 +65,22 @@ impl Payables for Chainbills {
   ) -> Result<IdMessage, Self::Error> {
     // Validate the wallet address.
     let valid_wallet = ctx.deps.api.addr_validate(&msg.reference)?;
+    let count = msg.count;
 
     // Ensure the requested count is valid.
     let user = self
       .users
       .load(ctx.deps.storage, &valid_wallet)
       .unwrap_or(User::initialize(0));
-    if msg.count > user.payables_count {
-      return Err(ChainbillsError::InvalidUserPayableCount {});
+    if count > user.payables_count {
+      return Err(ChainbillsError::InvalidUserPayableCount { count });
     }
 
     // Get and return the payable ID.
     let payable_ids = self
       .user_payable_ids
       .load(ctx.deps.storage, &valid_wallet)?;
-    let id = HexBinary::from(payable_ids[(msg.count - 1) as usize]).to_hex();
+    let id = HexBinary::from(payable_ids[(count - 1) as usize]).to_hex();
     Ok(IdMessage { id })
   }
 
@@ -93,7 +94,7 @@ impl Payables for Chainbills {
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.id)?.as_slice()).unwrap(),
     )? {
       Some(payable) => Ok(payable),
-      None => Err(ChainbillsError::InvalidPayableId {}),
+      None => Err(ChainbillsError::InvalidPayableId { id: msg.id }),
     }
   }
 
@@ -103,24 +104,25 @@ impl Payables for Chainbills {
     msg: CreatePayableMessage,
   ) -> Result<Response, Self::Error> {
     /* CHECKS */
-    let mut allowed_tokens_and_amounts = vec![];
-    for taa in msg.allowed_tokens_and_amounts.iter() {
+    let CreatePayableMessage {
+      allowed_tokens_and_amounts,
+    } = msg;
+    for taa in allowed_tokens_and_amounts.iter() {
       // Ensure tokens are valid and are supported. Basically if a token's max
-      // fees is not set, then it isn't supported.
-      let token = &ctx.deps.api.addr_validate(&taa.token)?;
-      if !self.max_fees_per_token.has(ctx.deps.storage, token) {
-        return Err(ChainbillsError::InvalidToken {});
+      // withdrawal fees is not set, then it isn't supported.
+      if !self
+        .max_fees_per_token
+        .has(ctx.deps.storage, taa.token.clone())
+      {
+        return Err(ChainbillsError::InvalidToken {
+          token: taa.token.clone(),
+        });
       }
 
       // Ensure that all specified acceptable amounts are greater than zero.
       if taa.amount.is_zero() {
         return Err(ChainbillsError::ZeroAmountSpecified {});
       }
-
-      allowed_tokens_and_amounts.push(TokenAndAmount {
-        token: token.clone(),
-        amount: taa.amount,
-      });
     }
 
     /* STATE CHANGES */
@@ -130,8 +132,8 @@ impl Payables for Chainbills {
     self.chain_stats.save(ctx.deps.storage, &chain_stats)?;
 
     // Increment payablesCount on the host (address) creating this payable.
-    let mut events =
-      self.initialize_user_if_need_be(ctx.deps.storage, &ctx.info.sender)?;
+    let user_resp_attribs =
+      self.initialize_user_if_is_new(ctx.deps.storage, &ctx.info.sender)?;
     let mut user = self.users.load(ctx.deps.storage, &ctx.info.sender)?;
     user.payables_count = user.next_payable();
     self.users.save(ctx.deps.storage, &ctx.info.sender, &user)?;
@@ -170,20 +172,18 @@ impl Payables for Chainbills {
     };
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
 
-    // Emit events and return a response.
-    let attributes = vec![
-      ("payable_id", HexBinary::from(&payable_id).to_hex()),
-      ("host_wallet", ctx.info.sender.to_string()),
-      ("chain_count", chain_stats.payables_count.to_string()),
-      ("host_count", user.payables_count.to_string()),
-    ];
-    events
-      .push(Event::new("created_payable").add_attributes(attributes.clone()));
-    let res = Response::new()
-      .add_events(events)
-      .add_attribute("action", "create_payable")
-      .add_attributes(attributes);
-    Ok(res)
+    // Return the Response.
+    Ok(
+      Response::new()
+        .add_attributes(user_resp_attribs) // Add the user init attributes.
+        .add_attributes([
+          ("action", "create_payable".to_string()),
+          ("payable_id", HexBinary::from(&payable_id).to_hex()),
+          ("host_wallet", ctx.info.sender.to_string()),
+          ("chain_count", chain_stats.payables_count.to_string()),
+          ("host_count", user.payables_count.to_string()),
+        ]),
+    )
   }
 
   fn close_payable(
@@ -196,7 +196,7 @@ impl Payables for Chainbills {
     let payable_id =
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.id)?.as_slice()).unwrap();
     if !self.payables.has(ctx.deps.storage, payable_id) {
-      return Err(ChainbillsError::InvalidPayableId {});
+      return Err(ChainbillsError::InvalidPayableId { id: msg.id });
     }
     let mut payable = self.payables.load(ctx.deps.storage, payable_id)?;
 
@@ -215,18 +215,12 @@ impl Payables for Chainbills {
     payable.is_closed = true;
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
 
-    // Emit events and return a response.
-    let attributes = vec![
+    // Return the Response.
+    Ok(Response::new().add_attributes([
+      ("action", "close_payable".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
-    ];
-    let res = Response::new()
-      .add_event(
-        Event::new("closed_payable").add_attributes(attributes.clone()),
-      )
-      .add_attribute("action", "close_payable")
-      .add_attributes(attributes);
-    Ok(res)
+    ]))
   }
 
   fn reopen_payable(
@@ -239,7 +233,7 @@ impl Payables for Chainbills {
     let payable_id =
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.id)?.as_slice()).unwrap();
     if !self.payables.has(ctx.deps.storage, payable_id) {
-      return Err(ChainbillsError::InvalidPayableId {});
+      return Err(ChainbillsError::InvalidPayableId { id: msg.id });
     }
     let mut payable = self.payables.load(ctx.deps.storage, payable_id)?;
 
@@ -258,18 +252,12 @@ impl Payables for Chainbills {
     payable.is_closed = false;
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
 
-    // Emit events and return a response.
-    let attributes = vec![
+    // Return the Response.
+    Ok(Response::new().add_attributes([
+      ("action", "reopen_payable".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
-    ];
-    let res = Response::new()
-      .add_event(
-        Event::new("reopened_payable").add_attributes(attributes.clone()),
-      )
-      .add_attribute("action", "reopen_payable")
-      .add_attributes(attributes);
-    Ok(res)
+    ]))
   }
 
   fn update_payable_tokens_and_amounts(
@@ -283,7 +271,7 @@ impl Payables for Chainbills {
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.payable_id)?.as_slice())
         .unwrap();
     if !self.payables.has(ctx.deps.storage, payable_id) {
-      return Err(ChainbillsError::InvalidPayableId {});
+      return Err(ChainbillsError::InvalidPayableId { id: msg.payable_id });
     }
     let mut payable = self.payables.load(ctx.deps.storage, payable_id)?;
 
@@ -292,24 +280,26 @@ impl Payables for Chainbills {
       return Err(ChainbillsError::NotYourPayable {});
     }
 
-    let mut allowed_tokens_and_amounts = vec![];
-    for taa in msg.allowed_tokens_and_amounts.iter() {
+    let UpdatePayableTokensAndAmountsMessage {
+      allowed_tokens_and_amounts,
+      ..
+    } = msg;
+    for taa in allowed_tokens_and_amounts.iter() {
       // Ensure tokens are valid and are supported. Basically if a token's max
-      // fees is not set, then it isn't supported.
-      let token = &ctx.deps.api.addr_validate(&taa.token)?;
-      if !self.max_fees_per_token.has(ctx.deps.storage, token) {
-        return Err(ChainbillsError::InvalidToken {});
+      // withdrawal fees is not set, then it isn't supported.
+      if !self
+        .max_fees_per_token
+        .has(ctx.deps.storage, taa.token.clone())
+      {
+        return Err(ChainbillsError::InvalidToken {
+          token: taa.token.clone(),
+        });
       }
 
       // Ensure that all specified acceptable amounts are greater than zero.
       if taa.amount.is_zero() {
         return Err(ChainbillsError::ZeroAmountSpecified {});
       }
-
-      allowed_tokens_and_amounts.push(TokenAndAmount {
-        token: token.clone(),
-        amount: taa.amount,
-      });
     }
 
     /* STATE CHANGES */
@@ -317,18 +307,11 @@ impl Payables for Chainbills {
     payable.allowed_tokens_and_amounts = allowed_tokens_and_amounts;
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
 
-    // Emit events and return a response.
-    let attributes = vec![
+    // Return the Response.
+    Ok(Response::new().add_attributes([
+      ("action", "update_payable_tokens_and_amounts".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
-    ];
-    let res = Response::new()
-      .add_event(
-        Event::new("updated_payable_tokens_and_amounts")
-          .add_attributes(attributes.clone()),
-      )
-      .add_attribute("action", "update_payable_tokens_and_amounts")
-      .add_attributes(attributes);
-    Ok(res)
+    ]))
   }
 }

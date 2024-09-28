@@ -1,11 +1,11 @@
 use crate::contract::Chainbills;
 use crate::error::ChainbillsError;
 use crate::messages::{FetchIdMessage, IdMessage, TransactionInfoMessage};
-use crate::state::{TokenAndAmount, User, Withdrawal};
+use crate::state::{MaxWithdrawalFeeDetails, TokenAndAmount, User, Withdrawal};
 use cw20::Cw20ExecuteMsg;
 use std::cmp::min;
 use sylvia::cw_std::{
-  to_json_binary, BankMsg, Coin, Event, HexBinary, Response, StdError, Uint128,
+  to_json_binary, BankMsg, Coin, HexBinary, Response, StdError, Uint128,
   WasmMsg,
 };
 use sylvia::interface;
@@ -54,21 +54,22 @@ impl Withdrawals for Chainbills {
   ) -> Result<IdMessage, Self::Error> {
     // Validate the wallet address.
     let valid_wallet = ctx.deps.api.addr_validate(&msg.reference)?;
+    let count = msg.count;
 
     // Ensure the requested count is valid.
     let user = self
       .users
       .load(ctx.deps.storage, &valid_wallet)
       .unwrap_or(User::initialize(0));
-    if msg.count > user.withdrawals_count {
-      return Err(ChainbillsError::InvalidUserWithdrawalCount {});
+    if count > user.withdrawals_count {
+      return Err(ChainbillsError::InvalidUserWithdrawalCount { count });
     }
 
     // Get and return the Withdrawal ID.
     let wtdl_ids = self
       .user_withdrawal_ids
       .load(ctx.deps.storage, &valid_wallet)?;
-    let id = HexBinary::from(wtdl_ids[(msg.count - 1) as usize]).to_hex();
+    let id = HexBinary::from(wtdl_ids[(count - 1) as usize]).to_hex();
     Ok(IdMessage { id })
   }
 
@@ -78,24 +79,25 @@ impl Withdrawals for Chainbills {
     msg: FetchIdMessage,
   ) -> Result<IdMessage, Self::Error> {
     // Ensure that the payable_id is valid.
-    let valid_pybl_id =
+    let payable_id =
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.reference)?.as_slice())
         .unwrap();
-    if !self.payables.has(ctx.deps.storage, valid_pybl_id) {
-      return Err(ChainbillsError::InvalidPayableId {});
+    if !self.payables.has(ctx.deps.storage, payable_id) {
+      return Err(ChainbillsError::InvalidPayableId { id: msg.reference });
     }
-    let payable = self.payables.load(ctx.deps.storage, valid_pybl_id)?;
+    let payable = self.payables.load(ctx.deps.storage, payable_id)?;
+    let count = msg.count;
 
     // Ensure the requested count is valid.
-    if msg.count > payable.withdrawals_count {
-      return Err(ChainbillsError::InvalidPayableWithdrawalCount {});
+    if count > payable.withdrawals_count {
+      return Err(ChainbillsError::InvalidPayableWithdrawalCount { count });
     }
 
     // Get and return the Payment ID.
     let wtdl_ids = self
       .payable_withdrawal_ids
-      .load(ctx.deps.storage, valid_pybl_id)?;
-    let id = HexBinary::from(wtdl_ids[(msg.count - 1) as usize]).to_hex();
+      .load(ctx.deps.storage, payable_id)?;
+    let id = HexBinary::from(wtdl_ids[(count - 1) as usize]).to_hex();
     Ok(IdMessage { id })
   }
 
@@ -109,7 +111,7 @@ impl Withdrawals for Chainbills {
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.id)?.as_slice()).unwrap(),
     )? {
       Some(withdrawal) => Ok(withdrawal),
-      None => Err(ChainbillsError::InvalidWithdrawalId {}),
+      None => Err(ChainbillsError::InvalidWithdrawalId { id: msg.id }),
     }
   }
 
@@ -124,7 +126,7 @@ impl Withdrawals for Chainbills {
       <[u8; 32]>::try_from(HexBinary::from_hex(&msg.payable_id)?.as_slice())
         .unwrap();
     if !self.payables.has(ctx.deps.storage, payable_id) {
-      return Err(ChainbillsError::InvalidPayableId {});
+      return Err(ChainbillsError::InvalidPayableId { id: msg.payable_id });
     }
     let mut payable = self.payables.load(ctx.deps.storage, payable_id)?;
 
@@ -133,10 +135,8 @@ impl Withdrawals for Chainbills {
       return Err(ChainbillsError::NotYourPayable {});
     }
 
-    // Ensure that the token is valid.
-    let token = &ctx.deps.api.addr_validate(&msg.token)?;
-
-    let amount = msg.amount;
+    // Extract the token and amount for the withdrawal.
+    let TransactionInfoMessage { token, amount, .. } = msg;
 
     // Ensure that the amount to be withdrawn is not zero.
     if amount.is_zero() {
@@ -156,7 +156,7 @@ impl Withdrawals for Chainbills {
         }
       }
       if bals_it.peek().is_none() {
-        return Err(ChainbillsError::NoBalanceForWithdrawalToken {});
+        return Err(ChainbillsError::NoBalanceForWithdrawalToken { token });
       }
     }
 
@@ -168,19 +168,25 @@ impl Withdrawals for Chainbills {
       .unwrap()
       .checked_div(Uint128::new(100))
       .unwrap();
-    let max_fee = self.max_fees_per_token.load(ctx.deps.storage, token)?;
+    let MaxWithdrawalFeeDetails {
+      is_native_token, // Determine if token is a native one
+      max_fee,
+      ..
+    } = self
+      .max_fees_per_token
+      .load(ctx.deps.storage, token.clone())?;
     let fees = min(percent, max_fee);
     let amount_minus_fees = amount.checked_sub(fees).unwrap();
 
     // Prepare messages for transfer to add to the response.
     let mut bank_messages = vec![];
     let mut cw20_messages = vec![];
-    if token == ctx.env.contract.address {
+    if is_native_token {
       // Transfer the amount to the host.
       bank_messages.push(BankMsg::Send {
         to_address: ctx.info.sender.to_string(),
         amount: vec![Coin {
-          denom: config.native_denom.clone(),
+          denom: token.clone(),
           amount: amount_minus_fees,
         }],
       });
@@ -188,13 +194,13 @@ impl Withdrawals for Chainbills {
       bank_messages.push(BankMsg::Send {
         to_address: config.chainbills_fee_collector.to_string(),
         amount: vec![Coin {
-          denom: config.native_denom.clone(),
+          denom: token.clone(),
           amount: fees,
         }],
       });
     } else {
       cw20_messages.push(WasmMsg::Execute {
-        contract_addr: token.to_string(),
+        contract_addr: token.clone(),
         funds: vec![],
         msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
           recipient: ctx.info.sender.to_string(),
@@ -202,7 +208,7 @@ impl Withdrawals for Chainbills {
         })?,
       });
       cw20_messages.push(WasmMsg::Execute {
-        contract_addr: token.to_string(),
+        contract_addr: token.clone(),
         funds: vec![],
         msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
           recipient: config.chainbills_fee_collector.to_string(),
@@ -281,21 +287,20 @@ impl Withdrawals for Chainbills {
       .withdrawals
       .save(ctx.deps.storage, withdrawal_id, &withdrawal)?;
 
-    // Emit events and return a response.
-    let attributes = vec![
-      ("payable_id", HexBinary::from(&payable_id).to_hex()),
-      ("host_wallet", ctx.info.sender.to_string()),
-      ("withdrawal_id", HexBinary::from(&withdrawal_id).to_hex()),
-      ("chain_count", chain_stats.withdrawals_count.to_string()),
-      ("payable_count", payable.withdrawals_count.to_string()),
-      ("host_count", user.withdrawals_count.to_string()),
-    ];
-    let res = Response::new()
+    // Return the Response.
+    Ok(
+      Response::new()
       .add_messages(bank_messages) // Add the bank messages
       .add_messages(cw20_messages)// Add the cw20 messages
-      .add_event(Event::new("withdrew").add_attributes(attributes.clone()))
-      .add_attribute("action", "withdraw")
-      .add_attributes(attributes);
-    Ok(res)
+      .add_attributes([
+        ("action", "withdraw".to_string()),
+        ("payable_id", HexBinary::from(&payable_id).to_hex()),
+        ("host_wallet", ctx.info.sender.to_string()),
+        ("withdrawal_id", HexBinary::from(&withdrawal_id).to_hex()),
+        ("chain_count", chain_stats.withdrawals_count.to_string()),
+        ("payable_count", payable.withdrawals_count.to_string()),
+        ("host_count", user.withdrawals_count.to_string()),
+      ]),
+    )
   }
 }

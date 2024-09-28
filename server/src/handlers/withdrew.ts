@@ -9,13 +9,11 @@ import {
   solanaFetch
 } from '../utils';
 
-export const withdrew = async (body: any, chain: Chain, network: Network) => {
-  // Checks
-  let { withdrawalId } = body;
-  if (!withdrawalId) throw 'Missing required withdrawalId';
-  if (typeof withdrawalId !== 'string') throw 'Invalid withdrawalId';
-  withdrawalId = withdrawalId.trim();
-
+export const withdrew = async (
+  withdrawalId: string,
+  chain: Chain,
+  network: Network
+) => {
   // Set Database based on Network mode
   const db = network === 'Mainnet' ? prodDb : devDb;
 

@@ -29,9 +29,6 @@ const displayedConfig = ref<TokenAndAmount[]>([]);
 const isCreating = ref(false);
 const description = ref('');
 const descriptionError = ref('');
-const emailInput = ref(null) as unknown as Ref<HTMLInputElement>;
-const email = ref('');
-const emailError = ref('');
 const payable = usePayableStore();
 const router = useRouter();
 const selectedTokens = ref<Token[]>([]);
@@ -95,19 +92,10 @@ const validateDescription = () => {
   else descriptionError.value = '';
 };
 
-const validateEmail = () => {
-  const { typeMismatch, valid, valueMissing } = emailInput.value.validity;
-  if (valueMissing) emailError.value = 'Required';
-  else if (typeMismatch) emailError.value = 'Invalid Email';
-  else if (valid) emailError.value = '';
-  else emailError.value = emailInput.value.validationMessage;
-};
-
 const create = async () => {
-  validateEmail();
   validateDescription();
   validateConfig();
-  if (emailError.value || descriptionError.value || configError.value) return;
+  if (descriptionError.value || configError.value) return;
 
   const tokensAndAmounts: TokenAndAmount[] = [];
   if (!allowsFreePayments.value) {
@@ -127,7 +115,6 @@ const create = async () => {
 
   isCreating.value = true;
   const id = await payable.create(
-    email.value.trim(),
     DomPurify.sanitize(description.value.trim()),
     tokensAndAmounts
   );
@@ -142,7 +129,6 @@ const reviewConfig = () => {
 };
 
 onMounted(() => {
-  watch(() => email.value, validateEmail);
   watch(() => description.value, validateDescription);
   watch(() => allowsFreePayments.value, reviewConfig);
   watch(() => selectedTokens.value, reviewConfig);
@@ -165,18 +151,6 @@ onMounted(() => {
     <div class="text-center" v-else-if="isCreating">
       <p class="mb-12">Creating ...</p>
       <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
-      <p class="pb-24">
-        <Button
-          @click="isCreating = false"
-          class="border border-primary text-primary text-sm px-3 py-1 mr-6"
-          >Cancel</Button
-        >
-        <Button
-          @click="isCreating = false"
-          class="border border-primary text-primary text-sm px-3 py-1"
-          >Retry</Button
-        >
-      </p>
     </div>
 
     <form
@@ -187,34 +161,13 @@ onMounted(() => {
       <div class="grow">
         <label
           :class="
-            'text-sm focus-within:text-primary w-full ' +
-            (emailError ? 'text-red-500 focus-within:text-red-500' : '')
-          "
-          ><span>Email *</span>
-          <small class="text-xs text-gray-500 block mb-2"
-            >For Notifications</small
-          >
-          <input
-            type="email"
-            v-model="email"
-            ref="emailInput"
-            autocomplete="email"
-            class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
-            :style="{ color: 'var(--text)' }"
-            required
-          />
-          <small class="text-xs block mb-10">{{ emailError }}</small>
-        </label>
-
-        <label
-          :class="
             'text-sm focus-within:text-primary ' +
             (descriptionError ? 'text-red-500 focus-within:text-red-500' : '')
           "
         >
           <span>Description *</span>
           <small class="text-xs text-gray-500 block mb-2"
-            >What others see when they are paying</small
+            >About your Payable. What others see when they are paying.</small
           >
           <textarea
             class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"

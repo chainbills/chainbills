@@ -1,12 +1,12 @@
 import { type Chain } from '@/stores/chain';
 
 export class User {
-  walletAddress: string;
-  chain: Chain;
-  chainCount: number;
-  payablesCount: number;
-  paymentsCount: number;
-  withdrawalsCount: number;
+  walletAddress!: string;
+  chain!: Chain;
+  chainCount!: number;
+  payablesCount!: number;
+  paymentsCount!: number;
+  withdrawalsCount!: number;
 
   static fromEvm(walletAddress: string, onChainData: any): User {
     return {

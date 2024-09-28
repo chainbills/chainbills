@@ -12,7 +12,7 @@ import { usePaymentStore } from '@/stores/payment';
 import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
-import { computed, onMounted, ref, watch, type Ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const amount = ref<any>('');
@@ -23,9 +23,6 @@ const availableTokens = computed(() =>
   tokens.filter((t) => !chain.current || !!t.details[chain.current!])
 );
 const configError = ref('');
-const emailInput = ref(null) as unknown as Ref<HTMLInputElement>;
-const email = ref('');
-const emailError = ref('');
 const isPaying = ref(false);
 const payment = usePaymentStore();
 const route = useRoute();
@@ -87,30 +84,20 @@ const validateConfig = () => {
   } else configError.value = '';
 };
 
-const validateEmail = () => {
-  const { typeMismatch, valid, valueMissing } = emailInput.value.validity;
-  if (valueMissing) emailError.value = 'Required';
-  else if (typeMismatch) emailError.value = 'Invalid Email';
-  else if (valid) emailError.value = '';
-  else emailError.value = emailInput.value.validationMessage;
-};
-
 const pay = async () => {
   validateAmount();
   await validateBalance();
   validateConfig();
-  validateEmail();
   if (
     (allowsFreePayments && amountError.value) ||
     balanceError.value ||
-    emailError.value ||
     configError.value
   ) {
     return;
   }
 
   isPaying.value = true;
-  const id = await payment.exec(email.value, payable.id, selectedConfig.value!);
+  const id = await payment.exec(payable.id, selectedConfig.value!);
 
   if (id) router.push(`/receipt/${id}`);
   else isPaying.value = false;
@@ -118,7 +105,6 @@ const pay = async () => {
 
 onMounted(() => {
   watch(() => amount.value, validateAmount);
-  watch(() => email.value, validateEmail);
   watch(
     () => selectedConfig.value,
     async () => {
@@ -164,27 +150,6 @@ onMounted(() => {
         </div>
 
         <form class="max-w-sm mx-auto" @submit.prevent="pay" v-else>
-          <label
-            :class="
-              'text-sm focus-within:text-primary ' +
-              (emailError ? 'text-red-500 focus-within:text-red-500' : '')
-            "
-            ><span>Email *</span>
-            <small class="text-xs text-gray-500 block mb-2"
-              >For Notifications</small
-            >
-            <input
-              type="email"
-              v-model="email"
-              ref="emailInput"
-              autocomplete="email"
-              class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
-              :style="{ color: 'var(--text)' }"
-              required
-            />
-            <small class="text-xs block mb-10">{{ emailError }}</small>
-          </label>
-
           <div class="mb-8 leading-tight" v-if="allowsFreePayments">
             <p class="mb-1">Amount</p>
             <div class="flex items-center mb-4">

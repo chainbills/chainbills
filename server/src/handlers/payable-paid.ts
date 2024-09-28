@@ -10,16 +10,10 @@ import {
 } from '../utils';
 
 export const payablePaid = async (
-  body: any,
+  paymentId: string,
   chain: Chain,
   network: Network
 ) => {
-  // Checks
-  let { paymentId } = body;
-  if (!paymentId) throw 'Missing required paymentId';
-  if (typeof paymentId !== 'string') throw 'Invalid paymentId';
-  paymentId = paymentId.trim();
-
   // Set Database based on Network mode
   const db = network === 'Mainnet' ? prodDb : devDb;
 

@@ -31,7 +31,6 @@ export const usePaymentStore = defineStore('payment', () => {
   const wallet = useWalletStore();
 
   const exec = async (
-    email: string,
     payableId: string,
     details: TokenAndAmount
   ): Promise<string | null> => {
@@ -44,7 +43,7 @@ export const usePaymentStore = defineStore('payment', () => {
       await user.refresh();
 
       console.log(`Made Payment Transaction Details: ${result.explorerUrl()}`);
-      await server.userPaid(result.created, email);
+      await server.userPaid(result.created);
 
       // TODO: Move this payablePaid call to the relayer or a different process
       const payable = await payableStore.get(payableId);

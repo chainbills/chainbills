@@ -23,7 +23,6 @@ export const usePayableStore = defineStore('payable', () => {
   const wallet = useWalletStore();
 
   const create = async (
-    email: string,
     description: string,
     tokensAndAmounts: TokenAndAmount[]
   ): Promise<string | null> => {
@@ -39,7 +38,7 @@ export const usePayableStore = defineStore('payable', () => {
       console.log(
         `Created Payable Transaction Details: ${result.explorerUrl()}`
       );
-      await server.createPayable(result.created, email, description);
+      await server.createPayable(result.created, description);
       toast.add({
         severity: 'success',
         summary: 'Successful Payable Creation',

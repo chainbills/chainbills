@@ -28,7 +28,7 @@ export const notifyHost = async (inputs: NotifyHostInputs) => {
     return;
   }
 
-  // TODO: Send email to host
+  // TODO: Send email to host if available
   email;
 
   // Send browser notifications only if the activity was a payment.

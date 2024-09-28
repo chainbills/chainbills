@@ -1,128 +1,173 @@
-use cosmwasm_schema::cw_serde;
-use cw_storage_plus::Item;
-#[cfg(not(feature = "library"))]
-use sylvia::cw_std::Empty;
-use sylvia::cw_std::{Response, StdResult};
-
-use sylvia::contract;
-use sylvia::types::{
-  CustomMsg, CustomQuery, ExecCtx, InstantiateCtx, QueryCtx,
+use crate::messages::{IdMessage, InstantiateMessage};
+use crate::state::{
+  ChainStats, Config, Payable, PayablePayment, User, UserPayment, Withdrawal,
 };
+use cw2::set_contract_version;
+use cw_storage_plus::{Item, Map};
+use sha2::{Digest, Sha256};
+use sylvia::cw_std::{
+  Addr, Api, Env, Event, Response, StdResult, Storage, Uint128,
+};
+use sylvia::types::{InstantiateCtx, QueryCtx};
+#[allow(unused_imports)]
+// RustRover IDE doesn't see the use of `entry_points` macro.
+use sylvia::{contract, entry_points};
 
-pub struct CounterContract<E, Q> {
-  pub count: Item<u64>,
-  _phantom: std::marker::PhantomData<(E, Q)>,
+const CONTRACT_NAME: &str = "crates.io:chainbills";
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+pub struct Chainbills {
+  pub config: Item<Config>,
+  pub chain_stats: Item<ChainStats>,
+  pub max_fees_per_token: Map<&'static Addr, Uint128>,
+  pub users: Map<&'static Addr, User>,
+  pub user_payable_ids: Map<&'static Addr, Vec<[u8; 32]>>,
+  pub user_payments: Map<[u8; 32], UserPayment>,
+  pub user_payment_ids: Map<&'static Addr, Vec<[u8; 32]>>,
+  pub user_withdrawal_ids: Map<&'static Addr, Vec<[u8; 32]>>,
+  pub payables: Map<[u8; 32], Payable>,
+  pub payable_payments: Map<[u8; 32], PayablePayment>,
+  pub payable_payment_ids: Map<[u8; 32], Vec<[u8; 32]>>,
+  pub payable_withdrawal_ids: Map<[u8; 32], Vec<[u8; 32]>>,
+  pub payable_chain_payments_count: Map<(Vec<u8>, u16), u64>,
+  pub withdrawals: Map<[u8; 32], Withdrawal>,
 }
 
-#[cfg_attr(not(feature = "library"), sylvia::entry_points(generics<Empty, Empty>))]
+#[cfg_attr(not(feature = "library"), entry_points)]
 #[contract]
-#[sv::custom(msg = E, query = Q)]
-impl<E, Q> CounterContract<E, Q>
-where
-  E: CustomMsg + 'static,
-  Q: CustomQuery + 'static,
-{
+#[sv::error(crate::error::ChainbillsError)]
+#[sv::messages(crate::interfaces::max_withdrawal_fees as MaxWithdrawalFees)]
+#[sv::messages(crate::interfaces::payables as Payables)]
+#[sv::messages(crate::interfaces::payments as Payments)]
+#[sv::messages(crate::interfaces::withdrawals as Withdrawals)]
+impl Chainbills {
   pub const fn new() -> Self {
     Self {
-      count: Item::new("count"),
-      _phantom: std::marker::PhantomData,
+      config: Item::new("config"),
+      chain_stats: Item::new("chain_stats"),
+      max_fees_per_token: Map::new("max_fees_per_token"),
+      users: Map::new("users"),
+      user_payable_ids: Map::new("user_payable_ids"),
+      user_payments: Map::new("user_payments"),
+      user_payment_ids: Map::new("user_payment_ids"),
+      user_withdrawal_ids: Map::new("user_withdrawal_ids"),
+      payables: Map::new("payables"),
+      payable_payments: Map::new("payable_payments"),
+      payable_payment_ids: Map::new("payable_payment_ids"),
+      payable_withdrawal_ids: Map::new("payable_withdrawal_ids"),
+      payable_chain_payments_count: Map::new("payable_chain_payments_count"),
+      withdrawals: Map::new("withdrawals"),
     }
   }
 
   #[sv::msg(instantiate)]
-  fn instantiate(&self, ctx: InstantiateCtx<Q>) -> StdResult<Response<E>> {
-    self.count.save(ctx.deps.storage, &0)?;
-    Ok(Response::new())
-  }
+  fn instantiate(
+    &self,
+    ctx: InstantiateCtx,
+    msg: InstantiateMessage,
+  ) -> StdResult<Response> {
+    // Set Contract Version
+    set_contract_version(ctx.deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-  #[sv::msg(exec)]
-  fn increment(&self, ctx: ExecCtx<Q>) -> StdResult<Response<E>> {
+    // Initialize ChainStats
     self
-      .count
-      .update(ctx.deps.storage, |count| -> StdResult<u64> {
-        Ok(count + 1)
-      })?;
-    Ok(Response::new())
+      .chain_stats
+      .save(ctx.deps.storage, &mut ChainStats::initialize(msg.chain_id))?;
+
+    // Initialize Config
+    let cbfc = ctx.deps.api.addr_validate(&msg.chainbills_fee_collector)?;
+    self.config.save(
+      ctx.deps.storage,
+      &Config {
+        owner: ctx.info.sender.clone(),
+        chainbills_fee_collector: cbfc,
+        native_denom: msg.native_denom,
+        withdrawal_fee_percentage: Uint128::new(2),
+      },
+    )?;
+
+    // Emit an event and return a response.
+    let attributes = [
+      ("owner", &*ctx.info.sender.as_str()),
+      ("version", CONTRACT_VERSION),
+    ];
+    let res = Response::new()
+      .add_event(Event::new("instantiated").add_attributes(attributes.clone()))
+      .add_attribute("action", "instantiate")
+      .add_attributes(attributes.clone());
+    Ok(res)
   }
 
   #[sv::msg(query)]
-  fn count(&self, ctx: QueryCtx<Q>) -> StdResult<CountResponse> {
-    let count = self.count.load(ctx.deps.storage)?;
-    Ok(CountResponse { count })
-  }
-}
-
-#[cw_serde]
-pub struct CountResponse {
-  pub count: u64,
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  use sylvia::cw_multi_test::IntoAddr;
-  use sylvia::cw_std::testing::{message_info, mock_dependencies, mock_env};
-  use sylvia::cw_std::Empty;
-
-  // Unit tests don't have to use a testing framework for simple things.
-  //
-  // For more complex tests (particularly involving cross-contract calls), you
-  // may want to check out `cw-multi-test`:
-  // https://github.com/CosmWasm/cw-multi-test
-  #[test]
-  fn init() {
-    let sender = "alice".into_addr();
-    let contract = CounterContract::<Empty, Empty>::new();
-    let mut deps = mock_dependencies();
-    let ctx = InstantiateCtx::from((
-      deps.as_mut(),
-      mock_env(),
-      message_info(&sender, &[]),
-    ));
-    contract.instantiate(ctx).unwrap();
-
-    // We're inspecting the raw storage here, which is fine in unit tests. In
-    // integration tests, you should not inspect the internal state like this,
-    // but observe the external results.
-    assert_eq!(0, contract.count.load(deps.as_ref().storage).unwrap());
+  fn chain_stats(&self, ctx: QueryCtx) -> StdResult<ChainStats> {
+    Ok(self.chain_stats.load(ctx.deps.storage)?)
   }
 
-  #[test]
-  fn query() {
-    let sender = "alice".into_addr();
-    let contract = CounterContract::<Empty, Empty>::new();
-    let mut deps = mock_dependencies();
-    let ctx = InstantiateCtx::from((
-      deps.as_mut(),
-      mock_env(),
-      message_info(&sender, &[]),
-    ));
-    contract.instantiate(ctx).unwrap();
-
-    let ctx = QueryCtx::from((deps.as_ref(), mock_env()));
-    let res = contract.count(ctx).unwrap();
-    assert_eq!(0, res.count);
+  #[sv::msg(query)]
+  fn config(&self, ctx: QueryCtx) -> StdResult<Config> {
+    Ok(self.config.load(ctx.deps.storage)?)
   }
 
-  #[test]
-  fn inc() {
-    let sender = "alice".into_addr();
-    let contract = CounterContract::<Empty, Empty>::new();
-    let mut deps = mock_dependencies();
-    let ctx = InstantiateCtx::from((
-      deps.as_mut(),
-      mock_env(),
-      message_info(&sender, &[]),
-    ));
-    contract.instantiate(ctx).unwrap();
+  #[sv::msg(query)]
+  fn user(&self, ctx: QueryCtx, msg: IdMessage) -> StdResult<User> {
+    // load and return the user data if found. Otherwise, return an empty
+    // user (with chain_id as zero) rather than throwing an error.
+    let valid_wallet = ctx.deps.api.addr_validate(&msg.id)?;
+    let fetched_user = self.users.load(ctx.deps.storage, &valid_wallet);
+    Ok(fetched_user.unwrap_or(User::initialize(0)))
+  }
 
-    let ctx =
-      ExecCtx::from((deps.as_mut(), mock_env(), message_info(&sender, &[])));
-    contract.increment(ctx).unwrap();
+  pub fn initialize_user_if_need_be(
+    &self,
+    storage: &mut dyn Storage,
+    wallet: &Addr,
+  ) -> StdResult<Vec<Event>> {
+    let mut events = vec![];
 
-    let ctx = QueryCtx::from((deps.as_ref(), mock_env()));
-    let res = contract.count(ctx).unwrap();
-    assert_eq!(1, res.count);
+    if !self.users.has(storage, wallet) {
+      // Increment chain count for users.
+      let mut chain_stats = self.chain_stats.load(storage)?;
+      chain_stats.users_count = chain_stats.next_user();
+      self.chain_stats.save(storage, &chain_stats)?;
+
+      // Initialize the user.
+      self.users.save(
+        storage,
+        wallet,
+        &User::initialize(chain_stats.users_count),
+      )?;
+
+      // Emit an event.
+      events.push(Event::new("initialized_user").add_attributes(vec![
+        ("wallet", wallet.as_str()),
+        ("chain_count", &chain_stats.users_count.to_string()),
+      ]));
+    }
+
+    Ok(events)
+  }
+
+  pub fn create_id(
+    &self,
+    storage: &dyn Storage,
+    env: &Env,
+    wallet: &Addr,
+    count: u64,
+  ) -> StdResult<[u8; 32]> {
+    let mut hasher = Sha256::new();
+    hasher.update(env.block.chain_id.as_bytes());
+    hasher.update(self.chain_stats.load(storage)?.chain_id.to_le_bytes());
+    hasher.update(env.block.time.seconds().to_le_bytes());
+    hasher.update(wallet.as_bytes());
+    hasher.update(count.to_le_bytes());
+    Ok(hasher.finalize().into())
+  }
+
+  pub fn address_to_bytes32(&self, addr: &Addr, api: &dyn Api) -> [u8; 32] {
+    let slice = api.addr_canonicalize(addr.as_ref()).unwrap();
+    let mut result = [0u8; 32];
+    let start = 32 - slice.len();
+    result[start..].copy_from_slice(&slice);
+    result
   }
 }

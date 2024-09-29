@@ -6,8 +6,10 @@ import IconSpinner from '@/icons/IconSpinner.vue';
 import {
   useAuthStore,
   useChainStore,
+  useCosmwasmStore,
   useThemeStore,
   useUserStore,
+  useWalletStore,
 } from '@/stores';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import {
@@ -26,25 +28,43 @@ const anchorWallet = useAnchorWallet();
 const appLoading = useAppLoadingStore();
 const chain = useChainStore();
 const solanaWallet = useSolanaWallet();
+const cosmwasm = useCosmwasmStore();
 
 // ensures necessary stores are initialized
 useAuthStore();
 useThemeStore();
 useUserStore();
+useWalletStore();
 
 onMounted(() => {
   watch(
     () => evmWallet.connected,
     (v) => {
       chain.setChain(v ? 'Ethereum Sepolia' : null);
-      if (v) solanaWallet.disconnect();
+      if (v) {
+        solanaWallet.disconnect();
+        cosmwasm.logout();
+      }
     }
   );
   watch(
     () => anchorWallet.value,
     (v) => {
       chain.setChain(v ? 'Solana' : null);
-      if (v) disconnectEvmWallet();
+      if (v) {
+        disconnectEvmWallet();
+        cosmwasm.logout();
+      }
+    }
+  );
+  watch(
+    () => cosmwasm.isLoggedIn,
+    (v) => {
+      chain.setChain(v ? 'Burnt Xion' : null);
+      if (v) {
+        solanaWallet.disconnect();
+        disconnectEvmWallet();
+      }
     }
   );
 });

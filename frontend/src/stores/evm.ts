@@ -1,6 +1,6 @@
 import {
-  CONTRACT_ADDRESS,
   OnChainSuccess,
+  SEPOLIA_CONTRACT_ADDRESS,
   TokenAndAmount,
   User,
   type Token,
@@ -42,7 +42,7 @@ export const useEvmStore = defineStore('evm', () => {
     try {
       const addr = token.details['Ethereum Sepolia'].address as `0x${string}`;
       const balance =
-        addr == CONTRACT_ADDRESS
+        addr == SEPOLIA_CONTRACT_ADDRESS
           ? await publicClient.getBalance({ address: account.address! })
           : await publicClient.readContract({
               address: addr,
@@ -66,7 +66,7 @@ export const useEvmStore = defineStore('evm', () => {
       return null;
     }
     const { hash, wait } = await rawWriteContract({
-      address: CONTRACT_ADDRESS,
+      address: SEPOLIA_CONTRACT_ADDRESS,
       abi,
       functionName: 'createPayable',
       args: [tokensAndAmounts.map((t) => t.toOnChain('Ethereum Sepolia'))],
@@ -81,13 +81,6 @@ export const useEvmStore = defineStore('evm', () => {
       txHash: hash,
       chain: 'Ethereum Sepolia',
     });
-  };
-
-  const getCurrentUser = async () => {
-    if (!account.connected) return null;
-    const raw = await readContract('users', [account.address!]);
-    if (raw) return User.fromEvm(account.address!, raw);
-    return null;
   };
 
   const fetchPayable = async (id: string) => {
@@ -145,6 +138,13 @@ export const useEvmStore = defineStore('evm', () => {
     };
   };
 
+  const getCurrentUser = async () => {
+    if (!account.connected) return null;
+    const raw = await readContract('users', [account.address!]);
+    if (raw) return User.fromEvm(account.address!, raw);
+    return null;
+  };
+
   const getPayablePaymentId = async (
     payableId: string,
     count: number
@@ -193,23 +193,23 @@ export const useEvmStore = defineStore('evm', () => {
     }
 
     const token = details['Ethereum Sepolia'].address as `0x${string}`;
-    if (token != CONTRACT_ADDRESS) {
+    if (token != SEPOLIA_CONTRACT_ADDRESS) {
       const approval = await rawWriteContract({
         address: token,
         abi: erc20ABI,
         functionName: 'approve',
-        args: [CONTRACT_ADDRESS, amount],
+        args: [SEPOLIA_CONTRACT_ADDRESS, amount],
       });
       if (approval) await approval.wait();
       else return null;
     }
 
     const { hash, wait } = await rawWriteContract({
-      address: CONTRACT_ADDRESS,
+      address: SEPOLIA_CONTRACT_ADDRESS,
       abi,
       functionName: 'pay',
       args: [payableId, token, BigInt(amount)],
-      ...(token == CONTRACT_ADDRESS ? { value: BigInt(amount) } : {}),
+      ...(token == SEPOLIA_CONTRACT_ADDRESS ? { value: BigInt(amount) } : {}),
     });
 
     await wait();
@@ -229,7 +229,7 @@ export const useEvmStore = defineStore('evm', () => {
   ): Promise<any> => {
     try {
       return await publicClient.readContract({
-        address: CONTRACT_ADDRESS,
+        address: SEPOLIA_CONTRACT_ADDRESS,
         abi,
         functionName,
         args,
@@ -267,7 +267,7 @@ export const useEvmStore = defineStore('evm', () => {
       return null;
     }
     const { hash, wait } = await rawWriteContract({
-      address: CONTRACT_ADDRESS,
+      address: SEPOLIA_CONTRACT_ADDRESS,
       abi,
       functionName: 'withdraw',
       args: [payableId, details['Ethereum Sepolia'].address, amount],

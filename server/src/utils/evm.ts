@@ -8,7 +8,8 @@ import {
 import { sepolia } from 'viem/chains';
 import { abi } from './abi';
 
-export const CONTRACT_ADDRESS = '0x77eb76be1b283145ebc49d7d40e904b70c3b06ab';
+export const SEPOLIA_CONTRACT_ADDRESS =
+  '0x77eb76be1b283145ebc49d7d40e904b70c3b06ab';
 
 export const evmVerify = async (
   message: string,
@@ -26,7 +27,7 @@ export const evmReadContract = async (
     chain: sepolia,
     transport: http()
   }).readContract({
-    address: CONTRACT_ADDRESS,
+    address: SEPOLIA_CONTRACT_ADDRESS,
     abi,
     functionName,
     args

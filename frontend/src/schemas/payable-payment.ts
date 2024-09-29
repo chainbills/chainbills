@@ -19,15 +19,18 @@ export class PayablePayment implements Payment {
     this.chain = chain;
     this.payerChain = getChain(onChainData.payerChainId);
 
-    if (chain == 'Ethereum Sepolia') {
+    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
       this.payableId = onChainData.payableId.toLowerCase();
 
       if (this.payerChain == 'Ethereum Sepolia') {
         this.payer = new UniversalAddress(onChainData.payer, 'hex')
           .toNative('Sepolia')
           .address.toLowerCase();
-      } else if (this.payerChain == 'Solana') {
-        this.payer = denormalizeBytes(onChainData.payer, 'Solana');
+      } else if (
+        this.payerChain == 'Solana' ||
+        this.payerChain == 'Burnt Xion'
+      ) {
+        this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
       } else throw `Unknown payerChain: ${this.payerChain}`;
     } else if (chain == 'Solana') {
       this.payableId = onChainData.payableId.toBase58();

@@ -1,6 +1,7 @@
 import { Payable, TokenAndAmount } from '@/schemas';
 import {
   useChainStore,
+  useCosmwasmStore,
   useEvmStore,
   useNotificationsStore,
   useServerStore,
@@ -14,6 +15,7 @@ import { useToast } from 'primevue/usetoast';
 
 export const usePayableStore = defineStore('payable', () => {
   const chain = useChainStore();
+  const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const notifications = useNotificationsStore();
   const server = useServerStore();
@@ -29,23 +31,26 @@ export const usePayableStore = defineStore('payable', () => {
     if (!wallet.connected || !chain.current) return null;
 
     try {
-      const method =
-        chain.current == 'Solana' ? solana.createPayable : evm.createPayable;
-      const result = await method(tokensAndAmounts);
+      const result = await {
+        'Burnt Xion': cosmwasm,
+        'Ethereum Sepolia': evm,
+        Solana: solana,
+      }[chain.current]['createPayable'](tokensAndAmounts);
       if (!result) return null;
-      await user.refresh();
 
       console.log(
         `Created Payable Transaction Details: ${result.explorerUrl()}`
       );
       await server.createPayable(result.created, description);
+      await user.refresh();
       toast.add({
         severity: 'success',
         summary: 'Successful Payable Creation',
         detail: 'You have successfully created a Payable.',
         life: 12000,
       });
-      notifications.ensure();
+      // TODO: Remove this checker after integrating sign and verify in Burnt Xion
+      if (chain.current != 'Burnt Xion') notifications.ensure();
       return result.created;
     } catch (e) {
       console.error(e);
@@ -59,10 +64,14 @@ export const usePayableStore = defineStore('payable', () => {
     if (!dbData) return null;
 
     try {
-      const raw =
-        dbData.chain == 'Solana'
-          ? await solana.fetchEntity('payable', id)
-          : await evm.fetchPayable(id);
+      let raw: any;
+      if (dbData.chain == 'Solana')
+        raw = await solana.fetchEntity('payable', id);
+      else if (dbData.chain == 'Ethereum Sepolia')
+        raw = await evm.fetchPayable(id);
+      else if (dbData.chain == 'Burnt Xion')
+        raw = await cosmwasm.fetchEntity('payable', id);
+      else throw `Unknown chain: ${dbData.chain}`;
       if (raw) return new Payable(id, dbData.chain, dbData.description, raw);
     } catch (e) {
       console.error(e);
@@ -76,8 +85,11 @@ export const usePayableStore = defineStore('payable', () => {
     chain: Chain,
     count: number
   ): Promise<string | null> => {
-    if (chain === 'Solana') return solana.getPayablePaymentId(payableId, count);
-    else return await evm.getPayablePaymentId(payableId, count);
+    return await {
+      'Burnt Xion': cosmwasm,
+      'Ethereum Sepolia': evm,
+      Solana: solana,
+    }[chain]['getPayablePaymentId'](payableId, count);
   };
 
   const mines = async (): Promise<Payable[] | null> => {

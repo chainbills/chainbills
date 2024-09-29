@@ -61,9 +61,10 @@ const validateBalance = async () => {
   if (!wallet.connected) return;
 
   balanceError.value == '';
+  if (!chain.current) return;
   if (selectedConfig.value) {
     const { name } = selectedConfig.value;
-    const amt = selectedConfig.value.format(chain.current ?? 'Solana');
+    const amt = selectedConfig.value.format(chain.current!);
     const balance = await wallet.balance(selectedConfig.value.token());
     if (balance === null) balanceError.value = '';
     else if (amt && balance < amt) {

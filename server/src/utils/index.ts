@@ -1,5 +1,6 @@
 export * from './abi';
 export * from './chain';
+export * from './cosmwasm';
 export * from './evm';
 export * from './firebase';
 export * from './notify-host';
@@ -15,5 +16,7 @@ export const denormalizeBytes = (bytes: Uint8Array, chain: Chain) => {
       '0x' +
       encoding.hex.encode(Uint8Array.from(bytes), false).replace(/^0+/, '')
     ).toLowerCase();
+  } else if (chain == 'Burnt Xion') {
+    return encoding.bech32.encode('xion', encoding.bech32.toWords(bytes));
   } else throw `Unknown Chain: ${chain}`;
 };

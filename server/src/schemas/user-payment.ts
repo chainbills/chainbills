@@ -6,7 +6,7 @@ import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
 export class UserPayment {
   id: string;
   chain: Chain;
-  chainId: ChainId;
+  chainId: ChainId | 50;
   chainCount: number;
   network: Network;
   payer: string;
@@ -25,16 +25,20 @@ export class UserPayment {
     this.chainCount = Number(onChainData.chainCount);
     this.payableChain = getChain(onChainData.payableChainId);
 
-    if (chain == 'Ethereum Sepolia') {
+    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
       this.payer = onChainData.payer.toLowerCase();
 
-      if (this.payableChain == 'Ethereum Sepolia') {
+      if (
+        this.payableChain == 'Ethereum Sepolia' ||
+        this.payableChain == 'Burnt Xion'
+      ) {
         this.payableId = onChainData.payableId.toLowerCase();
       } else if (this.payableChain == 'Solana') {
         this.payableId = denormalizeBytes(onChainData.payableId, 'Solana');
       } else throw `Unknown payableChain: ${this.payableChain}`;
     } else if (chain == 'Solana') {
       this.payer = onChainData.payer.toBase58();
+      // TODO: Review this denormalization if destination chain is Burnt Xion
       this.payableId = denormalizeBytes(
         onChainData.payableId,
         this.payableChain

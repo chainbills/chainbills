@@ -1,6 +1,7 @@
 export * from './app-loading';
 export * from './auth';
 export * from './chain';
+export * from './cosmwasm';
 export * from './evm';
 export * from './notifications';
 export * from './payable';

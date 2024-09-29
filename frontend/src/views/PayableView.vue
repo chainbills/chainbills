@@ -6,7 +6,7 @@ import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
 import { useChainStore, usePayableStore } from '@/stores';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import { useTimeStore } from '@/stores/time';
-import { denormalizeBytes, useWalletStore } from '@/stores/wallet';
+import { useWalletStore } from '@/stores/wallet';
 import { useWithdrawalStore } from '@/stores/withdrawal';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
@@ -24,7 +24,7 @@ const { origin } = window.location;
 const link = `${origin}/pay/${payable.value.id}`;
 const payableStore = usePayableStore();
 const wallet = useWalletStore();
-const { whAddress } = storeToRefs(wallet);
+const { address } = storeToRefs(wallet);
 const withdrawal = useWithdrawalStore();
 
 const nth = (n: number) => {
@@ -55,11 +55,10 @@ const getCards = () => {
   ];
 };
 const cards = ref(getCards());
-
 const isMine = ref(
-  whAddress.value
-    ? denormalizeBytes(whAddress.value, chain.current!) == payable.value.host
-    : false
+  (payable.value.chain == 'Ethereum Sepolia'
+    ? address.value?.toLowerCase()
+    : address.value) == payable.value.host
 );
 
 const copy = () => {
@@ -122,12 +121,12 @@ const withdraw = async (balance: TokenAndAmount) => {
 
 onMounted(() => {
   watch(
-    () => whAddress.value,
-    (val) => {
-      isMine.value = val
-        ? denormalizeBytes(val, chain.current!) == payable.value.host
-        : false;
-    }
+    () => wallet.address,
+    (val) =>
+      (isMine.value =
+        (payable.value.chain == 'Ethereum Sepolia'
+          ? val?.toLowerCase()
+          : val) == payable.value.host)
   );
 });
 </script>

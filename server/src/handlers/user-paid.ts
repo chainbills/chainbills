@@ -2,6 +2,7 @@ import { Network } from '@wormhole-foundation/sdk';
 import { UserPayment } from '../schemas';
 import {
   Chain,
+  cosmwasmFetch,
   devDb,
   evmFetchUserPayment,
   prodDb,
@@ -21,7 +22,7 @@ export const userPaid = async (
   let paymentSnap = await db.doc(`/userPayments/${paymentId}`).get();
   if (paymentSnap.exists) throw 'Payment has already been recorded';
 
-  // Repeating the search with lowercase equivalent to account for EVM addresses
+  // Repeating the search with lowercase equivalent to account for HEX addresses
   paymentSnap = await db.doc(`/userPayments/${paymentId.toLowerCase()}`).get();
   if (paymentSnap.exists) throw 'Payment has already been recorded';
 
@@ -31,6 +32,8 @@ export const userPaid = async (
     raw = await solanaFetch('userPayment', paymentId, network);
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchUserPayment(paymentId);
+    paymentId = paymentId.toLowerCase();
+    raw = await cosmwasmFetch('user_payment', paymentId);
     paymentId = paymentId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 

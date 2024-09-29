@@ -1,5 +1,6 @@
 import { TokenAndAmount, type Payment } from '@/schemas';
 import { denormalizeBytes, getChain, type Chain } from '@/stores';
+import { encoding } from '@wormhole-foundation/sdk';
 
 export class UserPayment implements Payment {
   id: string;
@@ -22,11 +23,13 @@ export class UserPayment implements Payment {
     if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
       this.payer = onChainData.payer.toLowerCase();
 
-      if (
-        this.payableChain == 'Ethereum Sepolia' ||
-        this.payableChain == 'Burnt Xion'
-      ) {
+      if (this.payableChain == 'Ethereum Sepolia') {
         this.payableId = onChainData.payableId.toLowerCase();
+      } else if (this.payableChain == 'Burnt Xion') {
+        this.payableId = encoding.hex.encode(
+          Uint8Array.from(onChainData.payableId),
+          false
+        );
       } else if (this.payableChain == 'Solana') {
         this.payableId = denormalizeBytes(onChainData.payableId, 'Solana');
       } else throw `Unknown payableChain: ${this.payableChain}`;

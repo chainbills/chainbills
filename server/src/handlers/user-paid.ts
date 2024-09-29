@@ -33,6 +33,7 @@ export const userPaid = async (
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchUserPayment(paymentId);
     paymentId = paymentId.toLowerCase();
+  } else if (chain === 'Burnt Xion') {
     raw = await cosmwasmFetch('user_payment', paymentId);
     paymentId = paymentId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;

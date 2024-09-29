@@ -1,6 +1,6 @@
 import { TokenAndAmount, type Payment } from '@/schemas';
 import { denormalizeBytes, getChain, type Chain } from '@/stores';
-import { UniversalAddress } from '@wormhole-foundation/sdk';
+import { encoding, UniversalAddress } from '@wormhole-foundation/sdk';
 
 export class PayablePayment implements Payment {
   id: string;
@@ -19,17 +19,20 @@ export class PayablePayment implements Payment {
     this.chain = chain;
     this.payerChain = getChain(onChainData.payerChainId);
 
-    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
+    if (chain == 'Burnt Xion') {
+      this.payableId = encoding.hex.encode(
+        Uint8Array.from(onChainData.payableId),
+        false
+      );
+      this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
+    } else if (chain == 'Ethereum Sepolia') {
       this.payableId = onChainData.payableId.toLowerCase();
 
       if (this.payerChain == 'Ethereum Sepolia') {
         this.payer = new UniversalAddress(onChainData.payer, 'hex')
           .toNative('Sepolia')
           .address.toLowerCase();
-      } else if (
-        this.payerChain == 'Solana' ||
-        this.payerChain == 'Burnt Xion'
-      ) {
+      } else if (this.payerChain == 'Solana') {
         this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
       } else throw `Unknown payerChain: ${this.payerChain}`;
     } else if (chain == 'Solana') {

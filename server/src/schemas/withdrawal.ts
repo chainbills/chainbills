@@ -1,4 +1,4 @@
-import { ChainId, Network } from '@wormhole-foundation/sdk';
+import { ChainId, encoding, Network } from '@wormhole-foundation/sdk';
 import { Timestamp } from 'firebase-admin/firestore';
 import { Chain, getChainId } from '../utils';
 import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
@@ -29,8 +29,12 @@ export class Withdrawal {
     else throw `Unknown chain: ${chain}`;
 
     this.hostCount = Number(onChainData.hostCount);
-
-    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
+    if (chain == 'Burnt Xion') {
+      this.payableId = encoding.hex.encode(
+        Uint8Array.from(onChainData.payableId),
+        false
+      );
+    } else if (chain == 'Ethereum Sepolia') {
       this.payableId = onChainData.payableId.toLowerCase();
     } else if (chain == 'Solana') {
       this.payableId = onChainData.payableId.toBase58();

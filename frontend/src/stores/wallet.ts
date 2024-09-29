@@ -17,16 +17,14 @@ import { useEvmStore } from './evm';
 import { useSolanaStore } from './solana';
 
 export const denormalizeBytes = (bytes: Uint8Array, chain: Chain): string => {
-  if (chain == 'Solana') return encoding.b58.encode(Uint8Array.from(bytes));
+  bytes = Uint8Array.from(bytes);
+  if (chain == 'Solana') return encoding.b58.encode(bytes);
   if (chain == 'Ethereum Sepolia') {
-    return (
-      '0x' +
-      encoding.hex.encode(Uint8Array.from(bytes), false).replace(/^0+/, '')
-    );
+    return '0x' + encoding.hex.encode(bytes, false).replace(/^0+/, '');
   }
-  if (chain == 'Burnt Xion')
+  if (chain == 'Burnt Xion') {
     return encoding.bech32.encode('xion', encoding.bech32.toWords(bytes));
-  throw `Unknown chain: ${chain}`;
+  } else throw `Unknown chain: ${chain}`;
 };
 
 export const useWalletStore = defineStore('wallet', () => {

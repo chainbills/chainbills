@@ -84,13 +84,20 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     }
 
     try {
-      return await client.value.execute(
+      return await client.value.signAndBroadcast(
         address.value,
-        XION_CONTRACT_ADDRESS,
-        msg,
-        'auto',
-        undefined,
-        funds
+        [
+          {
+            typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
+            value: {
+              sender: address.value,
+              contract: XION_CONTRACT_ADDRESS,
+              msg: new TextEncoder().encode(JSON.stringify(msg)),
+              funds: funds ?? [],
+            },
+          },
+        ],
+        'auto'
       );
     } catch (e) {
       console.error(e);
@@ -158,7 +165,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
       {
         pay: { data: { payable_id, token, amount } },
       },
-        
+      [{ denom: token, amount }] as Coin[]
     );
     if (resp) {
       const paymentId = resp.events
@@ -246,7 +253,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
         }
         // so far the only way to get the main account and not the grantee
         // address.value = localStorage.getItem('xion-authz-granter-account');
-        address.value = client.value.granteeAddress;
+        address.value = abstraxion.getGranter();
         isLoggedIn.value = true;
       } else {
         address.value = null;

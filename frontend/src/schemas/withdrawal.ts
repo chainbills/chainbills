@@ -1,5 +1,6 @@
 import { TokenAndAmount } from '@/schemas';
 import { type Chain } from '@/stores';
+import { encoding } from '@wormhole-foundation/sdk';
 
 export class Withdrawal {
   id: string;
@@ -24,7 +25,12 @@ export class Withdrawal {
 
     this.hostCount = Number(onChainData.hostCount);
 
-    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
+    if (chain == 'Burnt Xion') {
+      this.payableId = encoding.hex.encode(
+        Uint8Array.from(onChainData.payableId),
+        false
+      );
+    } else if (chain == 'Ethereum Sepolia') {
       this.payableId = onChainData.payableId.toLowerCase();
     } else if (chain == 'Solana') {
       this.payableId = onChainData.payableId.toBase58();

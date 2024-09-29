@@ -1,9 +1,8 @@
 import { Network } from '@wormhole-foundation/sdk';
-import { isEmail } from 'validator';
-
 import { UserPayment } from '../schemas';
 import {
   Chain,
+  cosmwasmFetch,
   devDb,
   evmFetchUserPayment,
   prodDb,
@@ -11,18 +10,10 @@ import {
 } from '../utils';
 
 export const userPaid = async (
-  body: any,
+  paymentId: string,
   chain: Chain,
-  walletAddress: string,
   network: Network
 ) => {
-  // Checks
-  let { paymentId, email: payerEmail } = body;
-  if (!isEmail(payerEmail)) throw `Invalid Email: ${payerEmail}`;
-  if (!paymentId) throw 'Missing required paymentId';
-  if (typeof paymentId !== 'string') throw 'Invalid paymentId';
-  paymentId = paymentId.trim();
-
   // Set Database based on Network mode
   const db = network === 'Mainnet' ? prodDb : devDb;
 
@@ -31,7 +22,7 @@ export const userPaid = async (
   let paymentSnap = await db.doc(`/userPayments/${paymentId}`).get();
   if (paymentSnap.exists) throw 'Payment has already been recorded';
 
-  // Repeating the search with lowercase equivalent to account for EVM addresses
+  // Repeating the search with lowercase equivalent to account for HEX addresses
   paymentSnap = await db.doc(`/userPayments/${paymentId.toLowerCase()}`).get();
   if (paymentSnap.exists) throw 'Payment has already been recorded';
 
@@ -42,18 +33,18 @@ export const userPaid = async (
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchUserPayment(paymentId);
     paymentId = paymentId.toLowerCase();
+  } else if (chain === 'Burnt Xion') {
+    raw = await cosmwasmFetch('user_payment', paymentId);
+    paymentId = paymentId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 
   // Construct new UserPayment to save.
   const payment = new UserPayment(paymentId, chain, network, raw);
 
-  // Reject the process if the authenticated user is not the payer
-  if (walletAddress !== payment.payer) throw 'Not your payable!';
-
-  // TODO: Send email to payer
+  // TODO: Send email to payer. Fetch from saved user profile
 
   // Save the userPayment to the database
   await db
     .doc(`/userPayments/${paymentId}`)
-    .set({ email: payerEmail, ...payment }, { merge: true });
+    .set({ ...payment }, { merge: true });
 };

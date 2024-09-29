@@ -3,7 +3,6 @@ import {
   createPayable,
   getPayable,
   payablePaid,
-  relay,
   saveNotificationToken,
   userPaid,
   withdrew
@@ -33,17 +32,14 @@ const wrapper = async (
   }
 };
 
-router.post('/relay', validateNetwork, async (req: Request, res: Response) => {
-  await wrapper(async () => await relay(req.body), 'relaying', res);
-});
-
 router.post(
   '/notifications',
   validateChain,
   validateAuth,
   async (req: Request, res: Response) => {
     await wrapper(
-      async () => await saveNotificationToken(req.body),
+      async () =>
+        await saveNotificationToken(res.locals.walletAddress, req.body),
       'saving notification token',
       res
     );
@@ -59,33 +55,34 @@ router.get('/payable/:id', async (req: Request, res: Response) => {
 });
 
 router.post(
-  '/payment/payable',
+  '/payable',
   validateChain,
   validateNetwork,
+  validateAuth,
   async (req: Request, res: Response) => {
-    const { chain, whNetwork } = res.locals;
+    const { chain, walletAddress, whNetwork } = res.locals;
     await wrapper(
-      async () => await payablePaid(req.body, chain, whNetwork),
-      'payment/payable finalizer',
+      async () =>
+        await createPayable(req.body, chain, walletAddress, whNetwork),
+      'create payable finalizer',
       res
     );
   }
 );
 
 [
-  { entity: 'payable', handler: createPayable },
+  { entity: 'payment/payable', handler: payablePaid },
   { entity: 'payment/user', handler: userPaid },
   { entity: 'withdrawal', handler: withdrew }
 ].forEach(({ entity, handler }) => {
-  router.post(
-    `/${entity}`,
+  router.get(
+    `/${entity}/:id`,
     validateChain,
     validateNetwork,
-    validateAuth,
     async (req: Request, res: Response) => {
-      const { chain, walletAddress, whNetwork } = res.locals;
+      const { chain, whNetwork } = res.locals;
       await wrapper(
-        async () => await handler(req.body, chain, walletAddress, whNetwork),
+        async () => await handler(req.params.id, chain, whNetwork),
         `${entity} finalizer`,
         res
       );

@@ -21,6 +21,7 @@ import VueWriter from 'vue-writer';
 import type { WalletStoreProps } from 'node_modules/solana-wallets-vue/dist/types';
 import App from './App.vue';
 import router from './router';
+import { initXion } from './stores';
 
 const walletOptions: WalletStoreProps = {
   wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
@@ -42,6 +43,7 @@ app.use(
     chains: [Chains.sepolia],
   })
 );
+initXion();
 
 if (!import.meta.env.DEV) {
   app.use(

@@ -1,12 +1,23 @@
 import { type Chain } from '@/stores/chain';
 
 export class User {
-  walletAddress: string;
-  chain: Chain;
-  chainCount: number;
-  payablesCount: number;
-  paymentsCount: number;
-  withdrawalsCount: number;
+  walletAddress!: string;
+  chain!: Chain;
+  chainCount!: number;
+  payablesCount!: number;
+  paymentsCount!: number;
+  withdrawalsCount!: number;
+
+  static fromCosmwasm(walletAddress: string, onChainData: any): User {
+    return {
+      walletAddress,
+      chain: 'Burnt Xion',
+      chainCount: onChainData.chain_count,
+      payablesCount: onChainData.payables_count,
+      paymentsCount: onChainData.payments_count,
+      withdrawalsCount: onChainData.withdrawals_count,
+    };
+  }
 
   static fromEvm(walletAddress: string, onChainData: any): User {
     return {

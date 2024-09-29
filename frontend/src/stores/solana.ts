@@ -139,6 +139,7 @@ export const useSolanaStore = defineStore('solana', () => {
     try {
       return User.fromSolana(await fetchEntity('user', addr));
     } catch (_) {
+      // TODO: Check for network errors and throw and return null instead
       return User.newUser('Solana', addr);
     }
   };

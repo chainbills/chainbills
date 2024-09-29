@@ -1,0 +1,35 @@
+[package]
+name = "chainbills"
+version = "0.1.0"
+description = "Cross-chain Crypto Payment Gateway"
+edition = "2021"
+
+[features]
+library = []
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.scripts]
+optimize = """docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/optimizer:0.16.0
+"""
+
+[dependencies]
+sylvia = "1.2.1"
+serde = "1.0.208"
+schemars = "0.8.21"
+cosmwasm-schema = "2.1.3"
+cosmwasm-std = "2.1.3"
+cw-storage-plus = "2.0.0"
+cw2 = "2.0.0"
+sha2 = "0.10.8"
+thiserror = "1.0.58"
+cw-utils = "2.0.0"
+cw20 = "2.0.0"
+cw20-base = "2.0.0"
+
+[dev-dependencies]
+sylvia = { version = "1.2.1", features = ["mt"] }

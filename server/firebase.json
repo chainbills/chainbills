@@ -12,8 +12,7 @@
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log"
-      ],
-      "predeploy": ["npm run build"]
+      ]
     }
   ]
 }

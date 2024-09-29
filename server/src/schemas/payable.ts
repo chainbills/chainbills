@@ -5,7 +5,7 @@ import { Chain, getChainId } from '../utils';
 export class Payable {
   id: string;
   chain: Chain;
-  chainId: ChainId;
+  chainId: ChainId | 50;
   chainCount: number;
   network: Network;
   host: string;
@@ -21,8 +21,9 @@ export class Payable {
     this.network = network;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain == 'Ethereum Sepolia') this.host = onChainData.host.toLowerCase();
-    else if (chain == 'Solana') this.host = onChainData.host.toBase58();
+    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
+      this.host = onChainData.host.toLowerCase();
+    } else if (chain == 'Solana') this.host = onChainData.host.toBase58();
     else throw `Unknown chain: ${chain}`;
 
     this.hostCount = Number(onChainData.hostCount);

@@ -2,6 +2,7 @@ import { Network } from '@wormhole-foundation/sdk';
 import { Withdrawal } from '../schemas';
 import {
   Chain,
+  cosmwasmFetch,
   devDb,
   evmFetchWithdrawal,
   notifyHost,
@@ -9,13 +10,11 @@ import {
   solanaFetch
 } from '../utils';
 
-export const withdrew = async (body: any, chain: Chain, network: Network) => {
-  // Checks
-  let { withdrawalId } = body;
-  if (!withdrawalId) throw 'Missing required withdrawalId';
-  if (typeof withdrawalId !== 'string') throw 'Invalid withdrawalId';
-  withdrawalId = withdrawalId.trim();
-
+export const withdrew = async (
+  withdrawalId: string,
+  chain: Chain,
+  network: Network
+) => {
   // Set Database based on Network mode
   const db = network === 'Mainnet' ? prodDb : devDb;
 
@@ -34,6 +33,9 @@ export const withdrew = async (body: any, chain: Chain, network: Network) => {
     raw = await solanaFetch('withdrawal', withdrawalId, network);
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchWithdrawal(withdrawalId);
+    withdrawalId = withdrawalId.toLowerCase();
+  } else if (chain === 'Burnt Xion') {
+    raw = await cosmwasmFetch('withdrawal', withdrawalId);
     withdrawalId = withdrawalId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 

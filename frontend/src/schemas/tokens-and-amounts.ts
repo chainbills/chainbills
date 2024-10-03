@@ -7,6 +7,8 @@ export const SEPOLIA_CONTRACT_ADDRESS =
 export const PROGRAM_ID = '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND';
 export const XION_CONTRACT_ADDRESS =
   'xion1cena9wnyd2wudh5g7zrx2wwtr46wl2g3ahaargzt3gypufqd8s5sp6xpu3';
+export const XION_USDC_ADDRESS =
+  'ibc/57097251ED81A232CE3C9D899E7C8096D6D87EF84BA203E12E424AA4C9B57A64';
 
 export interface TokenChainDetails {
   address: string;
@@ -96,8 +98,7 @@ export const tokens: Token[] = [
         decimals: 6,
       },
       'Burnt Xion': {
-        address:
-          'ibc/57097251ED81A232CE3C9D899E7C8096D6D87EF84BA203E12E424AA4C9B57A64',
+        address: XION_USDC_ADDRESS,
         decimals: 6,
       },
     },

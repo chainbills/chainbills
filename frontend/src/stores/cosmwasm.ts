@@ -3,6 +3,7 @@ import {
   TokenAndAmount,
   User,
   XION_CONTRACT_ADDRESS,
+  XION_USDC_ADDRESS,
   type Token,
 } from '@/schemas';
 import { ChainStats } from '@/schemas/chain-stats';
@@ -10,7 +11,7 @@ import {
   AbstraxionAuth,
   GranteeSignerClient,
 } from '@burnt-labs/abstraxion-core';
-import { type Coin } from '@cosmjs/amino';
+import { type Coin } from '@cosmjs/stargate';
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -27,11 +28,17 @@ export const initXion = async () => {
     [
       {
         address: XION_CONTRACT_ADDRESS,
-        amounts: [{ denom: 'uxion', amount: '1000000000000000000' }],
+        amounts: [
+          { denom: XION_USDC_ADDRESS, amount: '1000000000000000000' },
+          { denom: 'uxion', amount: '1000000000000000000' },
+        ],
       },
     ],
-    true,
-    [{ denom: 'uxion', amount: '1000000000000000000' }]
+    false,
+    [
+      { denom: XION_USDC_ADDRESS, amount: '1000000000000000000' },
+      { denom: 'uxion', amount: '1000000000000000000' },
+    ]
   );
   await abstraxion.authenticate();
   const searchParams = new URLSearchParams(window.location.search);
@@ -42,7 +49,7 @@ export const initXion = async () => {
 
 // TODO: Add New XION Tokens when adding them in tokens-and-amounts.ts
 const isNativeToken: Record<any, boolean> = {
-  'ibc/57097251ED81A232CE3C9D899E7C8096D6D87EF84BA203E12E424AA4C9B57A64': true,
+  [XION_USDC_ADDRESS]: true,
   uxion: true,
 };
 
@@ -60,9 +67,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     try {
       const fetched = isNativeToken[tokenAddr]
         ? await client.value.getBalance(address.value, tokenAddr)
-        : await (
-            await CosmWasmClient.connect(XION_RPC_URL)
-          ).queryContractSmart(tokenAddr, {
+        : await client.value.queryContractSmart(tokenAddr, {
             balance: { address: address.value },
           });
       return Number(fetched.amount) / 10 ** (decimals ?? 0);

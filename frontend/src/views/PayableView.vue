@@ -3,8 +3,7 @@ import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
 import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
-import { useChainStore, usePayableStore } from '@/stores';
-import { useAppLoadingStore } from '@/stores/app-loading';
+import { usePayableStore } from '@/stores';
 import { useTimeStore } from '@/stores/time';
 import { useWalletStore } from '@/stores/wallet';
 import { useWithdrawalStore } from '@/stores/withdrawal';
@@ -14,8 +13,6 @@ import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-const appLoading = useAppLoadingStore();
-const chain = useChainStore();
 const route = useRoute();
 const payable = ref(route.meta.details as Payable);
 const time = useTimeStore();

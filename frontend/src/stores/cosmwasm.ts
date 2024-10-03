@@ -5,6 +5,7 @@ import {
   XION_CONTRACT_ADDRESS,
   type Token,
 } from '@/schemas';
+import { ChainStats } from '@/schemas/chain-stats';
 import {
   AbstraxionAuth,
   GranteeSignerClient,
@@ -69,6 +70,12 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
       toastError(`Couldn't fetch ${token.name} balance: ${e}`);
       return null;
     }
+  };
+
+  const chainStats = async (): Promise<ChainStats | null> => {
+    const fetched = recursiveToCamel(await query({ chain_stats: {} })) as any;
+    if (fetched) return new ChainStats('Burnt Xion', fetched);
+    return null;
   };
 
   const createPayable = async (
@@ -284,6 +291,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
   return {
     address,
     balance,
+    chainStats,
     createPayable,
     fetchEntity,
     getCurrentUser,

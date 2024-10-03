@@ -17,18 +17,20 @@ import { onMounted, ref } from 'vue';
 
 const abstraxion = new AbstraxionAuth();
 
+const XION_RPC_URL = 'https://rpc.xion-testnet-1.burnt.com:443';
+
 export const initXion = async () => {
   abstraxion.configureAbstraxionInstance(
-    'https://testnet-rpc.xion-api.com:443',
+    XION_RPC_URL,
     undefined,
     [
       {
         address: XION_CONTRACT_ADDRESS,
-        amounts: [{ denom: 'uxion', amount: '1000000' }],
+        amounts: [{ denom: 'uxion', amount: '1000000000000000000' }],
       },
     ],
     true,
-    [{ denom: 'uxion', amount: '1000000' }]
+    [{ denom: 'uxion', amount: '1000000000000000000' }]
   );
   await abstraxion.authenticate();
   const searchParams = new URLSearchParams(window.location.search);
@@ -42,8 +44,6 @@ const isNativeToken: Record<any, boolean> = {
   'ibc/57097251ED81A232CE3C9D899E7C8096D6D87EF84BA203E12E424AA4C9B57A64': true,
   uxion: true,
 };
-
-const XION_RPC_URL = 'https://rpc.xion-testnet-1.burnt.com:443';
 
 export const useCosmwasmStore = defineStore('cosmwasm', () => {
   const address = ref<string | null>(null);

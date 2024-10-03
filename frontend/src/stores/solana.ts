@@ -44,6 +44,7 @@ export const useSolanaStore = defineStore('solana', () => {
   const toast = useToast();
   const tokenProgram = new PublicKey(TOKEN_PROGRAM_ID);
 
+  /** Returns UI-Formatted balance (Accounts for Decimals) */
   const balance = async (token: Token): Promise<number | null> => {
     try {
       if (!anchorWallet.value) return null;

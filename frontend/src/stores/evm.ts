@@ -36,23 +36,23 @@ export const useEvmStore = defineStore('evm', () => {
     transport: http(),
   });
 
+  /** Returns UI-Formatted balance (Accounts for Decimals) */
   const balance = async (token: Token): Promise<number | null> => {
     if (!account.connected) return null;
     if (!token.details['Ethereum Sepolia']) return null;
+    const { address: addr, decimals } = token.details['Ethereum Sepolia'];
     try {
-      const addr = token.details['Ethereum Sepolia'].address as `0x${string}`;
       const balance =
         addr == SEPOLIA_CONTRACT_ADDRESS
           ? await publicClient.getBalance({ address: account.address! })
           : await publicClient.readContract({
-              address: addr,
+              address: addr as `0x${string}`,
               abi: erc20ABI,
               functionName: 'balanceOf',
               args: [account.address],
             });
-      return Number(balance);
+      return Number(balance) / 10 ** decimals;
     } catch (e) {
-      console.error(e);
       toastError(`Couldn't fetch ${token.name} balance: ${e}`);
       return null;
     }

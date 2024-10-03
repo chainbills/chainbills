@@ -37,20 +37,38 @@ export const initXion = async () => {
   if (isGranted && granter) await abstraxion.login();
 };
 
+// TODO: Add New XION Tokens when adding them in tokens-and-amounts.ts
+const isNativeToken: Record<any, boolean> = {
+  'ibc/57097251ED81A232CE3C9D899E7C8096D6D87EF84BA203E12E424AA4C9B57A64': true,
+  uxion: true,
+};
+
+const XION_RPC_URL = 'https://rpc.xion-testnet-1.burnt.com:443';
+
 export const useCosmwasmStore = defineStore('cosmwasm', () => {
   const address = ref<string | null>(null);
   const client = ref<GranteeSignerClient | null>(null);
   const isLoggedIn = ref(false);
   const toast = useToast();
 
+  /** Returns UI-Formatted balance (Accounts for Decimals) */
   const balance = async (token: Token): Promise<number | null> => {
-    if (!address.value) return null;
+    if (!address.value || !client.value) return null;
     if (!token.details['Burnt Xion']) return null;
-    for (const { amount, denom } of abstraxion.bank ?? []) {
-      if (denom == token.details['Burnt Xion'].address) return Number(amount);
+    const { address: tokenAddr, decimals } = token.details['Burnt Xion'];
+    try {
+      const fetched = isNativeToken[tokenAddr]
+        ? await client.value.getBalance(address.value, tokenAddr)
+        : await (
+            await CosmWasmClient.connect(XION_RPC_URL)
+          ).queryContractSmart(tokenAddr, {
+            balance: { address: address.value },
+          });
+      return Number(fetched.amount) / 10 ** (decimals ?? 0);
+    } catch (e) {
+      toastError(`Couldn't fetch ${token.name} balance: ${e}`);
+      return null;
     }
-    // TODO: Account for CW20 token balances
-    return 0;
   };
 
   const createPayable = async (
@@ -185,7 +203,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
   const query = async (msg: Record<string, unknown>) => {
     try {
       return await (
-        await CosmWasmClient.connect('https://rpc.xion-testnet-1.burnt.com:443')
+        await CosmWasmClient.connect(XION_RPC_URL)
       ).queryContractSmart(XION_CONTRACT_ADDRESS, msg);
     } catch (e) {
       console.error(e);

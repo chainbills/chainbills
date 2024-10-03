@@ -25,7 +25,7 @@ const payableChain =
     : (payment as UserPayment).payableChain;
 const isMine = computed(() => wallet.address == payableDetails.host);
 const payableRoute = computed(
-  () => `/${isMine ? 'payable' : 'pay'}/${payment.payableId}`
+  () => `/${isMine.value ? 'payable' : 'pay'}/${payment.payableId}`
 );
 </script>
 

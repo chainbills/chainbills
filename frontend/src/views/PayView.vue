@@ -73,13 +73,10 @@ const validateBalance = async () => {
   if (selectedConfig.value) {
     const { name } = selectedConfig.value;
     const amt = selectedConfig.value.format(chain.current!);
-    const balance = await wallet.balance(selectedConfig.value.token());
-    if (balance === null) balanceError.value = '';
-    else if (amt && balance < amt) {
-      balanceError.value =
-        balance === 0
-          ? `You have no ${name} and can't pay.`
-          : `Insufficient Funds. You have ${balance} ${name}.`;
+    const bal = await wallet.balance(selectedConfig.value.token());
+    if (bal === null) balanceError.value = '';
+    else if (amt && bal < amt) {
+      balanceError.value = `Insufficient Funds. You have ${bal === 0 ? 'no' : bal} ${name}.`;
     } else balanceError.value = '';
   }
 };

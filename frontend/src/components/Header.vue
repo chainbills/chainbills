@@ -27,7 +27,7 @@ const theme = useThemeStore()
             <router-link to="/dashboard">Dashboard</router-link>
           </li>
           <li class="mr-6">
-            <router-link to="/activity">My Activity</router-link>
+            <router-link to="/activity">Activity</router-link>
           </li class="mr-6">
          <li class="max-[692px]:hidden inline mr-4"><SignInButton /></li>
           <li><ThemeMenu :full="false" /></li>

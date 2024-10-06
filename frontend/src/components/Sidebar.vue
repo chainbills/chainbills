@@ -31,7 +31,7 @@ const sidebar = useSidebarStore();
             to="/activity"
             @click="sidebar.close"
             class="flex items-center"
-            ><IconReplay class="mr-2" /><span>My Activity</span>
+            ><IconReplay class="mr-2" /><span>Activity</span>
           </router-link>
         </li>
         <li><ThemeMenu :full="true" /></li>

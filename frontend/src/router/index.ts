@@ -73,8 +73,8 @@ const router = createRouter({
     {
       path: '/activity',
       name: 'activity',
-      component: () => import('../views/MyActivityView.vue'),
-      meta: { title: `My Activity | ${baseTitle}` },
+      component: () => import('../views/UserActivityView.vue'),
+      meta: { title: `Activity | ${baseTitle}` },
     },
     {
       path: '/stats',

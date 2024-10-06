@@ -11,7 +11,7 @@ export class PayablePayment implements Payment {
   payer: string;
   payerChain: Chain;
   payerCount: number;
-  timestamp: Date;
+  timestamp: number;
   details: TokenAndAmount;
 
   constructor(id: string, chain: Chain, onChainData: any) {
@@ -44,7 +44,7 @@ export class PayablePayment implements Payment {
     this.localChainCount = Number(onChainData.localChainCount);
     this.payerCount = Number(onChainData.payerCount);
     this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
-    this.timestamp = new Date(Number(onChainData.timestamp) * 1000);
+    this.timestamp = Number(onChainData.timestamp);
   }
 
   displayDetails(): string {

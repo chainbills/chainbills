@@ -10,7 +10,7 @@ export class Payable {
   description: string;
   allowedTokensAndAmounts: TokenAndAmount[];
   balances: TokenAndAmount[];
-  createdAt: Date;
+  createdAt: number;
   paymentsCount: number;
   withdrawalsCount: number;
   isClosed: boolean;
@@ -33,7 +33,7 @@ export class Payable {
     this.balances = onChainData.balances.map((bal: TokenAndAmountOnChain) =>
       TokenAndAmount.fromOnChain(bal, chain)
     );
-    this.createdAt = new Date(Number(onChainData.createdAt) * 1000);
+    this.createdAt = Number(onChainData.createdAt);
     this.paymentsCount = Number(onChainData.paymentsCount);
     this.withdrawalsCount = Number(onChainData.withdrawalsCount);
     this.isClosed = onChainData.isClosed;

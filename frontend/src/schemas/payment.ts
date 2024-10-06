@@ -8,6 +8,6 @@ export interface Payment {
   payerCount: number;
   payableId: string;
   payableCount: number;
-  timestamp: Date;
+  timestamp: number;
   details: TokenAndAmount;
 }

@@ -170,7 +170,7 @@ export const useSolanaStore = defineStore('solana', () => {
     getPDA(getSeeds('user_payment', count));
 
   const getUserWithdrawalId = (count: number): string =>
-    getPDA(getSeeds('payable', count));
+    getPDA(getSeeds('withdrawal', count));
 
   const pay = async (
     payableId: string,

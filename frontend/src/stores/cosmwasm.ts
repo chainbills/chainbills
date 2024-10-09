@@ -11,8 +11,8 @@ import {
   AbstraxionAuth,
   GranteeSignerClient,
 } from '@burnt-labs/abstraxion-core';
-import { type Coin } from '@cosmjs/stargate';
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { type Coin } from '@cosmjs/stargate';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
@@ -136,8 +136,14 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     }
   };
 
-  const fetchEntity = async (entity: string, id: string) => {
-    return recursiveToCamel(await query({ [entity]: { msg: { id } } }));
+  const fetchEntity = async (
+    entity: string,
+    id: string,
+    ignoreErrors?: boolean
+  ) => {
+    return recursiveToCamel(
+      await query({ [entity]: { msg: { id } } }, ignoreErrors)
+    );
   };
 
   const getCurrentUser = async () => {
@@ -212,14 +218,16 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     return null;
   };
 
-  const query = async (msg: Record<string, unknown>) => {
+  const query = async (msg: Record<string, unknown>, ignoreErrors = false) => {
     try {
       return await (
         await CosmWasmClient.connect(XION_RPC_URL)
       ).queryContractSmart(XION_CONTRACT_ADDRESS, msg);
     } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
+      if (!ignoreErrors) {
+        console.error(e);
+        toastError(`${e}`);
+      }
       return null;
     }
   };

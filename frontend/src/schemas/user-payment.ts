@@ -51,4 +51,8 @@ export class UserPayment implements Payment {
   displayDetails(): string {
     return this.details.display(this.chain);
   }
+
+  user(): string {
+    return this.payer;
+  }
 }

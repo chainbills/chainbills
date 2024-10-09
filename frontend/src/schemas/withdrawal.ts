@@ -1,8 +1,8 @@
-import { TokenAndAmount } from '@/schemas';
+import { TokenAndAmount, type Receipt } from '@/schemas';
 import { type Chain } from '@/stores';
 import { encoding } from '@wormhole-foundation/sdk';
 
-export class Withdrawal {
+export class Withdrawal implements Receipt {
   id: string;
   chain: Chain;
   chainCount: number;
@@ -43,5 +43,9 @@ export class Withdrawal {
 
   displayDetails(): string {
     return this.details.display(this.chain);
+  }
+
+  user(): string {
+    return this.host;
   }
 }

@@ -9,6 +9,8 @@ import {
   useWalletStore,
   type Chain,
 } from '@/stores';
+import { PublicKey } from '@solana/web3.js';
+import { encoding } from '@wormhole-foundation/sdk';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
@@ -56,18 +58,42 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     }
   };
 
-  const get = async (id: string, chain: Chain): Promise<Withdrawal | null> => {
+  const get = async (
+    id: string,
+    chain?: Chain,
+    ignoreErrors?: boolean
+  ): Promise<Withdrawal | null> => {
+    // A simple trick to guess the chain based on the ID's format
+    // (if not provided)
+    if (!chain) {
+      chain = 'Solana';
+      try {
+        new PublicKey(id);
+      } catch (_) {
+        if (encoding.hex.valid(id)) {
+          if (id.startsWith('0x')) chain = 'Ethereum Sepolia';
+          else chain = 'Burnt Xion';
+        }
+        // If it's not a valid Solana public key or it is not a hex string,
+        // then it's not a valid ID.
+        else return null;
+      }
+    }
+
     try {
       let raw: any;
       if (chain == 'Solana') raw = await solana.fetchEntity('withdrawal', id);
-      else if (chain == 'Ethereum Sepolia') raw = await evm.fetchWithdrawal(id);
+      else if (chain == 'Ethereum Sepolia')
+        raw = await evm.fetchWithdrawal(id, ignoreErrors);
       else if (chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('withdrawal', id);
+        raw = await cosmwasm.fetchEntity('withdrawal', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
       if (raw) return new Withdrawal(id, chain, raw);
     } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
+      if (!ignoreErrors) {
+        console.error(e);
+        toastError(`${e}`);
+      }
     }
     return null;
   };

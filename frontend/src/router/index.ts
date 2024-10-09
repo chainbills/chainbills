@@ -1,3 +1,5 @@
+import type { Receipt } from '@/schemas';
+import { useWithdrawalStore } from '@/stores';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import { usePayableStore } from '@/stores/payable';
 import { usePaymentStore } from '@/stores/payment';
@@ -32,15 +34,25 @@ const beforeEnterPayableDetails = async (to: RouteLocationNormalized) => {
   }
 };
 
-const beforeEnterPaymentDetails = async (to: RouteLocationNormalized) => {
+const beforeEnterReceiptDetails = async (to: RouteLocationNormalized) => {
   const appLoading = useAppLoadingStore();
   const payable = usePayableStore();
   const payment = usePaymentStore();
+  const withdrawal = useWithdrawalStore();
+
   appLoading.show();
-  const result = await payment.get(to.params['id'] as string);
-  if (result) {
-    to.meta.payment = result;
-    to.meta.payable = await payable.get(result.payableId);
+  let receipt = (await payment.get(
+    to.params['id'] as string,
+    undefined,
+    true
+  )) as Receipt | null;
+  if (!receipt) {
+    receipt = await withdrawal.get(to.params['id'] as string, undefined, true);
+  }
+
+  if (receipt) {
+    to.meta.receipt = receipt;
+    to.meta.payable = await payable.get(receipt.payableId);
     appLoading.hide();
     return true;
   } else {
@@ -99,9 +111,9 @@ const router = createRouter({
     {
       path: '/receipt/:id',
       name: 'receipt',
-      component: () => import('../views/PaymentView.vue'),
-      meta: { title: `Payment Receipt | ${baseTitle}` },
-      beforeEnter: beforeEnterPaymentDetails,
+      component: () => import('../views/ReceiptView.vue'),
+      meta: { title: `Receipt | ${baseTitle}` },
+      beforeEnter: beforeEnterReceiptDetails,
     },
     {
       path: '/pitch',

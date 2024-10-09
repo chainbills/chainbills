@@ -77,7 +77,11 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const get = async (id: string, chain?: Chain): Promise<Payment | null> => {
+  const get = async (
+    id: string,
+    chain?: Chain,
+    ignoreErrors?: boolean
+  ): Promise<Payment | null> => {
     // A simple trick to guess the chain based on the ID's format
     // (if not provided)
     if (!chain) {
@@ -102,9 +106,9 @@ export const usePaymentStore = defineStore('payment', () => {
       let raw: any;
       if (chain == 'Solana') raw = await solana.fetchEntity('userPayment', id);
       else if (chain == 'Ethereum Sepolia')
-        raw = await evm.fetchUserPayment(id);
+        raw = await evm.fetchUserPayment(id, ignoreErrors);
       else if (chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('user_payment', id);
+        raw = await cosmwasm.fetchEntity('user_payment', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
       if (raw) payment = new UserPayment(id, chain, raw);
     } catch (_) {}
@@ -116,9 +120,9 @@ export const usePaymentStore = defineStore('payment', () => {
         if (chain == 'Solana')
           raw = await solana.fetchEntity('payablePayment', id);
         else if (chain == 'Ethereum Sepolia')
-          raw = await evm.fetchPayablePayment(id);
+          raw = await evm.fetchPayablePayment(id, ignoreErrors);
         else if (chain == 'Burnt Xion')
-          raw = await cosmwasm.fetchEntity('payable_payment', id);
+          raw = await cosmwasm.fetchEntity('payable_payment', id, ignoreErrors);
         else throw `Unknown chain: ${chain}`;
         if (raw) payment = new PayablePayment(id, chain, raw);
       } catch (_) {}

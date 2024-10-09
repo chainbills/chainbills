@@ -1,13 +1,5 @@
-import { type TokenAndAmount } from '@/schemas';
-import { type Chain } from '@/stores';
+import { type Receipt } from '@/schemas';
 
-export interface Payment {
-  id: string;
-  chain: Chain;
+export interface Payment extends Receipt {
   payer: string;
-  payerCount: number;
-  payableId: string;
-  payableCount: number;
-  timestamp: number;
-  details: TokenAndAmount;
 }

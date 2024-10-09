@@ -109,6 +109,11 @@ const withdraw = async (balance: TokenAndAmount) => {
         balsDisplay.value = getBalsDisplay();
         cards.value = getCards();
         isWithdrawing.value = false;
+
+        // showing the receipt ID if withdrawal was successful since we are not
+        // redirecting to the receipt page for withdrawals.
+        console.log('Withdrawal Receipt ID: ', result);
+
         // reloading the page if updates failed to ensure we don't have
         // stale data in the UI
       } else window.location.reload();

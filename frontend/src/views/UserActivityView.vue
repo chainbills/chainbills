@@ -1,47 +1,34 @@
 <script setup lang="ts">
 import SignInButton from '@/components/SignInButton.vue';
-import IconCopy from '@/icons/IconCopy.vue';
-import IconOpenInNew from '@/icons/IconOpenInNew.vue';
+import TransactionsTable from '@/components/TransactionsTable.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { type Payment } from '@/schemas';
+import { type Receipt } from '@/schemas';
 import {
   usePaymentStore,
-  useTimeStore,
   useUserStore,
   useWalletStore,
+  useWithdrawalStore,
 } from '@/stores';
 import Button from 'primevue/button';
-import Column from 'primevue/column';
-import DataTable from 'primevue/datatable';
-import { useToast } from 'primevue/usetoast';
+import TabPanel from 'primevue/tabpanel';
+import TabView from 'primevue/tabview';
 import { onMounted, ref, watch } from 'vue';
 
+const activeCat = ref(0);
+const categories = ['Payments', 'Withdrawals'];
+const countFields = ['payerCount', 'hostCount'];
 const isLoading = ref(true);
+const mines = ref<Receipt[] | null>(null);
 const payments = usePaymentStore();
-const mines = ref<Payment[] | null>(null);
-const toast = useToast();
-const time = useTimeStore();
 const user = useUserStore();
 const wallet = useWalletStore();
-
-const copy = (text: string, context: string) => {
-  navigator.clipboard.writeText(text);
-  toast.add({
-    severity: 'info',
-    summary: 'Copied',
-    detail: `${context} copied to clipboard`,
-    life: 3000,
-  });
-};
+const withdrawals = useWithdrawalStore();
 
 const getMines = async () => {
   isLoading.value = true;
-  mines.value = await payments.mines();
+  mines.value = await (activeCat.value == 0 ? payments : withdrawals).mines();
   isLoading.value = false;
 };
-
-const shorten = (v: string) =>
-  `${v.substring(0, 5)}...${v.substring(v.length - 5)}`;
 
 onMounted(async () => {
   if (user.current) await getMines();
@@ -52,12 +39,31 @@ onMounted(async () => {
       else mines.value = null;
     }
   );
+  watch(
+    () => activeCat.value,
+    (_) => {
+      if (!user.current) return;
+      getMines();
+    }
+  );
 });
 </script>
 
 <template>
   <div class="max-w-screen-xl mx-auto pb-20">
-    <h2 class="text-3xl font-bold mb-8">Your Payments</h2>
+    <div class="mb-8 sm:flex justify-between items-center">
+      <h2 class="text-3xl font-bold">Your Activity</h2>
+
+      <div class="max-sm:flex justify-end">
+        <TabView :scrollable="true" v-model:activeIndex="activeCat">
+          <TabPanel v-for="category of categories">
+            <template #header>
+              <Button @click="activeCat = 0">{{ category }}</Button>
+            </template>
+          </TabPanel>
+        </TabView>
+      </div>
+    </div>
 
     <template v-if="!wallet.connected">
       <p class="pt-8 mb-8 text-center text-xl">
@@ -101,88 +107,10 @@ onMounted(async () => {
     </template>
 
     <template v-else>
-      <DataTable
-        :value="mines"
-        :paginator="true"
-        :rows="10"
-        :rowsPerPageOptions="[10, 25, 50, 100]"
-        showGridlines
-        stripedRows
-        sortMode="multiple"
-        removableSort
-        :multiSortMeta="[{ field: 'payerCount', order: -1 }]"
-      >
-        <Column field="payerCount" sortable>
-          <template #header>
-            <span>N<sup>th</sup></span>
-          </template>
-        </Column>
-        <Column field="timestamp" header="Timestamp" sortable>
-          <template #body="{ data }">
-            {{ time.display(data.timestamp) }}
-          </template>
-        </Column>
-        <Column field="details" header="Details">
-          <template #body="{ data }">
-            <p class="flex gap-x-2 items-center">
-              <img
-                :src="`/assets/tokens/${data.details.name}.png`"
-                class="w-6 h-6"
-                aria-hidden="true"
-              />
-              <span class="font-medium text-lg">
-                {{ data.displayDetails() }}
-              </span>
-            </p>
-          </template>
-        </Column>
-        <Column field="id" header="Receipt ID">
-          <template #body="{ data }">
-            <p class="flex gap-x-2 items-center">
-              <span class="text-sm text-gray-500 w-[100px]">
-                {{ shorten(data.id) }}
-              </span>
-              <Button
-                @click="copy(data.id, `Receipt ID: ${data.id}`)"
-                title="Copy Receipt ID"
-              >
-                <IconCopy class="text-primary" />
-              </Button>
-              <a
-                :href="`/receipt/${data.id}`"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="View Receipt"
-              >
-                <IconOpenInNew class="text-primary" />
-              </a>
-            </p>
-          </template>
-        </Column>
-        <Column field="payableId" header="Payable" sortable>
-          <template #body="{ data }">
-            <p class="flex gap-x-2 items-center">
-              <span class="text-sm text-gray-500 w-[100px]">
-                {{ shorten(data.payableId) }}
-              </span>
-              <Button
-                @click="copy(data.payableId, `Payable ID: ${data.payableId}`)"
-                title="Copy Payable ID"
-              >
-                <IconCopy class="text-primary" />
-              </Button>
-              <a
-                :href="`/pay/${data.payableId}`"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Payment Page"
-              >
-                <IconOpenInNew class="text-primary" />
-              </a>
-            </p>
-          </template>
-        </Column>
-      </DataTable>
+      <TransactionsTable
+        :receipts="mines"
+        :count-field="countFields[activeCat]"
+      />
     </template>
   </div>
 </template>

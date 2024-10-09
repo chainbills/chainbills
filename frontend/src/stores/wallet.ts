@@ -45,10 +45,10 @@ export const useWalletStore = defineStore('wallet', () => {
   };
 
   /**
-   * Fetches and Returns the UI-formatted balance of a token based on the 
-   * current chain. 
+   * Fetches and Returns the UI-formatted balance of a token based on the
+   * current chain.
    * @param token The token to fetch its balance
-   * @returns The UI formatted balance of the token 
+   * @returns The UI formatted balance of the token
    */
   const balance = async (token: Token): Promise<number | null> => {
     if (!connected.value) return null;
@@ -66,6 +66,15 @@ export const useWalletStore = defineStore('wallet', () => {
       'Ethereum Sepolia': evmDisconnect,
       Solana: solanaWallet.disconnect,
     }[chain.current!]();
+  };
+
+  const explorerUrl = (walletAddress?: string): string => {
+    if (!(walletAddress ?? address.value)) '';
+    return {
+      'Burnt Xion': cosmwasm,
+      'Ethereum Sepolia': evm,
+      Solana: solana,
+    }[chain.current!]['walletExplorerUrl'](walletAddress ?? address.value!);
   };
 
   const sign = async (message: string): Promise<string | null> => {
@@ -135,6 +144,7 @@ export const useWalletStore = defineStore('wallet', () => {
     balance,
     connected,
     disconnect,
+    explorerUrl,
     sign,
   };
 });

@@ -278,6 +278,9 @@ export const useSolanaStore = defineStore('solana', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
+  const walletExplorerUrl = (wallet: string) =>
+    `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
+
   const withdraw = async (
     payableId: string,
     { amount, details }: TokenAndAmount
@@ -380,6 +383,7 @@ export const useSolanaStore = defineStore('solana', () => {
     pay,
     program,
     sign,
+    walletExplorerUrl,
     withdraw,
   };
 });

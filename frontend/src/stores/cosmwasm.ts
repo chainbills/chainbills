@@ -258,6 +258,9 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
+  const walletExplorerUrl = (wallet: string) =>
+    `https://explorer.burnt.com/xion-testnet-1/account/${wallet}`;
+
   const withdraw = async (
     payable_id: string,
     taa: TokenAndAmount
@@ -317,6 +320,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     logout,
     pay,
     sign,
+    walletExplorerUrl,
     withdraw,
   };
 });

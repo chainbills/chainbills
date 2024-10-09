@@ -269,6 +269,9 @@ export const useEvmStore = defineStore('evm', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
+  const walletExplorerUrl = (wallet: string) =>
+    `https://sepolia.etherscan.io/address/${wallet}`;
+
   const withdraw = async (
     payableId: string,
     { amount, details }: TokenAndAmount
@@ -314,6 +317,7 @@ export const useEvmStore = defineStore('evm', () => {
     readContract,
     pay,
     sign,
+    walletExplorerUrl,
     withdraw,
   };
 });

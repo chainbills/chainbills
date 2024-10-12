@@ -36,7 +36,6 @@ const beforeEnterPayableDetails = async (to: RouteLocationNormalized) => {
 
 const beforeEnterReceiptDetails = async (to: RouteLocationNormalized) => {
   const appLoading = useAppLoadingStore();
-  const payable = usePayableStore();
   const payment = usePaymentStore();
   const withdrawal = useWithdrawalStore();
 
@@ -52,7 +51,6 @@ const beforeEnterReceiptDetails = async (to: RouteLocationNormalized) => {
 
   if (receipt) {
     to.meta.receipt = receipt;
-    to.meta.payable = await payable.get(receipt.payableId);
     appLoading.hide();
     return true;
   } else {

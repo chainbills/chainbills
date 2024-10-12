@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SignInButton from '@/components/SignInButton.vue';
 import TransactionsTable from '@/components/TransactionsTable.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable, type Receipt, TokenAndAmount } from '@/schemas';
@@ -10,6 +11,7 @@ import {
   useWithdrawalStore,
 } from '@/stores';
 import { storeToRefs } from 'pinia';
+import Button from 'primevue/button';
 import TabPanel from 'primevue/tabpanel';
 import TabView from 'primevue/tabview';
 import { useToast } from 'primevue/usetoast';

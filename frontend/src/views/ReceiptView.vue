@@ -2,7 +2,6 @@
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import {
-  Payable,
   PayablePayment,
   UserPayment,
   Withdrawal,
@@ -11,12 +10,10 @@ import {
 import { useTimeStore, useWalletStore } from '@/stores';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
-import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const receipt = route.meta.receipt as Receipt;
-const payableDetails = route.meta.payable as Payable;
 
 const time = useTimeStore();
 const toast = useToast();
@@ -37,10 +34,8 @@ const payableChain =
     ? (receipt as UserPayment).payableChain
     : receipt.chain;
 
-const isMine = computed(() => wallet.address == payableDetails.host);
-const payableRoute = computed(
-  () => `/${isMine.value ? 'payable' : 'pay'}/${receipt.payableId}`
-);
+const payableRoute =
+  `/${receipt instanceof Withdrawal ? 'payable' : 'pay'}/` + receipt.payableId;
 
 const copy = (text: string, context: string) => {
   navigator.clipboard.writeText(text);
@@ -151,20 +146,6 @@ const copy = (text: string, context: string) => {
       <span>Payable's Chain:</span><br />
       <span class="text-xs break-all text-gray-500">{{ payableChain }}</span>
     </p>
-
-    <div
-      class="max-w-lg"
-      v-if="payableDetails && !(receipt instanceof Withdrawal)"
-    >
-      <h3 class="font-medium mb-2">Paid For:</h3>
-      <div class="mb-8 sm:flex items-end">
-        <textarea
-          readonly
-          v-model="payableDetails.description"
-          class="outline-none w-full px-3 py-2 bg-blue-50 dark:bg-slate-900 rounded-md shadow-inner mb-2 sm:mb-0 sm:mr-4"
-        ></textarea>
-      </div>
-    </div>
 
     <p
       class="text-lg text-center max-w-md mx-auto pt-12 mb-8"

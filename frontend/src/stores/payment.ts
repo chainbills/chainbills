@@ -6,6 +6,7 @@ import {
   type Payment,
 } from '@/schemas';
 import {
+  useCacheStore,
   useChainStore,
   useCosmwasmStore,
   useEvmStore,
@@ -22,6 +23,7 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const usePaymentStore = defineStore('payment', () => {
+  const cache = useCacheStore();
   const chain = useChainStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
@@ -31,6 +33,9 @@ export const usePaymentStore = defineStore('payment', () => {
   const toast = useToast();
   const user = useUserStore();
   const wallet = useWalletStore();
+
+  const cacheKey = (chain: string, type: string, id: string) =>
+    `${chain}::payment::${type}::${id}`;
 
   const exec = async (
     payableId: string,
@@ -99,9 +104,29 @@ export const usePaymentStore = defineStore('payment', () => {
       }
     }
 
-    let payment: Payment | null = null;
+    // Check if the payment is already in the cache and return if so.
+    let payment = await cache.retrieve(cacheKey(chain, 'user', id));
+    if (payment) {
+      // Necessary to restore callable methods on retrieved instance
+      payment = Object.setPrototypeOf(payment, UserPayment.prototype);
+      payment.details = Object.setPrototypeOf(
+        payment.details,
+        TokenAndAmount.prototype
+      );
+      return payment;
+    }
+    payment = await cache.retrieve(cacheKey(chain, 'payable', id));
+    if (payment) {
+      // Necessary to restore callable methods on retrieved instance
+      payment = Object.setPrototypeOf(payment, PayablePayment.prototype);
+      payment.details = Object.setPrototypeOf(
+        payment.details,
+        TokenAndAmount.prototype
+      );
+      return payment;
+    }
 
-    // First try to fetch the payment as if it was a user payment.
+    // Otherwise, first try to fetch the payment as if it was a user payment.
     try {
       let raw: any;
       if (chain == 'Solana') raw = await solana.fetchEntity('userPayment', id);
@@ -110,7 +135,10 @@ export const usePaymentStore = defineStore('payment', () => {
       else if (chain == 'Burnt Xion')
         raw = await cosmwasm.fetchEntity('user_payment', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
-      if (raw) payment = new UserPayment(id, chain, raw);
+      if (raw) {
+        payment = new UserPayment(id, chain, raw);
+        await cache.save(cacheKey(chain, 'user', id), payment);
+      }
     } catch (_) {}
 
     // If the payment is not a user payment, try to fetch it as a payable payment.
@@ -124,7 +152,10 @@ export const usePaymentStore = defineStore('payment', () => {
         else if (chain == 'Burnt Xion')
           raw = await cosmwasm.fetchEntity('payable_payment', id, ignoreErrors);
         else throw `Unknown chain: ${chain}`;
-        if (raw) payment = new PayablePayment(id, chain, raw);
+        if (raw) {
+          payment = new PayablePayment(id, chain, raw);
+          await cache.save(cacheKey(chain, 'payable', id), payment);
+        }
       } catch (_) {}
     }
 
@@ -135,6 +166,17 @@ export const usePaymentStore = defineStore('payment', () => {
     id: string,
     chain: Chain
   ): Promise<PayablePayment | null> => {
+    let payment = await cache.retrieve(cacheKey(chain, 'payable', id));
+    if (payment) {
+      // Necessary to restore callable methods on retrieved instance
+      payment = Object.setPrototypeOf(payment, PayablePayment.prototype);
+      payment.details = Object.setPrototypeOf(
+        payment.details,
+        TokenAndAmount.prototype
+      );
+      return payment;
+    }
+
     try {
       let raw: any;
       if (chain == 'Solana')
@@ -144,7 +186,11 @@ export const usePaymentStore = defineStore('payment', () => {
       else if (chain == 'Burnt Xion')
         raw = await cosmwasm.fetchEntity('payable_payment', id);
       else throw `Unknown chain: ${chain}`;
-      if (raw) return new PayablePayment(id, chain, raw);
+      if (raw) {
+        payment = new PayablePayment(id, chain, raw);
+        await cache.save(cacheKey(chain, 'payable', id), payment);
+        return payment;
+      }
     } catch (e) {
       console.error(e);
       toastError(`${e}`);
@@ -156,6 +202,17 @@ export const usePaymentStore = defineStore('payment', () => {
     id: string,
     chain: Chain
   ): Promise<UserPayment | null> => {
+    let payment = await cache.retrieve(cacheKey(chain, 'user', id));
+    if (payment) {
+      // Necessary to restore callable methods on retrieved instance
+      payment = Object.setPrototypeOf(payment, UserPayment.prototype);
+      payment.details = Object.setPrototypeOf(
+        payment.details,
+        TokenAndAmount.prototype
+      );
+      return payment;
+    }
+
     try {
       let raw: any;
       if (chain == 'Solana') raw = await solana.fetchEntity('userPayment', id);
@@ -164,7 +221,11 @@ export const usePaymentStore = defineStore('payment', () => {
       else if (chain == 'Burnt Xion')
         raw = await cosmwasm.fetchEntity('user_payment', id);
       else throw `Unknown chain: ${chain}`;
-      if (raw) return new UserPayment(id, chain, raw);
+      if (raw) {
+        payment = new UserPayment(id, chain, raw);
+        await cache.save(cacheKey(chain, 'user', id), payment);
+        return payment;
+      }
     } catch (e) {
       console.error(e);
       toastError(`${e}`);

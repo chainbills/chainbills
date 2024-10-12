@@ -1,5 +1,6 @@
 import { Payable, TokenAndAmount, Withdrawal } from '@/schemas';
 import {
+  useCacheStore,
   useChainStore,
   useCosmwasmStore,
   useEvmStore,
@@ -16,6 +17,7 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const useWithdrawalStore = defineStore('withdrawal', () => {
+  const cache = useCacheStore();
   const chain = useChainStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
@@ -25,6 +27,8 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const toast = useToast();
   const user = useUserStore();
   const wallet = useWalletStore();
+
+  const cacheKey = (chain: string, id: string) => `${chain}::withdrawal::${id}`;
 
   const exec = async (
     payableId: string,
@@ -82,6 +86,17 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       }
     }
 
+    // Check if the withdrawal is already in the cache and return if so.
+    let withdrawal = await cache.retrieve(cacheKey(chain, id));
+    if (withdrawal) {
+      withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
+      withdrawal.details = Object.setPrototypeOf(
+        withdrawal.details,
+        TokenAndAmount.prototype
+      );
+      return withdrawal;
+    }
+
     try {
       let raw: any;
       if (chain == 'Solana') raw = await solana.fetchEntity('withdrawal', id);
@@ -90,14 +105,18 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       else if (chain == 'Burnt Xion')
         raw = await cosmwasm.fetchEntity('withdrawal', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
-      if (raw) return new Withdrawal(id, chain, raw);
+      if (raw) withdrawal = new Withdrawal(id, chain, raw);
     } catch (e) {
       if (!ignoreErrors) {
         console.error(e);
         toastError(`${e}`);
       }
     }
-    return null;
+
+    // If a withdrawal was found, cache it and return it.
+    if (withdrawal) await cache.save(cacheKey(chain, id), withdrawal);
+
+    return withdrawal;
   };
 
   const getManyForPayable = async (

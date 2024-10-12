@@ -44,6 +44,13 @@ export const useWalletStore = defineStore('wallet', () => {
     return true;
   };
 
+  const getChainStore: any = () =>
+    ({
+      'Burnt Xion': cosmwasm,
+      'Ethereum Sepolia': evm,
+      Solana: solana,
+    })[chain.current!];
+
   /**
    * Fetches and Returns the UI-formatted balance of a token based on the
    * current chain.
@@ -52,11 +59,7 @@ export const useWalletStore = defineStore('wallet', () => {
    */
   const balance = async (token: Token): Promise<number | null> => {
     if (!connected.value) return null;
-    return await {
-      'Burnt Xion': cosmwasm.balance,
-      'Ethereum Sepolia': evm.balance,
-      Solana: solana.balance,
-    }[chain.current!](token);
+    return await getChainStore()['balance'](token);
   };
 
   const disconnect = async (): Promise<void> => {
@@ -70,21 +73,15 @@ export const useWalletStore = defineStore('wallet', () => {
 
   const explorerUrl = (walletAddress?: string): string => {
     if (!(walletAddress ?? address.value)) '';
-    return {
-      'Burnt Xion': cosmwasm,
-      'Ethereum Sepolia': evm,
-      Solana: solana,
-    }[chain.current!]['walletExplorerUrl'](walletAddress ?? address.value!);
+    return getChainStore()['walletExplorerUrl'](
+      walletAddress ?? address.value!
+    );
   };
 
   const sign = async (message: string): Promise<string | null> => {
     if (!connected.value) return null;
     try {
-      return await {
-        'Burnt Xion': cosmwasm.sign,
-        'Ethereum Sepolia': evm.sign,
-        Solana: solana.sign,
-      }[chain.current!](message);
+      return await getChainStore()['sign'](message);
     } catch (e) {
       const detail = `${e}`.toLocaleLowerCase().includes('rejected')
         ? 'Please Sign to Continue'

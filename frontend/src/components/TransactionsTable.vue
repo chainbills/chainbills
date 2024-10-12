@@ -8,8 +8,9 @@ import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import { useToast } from 'primevue/usetoast';
 
-const { countField, receipts } = defineProps<{
+const { countField, hidePayable, receipts } = defineProps<{
   countField: string;
+  hidePayable?: boolean;
   receipts: Receipt[];
 }>();
 
@@ -89,7 +90,7 @@ const shorten = (v: string) =>
         </p>
       </template>
     </Column>
-    <Column field="payableId" header="Payable" sortable>
+    <Column field="payableId" header="Payable" sortable v-if="!hidePayable">
       <template #body="{ data }">
         <p class="flex gap-x-2 items-center">
           <span class="text-sm text-gray-500 w-[6rem]">

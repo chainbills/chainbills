@@ -151,6 +151,28 @@ export const useSolanaStore = defineStore('solana', () => {
   const getPayablePaymentId = (payableId: string, count: number): string =>
     getPDA(getSeeds('payable_payment', count, new PublicKey(payableId)));
 
+  const getPayableWithdrawalId = async (
+    payableId: string,
+    count: number
+  ): Promise<string | null> => {
+    const pyblWtdlId = getPDA(
+      getSeeds('payable_withdrawal', count, new PublicKey(payableId))
+    );
+
+    let pyblWtdl;
+    let payable;
+    try {
+      pyblWtdl = await fetchEntity('payableWithdrawalCounter', pyblWtdlId);
+      payable = await fetchEntity('payable', payableId);
+    } catch (_) {
+      return null;
+    }
+    const { hostCount } = pyblWtdl;
+    const { host } = payable;
+
+    return getPDA(getSeeds('withdrawal', hostCount.toNumber(), host));
+  };
+
   const getSeeds = (
     prefix: string,
     count: number,
@@ -377,6 +399,7 @@ export const useSolanaStore = defineStore('solana', () => {
     fetchEntity,
     getCurrentUser,
     getPayablePaymentId,
+    getPayableWithdrawalId,
     getUserPayableId,
     getUserPaymentId,
     getUserWithdrawalId,

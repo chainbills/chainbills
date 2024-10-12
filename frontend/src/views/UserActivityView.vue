@@ -56,9 +56,9 @@ onMounted(async () => {
 
       <div class="max-sm:flex justify-end">
         <TabView :scrollable="true" v-model:activeIndex="activeCat">
-          <TabPanel v-for="category of categories">
+          <TabPanel v-for="(category, index) of categories">
             <template #header>
-              <Button @click="activeCat = 0">{{ category }}</Button>
+              <Button @click="activeCat = index">{{ category }}</Button>
             </template>
           </TabPanel>
         </TabView>

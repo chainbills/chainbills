@@ -92,6 +92,18 @@ export const usePayableStore = defineStore('payable', () => {
     }[chain]['getPayablePaymentId'](payableId, count);
   };
 
+  const getWithdrawalId = async (
+    payableId: string,
+    chain: Chain,
+    count: number
+  ): Promise<string | null> => {
+    return await {
+      'Burnt Xion': cosmwasm,
+      'Ethereum Sepolia': evm,
+      Solana: solana,
+    }[chain]['getPayableWithdrawalId'](payableId, count);
+  };
+
   const mines = async (): Promise<Payable[] | null> => {
     if (!user.current) return null;
     const { payablesCount: count } = user.current;
@@ -122,5 +134,5 @@ export const usePayableStore = defineStore('payable', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { create, get, getPaymentId, mines };
+  return { create, get, getPaymentId, getWithdrawalId, mines };
 });

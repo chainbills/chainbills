@@ -1,28 +1,36 @@
 <script setup lang="ts">
-import SignInButton from '@/components/SignInButton.vue';
+import TransactionsTable from '@/components/TransactionsTable.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { Payable } from '@/schemas/payable';
-import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
-import { usePayableStore } from '@/stores';
-import { useTimeStore } from '@/stores/time';
-import { useWalletStore } from '@/stores/wallet';
-import { useWithdrawalStore } from '@/stores/withdrawal';
+import { Payable, type Receipt, TokenAndAmount } from '@/schemas';
+import {
+  usePayableStore,
+  usePaymentStore,
+  useTimeStore,
+  useWalletStore,
+  useWithdrawalStore,
+} from '@/stores';
 import { storeToRefs } from 'pinia';
-import Button from 'primevue/button';
+import TabPanel from 'primevue/tabpanel';
+import TabView from 'primevue/tabview';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
+const activeCat = ref(0);
+const categories = ['Payments', 'Withdrawals'];
+const isLoadingActivities = ref(true);
+const transactions = ref<Receipt[] | null>(null);
 const route = useRoute();
 const payable = ref(route.meta.details as Payable);
 const time = useTimeStore();
 const toast = useToast();
 const { origin } = window.location;
 const link = `${origin}/pay/${payable.value.id}`;
+const payments = usePaymentStore();
 const payableStore = usePayableStore();
 const wallet = useWalletStore();
 const { address } = storeToRefs(wallet);
-const withdrawal = useWithdrawalStore();
+const withdrawals = useWithdrawalStore();
 
 const nth = (n: number) => {
   if (n > 3 && n < 21) return 'th';
@@ -91,6 +99,14 @@ const getBalsDisplay = () => {
 const balsDisplay = ref(getBalsDisplay());
 const isWithdrawing = ref(false);
 
+const getTransactions = async () => {
+  isLoadingActivities.value = true;
+  transactions.value = await (
+    activeCat.value == 0 ? payments : withdrawals
+  ).getManyForPayable(payable.value);
+  isLoadingActivities.value = false;
+};
+
 const withdraw = async (balance: TokenAndAmount) => {
   if (balance.amount == 0) {
     toast.add({
@@ -101,7 +117,7 @@ const withdraw = async (balance: TokenAndAmount) => {
     });
   } else {
     isWithdrawing.value = true;
-    const result = await withdrawal.exec(payable.value.id, balance);
+    const result = await withdrawals.exec(payable.value.id, balance);
     if (result) {
       const newPayable = await payableStore.get(payable.value.id);
       if (newPayable) {
@@ -129,6 +145,20 @@ onMounted(() => {
         (payable.value.chain == 'Ethereum Sepolia'
           ? val?.toLowerCase()
           : val) == payable.value.host)
+  );
+  getTransactions();
+  watch(
+    () => activeCat.value,
+    (_) => {
+      getTransactions();
+    }
+  );
+  watch(
+    () => payable.value,
+    (_) => {
+      // only refresh transactions if a withdrawal was just completed
+      if (activeCat.value == 1) getTransactions();
+    }
   );
 });
 </script>
@@ -270,6 +300,51 @@ onMounted(() => {
         class="px-3 py-1 border border-red-500 text-sm text-red-500 text-center"
         >Close Payable</Button
       >
+
+      <div class="mt-12 mb-8 sm:flex justify-between items-center">
+        <h2 class="text-3xl font-bold">Payable Activity</h2>
+
+        <div class="max-sm:flex justify-end">
+          <TabView :scrollable="true" v-model:activeIndex="activeCat">
+            <TabPanel v-for="(category, index) of categories">
+              <template #header>
+                <Button @click="activeCat = index">{{ category }}</Button>
+              </template>
+            </TabPanel>
+          </TabView>
+        </div>
+      </div>
+
+      <template v-if="isLoadingActivities">
+        <p class="text-center my-12">Loading ...</p>
+        <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
+      </template>
+
+      <template v-else-if="!transactions">
+        <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
+        <p class="mx-auto w-fit">
+          <Button
+            class="bg-primary text-white dark:text-black text-xl px-6 py-2"
+            @click="getTransactions"
+            >Retry</Button
+          >
+        </p>
+      </template>
+
+      <template v-else-if="transactions.length == 0">
+        <p class="text-lg text-center max-w-sm mx-auto mb-8 pt-8">
+          <!--TODO: Update this empty state -->
+          No {{ activeCat == 0 ? 'Payments' : 'Withdrawals' }} Yet!
+        </p>
+      </template>
+
+      <template v-else>
+        <TransactionsTable
+          :receipts="transactions"
+          count-field="payableCount"
+          :hide-payable="true"
+        />
+      </template>
     </template>
   </section>
 </template>

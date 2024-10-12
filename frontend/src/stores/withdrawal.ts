@@ -1,8 +1,9 @@
-import { TokenAndAmount, Withdrawal } from '@/schemas';
+import { Payable, TokenAndAmount, Withdrawal } from '@/schemas';
 import {
   useChainStore,
   useCosmwasmStore,
   useEvmStore,
+  usePayableStore,
   useServerStore,
   useSolanaStore,
   useUserStore,
@@ -18,6 +19,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const chain = useChainStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
+  const payableStore = usePayableStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
@@ -98,6 +100,34 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     return null;
   };
 
+  const getManyForPayable = async (
+    payable: Payable
+  ): Promise<Withdrawal[] | null> => {
+    const { withdrawalsCount: count, chain } = payable;
+    if (count === 0) return [];
+
+    try {
+      const withdrawals: Withdrawal[] = [];
+      // TODO: Implement pagination instead of this set maximum of 25
+      let fetched = 0;
+      for (let i = count; i >= 1; i--) {
+        if (fetched >= 25) break;
+        const id = await payableStore.getWithdrawalId(payable.id, chain, i);
+        if (id) {
+          const withdrawal = await get(id, chain);
+          if (withdrawal) withdrawals.push(withdrawal);
+          else return null;
+        } else return null;
+        fetched++;
+      }
+      return withdrawals;
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+      return null;
+    }
+  };
+
   const mines = async (): Promise<Withdrawal[] | null> => {
     if (!user.current) return null;
     const { withdrawalsCount: count } = user.current;
@@ -129,5 +159,5 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { exec, get, mines };
+  return { exec, get, getManyForPayable, mines };
 });

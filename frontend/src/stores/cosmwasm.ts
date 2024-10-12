@@ -164,6 +164,16 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     return fetched?.id ?? null;
   };
 
+  const getPayableWithdrawalId = async (
+    payableId: string,
+    count: number
+  ): Promise<string | null> => {
+    const fetched = await query({
+      payable_withdrawal_id: { msg: { reference: payableId, count } },
+    });
+    return fetched?.id ?? null;
+  };
+
   const getUserEntityId = async (
     entity: string,
     count: number
@@ -312,6 +322,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     fetchEntity,
     getCurrentUser,
     getPayablePaymentId,
+    getPayableWithdrawalId,
     getUserPayableId,
     getUserPaymentId,
     getUserWithdrawalId,

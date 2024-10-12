@@ -170,6 +170,19 @@ export const useEvmStore = defineStore('evm', () => {
     return id;
   };
 
+  const getPayableWithdrawalId = async (
+    payableId: string,
+    count: number
+  ): Promise<string | null> => {
+    if (!payableId.startsWith('0x')) payableId = `0x${payableId}`;
+    const id = await readContract('payableWithdrawalIds', [
+      payableId as `0x${string}`,
+      count - 1,
+    ]);
+    if (!id || id === zeroAddress) return null;
+    return id;
+  };
+
   const getUserEntityId = async (
     entity: string,
     count: number
@@ -311,6 +324,7 @@ export const useEvmStore = defineStore('evm', () => {
     fetchWithdrawal,
     getCurrentUser,
     getPayablePaymentId,
+    getPayableWithdrawalId,
     getUserPayableId,
     getUserPaymentId,
     getUserWithdrawalId,

@@ -88,6 +88,10 @@ export const useServerStore = defineStore('server', () => {
     return await call(`/payment/user/${paymentId}`);
   };
 
+  const volumes = async (): Promise<any> => {
+    return await call('/volumes');
+  }
+
   const withdrew = async (withdrawalId: string): Promise<boolean> => {
     return await call(`/withdrawal/${withdrawalId}`);
   };
@@ -98,6 +102,7 @@ export const useServerStore = defineStore('server', () => {
     payablePaid,
     saveNotificationToken,
     userPaid,
+    volumes,
     withdrew,
   };
 });

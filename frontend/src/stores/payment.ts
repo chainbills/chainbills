@@ -233,25 +233,26 @@ export const usePaymentStore = defineStore('payment', () => {
     return null;
   };
 
-  const getManyForPayable = async (
-    payable: Payable
-  ): Promise<PayablePayment[] | null> => {
-    const { paymentsCount: count, chain } = payable;
-    if (count === 0) return [];
+  const getManyForCurrentUser = async (
+    page: number,
+    count: number
+  ): Promise<UserPayment[] | null> => {
+    if (!user.current) return null;
+    const { paymentsCount: totalCount } = user.current;
+    if (totalCount === 0) return [];
 
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
-      const payments: PayablePayment[] = [];
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
-        const id = await payableStore.getPaymentId(payable.id, chain, i);
+      const payments: UserPayment[] = [];
+      for (let i = start; i >= target; i--) {
+        const id = await user.getPaymentId(i);
         if (id) {
-          const payment = await getForPayable(id, chain);
+          const payment = await getForUser(id, user.current.chain);
           if (payment) payments.push(payment);
           else return null;
         } else return null;
-        fetched++;
       }
       return payments;
     } catch (e) {
@@ -261,24 +262,26 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const mines = async (): Promise<UserPayment[] | null> => {
-    if (!user.current) return null;
-    const { paymentsCount: count } = user.current;
+  const getManyForPayable = async (
+    payable: Payable,
+    page: number,
+    count: number
+  ): Promise<PayablePayment[] | null> => {
+    const { paymentsCount: totalCount, chain } = payable;
     if (count === 0) return [];
 
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
-      const payments: UserPayment[] = [];
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
-        const id = await user.getPaymentId(i);
+      const payments: PayablePayment[] = [];
+      for (let i = start; i >= target; i--) {
+        const id = await payableStore.getPaymentId(payable.id, chain, i);
         if (id) {
-          const payment = await getForUser(id, user.current.chain);
+          const payment = await getForPayable(id, chain);
           if (payment) payments.push(payment);
           else return null;
         } else return null;
-        fetched++;
       }
       return payments;
     } catch (e) {
@@ -291,5 +294,12 @@ export const usePaymentStore = defineStore('payment', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { exec, get, getForPayable, getForUser, getManyForPayable, mines };
+  return {
+    exec,
+    get,
+    getForPayable,
+    getForUser,
+    getManyForCurrentUser,
+    getManyForPayable,
+  };
 });

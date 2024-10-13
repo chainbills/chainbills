@@ -4,6 +4,7 @@ import TransactionsTable from '@/components/TransactionsTable.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { type Receipt } from '@/schemas';
 import {
+  usePaginatorsStore,
   usePaymentStore,
   useUserStore,
   useWalletStore,
@@ -12,38 +13,65 @@ import {
 import Button from 'primevue/button';
 import TabPanel from 'primevue/tabpanel';
 import TabView from 'primevue/tabview';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const activeCat = ref(0);
 const categories = ['Payments', 'Withdrawals'];
 const countFields = ['payerCount', 'hostCount'];
+const currentTablePage = ref(0);
 const isLoading = ref(true);
-const mines = ref<Receipt[] | null>(null);
+const paginators = usePaginatorsStore();
 const payments = usePaymentStore();
+const transactions = ref<Receipt[] | null>(null);
 const user = useUserStore();
 const wallet = useWalletStore();
 const withdrawals = useWithdrawalStore();
 
-const getMines = async () => {
+const totalCount = computed(() => {
+  if (!user.current) return 0;
+  return activeCat.value == 0
+    ? user.current.paymentsCount
+    : user.current.withdrawalsCount;
+});
+
+const getTransactions = async () => {
   isLoading.value = true;
-  mines.value = await (activeCat.value == 0 ? payments : withdrawals).mines();
+  transactions.value = await (
+    activeCat.value == 0 ? payments : withdrawals
+  ).getManyForCurrentUser(currentTablePage.value, paginators.rowsPerPage);
   isLoading.value = false;
 };
 
+const resetTablePage = () => {
+  if (!user.current) return (currentTablePage.value = 0);
+  currentTablePage.value = paginators.getLastPage(
+    user.current[activeCat.value == 0 ? 'paymentsCount' : 'withdrawalsCount']
+  );
+};
+
+const updateTablePage = (page: number) => {
+  if (currentTablePage.value == page) return;
+  currentTablePage.value = page;
+  getTransactions();
+};
+
 onMounted(async () => {
-  if (user.current) await getMines();
+  if (user.current) await getTransactions();
   watch(
     () => user.current,
     async (currentUser) => {
-      if (currentUser) await getMines();
-      else mines.value = null;
+      if (currentUser) {
+        resetTablePage();
+        await getTransactions();
+      } else transactions.value = null;
     }
   );
   watch(
     () => activeCat.value,
     (_) => {
       if (!user.current) return;
-      getMines();
+      resetTablePage();
+      getTransactions();
     }
   );
 });
@@ -77,18 +105,18 @@ onMounted(async () => {
       <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
     </template>
 
-    <template v-else-if="!mines">
+    <template v-else-if="!transactions">
       <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
       <p class="mx-auto w-fit">
         <Button
           class="bg-primary text-white dark:text-black text-xl px-6 py-2"
-          @click="getMines"
+          @click="getTransactions"
           >Retry</Button
         >
       </p>
     </template>
 
-    <template v-else-if="mines.length == 0">
+    <template v-else-if="transactions.length == 0">
       <p class="text-lg text-center max-w-sm mx-auto mb-4 pt-8">
         Welcome to Chainbills
       </p>
@@ -108,8 +136,11 @@ onMounted(async () => {
 
     <template v-else>
       <TransactionsTable
-        :receipts="mines"
-        :count-field="countFields[activeCat]"
+        :countField="countFields[activeCat]"
+        :currentPage="currentTablePage"
+        :receipts="transactions"
+        :totalCount="totalCount"
+        @updateTablePage="updateTablePage"
       />
     </template>
   </div>

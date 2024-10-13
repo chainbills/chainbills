@@ -2,18 +2,26 @@
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import { type Receipt } from '@/schemas';
-import { useTimeStore } from '@/stores';
+import { usePaginatorsStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
-import DataTable from 'primevue/datatable';
+import DataTable, { type DataTableSortMeta } from 'primevue/datatable';
 import { useToast } from 'primevue/usetoast';
+import { computed, ref } from 'vue';
 
-const { countField, hidePayable, receipts } = defineProps<{
-  countField: string;
-  hidePayable?: boolean;
-  receipts: Receipt[];
-}>();
+const { countField, currentPage, hidePayable, receipts, totalCount } =
+  defineProps<{
+    countField: string;
+    currentPage: number;
+    hidePayable?: boolean;
+    receipts: Receipt[];
+    totalCount: number;
+  }>();
 
+const multiSortMeta = ref<DataTableSortMeta[]>([
+  { field: countField, order: -1 },
+]);
+const paginators = usePaginatorsStore();
 const toast = useToast();
 const time = useTimeStore();
 
@@ -27,21 +35,59 @@ const copy = (text: string, context: string) => {
   });
 };
 
+function multiFieldSort(a: any, b: any) {
+  if (multiSortMeta.value.length == 0) return 0;
+
+  for (const sorter of multiSortMeta.value) {
+    const aValue = a[sorter.field as keyof typeof a];
+    const bValue = b[sorter.field as keyof typeof b];
+
+    let comparison = 0;
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      comparison = aValue.localeCompare(bValue);
+    } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+      comparison = aValue - bValue;
+    } 
+
+
+    if (comparison !== 0) {
+      return sorter.order === 1 ? comparison : -comparison;
+    }
+  }
+
+  return 0;
+}
+
 const shorten = (v: string) =>
   `${v.substring(0, 5)}...${v.substring(v.length - 5)}`;
+
+const sortedReceipts = computed(() => receipts.sort(multiFieldSort));
 </script>
 
 <template>
   <DataTable
-    :value="receipts"
+    :currentPage="currentPage"
+    currentPageReportTemplate="{first} to {last} of {totalRecords}"
+    :first="paginators.rowsPerPage * currentPage"
+    :lazy="true"
     :paginator="true"
-    :rows="10"
-    :rowsPerPageOptions="[10, 25, 50, 100]"
+    paginatorTemplate="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+    :rows="paginators.rowsPerPage"
+    :rowsPerPageOptions="paginators.rowsPerPageOptions"
+    :resizableColumns="true"
+    removableSort
+    sortMode="multiple"
     showGridlines
     stripedRows
-    sortMode="multiple"
-    removableSort
-    :multiSortMeta="[{ field: countField, order: -1 }]"
+    :totalRecords="totalCount"
+    :value="sortedReceipts"
+    v-model:multiSortMeta="multiSortMeta"
+    @page="
+      (e) => {
+        paginators.setRowsPerPage(e.rows);
+        $emit('updateTablePage', e.page);
+      }
+    "
   >
     <Column :field="countField" sortable>
       <template #header>
@@ -50,7 +96,7 @@ const shorten = (v: string) =>
     </Column>
     <Column field="timestamp" header="Timestamp" sortable>
       <template #body="{ data }">
-        {{ time.display(data.timestamp) }}
+        <span class="text-nowrap">{{ time.display(data.timestamp) }}</span>
       </template>
     </Column>
     <Column field="details" header="Details">
@@ -61,7 +107,7 @@ const shorten = (v: string) =>
             class="w-6 h-6"
             aria-hidden="true"
           />
-          <span class="font-medium text-lg">
+          <span class="font-medium text-lg text-nowrap">
             {{ data.displayDetails() }}
           </span>
         </p>

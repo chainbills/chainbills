@@ -119,25 +119,26 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     return withdrawal;
   };
 
-  const getManyForPayable = async (
-    payable: Payable
+  const getManyForCurrentUser = async (
+    page: number,
+    count: number
   ): Promise<Withdrawal[] | null> => {
-    const { withdrawalsCount: count, chain } = payable;
+    if (!user.current) return null;
+    const { withdrawalsCount: totalCount } = user.current;
     if (count === 0) return [];
 
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
       const withdrawals: Withdrawal[] = [];
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
-        const id = await payableStore.getWithdrawalId(payable.id, chain, i);
+      for (let i = start; i >= target; i--) {
+        const id = await user.getWithdrawalId(i);
         if (id) {
-          const withdrawal = await get(id, chain);
+          const withdrawal = await get(id, user.current.chain);
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;
-        fetched++;
       }
       return withdrawals;
     } catch (e) {
@@ -147,25 +148,26 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     }
   };
 
-  const mines = async (): Promise<Withdrawal[] | null> => {
-    if (!user.current) return null;
-    const { withdrawalsCount: count } = user.current;
+  const getManyForPayable = async (
+    payable: Payable,
+    page: number,
+    count: number
+  ): Promise<Withdrawal[] | null> => {
+    const { withdrawalsCount: totalCount, chain } = payable;
     if (count === 0) return [];
 
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
       const withdrawals: Withdrawal[] = [];
-
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
-        const id = await user.getWithdrawalId(i);
+      for (let i = start; i >= target; i--) {
+        const id = await payableStore.getWithdrawalId(payable.id, chain, i);
         if (id) {
-          const withdrawal = await get(id, user.current.chain);
+          const withdrawal = await get(id, chain);
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;
-        fetched++;
       }
       return withdrawals;
     } catch (e) {
@@ -178,5 +180,5 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { exec, get, getManyForPayable, mines };
+  return { exec, get, getManyForCurrentUser, getManyForPayable };
 });

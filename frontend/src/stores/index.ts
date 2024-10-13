@@ -5,6 +5,7 @@ export * from './chain';
 export * from './cosmwasm';
 export * from './evm';
 export * from './notifications';
+export * from './paginators';
 export * from './payable';
 export * from './payment';
 export * from './server';

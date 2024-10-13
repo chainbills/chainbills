@@ -4,6 +4,7 @@ import TransactionsTable from '@/components/TransactionsTable.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable, type Receipt, TokenAndAmount } from '@/schemas';
 import {
+  usePaginatorsStore,
   usePayableStore,
   usePaymentStore,
   useTimeStore,
@@ -15,13 +16,15 @@ import Button from 'primevue/button';
 import TabPanel from 'primevue/tabpanel';
 import TabView from 'primevue/tabview';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 const activeCat = ref(0);
 const categories = ['Payments', 'Withdrawals'];
+const currentTablePage = ref(0);
 const isLoadingActivities = ref(true);
 const transactions = ref<Receipt[] | null>(null);
+const paginators = usePaginatorsStore();
 const route = useRoute();
 const payable = ref(route.meta.details as Payable);
 const time = useTimeStore();
@@ -33,6 +36,12 @@ const payableStore = usePayableStore();
 const wallet = useWalletStore();
 const { address } = storeToRefs(wallet);
 const withdrawals = useWithdrawalStore();
+
+const totalActivitiesCount = computed(() => {
+  return activeCat.value == 0
+    ? payable.value.paymentsCount
+    : payable.value.withdrawalsCount;
+});
 
 const nth = (n: number) => {
   if (n > 3 && n < 21) return 'th';
@@ -105,8 +114,24 @@ const getTransactions = async () => {
   isLoadingActivities.value = true;
   transactions.value = await (
     activeCat.value == 0 ? payments : withdrawals
-  ).getManyForPayable(payable.value);
+  ).getManyForPayable(
+    payable.value,
+    currentTablePage.value,
+    paginators.rowsPerPage
+  );
   isLoadingActivities.value = false;
+};
+
+const resetTablePage = () => {
+  currentTablePage.value = paginators.getLastPage(
+    payable.value[activeCat.value == 0 ? 'paymentsCount' : 'withdrawalsCount']
+  );
+};
+
+const updateTablePage = (page: number) => {
+  if (currentTablePage.value == page) return;
+  currentTablePage.value = page;
+  getTransactions();
 };
 
 const withdraw = async (balance: TokenAndAmount) => {
@@ -148,10 +173,12 @@ onMounted(() => {
           ? val?.toLowerCase()
           : val) == payable.value.host)
   );
+  resetTablePage();
   getTransactions();
   watch(
     () => activeCat.value,
     (_) => {
+      resetTablePage();
       getTransactions();
     }
   );
@@ -342,9 +369,12 @@ onMounted(() => {
 
       <template v-else>
         <TransactionsTable
+          countField="payableCount"
+          :hidePayable="true"
+          :currentPage="currentTablePage"
           :receipts="transactions"
-          count-field="payableCount"
-          :hide-payable="true"
+          :totalCount="totalActivitiesCount"
+          @updateTablePage="updateTablePage"
         />
       </template>
     </template>

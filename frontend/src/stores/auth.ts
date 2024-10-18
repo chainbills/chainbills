@@ -19,6 +19,12 @@ export const useAuthStore = defineStore('auth', () => {
     } else if (getSaved()) {
       signature.value = getSaved();
     } else {
+      if (chain.current == 'Burnt Xion') {
+        // TODO: Implement signing for Burnt Xion
+        signature.value = null;
+        return;
+      }
+
       const signed = await wallet.sign(AUTH_MESSAGE);
       if (signed) localStorage.setItem(key(), signed);
       else await wallet.disconnect();

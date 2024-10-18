@@ -16,7 +16,7 @@ export const useServerStore = defineStore('server', () => {
   const call = async (path: string, body?: any): Promise<any> => {
     return new Promise(async (resolve, _) => {
       // TODO: Change wh-network to Mainnet when needed
-      const headers: any = { 'wh-network': 'Testnet' }; 
+      const headers: any = { 'wh-network': 'Testnet' };
       if (chain.currentId) headers['chain-id'] = chain.currentId;
       if (wallet.address) headers['wallet-address'] = wallet.address;
       if (auth.signature) headers['signature'] = auth.signature;
@@ -62,10 +62,9 @@ export const useServerStore = defineStore('server', () => {
 
   const createPayable = async (
     payableId: string,
-    email: string,
     description: string
   ): Promise<boolean> => {
-    return await call('/payable', { payableId, email, description });
+    return await call('/payable', { payableId, description });
   };
 
   const getPayable = async (
@@ -75,14 +74,7 @@ export const useServerStore = defineStore('server', () => {
   };
 
   const payablePaid = async (paymentId: string): Promise<boolean> => {
-    return await call('/payment/payable', { paymentId });
-  };
-
-  const relay = async (
-    txHash: string,
-    functionName: string
-  ): Promise<boolean> => {
-    return await call('/relay', { txHash, functionName });
+    return await call(`/payment/payable/${paymentId}`);
   };
 
   const saveNotificationToken = async (fcmToken: string): Promise<boolean> => {
@@ -92,22 +84,18 @@ export const useServerStore = defineStore('server', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  const userPaid = async (
-    paymentId: string,
-    email: string
-  ): Promise<boolean> => {
-    return await call('/payment/user', { paymentId, email });
+  const userPaid = async (paymentId: string): Promise<boolean> => {
+    return await call(`/payment/user/${paymentId}`);
   };
 
   const withdrew = async (withdrawalId: string): Promise<boolean> => {
-    return await call('/withdrawal', { withdrawalId });
+    return await call(`/withdrawal/${withdrawalId}`);
   };
 
   return {
     createPayable,
     getPayable,
     payablePaid,
-    relay,
     saveNotificationToken,
     userPaid,
     withdrew,

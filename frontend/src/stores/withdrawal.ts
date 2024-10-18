@@ -1,6 +1,7 @@
 import { TokenAndAmount, Withdrawal } from '@/schemas';
 import {
   useChainStore,
+  useCosmwasmStore,
   useEvmStore,
   useServerStore,
   useSolanaStore,
@@ -13,6 +14,7 @@ import { useToast } from 'primevue/usetoast';
 
 export const useWithdrawalStore = defineStore('withdrawal', () => {
   const chain = useChainStore();
+  const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const server = useServerStore();
   const solana = useSolanaStore();
@@ -27,8 +29,11 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     if (!wallet.connected || !chain.current) return null;
 
     try {
-      const method = chain.current == 'Solana' ? solana.withdraw : evm.withdraw;
-      const result = await method(payableId, details);
+      const result = await {
+        'Burnt Xion': cosmwasm,
+        'Ethereum Sepolia': evm,
+        Solana: solana,
+      }[chain.current]['withdraw'](payableId, details);
       if (!result) return null;
       await user.refresh();
 
@@ -53,10 +58,12 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
   const get = async (id: string, chain: Chain): Promise<Withdrawal | null> => {
     try {
-      const raw =
-        chain == 'Solana'
-          ? await solana.fetchEntity('withdrawal', id)
-          : await evm.fetchWithdrawal(id);
+      let raw: any;
+      if (chain == 'Solana') raw = await solana.fetchEntity('withdrawal', id);
+      else if (chain == 'Ethereum Sepolia') raw = await evm.fetchWithdrawal(id);
+      else if (chain == 'Burnt Xion')
+        raw = await cosmwasm.fetchEntity('withdrawal', id);
+      else throw `Unknown chain: ${chain}`;
       if (raw) return new Withdrawal(id, chain, raw);
     } catch (e) {
       console.error(e);

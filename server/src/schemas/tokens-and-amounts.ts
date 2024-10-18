@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { Chain, CONTRACT_ADDRESS, PROGRAM_ID } from '../utils';
+import { Chain, PROGRAM_ID, SEPOLIA_CONTRACT_ADDRESS } from '../utils';
 
 export interface TokenChainDetails {
   address: string;
@@ -46,6 +46,8 @@ export class TokenAndAmount {
         token = (token as unknown as PublicKey).toBase58();
       }
       found = tokens.find((t) => t.details.Solana?.address == token);
+    } else if (chain == 'Burnt Xion') {
+      found = tokens.find((t) => t.details['Burnt Xion']?.address == token);
     } else throw `Unknown Chain: ${chain}`;
 
     if (!found) throw `Couldn't find token details for ${token}`;
@@ -68,6 +70,11 @@ export const tokens: Token[] = [
       'Ethereum Sepolia': {
         address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
         decimals: 6
+      },
+      'Burnt Xion': {
+        address:
+          'ibc/57097251ED81A232CE3C9D899E7C8096D6D87EF84BA203E12E424AA4C9B57A64',
+        decimals: 6
       }
     }
   },
@@ -75,7 +82,7 @@ export const tokens: Token[] = [
     name: 'ETH',
     details: {
       'Ethereum Sepolia': {
-        address: CONTRACT_ADDRESS,
+        address: SEPOLIA_CONTRACT_ADDRESS,
         decimals: 18
       }
     }
@@ -86,6 +93,15 @@ export const tokens: Token[] = [
       Solana: {
         address: PROGRAM_ID,
         decimals: 9
+      }
+    }
+  },
+  {
+    name: 'XION',
+    details: {
+      'Burnt Xion': {
+        address: 'uxion',
+        decimals: 6
       }
     }
   }

@@ -1,4 +1,9 @@
-import { ChainId, Network, UniversalAddress } from '@wormhole-foundation/sdk';
+import {
+  ChainId,
+  encoding,
+  Network,
+  UniversalAddress
+} from '@wormhole-foundation/sdk';
 import { Timestamp } from 'firebase-admin/firestore';
 import { Chain, denormalizeBytes, getChain, getChainId } from '../utils';
 import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
@@ -6,7 +11,7 @@ import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
 export class PayablePayment {
   id: string;
   chain: Chain;
-  chainId: ChainId;
+  chainId: ChainId | 50;
   network: Network;
   payableId: string;
   payableCount: number;
@@ -24,7 +29,13 @@ export class PayablePayment {
     this.network = network;
     this.payerChain = getChain(onChainData.payerChainId);
 
-    if (chain == 'Ethereum Sepolia') {
+    if (chain == 'Burnt Xion') {
+      this.payableId = encoding.hex.encode(
+        Uint8Array.from(onChainData.payableId),
+        false
+      );
+      this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
+    } else if (chain == 'Ethereum Sepolia') {
       this.payableId = onChainData.payableId.toLowerCase();
 
       if (this.payerChain == 'Ethereum Sepolia') {
@@ -32,7 +43,7 @@ export class PayablePayment {
           .toNative('Sepolia')
           .address.toLowerCase();
       } else if (this.payerChain == 'Solana') {
-        this.payer = denormalizeBytes(onChainData.payer, 'Solana');
+        this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
       } else throw `Unknown payerChain: ${this.payerChain}`;
     } else if (chain == 'Solana') {
       this.payableId = onChainData.payableId.toBase58();

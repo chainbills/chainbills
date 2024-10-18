@@ -1,5 +1,6 @@
 import { TokenAndAmount, type Payment } from '@/schemas';
 import { denormalizeBytes, getChain, type Chain } from '@/stores';
+import { encoding } from '@wormhole-foundation/sdk';
 
 export class UserPayment implements Payment {
   id: string;
@@ -19,20 +20,26 @@ export class UserPayment implements Payment {
     this.chainCount = Number(onChainData.chainCount);
     this.payableChain = getChain(onChainData.payableChainId);
 
-    if (chain == 'Ethereum Sepolia') {
+    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
       this.payer = onChainData.payer.toLowerCase();
 
       if (this.payableChain == 'Ethereum Sepolia') {
         this.payableId = onChainData.payableId.toLowerCase();
+      } else if (this.payableChain == 'Burnt Xion') {
+        this.payableId = encoding.hex.encode(
+          Uint8Array.from(onChainData.payableId),
+          false
+        );
       } else if (this.payableChain == 'Solana') {
         this.payableId = denormalizeBytes(onChainData.payableId, 'Solana');
       } else throw `Unknown payableChain: ${this.payableChain}`;
     } else if (chain == 'Solana') {
       this.payer = onChainData.payer.toBase58();
-        this.payableId = denormalizeBytes(
-          onChainData.payableId,
-          this.payableChain
-        );
+      // TODO: Review this denormalization if destination chain is Burnt Xion
+      this.payableId = denormalizeBytes(
+        onChainData.payableId,
+        this.payableChain
+      );
     } else throw `Unknown chain: ${chain}`;
 
     this.payerCount = Number(onChainData.payerCount);

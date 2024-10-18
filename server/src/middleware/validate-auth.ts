@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import {
   evmVerify,
   solanaVerify,
+  WH_CHAIN_ID_BURNT_XION,
   WH_CHAIN_ID_ETH_SEPOLIA,
   WH_CHAIN_ID_SOLANA
 } from '../utils';
@@ -19,19 +20,28 @@ export const validateAuth = async (
 
     if (!walletAddress || typeof walletAddress != 'string') {
       throw 'Provide wallet-address in headers';
-    } else if (!signature || typeof signature != 'string') {
-      throw 'Provide signature in headers';
     }
 
-    const verify = chainId == WH_CHAIN_ID_SOLANA ? solanaVerify : evmVerify;
-    const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
-    if (!isVerified) throw 'Unauthorized. Signature and Address Not Matching.';
+    // TODO: Remove this after Burnt Xion sign and verify
+    if (chainId == WH_CHAIN_ID_BURNT_XION) {
+      res.locals.walletAddress = walletAddress.toLowerCase();
+      next();
+    } else {
+      if (!signature || typeof signature != 'string') {
+        throw 'Provide signature in headers';
+      }
 
-    res.locals.walletAddress =
-      chainId == WH_CHAIN_ID_ETH_SEPOLIA
-        ? walletAddress.toLowerCase()
-        : walletAddress;
-    next();
+      const verify = chainId == WH_CHAIN_ID_SOLANA ? solanaVerify : evmVerify;
+      const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
+      if (!isVerified)
+        throw 'Unauthorized. Signature and Address Not Matching.';
+
+      res.locals.walletAddress =
+        chainId == WH_CHAIN_ID_ETH_SEPOLIA
+          ? walletAddress.toLowerCase()
+          : walletAddress;
+      next();
+    }
   } catch (e: any) {
     console.error('Error at validating auth ... ');
     console.error(e);

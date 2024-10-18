@@ -5,17 +5,11 @@ import {
   type Payable,
   type Payment,
 } from '@/schemas';
-import {
-  denormalizeBytes,
-  useChainStore,
-  useTimeStore,
-  useWalletStore,
-} from '@/stores';
+import { useTimeStore, useWalletStore } from '@/stores';
 import Button from 'primevue/button';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
-const chain = useChainStore();
 const route = useRoute();
 const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
@@ -29,11 +23,7 @@ const payableChain =
   payment instanceof PayablePayment
     ? payment.chain
     : (payment as UserPayment).payableChain;
-const isMine = computed(
-  () =>
-    wallet.whAddress &&
-    denormalizeBytes(wallet.whAddress, chain.current!) == payableDetails.host
-);
+const isMine = computed(() => wallet.address == payableDetails.host);
 const payableRoute = computed(
   () => `/${isMine ? 'payable' : 'pay'}/${payment.payableId}`
 );

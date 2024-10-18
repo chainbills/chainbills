@@ -77,6 +77,12 @@ const router = createRouter({
       meta: { title: `My Activity | ${baseTitle}` },
     },
     {
+      path: '/stats',
+      name: 'stats',
+      component: () => import('../views/StatsView.vue'),
+      meta: { title: `Stats | ${baseTitle}` },
+    },
+    {
       path: '/payable/:id',
       name: 'payable',
       component: () => import('../views/PayableView.vue'),
@@ -110,7 +116,7 @@ const router = createRouter({
       name: 'slidedeck',
       redirect: (to) => {
         window.location.replace(
-          'https://docs.google.com/presentation/d/1QAAfjjkM5ob5ziftZE-bpjUHTT5lWYR7',
+          'https://docs.google.com/presentation/d/1QAAfjjkM5ob5ziftZE-bpjUHTT5lWYR7'
         );
         return to;
       },

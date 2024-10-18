@@ -44,6 +44,12 @@ export const useWalletStore = defineStore('wallet', () => {
     return true;
   };
 
+  /**
+   * Fetches and Returns the UI-formatted balance of a token based on the 
+   * current chain. 
+   * @param token The token to fetch its balance
+   * @returns The UI formatted balance of the token 
+   */
   const balance = async (token: Token): Promise<number | null> => {
     if (!connected.value) return null;
     return await {

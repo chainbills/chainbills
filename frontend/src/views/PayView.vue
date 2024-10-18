@@ -7,7 +7,7 @@ import {
   tokens,
   type Token,
 } from '@/schemas/tokens-and-amounts';
-import { useChainStore } from '@/stores/chain';
+import { useChainStore, type Chain } from '@/stores/chain';
 import { usePaymentStore } from '@/stores/payment';
 import { useWalletStore } from '@/stores/wallet';
 import Button from 'primevue/button';
@@ -30,15 +30,23 @@ const payable = route.meta.details as Payable;
 const { allowedTokensAndAmounts } = payable;
 const allowsFreePayments = allowedTokensAndAmounts.length == 0;
 const router = useRouter();
-const selectedConfig = ref<TokenAndAmount>();
-const selectedToken = ref<Token>();
+const selectedConfig = ref<TokenAndAmount | null>(null);
+const selectedToken = ref<Token | null>(null);
 const wallet = useWalletStore();
 
 const selectToken = (token: Token) => {
+  // Obtaining a Choice Chain first is good when no wallet is connected
+  // and the User is interacting with the dropdown of tokens.
+  let choiceChain = chain.current ?? payable.chain;
+  // If the token the user selected has no details in the choice chain,
+  // we default to the first chain that has details for the token.
+  if (!token.details[choiceChain]) {
+    choiceChain = Object.keys(token.details)[0] as Chain;
+  }
+
   selectedConfig.value = new TokenAndAmount(
     token,
-    // TODO: Review the choice chain when cross-chain is enabled
-    amount.value * 10 ** token.details[payable.chain]!.decimals
+    amount.value * 10 ** token.details[choiceChain]!.decimals
   );
 };
 
@@ -65,14 +73,10 @@ const validateBalance = async () => {
   if (selectedConfig.value) {
     const { name } = selectedConfig.value;
     const amt = selectedConfig.value.format(chain.current!);
-    const balance = await wallet.balance(selectedConfig.value.token());
-    if (balance === null) balanceError.value = '';
-    else if (amt && balance < amt) {
-      balanceError.value =
-        balance === 0
-          ? `You have no ${name} and can't pay.`
-          : `You have only ${balance} ${name} and it is less than ` +
-            `the required ${amt} ${name}.`;
+    const bal = await wallet.balance(selectedConfig.value.token());
+    if (bal === null) balanceError.value = '';
+    else if (amt && bal < amt) {
+      balanceError.value = `Insufficient Funds. You have ${bal === 0 ? 'no' : bal} ${name}.`;
     } else balanceError.value = '';
   }
 };
@@ -114,6 +118,15 @@ onMounted(() => {
     }
   );
   watch(() => wallet.connected, validateBalance);
+  watch(
+    () => chain.current,
+    (_) => {
+      selectedConfig.value = null;
+      selectedToken.value = null;
+      configError.value = '';
+      balanceError.value = '';
+    }
+  );
 
   if (!allowsFreePayments && allowedTokensAndAmounts.length == 1) {
     selectedConfig.value = allowedTokensAndAmounts[0];
@@ -230,10 +243,9 @@ onMounted(() => {
               class="mb-4"
             >
               You are paying
-              <!-- TODO: Review whether to use the payable's chain for 
-           formatting tokenAndAmount display especially when swaps start -->
-              <span class="font-bold text-2xl">{{
-                selectedConfig.display(payable.chain)
+              <!-- TODO: Review Current Chain Usage -->
+              <span class="font-bold text-2xl" v-if="chain.current">{{
+                selectedConfig.display(chain.current)
               }}</span>
             </p>
 

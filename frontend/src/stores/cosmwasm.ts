@@ -3,13 +3,15 @@ import {
   TokenAndAmount,
   User,
   XION_CONTRACT_ADDRESS,
+  XION_USDC_ADDRESS,
   type Token,
 } from '@/schemas';
+import { ChainStats } from '@/schemas/chain-stats';
 import {
   AbstraxionAuth,
   GranteeSignerClient,
 } from '@burnt-labs/abstraxion-core';
-import { type Coin } from '@cosmjs/amino';
+import { type Coin } from '@cosmjs/stargate';
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -17,18 +19,26 @@ import { onMounted, ref } from 'vue';
 
 const abstraxion = new AbstraxionAuth();
 
+const XION_RPC_URL = 'https://rpc.xion-testnet-1.burnt.com:443';
+
 export const initXion = async () => {
   abstraxion.configureAbstraxionInstance(
-    'https://testnet-rpc.xion-api.com:443',
+    XION_RPC_URL,
     undefined,
     [
       {
         address: XION_CONTRACT_ADDRESS,
-        amounts: [{ denom: 'uxion', amount: '1000000' }],
+        amounts: [
+          { denom: XION_USDC_ADDRESS, amount: '1000000000000000000' },
+          { denom: 'uxion', amount: '1000000000000000000' },
+        ],
       },
     ],
-    true,
-    [{ denom: 'uxion', amount: '1000000' }]
+    false,
+    [
+      { denom: XION_USDC_ADDRESS, amount: '1000000000000000000' },
+      { denom: 'uxion', amount: '1000000000000000000' },
+    ]
   );
   await abstraxion.authenticate();
   const searchParams = new URLSearchParams(window.location.search);
@@ -37,20 +47,40 @@ export const initXion = async () => {
   if (isGranted && granter) await abstraxion.login();
 };
 
+// TODO: Add New XION Tokens when adding them in tokens-and-amounts.ts
+const isNativeToken: Record<any, boolean> = {
+  [XION_USDC_ADDRESS]: true,
+  uxion: true,
+};
+
 export const useCosmwasmStore = defineStore('cosmwasm', () => {
   const address = ref<string | null>(null);
   const client = ref<GranteeSignerClient | null>(null);
   const isLoggedIn = ref(false);
   const toast = useToast();
 
+  /** Returns UI-Formatted balance (Accounts for Decimals) */
   const balance = async (token: Token): Promise<number | null> => {
-    if (!address.value) return null;
+    if (!address.value || !client.value) return null;
     if (!token.details['Burnt Xion']) return null;
-    for (const { amount, denom } of abstraxion.bank ?? []) {
-      if (denom == token.details['Burnt Xion'].address) return Number(amount);
+    const { address: tokenAddr, decimals } = token.details['Burnt Xion'];
+    try {
+      const fetched = isNativeToken[tokenAddr]
+        ? await client.value.getBalance(address.value, tokenAddr)
+        : await client.value.queryContractSmart(tokenAddr, {
+            balance: { address: address.value },
+          });
+      return Number(fetched.amount) / 10 ** (decimals ?? 0);
+    } catch (e) {
+      toastError(`Couldn't fetch ${token.name} balance: ${e}`);
+      return null;
     }
-    // TODO: Account for CW20 token balances
-    return 0;
+  };
+
+  const chainStats = async (): Promise<ChainStats | null> => {
+    const fetched = recursiveToCamel(await query({ chain_stats: {} })) as any;
+    if (fetched) return new ChainStats('Burnt Xion', fetched);
+    return null;
   };
 
   const createPayable = async (
@@ -185,7 +215,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
   const query = async (msg: Record<string, unknown>) => {
     try {
       return await (
-        await CosmWasmClient.connect('https://rpc.xion-testnet-1.burnt.com:443')
+        await CosmWasmClient.connect(XION_RPC_URL)
       ).queryContractSmart(XION_CONTRACT_ADDRESS, msg);
     } catch (e) {
       console.error(e);
@@ -266,6 +296,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
   return {
     address,
     balance,
+    chainStats,
     createPayable,
     fetchEntity,
     getCurrentUser,

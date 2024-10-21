@@ -131,6 +131,16 @@ onMounted(() => {
   if (!allowsFreePayments && allowedTokensAndAmounts.length == 1) {
     selectedConfig.value = allowedTokensAndAmounts[0];
   }
+
+  if (allowsFreePayments) {
+    setTimeout(() => {
+      (
+        document.querySelector('input.amount[type=number]') as HTMLInputElement
+      ).addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+      });
+    });
+  }
 });
 </script>
 
@@ -169,11 +179,10 @@ onMounted(() => {
             <div class="flex items-center mb-4">
               <div class="w-36 flex flex-col mr-4">
                 <input
-                  class="pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+                  class="amount pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
                   v-model="amount"
                   required
                   :min="0"
-                  :step="10 ** (-1 * 18)"
                   type="number"
                   aria-label="Amount"
                 />

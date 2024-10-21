@@ -42,13 +42,18 @@ const removeToken = (index: number) => {
 };
 
 const chooseToken = (token: any) => {
+  amounts.value.push(ref(undefined));
+  amountErrors.value.push(ref('Required'));
+  displayedConfig.value = [];
   selectedTokens.value = [...selectedTokens.value, token];
+
   // wrapping in set time out to allow the other listeners to finish
   setTimeout(() => {
-    // undefined is to keep the placeholder (Amount) in the input field
-    amounts.value.push(ref(undefined));
-    amountErrors.value.push(ref('Required'));
-    displayedConfig.value = [];
+    document.querySelectorAll('input.amount[type=number]').forEach((el) => {
+      (el as HTMLInputElement).addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+      });
+    });
   });
 };
 
@@ -71,17 +76,29 @@ const updateDisplayedConfig = () => {
 };
 
 const validateAmount = (v: any) => {
-  if (Number.isNaN(v) || +v == 0) return 'Required';
+  if (typeof v !== 'number' || +v == 0) return 'Required';
   else if (v <= 0) return 'Should be positive';
   else return '';
 };
 
 const validateConfig = () => {
-  configError.value =
-    !allowsFreePayments.value && selectedTokens.value.length == 0
-      ? 'Either allow free payments OR specify at least one allowed ' +
-        'token and its amount.'
-      : '';
+  if (!allowsFreePayments.value && selectedTokens.value.length == 0) {
+    configError.value =
+      'Either allow free payments OR specify at least one allowed ' +
+      'token and its amount.';
+  } else {
+    const tempConfig = selectedTokens.value.map(({ name }, i) =>
+      JSON.stringify({
+        token: name,
+        amount: amounts.value[i].value,
+      })
+    );
+    if (new Set(tempConfig).size != tempConfig.length) {
+      configError.value = 'Remove duplicate tokens and amounts.';
+    } else {
+      configError.value = '';
+    }
+  }
 };
 
 const validateDescription = () => {
@@ -132,6 +149,7 @@ onMounted(() => {
   watch(() => description.value, validateDescription);
   watch(() => allowsFreePayments.value, reviewConfig);
   watch(() => selectedTokens.value, reviewConfig);
+  watch(() => amounts.value, reviewConfig, { deep: true });
 });
 </script>
 
@@ -214,12 +232,11 @@ onMounted(() => {
           >
             <div class="w-36 flex flex-col mr-4">
               <input
-                class="pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+                class="amount pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
                 placeholder="Amount"
                 v-model="amounts[i].value"
                 required
                 :min="0"
-                :step="10 ** (-1 * 18)"
                 type="number"
                 @input="
                   () => {
@@ -242,13 +259,8 @@ onMounted(() => {
             </Button>
           </label>
           <Dropdown
-            :options="
-              availableTokens.filter(
-                (t) => !selectedTokens.find((st) => st.name == t.name)
-              )
-            "
+            :options="availableTokens"
             optionLabel="name"
-            v-if="availableTokens.length > selectedTokens.length"
             @change="(e) => chooseToken(e.value)"
             placeholder="Select a Token"
             class="mb-2"
@@ -258,32 +270,34 @@ onMounted(() => {
           configError
         }}</small>
 
-        <p v-if="allowsFreePayments" class="text-xl mb-2 md:max-w-xs">
-          This payable will accept payments of any amounts in any token.
-        </p>
-        <p v-else-if="displayedConfig.length == 1" class="md:max-w-xs">
-          This payable will accept
-          <span class="font-bold text-2xl"
-            >{{ displayedConfig[0].amount }}&nbsp;{{
-              displayedConfig[0].name
-            }}</span
-          >
-        </p>
-        <div class="pt-4" v-else-if="displayedConfig.length > 1">
-          <p class="mb-2 text-lg md:max-w-xs">
-            This payable will accept <span class="font-bold">any</span> of the
-            following
+        <template v-if="!configError">
+          <p v-if="allowsFreePayments" class="text-xl mb-2 md:max-w-xs">
+            This payable will accept payments of any amounts in any token.
           </p>
-          <div class="flex gap-4 flex-wrap">
-            <span
-              v-for="config of displayedConfig"
-              class="border rounded-md px-3 py-2 font-medium text-xl"
-              style="border-color: var(--shadow)"
+          <p v-else-if="displayedConfig.length == 1" class="md:max-w-xs">
+            This payable will accept
+            <span class="font-bold text-2xl"
+              >{{ displayedConfig[0].amount }}&nbsp;{{
+                displayedConfig[0].name
+              }}</span
             >
-              {{ config.amount }}&nbsp;{{ config.name }}
-            </span>
+          </p>
+          <div class="pt-4" v-else-if="displayedConfig.length > 1">
+            <p class="mb-2 text-lg md:max-w-xs">
+              This payable will accept <span class="font-bold">any</span> of the
+              following
+            </p>
+            <div class="flex gap-4 flex-wrap">
+              <span
+                v-for="config of displayedConfig"
+                class="border rounded-md px-3 py-2 font-medium text-xl"
+                style="border-color: var(--shadow)"
+              >
+                {{ config.amount }}&nbsp;{{ config.name }}
+              </span>
+            </div>
           </div>
-        </div>
+        </template>
 
         <p class="mt-12 text-right">
           <Button

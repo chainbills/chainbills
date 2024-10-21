@@ -167,11 +167,14 @@ const withdraw = async (balance: TokenAndAmount) => {
 onMounted(() => {
   watch(
     () => wallet.address,
-    (val) =>
-      (isMine.value =
+    (val) => {
+      isMine.value =
         (payable.value.chain == 'Ethereum Sepolia'
           ? val?.toLowerCase()
-          : val) == payable.value.host)
+          : val) == payable.value.host;
+      resetTablePage();
+      getTransactions();
+    }
   );
   resetTablePage();
   getTransactions();
@@ -370,10 +373,12 @@ onMounted(() => {
       <template v-else>
         <TransactionsTable
           countField="payableCount"
-          :hidePayable="true"
           :currentPage="currentTablePage"
+          :hidePayable="true"
+          :hideUser="activeCat == 1"
           :receipts="transactions"
           :totalCount="totalActivitiesCount"
+          userChainField="payerChain"
           @updateTablePage="updateTablePage"
         />
       </template>

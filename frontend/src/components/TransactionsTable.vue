@@ -1,22 +1,31 @@
 <script setup lang="ts">
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import { type Receipt } from '@/schemas';
-import { usePaginatorsStore, useTimeStore } from '@/stores';
+import { type Receipt, Withdrawal } from '@/schemas';
+import { usePaginatorsStore, useTimeStore, useWalletStore } from '@/stores';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable, { type DataTableSortMeta } from 'primevue/datatable';
 import { useToast } from 'primevue/usetoast';
 import { computed, ref } from 'vue';
 
-const { countField, currentPage, hidePayable, receipts, totalCount } =
-  defineProps<{
-    countField: string;
-    currentPage: number;
-    hidePayable?: boolean;
-    receipts: Receipt[];
-    totalCount: number;
-  }>();
+const {
+  countField,
+  currentPage,
+  hidePayable,
+  hideUser,
+  receipts,
+  totalCount,
+  userChainField,
+} = defineProps<{
+  countField: string;
+  currentPage: number;
+  hidePayable?: boolean;
+  hideUser?: boolean;
+  receipts: Receipt[];
+  totalCount: number;
+  userChainField?: string;
+}>();
 
 const multiSortMeta = ref<DataTableSortMeta[]>([
   { field: countField, order: -1 },
@@ -24,6 +33,7 @@ const multiSortMeta = ref<DataTableSortMeta[]>([
 const paginators = usePaginatorsStore();
 const toast = useToast();
 const time = useTimeStore();
+const wallet = useWalletStore();
 
 const copy = (text: string, context: string) => {
   navigator.clipboard.writeText(text);
@@ -47,8 +57,7 @@ function multiFieldSort(a: any, b: any) {
       comparison = aValue.localeCompare(bValue);
     } else if (typeof aValue === 'number' && typeof bValue === 'number') {
       comparison = aValue - bValue;
-    } 
-
+    }
 
     if (comparison !== 0) {
       return sorter.order === 1 ? comparison : -comparison;
@@ -153,6 +162,36 @@ const sortedReceipts = computed(() => receipts.sort(multiFieldSort));
             target="_blank"
             rel="noopener noreferrer"
             title="Payment Page"
+          >
+            <IconOpenInNew class="text-primary" />
+          </a>
+        </p>
+      </template>
+    </Column>
+    <Column
+      :field="!!($data as any)['payer'] ? 'payer' : 'host'"
+      header="Wallet Address"
+      sortable
+      v-if="!hideUser"
+    >
+      <template #body="{ data }">
+        <p class="flex gap-x-2 items-center">
+          <span class="text-sm text-gray-500 w-[6rem]">
+            {{ shorten(data.user()) }}
+          </span>
+          <Button
+            @click="copy(data.user(), `Wallet Address: ${data.user()}`)"
+            title="Copy Wallet Address"
+          >
+            <IconCopy class="text-primary" />
+          </Button>
+          <a
+            :href="
+              wallet.explorerUrl(data.user(), data[userChainField ?? 'chain'])!
+            "
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View on Explorer"
           >
             <IconOpenInNew class="text-primary" />
           </a>

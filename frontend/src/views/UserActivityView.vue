@@ -138,6 +138,7 @@ onMounted(async () => {
       <TransactionsTable
         :countField="countFields[activeCat]"
         :currentPage="currentTablePage"
+        :hideUser="true"
         :receipts="transactions"
         :totalCount="totalCount"
         @updateTablePage="updateTablePage"

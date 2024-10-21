@@ -83,10 +83,10 @@ const copy = (text: string, context: string) => {
           <IconCopy class="text-primary" />
         </Button>
         <a
-          :href="wallet.explorerUrl(receipt.user())"
+          :href="wallet.explorerUrl(receipt.user(), userChain)!"
           target="_blank"
           rel="noopener noreferrer"
-          title="About"
+          title="View on Explorer"
         >
           <IconOpenInNew class="text-primary" />
         </a>

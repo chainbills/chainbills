@@ -156,17 +156,25 @@ export const useSolanaStore = defineStore('solana', () => {
     count: number
   ): Promise<string | null> => {
     const pyblWtdlId = getPDA(
-      getSeeds('payable_withdrawal', count, new PublicKey(payableId))
+      getSeeds('payable_withdrawal_counter', count, new PublicKey(payableId))
     );
 
     let pyblWtdl;
-    let payable;
     try {
       pyblWtdl = await fetchEntity('payableWithdrawalCounter', pyblWtdlId);
-      payable = await fetchEntity('payable', payableId);
-    } catch (_) {
+    } catch (e) {
+      toastError(`Couldn't fetch payable withdrawal counter: ${e}`);
       return null;
     }
+
+    let payable;
+    try {
+      payable = await fetchEntity('payable', payableId);
+    } catch (e) {
+      toastError(`Couldn't fetch payable details: ${e}`);
+      return null;
+    }
+
     const { hostCount } = pyblWtdl;
     const { host } = payable;
 

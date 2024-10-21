@@ -44,12 +44,12 @@ export const useWalletStore = defineStore('wallet', () => {
     return true;
   };
 
-  const getChainStore: any = () =>
+  const getChainStore: any = (chain_?: Chain) =>
     ({
       'Burnt Xion': cosmwasm,
       'Ethereum Sepolia': evm,
       Solana: solana,
-    })[chain.current!];
+    })[chain_ ?? chain.current!];
 
   /**
    * Fetches and Returns the UI-formatted balance of a token based on the
@@ -71,10 +71,14 @@ export const useWalletStore = defineStore('wallet', () => {
     }[chain.current!]();
   };
 
-  const explorerUrl = (walletAddress?: string): string => {
-    if (!(walletAddress ?? address.value)) '';
-    return getChainStore()['walletExplorerUrl'](
-      walletAddress ?? address.value!
+  const explorerUrl = (
+    walletAddress?: string,
+    chain_?: Chain
+  ): string | null => {
+    if (!(walletAddress ?? address.value)) return null;
+    if (!(chain_ ?? chain.current)) return null;
+    return getChainStore(chain_)['walletExplorerUrl'](
+      walletAddress ?? address.value
     );
   };
 

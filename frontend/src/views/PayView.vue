@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
+import IconWallet from '@/icons/IconWallet.vue';
 import { Payable, TokenAndAmount, tokens, type Token } from '@/schemas';
 import { useAuthStore, usePaymentStore, type Chain } from '@/stores';
 import Button from 'primevue/button';
@@ -12,6 +13,7 @@ const amount = ref<any>('');
 const amountError = ref('');
 const auth = useAuthStore();
 const balanceError = ref('');
+const balances = ref<(number | null)[]>([]);
 const availableTokens = computed(() =>
   tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain])
 );
@@ -40,6 +42,7 @@ const selectToken = (token: Token) => {
     token,
     amount.value * 10 ** token.details[choiceChain]!.decimals
   );
+  updateBalances();
 };
 
 const validateAmount = () => {
@@ -57,19 +60,31 @@ const validateAmount = () => {
   validateBalance();
 };
 
-const validateBalance = async () => {
-  if (!auth.currentUser) return;
+const updateBalances = async () => {
+  if (!auth.currentUser) {
+    balances.value = [];
+  } else {
+    if (allowsFreePayments) {
+      balances.value = [
+        selectedToken.value ? await auth.balance(selectedToken.value) : null,
+      ];
+    } else {
+      balances.value = await Promise.all(
+        allowedTokensAndAmounts.map(
+          async (taa) => await auth.balance(taa.token())
+        )
+      );
+    }
+  }
+};
 
+const validateBalance = async () => {
   balanceError.value == '';
-  if (!auth.currentUser.chain) return;
+  if (!auth.currentUser) return;
   if (selectedConfig.value) {
-    const { name } = selectedConfig.value;
     const amt = selectedConfig.value.format(auth.currentUser.chain);
     const bal = await auth.balance(selectedConfig.value.token());
-    if (bal === null) balanceError.value = '';
-    else if (amt && bal < amt) {
-      balanceError.value = `Insufficient Funds. You have ${bal === 0 ? 'no' : bal} ${name}.`;
-    } else balanceError.value = '';
+    balanceError.value = bal && bal < amt ? 'Insufficient Funds' : '';
   }
 };
 
@@ -101,11 +116,13 @@ const pay = async () => {
 };
 
 onMounted(() => {
+  updateBalances();
   watch(() => amount.value, validateAmount);
   watch(
     () => selectedConfig.value,
     async () => {
       validateConfig();
+      await updateBalances();
       await validateBalance();
     }
   );
@@ -117,6 +134,7 @@ onMounted(() => {
       selectedToken.value = null;
       configError.value = '';
       balanceError.value = '';
+      updateBalances();
     }
   );
 
@@ -167,11 +185,11 @@ onMounted(() => {
 
         <form class="max-w-sm mx-auto" @submit.prevent="pay" v-else>
           <div class="mb-8 leading-tight" v-if="allowsFreePayments">
-            <p class="mb-1">Amount</p>
-            <div class="flex items-center mb-4">
+            <p class="mb-2">Amount</p>
+            <div class="flex mb-4">
               <div class="w-36 flex flex-col mr-4">
                 <input
-                  class="amount pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+                  class="amount pt-2.5 pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
                   v-model="amount"
                   required
                   :min="0"
@@ -193,6 +211,16 @@ onMounted(() => {
                   class="mb-1"
                   ariaLabel="Select a Token"
                 />
+                <p v-if="selectedToken && balances.length == 1 && balances[0]">
+                  <IconWallet
+                    class="w-3 h-3 inline-block mt-px mr-1 stroke-black dark:stroke-white"
+                  />
+                  <span class="text-[10px] text-gray-500">
+                    {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
+                      selectedToken.name
+                    }}
+                  </span>
+                </p>
                 <small class="text-xs block text-red-500">{{
                   configError
                 }}</small>
@@ -206,29 +234,62 @@ onMounted(() => {
                 allowedTokensAndAmounts.length == 1 ? 'Pay' : 'Select an Option'
               }}
             </p>
-            <p
-              class="font-bold text-3xl"
+
+            <div
+              class="w-fit flex flex-col"
               v-if="allowedTokensAndAmounts.length == 1"
             >
-              <!-- TODO: Review whether to use the payable's chain for 
-           formatting tokenAndAmount display especially when swaps start -->
-              {{ allowedTokensAndAmounts[0].display(payable.chain) }}
-            </p>
-            <div class="flex gap-2 flex-wrap mb-1" v-else>
-              <Button
-                v-for="taa of allowedTokensAndAmounts"
-                :class="
-                  'shadow-md px-3 py-2 ' +
-                  (selectedConfig?.name == taa.name
-                    ? 'bg-primary bg-opacity-30'
-                    : '')
-                "
-                @click="selectedConfig = taa"
-              >
+              <p class="font-bold text-3xl">
                 <!-- TODO: Review whether to use the payable's chain for 
            formatting tokenAndAmount display especially when swaps start -->
-                {{ taa.display(payable.chain) }}
-              </Button>
+                {{ allowedTokensAndAmounts[0].display(payable.chain) }}
+              </p>
+              <p v-if="balances.length == 1 && balances[0]">
+                <IconWallet
+                  class="w-3 h-3 inline-block mt-px mr-1 stroke-black dark:stroke-white"
+                />
+                <span class="text-[10px] text-gray-500">
+                  {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
+                    allowedTokensAndAmounts[0].name
+                  }}
+                </span>
+              </p>
+            </div>
+
+            <div class="flex gap-4 flex-wrap mb-3 pt-2" v-else>
+              <div
+                class="w-fit flex flex-col gap-1"
+                v-for="(taa, i) of allowedTokensAndAmounts"
+              >
+                <Button
+                  :class="
+                    'shadow-md px-3 py-2 text-xl ' +
+                    (selectedConfig?.name == taa.name
+                      ? 'bg-primary bg-opacity-30'
+                      : '')
+                  "
+                  @click="selectedConfig = taa"
+                >
+                  <!-- TODO: Review whether to use the payable's chain for 
+           formatting tokenAndAmount display especially when swaps start -->
+                  {{ taa.display(payable.chain) }}
+                </Button>
+                <p
+                  v-if="
+                    balances.length == allowedTokensAndAmounts.length &&
+                    balances[i]
+                  "
+                >
+                  <IconWallet
+                    class="w-3 h-3 inline-block mt-px mr-1 stroke-black dark:stroke-white"
+                  />
+                  <span class="text-[10px] text-gray-500">
+                    {{ Math.trunc(balances[i] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
+                      taa.name
+                    }}</span
+                  >
+                </p>
+              </div>
             </div>
             <small class="text-xs block text-red-500">{{ configError }}</small>
           </div>
@@ -250,7 +311,6 @@ onMounted(() => {
               }}</span>
             </p>
 
-            <small class="text-xs block text-red-500">{{ balanceError }}</small>
             <p
               class="mt-8 mb-24 text-right"
               v-if="auth.currentUser.chain == payable.chain"
@@ -258,8 +318,12 @@ onMounted(() => {
               <Button
                 type="submit"
                 class="bg-primary text-white dark:text-black text-xl px-6 py-2"
-                >Pay Now</Button
               >
+                Pay Now
+              </Button>
+              <small class="text-xs block text-red-500 mt-1.5">{{
+                balanceError
+              }}</small>
             </p>
           </template>
         </form>

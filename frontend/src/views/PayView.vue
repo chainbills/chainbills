@@ -1,15 +1,8 @@
 <script setup lang="ts">
 import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { Payable } from '@/schemas/payable';
-import {
-  TokenAndAmount,
-  tokens,
-  type Token,
-} from '@/schemas/tokens-and-amounts';
-import { useChainStore, type Chain } from '@/stores/chain';
-import { usePaymentStore } from '@/stores/payment';
-import { useWalletStore } from '@/stores/wallet';
+import { Payable, TokenAndAmount, tokens, type Token } from '@/schemas';
+import { useAuthStore, usePaymentStore, type Chain } from '@/stores';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -17,10 +10,10 @@ import { useRoute, useRouter } from 'vue-router';
 
 const amount = ref<any>('');
 const amountError = ref('');
+const auth = useAuthStore();
 const balanceError = ref('');
-const chain = useChainStore();
 const availableTokens = computed(() =>
-  tokens.filter((t) => !chain.current || !!t.details[chain.current!])
+  tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain])
 );
 const configError = ref('');
 const isPaying = ref(false);
@@ -32,12 +25,11 @@ const allowsFreePayments = allowedTokensAndAmounts.length == 0;
 const router = useRouter();
 const selectedConfig = ref<TokenAndAmount | null>(null);
 const selectedToken = ref<Token | null>(null);
-const wallet = useWalletStore();
 
 const selectToken = (token: Token) => {
   // Obtaining a Choice Chain first is good when no wallet is connected
   // and the User is interacting with the dropdown of tokens.
-  let choiceChain = chain.current ?? payable.chain;
+  let choiceChain = auth.currentUser?.chain ?? payable.chain;
   // If the token the user selected has no details in the choice chain,
   // we default to the first chain that has details for the token.
   if (!token.details[choiceChain]) {
@@ -59,21 +51,21 @@ const validateAmount = () => {
     selectedConfig.value.amount =
       v *
       10 **
-        (selectedConfig.value.details[chain.current ?? payable.chain]
+        (selectedConfig.value.details[auth.currentUser?.chain ?? payable.chain]
           ?.decimals ?? 0);
   }
   validateBalance();
 };
 
 const validateBalance = async () => {
-  if (!wallet.connected) return;
+  if (!auth.currentUser) return;
 
   balanceError.value == '';
-  if (!chain.current) return;
+  if (!auth.currentUser.chain) return;
   if (selectedConfig.value) {
     const { name } = selectedConfig.value;
-    const amt = selectedConfig.value.format(chain.current!);
-    const bal = await wallet.balance(selectedConfig.value.token());
+    const amt = selectedConfig.value.format(auth.currentUser.chain);
+    const bal = await auth.balance(selectedConfig.value.token());
     if (bal === null) balanceError.value = '';
     else if (amt && bal < amt) {
       balanceError.value = `Insufficient Funds. You have ${bal === 0 ? 'no' : bal} ${name}.`;
@@ -117,10 +109,10 @@ onMounted(() => {
       await validateBalance();
     }
   );
-  watch(() => wallet.connected, validateBalance);
   watch(
-    () => chain.current,
+    () => auth.currentUser,
     (_) => {
+      // Reset the form when the user changes to avoid cross-chain token issues
       selectedConfig.value = null;
       selectedToken.value = null;
       configError.value = '';
@@ -183,6 +175,7 @@ onMounted(() => {
                   v-model="amount"
                   required
                   :min="0"
+                  :step="10 ** -(1 * 18)"
                   type="number"
                   aria-label="Amount"
                 />
@@ -240,7 +233,7 @@ onMounted(() => {
             <small class="text-xs block text-red-500">{{ configError }}</small>
           </div>
 
-          <template v-if="wallet.connected">
+          <template v-if="auth.currentUser">
             <p
               v-if="
                 (allowsFreePayments ||
@@ -252,16 +245,15 @@ onMounted(() => {
               class="mb-4"
             >
               You are paying
-              <!-- TODO: Review Current Chain Usage -->
-              <span class="font-bold text-2xl" v-if="chain.current">{{
-                selectedConfig.display(chain.current)
+              <span class="font-bold text-2xl">{{
+                selectedConfig.display(auth.currentUser.chain)
               }}</span>
             </p>
 
             <small class="text-xs block text-red-500">{{ balanceError }}</small>
             <p
               class="mt-8 mb-24 text-right"
-              v-if="!chain.current || chain.current == payable.chain"
+              v-if="auth.currentUser.chain == payable.chain"
             >
               <Button
                 type="submit"
@@ -274,7 +266,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <template v-if="!wallet.connected">
+    <template v-if="!auth.currentUser">
       <p class="mt-12 mb-6 text-center text-xl">
         Please connect your Wallet to continue
       </p>
@@ -283,7 +275,7 @@ onMounted(() => {
 
     <div
       class="mt-12 mb-6 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400"
-      v-if="chain.current && chain.current != payable.chain"
+      v-if="auth.currentUser && auth.currentUser.chain != payable.chain"
     >
       <p class="mb-8">
         Our Cross-Chain Features with

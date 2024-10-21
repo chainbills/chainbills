@@ -1,41 +1,37 @@
 import { TokenAndAmount, Withdrawal } from '@/schemas';
 import {
-  useChainStore,
+  useAuthStore,
   useCosmwasmStore,
   useEvmStore,
   useServerStore,
   useSolanaStore,
-  useUserStore,
-  useWalletStore,
   type Chain,
 } from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const useWithdrawalStore = defineStore('withdrawal', () => {
-  const chain = useChainStore();
+  const auth = useAuthStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
-  const user = useUserStore();
-  const wallet = useWalletStore();
 
   const exec = async (
     payableId: string,
     details: TokenAndAmount
   ): Promise<string | null> => {
-    if (!wallet.connected || !chain.current) return null;
+    if (!auth.currentUser) return null;
 
     try {
       const result = await {
         'Burnt Xion': cosmwasm,
         'Ethereum Sepolia': evm,
         Solana: solana,
-      }[chain.current]['withdraw'](payableId, details);
+      }[auth.currentUser.chain]['withdraw'](payableId, details);
       if (!result) return null;
-      await user.refresh();
+      await auth.refreshUser();
 
       console.log(
         `Made Withdrawal Transaction Details: ${result.explorerUrl()}`
@@ -73,8 +69,8 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   };
 
   const mines = async (): Promise<Withdrawal[] | null> => {
-    if (!user.current) return null;
-    const { withdrawalsCount: count } = user.current;
+    if (!auth.currentUser) return null;
+    const { withdrawalsCount: count } = auth.currentUser;
     if (count === 0) return [];
 
     try {
@@ -84,9 +80,9 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       let fetched = 0;
       for (let i = count; i >= 1; i--) {
         if (fetched >= 25) break;
-        const id = await user.getWithdrawalId(i);
+        const id = await auth.getWithdrawalId(i);
         if (id) {
-          const withdrawal = await get(id, user.current.chain);
+          const withdrawal = await get(id, auth.currentUser.chain);
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;

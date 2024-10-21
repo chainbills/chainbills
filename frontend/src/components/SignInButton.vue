@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
-import { useCosmwasmStore } from '@/stores';
-import { useSidebarStore } from '@/stores/sidebar';
-import { useThemeStore } from '@/stores/theme';
+import { useCosmwasmStore, useSidebarStore, useThemeStore } from '@/stores';
 import {
   account,
   connect as connectEvm,
@@ -69,7 +67,7 @@ const xionItems = ref([
     class: 'mb-1',
   },
   {
-    label: 'Disconnect',
+    label: 'Log Out',
     command: () => {
       cosmwasm.logout();
       sidebar.close();

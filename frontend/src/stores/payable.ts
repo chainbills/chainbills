@@ -1,48 +1,44 @@
 import { Payable, TokenAndAmount } from '@/schemas';
 import {
-  useChainStore,
+  useAuthStore,
   useCosmwasmStore,
   useEvmStore,
   useNotificationsStore,
   useServerStore,
   useSolanaStore,
-  useUserStore,
-  useWalletStore,
   type Chain,
 } from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const usePayableStore = defineStore('payable', () => {
-  const chain = useChainStore();
+  const auth = useAuthStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const notifications = useNotificationsStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
-  const user = useUserStore();
-  const wallet = useWalletStore();
 
   const create = async (
     description: string,
     tokensAndAmounts: TokenAndAmount[]
   ): Promise<string | null> => {
-    if (!wallet.connected || !chain.current) return null;
+    if (!auth.currentUser) return null;
 
     try {
       const result = await {
         'Burnt Xion': cosmwasm,
         'Ethereum Sepolia': evm,
         Solana: solana,
-      }[chain.current]['createPayable'](tokensAndAmounts);
+      }[auth.currentUser.chain]['createPayable'](tokensAndAmounts);
       if (!result) return null;
 
       console.log(
         `Created Payable Transaction Details: ${result.explorerUrl()}`
       );
       await server.createPayable(result.created, description);
-      await user.refresh();
+      await auth.refreshUser();
       toast.add({
         severity: 'success',
         summary: 'Successful Payable Creation',
@@ -50,7 +46,7 @@ export const usePayableStore = defineStore('payable', () => {
         life: 12000,
       });
       // TODO: Remove this checker after integrating sign and verify in Burnt Xion
-      if (chain.current != 'Burnt Xion') notifications.ensure();
+      if (auth.currentUser.chain != 'Burnt Xion') notifications.ensure();
       return result.created;
     } catch (e) {
       console.error(e);
@@ -93,8 +89,8 @@ export const usePayableStore = defineStore('payable', () => {
   };
 
   const mines = async (): Promise<Payable[] | null> => {
-    if (!user.current) return null;
-    const { payablesCount: count } = user.current;
+    if (!auth.currentUser) return null;
+    const { payablesCount: count } = auth.currentUser;
     if (count === 0) return [];
 
     try {
@@ -103,7 +99,7 @@ export const usePayableStore = defineStore('payable', () => {
       let fetched = 0;
       for (let i = count; i >= 1; i--) {
         if (fetched >= 25) break;
-        const id = await user.getPayableId(i);
+        const id = await auth.getPayableId(i);
         if (id) {
           const payable = await get(id);
           if (payable) payables.push(payable);

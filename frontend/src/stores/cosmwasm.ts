@@ -1,4 +1,5 @@
 import {
+  ChainStats,
   OnChainSuccess,
   TokenAndAmount,
   User,
@@ -6,13 +7,12 @@ import {
   XION_USDC_ADDRESS,
   type Token,
 } from '@/schemas';
-import { ChainStats } from '@/schemas/chain-stats';
 import {
   AbstraxionAuth,
   GranteeSignerClient,
 } from '@burnt-labs/abstraxion-core';
-import { type Coin } from '@cosmjs/stargate';
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { type Coin } from '@cosmjs/stargate';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';

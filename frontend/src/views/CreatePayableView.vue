@@ -2,14 +2,8 @@
 import SignInButton from '@/components/SignInButton.vue';
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import {
-  TokenAndAmount,
-  tokens,
-  type Token,
-} from '@/schemas/tokens-and-amounts';
-import { useChainStore } from '@/stores';
-import { usePayableStore } from '@/stores/payable';
-import { useWalletStore } from '@/stores/wallet';
+import { TokenAndAmount, tokens, type Token } from '@/schemas';
+import { useAuthStore, usePayableStore } from '@/stores';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
@@ -20,9 +14,9 @@ import { useRouter } from 'vue-router';
 const allowsFreePayments = ref(false);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
-const chain = useChainStore();
+const auth = useAuthStore();
 const availableTokens = computed(() =>
-  tokens.filter((t) => chain.current && !!t.details[chain.current!])
+  tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain])
 );
 const configError = ref('');
 const displayedConfig = ref<TokenAndAmount[]>([]);
@@ -32,7 +26,6 @@ const descriptionError = ref('');
 const payable = usePayableStore();
 const router = useRouter();
 const selectedTokens = ref<Token[]>([]);
-const wallet = useWalletStore();
 
 const removeToken = (index: number) => {
   selectedTokens.value.splice(index, 1);
@@ -110,6 +103,8 @@ const validateDescription = () => {
 };
 
 const create = async () => {
+  if (!auth.currentUser) return;
+
   validateDescription();
   validateConfig();
   if (descriptionError.value || configError.value) return;
@@ -124,7 +119,9 @@ const create = async () => {
           new TokenAndAmount(
             selectedTokens.value[i],
             amounts.value[i].value *
-              10 ** selectedTokens.value[i].details[chain.current!]!.decimals
+              10 **
+                selectedTokens.value[i].details[auth.currentUser.chain]!
+                  .decimals
           )
         );
     }
@@ -150,6 +147,16 @@ onMounted(() => {
   watch(() => allowsFreePayments.value, reviewConfig);
   watch(() => selectedTokens.value, reviewConfig);
   watch(() => amounts.value, reviewConfig, { deep: true });
+  watch(
+    () => auth.currentUser,
+    () => {
+      // Reset the form when the user changes to avoid cross-chain token issues
+      selectedTokens.value = [];
+      amounts.value = [];
+      amountErrors.value = [];
+      displayedConfig.value = [];
+    }
+  );
 });
 </script>
 
@@ -161,7 +168,7 @@ onMounted(() => {
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
 
-    <div class="text-center pb-20" v-if="!wallet.connected">
+    <div class="text-center pb-20" v-if="!auth.currentUser">
       <p class="mb-8">Please connect your wallet to continue.</p>
       <p class="mx-auto w-fit"><SignInButton /></p>
     </div>
@@ -237,6 +244,7 @@ onMounted(() => {
                 v-model="amounts[i].value"
                 required
                 :min="0"
+                :step="10 ** -(1 * 18)"
                 type="number"
                 @input="
                   () => {

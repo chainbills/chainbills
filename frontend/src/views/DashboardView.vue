@@ -2,30 +2,26 @@
 import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable } from '@/schemas/payable';
-import { useUserStore } from '@/stores';
-import { usePayableStore } from '@/stores/payable';
-import { useTimeStore } from '@/stores/time';
-import { useWalletStore } from '@/stores/wallet';
+import { useAuthStore, usePayableStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import { onMounted, ref, watch } from 'vue';
 
+const auth = useAuthStore();
 const isLoading = ref(true);
 const mines = ref<Payable[] | null>();
 const payable = usePayableStore();
 const time = useTimeStore();
-const user = useUserStore();
-const wallet = useWalletStore();
 const getMines = async () => {
   isLoading.value = true;
   mines.value = await payable.mines();
   isLoading.value = false;
 };
 onMounted(async () => {
-  if (user.current) await getMines();
+  if (auth.currentUser) await getMines();
   watch(
-    () => user.current,
-    async (currentUser) => {
-      if (currentUser) await getMines();
+    () => auth.currentUser,
+    async (isConnected) => {
+      if (isConnected) await getMines();
       else mines.value = null;
     }
   );
@@ -43,7 +39,7 @@ onMounted(async () => {
       </router-link>
     </div>
 
-    <template v-if="!wallet.connected">
+    <template v-if="!auth.currentUser">
       <p class="pt-8 mb-8 text-center text-xl">
         Please connect your wallet to continue
       </p>

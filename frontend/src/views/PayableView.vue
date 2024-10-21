@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { Payable } from '@/schemas/payable';
-import { TokenAndAmount } from '@/schemas/tokens-and-amounts';
-import { usePayableStore } from '@/stores';
-import { useTimeStore } from '@/stores/time';
-import { useWalletStore } from '@/stores/wallet';
-import { useWithdrawalStore } from '@/stores/withdrawal';
-import { storeToRefs } from 'pinia';
+import { Payable, TokenAndAmount } from '@/schemas';
+import {
+  useAuthStore,
+  usePayableStore,
+  useTimeStore,
+  useWithdrawalStore,
+} from '@/stores';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
+const auth = useAuthStore();
 const route = useRoute();
 const payable = ref(route.meta.details as Payable);
 const time = useTimeStore();
@@ -20,8 +21,6 @@ const toast = useToast();
 const { origin } = window.location;
 const link = `${origin}/pay/${payable.value.id}`;
 const payableStore = usePayableStore();
-const wallet = useWalletStore();
-const { address } = storeToRefs(wallet);
 const withdrawal = useWithdrawalStore();
 
 const nth = (n: number) => {
@@ -52,10 +51,8 @@ const getCards = () => {
   ];
 };
 const cards = ref(getCards());
-const isMine = ref(
-  (payable.value.chain == 'Ethereum Sepolia'
-    ? address.value?.toLowerCase()
-    : address.value) == payable.value.host
+const isMine = computed(
+  () => auth.currentUser?.walletAddress == payable.value.host
 );
 
 const copy = () => {
@@ -115,22 +112,11 @@ const withdraw = async (balance: TokenAndAmount) => {
     } else isWithdrawing.value = false;
   }
 };
-
-onMounted(() => {
-  watch(
-    () => wallet.address,
-    (val) =>
-      (isMine.value =
-        (payable.value.chain == 'Ethereum Sepolia'
-          ? val?.toLowerCase()
-          : val) == payable.value.host)
-  );
-});
 </script>
 
 <template>
   <section class="max-w-screen-lg mx-auto pb-20">
-    <template v-if="!wallet.connected">
+    <template v-if="!auth.currentUser">
       <p class="my-12 text-center text-xl">
         Please connect your wallet to continue
       </p>

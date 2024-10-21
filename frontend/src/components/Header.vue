@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import ThemeMenu from '@/components/ThemeMenu.vue';
 import IconMenu from '@/icons/IconMenu.vue';
-import { useSidebarStore } from '@/stores/sidebar';
-import { useThemeStore } from '@/stores/theme';
+import { useSidebarStore, useThemeStore } from '@/stores';
 import Button from 'primevue/button';
 import SignInButton from './SignInButton.vue';
 

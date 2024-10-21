@@ -1,20 +1,15 @@
 <script setup lang="ts">
-import {
-  PayablePayment,
-  UserPayment,
-  type Payable,
-  type Payment,
-} from '@/schemas';
-import { useTimeStore, useWalletStore } from '@/stores';
+import { Payable, PayablePayment, type Payment, UserPayment } from '@/schemas';
+import { useAuthStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
+const auth = useAuthStore();
 const route = useRoute();
 const payment = route.meta.payment as Payment;
 const payableDetails = route.meta.payable as Payable;
 const time = useTimeStore();
-const wallet = useWalletStore();
 const payerChain =
   payment instanceof UserPayment
     ? payment.chain
@@ -23,7 +18,9 @@ const payableChain =
   payment instanceof PayablePayment
     ? payment.chain
     : (payment as UserPayment).payableChain;
-const isMine = computed(() => wallet.address == payableDetails.host);
+const isMine = computed(
+  () => auth.currentUser?.walletAddress == payableDetails.host
+);
 const payableRoute = computed(
   () => `/${isMine.value ? 'payable' : 'pay'}/${payment.payableId}`
 );

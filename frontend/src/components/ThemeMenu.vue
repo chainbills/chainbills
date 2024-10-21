@@ -2,8 +2,12 @@
 const { full } = defineProps(['full']);
 import IconMoon from '@/icons/IconMoon.vue';
 import IconSun from '@/icons/IconSun.vue';
-import { useSidebarStore } from '@/stores/sidebar';
-import { themes, useThemeStore, type ThemeMode } from '@/stores/theme';
+import {
+  themes,
+  useSidebarStore,
+  useThemeStore,
+  type ThemeMode,
+} from '@/stores';
 import Menu from 'primevue/menu';
 import { ref } from 'vue';
 
@@ -19,7 +23,7 @@ const items = ref(
       theme.set(mode);
       sidebar.close();
     },
-  })),
+  }))
 );
 const menu = ref();
 const sidebar = useSidebarStore();

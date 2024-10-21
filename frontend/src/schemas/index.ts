@@ -1,3 +1,4 @@
+export * from './chain-stats';
 export * from './on-chain-success';
 export * from './payable';
 export * from './payable-payment';

@@ -1,6 +1,4 @@
-import { useAppLoadingStore } from '@/stores/app-loading';
-import { usePayableStore } from '@/stores/payable';
-import { usePaymentStore } from '@/stores/payment';
+import { useAppLoadingStore, usePayableStore, usePaymentStore } from '@/stores';
 import {
   createRouter,
   createWebHistory,

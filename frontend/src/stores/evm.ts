@@ -5,6 +5,7 @@ import {
   User,
   type Token,
 } from '@/schemas';
+import { abi } from '@/stores';
 import {
   account,
   erc20ABI,
@@ -21,7 +22,6 @@ import {
   type ContractFunctionName,
 } from 'viem';
 import { sepolia } from 'viem/chains';
-import { abi } from './abi';
 
 export type AbiFunctionName = ContractFunctionName<typeof abi, 'pure' | 'view'>;
 export type AbiArgs = ContractFunctionArgs<
@@ -141,7 +141,7 @@ export const useEvmStore = defineStore('evm', () => {
   const getCurrentUser = async () => {
     if (!account.connected) return null;
     const raw = await readContract('users', [account.address!]);
-    if (raw) return User.fromEvm(account.address!, raw);
+    if (raw) return User.fromEvm(account.address!.toLowerCase(), raw);
     return null;
   };
 

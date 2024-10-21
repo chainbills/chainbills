@@ -5,8 +5,12 @@ import {
   User,
   type Token,
 } from '@/schemas';
-import { SOLANA_CLUSTER, WH_CHAIN_ID_SOLANA } from '@/stores/chain';
-import { IDL, type Chainbills } from '@/stores/idl';
+import {
+  SOLANA_CLUSTER,
+  WH_CHAIN_ID_SOLANA,
+  IDL,
+  type Chainbills,
+} from '@/stores';
 import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
 import type { AllAccountsMap } from '@project-serum/anchor/dist/cjs/program/namespace/types';
 import {

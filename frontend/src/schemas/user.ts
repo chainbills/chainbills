@@ -1,4 +1,4 @@
-import { type Chain } from '@/stores/chain';
+import { type Chain } from '@/stores';
 
 export class User {
   walletAddress!: string;

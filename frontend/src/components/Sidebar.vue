@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ThemeMenu from '@/components/ThemeMenu.vue';
+import IconBlog from '@/icons/IconBlog.vue';
 import IconDashboard from '@/icons/IconDashboard.vue';
 import IconReplay from '@/icons/IconReplay.vue';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -18,6 +19,15 @@ const sidebar = useSidebarStore();
   >
     <nav>
       <ul>
+        <li class="mb-4">
+          <a
+            href="https://blog.chainbills.xyz"
+            rel="noopener noreferrer"
+            target="_blank"
+            class="flex items-center"
+            ><IconBlog class="mr-2" /><span>Blog</span>
+          </a>
+        </li>
         <li class="mb-4">
           <router-link
             to="/dashboard"

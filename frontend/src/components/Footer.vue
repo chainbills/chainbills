@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import IconDiscord from '@/icons/IconDiscord.vue';
 import IconGithub from '@/icons/IconGithub.vue';
 import IconX from '@/icons/IconX.vue';
 import { useThemeStore } from '@/stores';
@@ -41,6 +42,14 @@ const year = new Date().getFullYear();
                 <router-link to="/">Home</router-link>
               </li>
               <li class="mb-1 hover:underline">
+                <a
+                  href="https://blog.chainbills.xyz"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  >Blog</a
+                >
+              </li>
+              <li class="mb-1 hover:underline">
                 <router-link to="/dashboard">Dashboard</router-link>
               </li>
               <li class="mb-1 hover:underline">
@@ -62,7 +71,15 @@ const year = new Date().getFullYear();
           >
           <p class="flex gap-4">
             <a
-              href="https://x.com/chainbills"
+              href="http://discord.chainbills.xyz"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Join our Discord"
+            >
+              <IconDiscord class="text-primary" />
+            </a>
+            <a
+              href="https://x.com/chainbills_xyz"
               target="_blank"
               rel="noopener noreferrer"
               title="Follow us on X (Twitter)"

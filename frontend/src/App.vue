@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import {
   useAuthStore,
+  useCacheStore,
   useChainStore,
   useCosmwasmStore,
   useThemeStore,
@@ -32,6 +33,7 @@ const cosmwasm = useCosmwasmStore();
 
 // ensures necessary stores are initialized
 useAuthStore();
+useCacheStore();
 useThemeStore();
 useUserStore();
 useWalletStore();

@@ -44,19 +44,22 @@ export const useWalletStore = defineStore('wallet', () => {
     return true;
   };
 
+  const getChainStore: any = (chain_?: Chain) =>
+    ({
+      'Burnt Xion': cosmwasm,
+      'Ethereum Sepolia': evm,
+      Solana: solana,
+    })[chain_ ?? chain.current!];
+
   /**
-   * Fetches and Returns the UI-formatted balance of a token based on the 
-   * current chain. 
+   * Fetches and Returns the UI-formatted balance of a token based on the
+   * current chain.
    * @param token The token to fetch its balance
-   * @returns The UI formatted balance of the token 
+   * @returns The UI formatted balance of the token
    */
   const balance = async (token: Token): Promise<number | null> => {
     if (!connected.value) return null;
-    return await {
-      'Burnt Xion': cosmwasm.balance,
-      'Ethereum Sepolia': evm.balance,
-      Solana: solana.balance,
-    }[chain.current!](token);
+    return await getChainStore()['balance'](token);
   };
 
   const disconnect = async (): Promise<void> => {
@@ -68,14 +71,21 @@ export const useWalletStore = defineStore('wallet', () => {
     }[chain.current!]();
   };
 
+  const explorerUrl = (
+    walletAddress?: string,
+    chain_?: Chain
+  ): string | null => {
+    if (!(walletAddress ?? address.value)) return null;
+    if (!(chain_ ?? chain.current)) return null;
+    return getChainStore(chain_)['walletExplorerUrl'](
+      walletAddress ?? address.value
+    );
+  };
+
   const sign = async (message: string): Promise<string | null> => {
     if (!connected.value) return null;
     try {
-      return await {
-        'Burnt Xion': cosmwasm.sign,
-        'Ethereum Sepolia': evm.sign,
-        Solana: solana.sign,
-      }[chain.current!](message);
+      return await getChainStore()['sign'](message);
     } catch (e) {
       const detail = `${e}`.toLocaleLowerCase().includes('rejected')
         ? 'Please Sign to Continue'
@@ -135,6 +145,7 @@ export const useWalletStore = defineStore('wallet', () => {
     balance,
     connected,
     disconnect,
+    explorerUrl,
     sign,
   };
 });

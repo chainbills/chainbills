@@ -7,6 +7,8 @@ export const themes: ThemeMode[] = ['Dark Theme', 'Light Theme', 'System Mode'];
 
 const isThemeMode = (value: any): value is ThemeMode => themes.includes(value);
 
+const getHtml = () => document.querySelector('html')!;
+
 export const useThemeStore = defineStore('theme', () => {
   const icon = ref<ThemeMode>('Dark Theme');
   const isDisplayDark = ref(false);
@@ -14,22 +16,22 @@ export const useThemeStore = defineStore('theme', () => {
 
   const css = () => {
     if (mode.value == 'Dark Theme') {
-      document.body.classList.add('dark');
+      getHtml().classList.add('dark');
     } else if (mode.value == 'Light Theme') {
-      document.body.classList.remove('dark');
+      getHtml().classList.remove('dark');
     } else if (
       window.matchMedia &&
       window.matchMedia('(prefers-color-scheme: dark)').matches
     ) {
-      document.body.classList.add('dark');
+      getHtml().classList.add('dark');
     } else {
-      document.body.classList.remove('dark');
+      getHtml().classList.remove('dark');
     }
 
-    icon.value = document.body.classList.contains('dark')
+    icon.value = getHtml().classList.contains('dark')
       ? 'Light Theme'
       : 'Dark Theme';
-    isDisplayDark.value = document.body.classList.contains('dark');
+    isDisplayDark.value = getHtml().classList.contains('dark');
   };
 
   const isSystemDark = () =>
@@ -38,7 +40,7 @@ export const useThemeStore = defineStore('theme', () => {
 
   const set = (value: ThemeMode) => {
     mode.value = value;
-    localStorage.setItem('theme', value);
+    localStorage.setItem('chainbills::theme', value);
     css();
   };
 

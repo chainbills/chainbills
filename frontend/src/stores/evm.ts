@@ -98,10 +98,14 @@ export const useEvmStore = defineStore('evm', () => {
     };
   };
 
-  const fetchUserPayment = async (id: string) => {
+  const fetchUserPayment = async (id: string, ignoreErrors?: boolean) => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('userPayments', [xId]);
-    const details = await readContract('getUserPaymentDetails', [xId]);
+    const raw = await readContract('userPayments', [xId], ignoreErrors);
+    const details = await readContract(
+      'getUserPaymentDetails',
+      [xId],
+      ignoreErrors
+    );
     if (!raw || !details) return null;
     // the following was just to reduce the number of code lines
     const [payableId, payer, payableChainId, chainCount, payerCount] = raw;
@@ -112,10 +116,14 @@ export const useEvmStore = defineStore('evm', () => {
     };
   };
 
-  const fetchPayablePayment = async (id: string) => {
+  const fetchPayablePayment = async (id: string, ignoreErrors?: boolean) => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('payablePayments', [xId]);
-    const details = await readContract('getPayablePaymentDetails', [xId]);
+    const raw = await readContract('payablePayments', [xId], ignoreErrors);
+    const details = await readContract(
+      'getPayablePaymentDetails',
+      [xId],
+      ignoreErrors
+    );
     if (!raw || !details) return null;
     // the following was just to reduce the number of code lines
     const [payableId, payer, payerChainId, localChainCount, payableCount] = raw;
@@ -126,10 +134,14 @@ export const useEvmStore = defineStore('evm', () => {
     };
   };
 
-  const fetchWithdrawal = async (id: string) => {
+  const fetchWithdrawal = async (id: string, ignoreErrors?: boolean) => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('withdrawals', [xId]);
-    const details = await readContract('getWithdrawalDetails', [xId]);
+    const raw = await readContract('withdrawals', [xId], ignoreErrors);
+    const details = await readContract(
+      'getWithdrawalDetails',
+      [xId],
+      ignoreErrors
+    );
     if (!raw || !details) return null;
     const [payableId, host, chainCount, hostCount, payableCount] = raw;
     return {
@@ -151,6 +163,19 @@ export const useEvmStore = defineStore('evm', () => {
   ): Promise<string | null> => {
     if (!payableId.startsWith('0x')) payableId = `0x${payableId}`;
     const id = await readContract('payablePaymentIds', [
+      payableId as `0x${string}`,
+      count - 1,
+    ]);
+    if (!id || id === zeroAddress) return null;
+    return id;
+  };
+
+  const getPayableWithdrawalId = async (
+    payableId: string,
+    count: number
+  ): Promise<string | null> => {
+    if (!payableId.startsWith('0x')) payableId = `0x${payableId}`;
+    const id = await readContract('payableWithdrawalIds', [
       payableId as `0x${string}`,
       count - 1,
     ]);
@@ -225,7 +250,8 @@ export const useEvmStore = defineStore('evm', () => {
 
   const readContract = async (
     functionName: AbiFunctionName,
-    args: AbiArgs = []
+    args: AbiArgs = [],
+    ignoreErrors = false
   ): Promise<any> => {
     try {
       return await publicClient.readContract({
@@ -235,8 +261,10 @@ export const useEvmStore = defineStore('evm', () => {
         args,
       });
     } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
+      if (!ignoreErrors) {
+        console.error(e);
+        toastError(`${e}`);
+      }
       return null;
     }
   };
@@ -253,6 +281,9 @@ export const useEvmStore = defineStore('evm', () => {
 
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+
+  const walletExplorerUrl = (wallet: string) =>
+    `https://sepolia.etherscan.io/address/${wallet}`;
 
   const withdraw = async (
     payableId: string,
@@ -293,12 +324,14 @@ export const useEvmStore = defineStore('evm', () => {
     fetchWithdrawal,
     getCurrentUser,
     getPayablePaymentId,
+    getPayableWithdrawalId,
     getUserPayableId,
     getUserPaymentId,
     getUserWithdrawalId,
     readContract,
     pay,
     sign,
+    walletExplorerUrl,
     withdraw,
   };
 });

@@ -151,6 +151,36 @@ export const useSolanaStore = defineStore('solana', () => {
   const getPayablePaymentId = (payableId: string, count: number): string =>
     getPDA(getSeeds('payable_payment', count, new PublicKey(payableId)));
 
+  const getPayableWithdrawalId = async (
+    payableId: string,
+    count: number
+  ): Promise<string | null> => {
+    const pyblWtdlId = getPDA(
+      getSeeds('payable_withdrawal_counter', count, new PublicKey(payableId))
+    );
+
+    let pyblWtdl;
+    try {
+      pyblWtdl = await fetchEntity('payableWithdrawalCounter', pyblWtdlId);
+    } catch (e) {
+      toastError(`Couldn't fetch payable withdrawal counter: ${e}`);
+      return null;
+    }
+
+    let payable;
+    try {
+      payable = await fetchEntity('payable', payableId);
+    } catch (e) {
+      toastError(`Couldn't fetch payable details: ${e}`);
+      return null;
+    }
+
+    const { hostCount } = pyblWtdl;
+    const { host } = payable;
+
+    return getPDA(getSeeds('withdrawal', hostCount.toNumber(), host));
+  };
+
   const getSeeds = (
     prefix: string,
     count: number,
@@ -170,7 +200,7 @@ export const useSolanaStore = defineStore('solana', () => {
     getPDA(getSeeds('user_payment', count));
 
   const getUserWithdrawalId = (count: number): string =>
-    getPDA(getSeeds('payable', count));
+    getPDA(getSeeds('withdrawal', count));
 
   const pay = async (
     payableId: string,
@@ -278,6 +308,9 @@ export const useSolanaStore = defineStore('solana', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
+  const walletExplorerUrl = (wallet: string) =>
+    `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
+
   const withdraw = async (
     payableId: string,
     { amount, details }: TokenAndAmount
@@ -374,12 +407,14 @@ export const useSolanaStore = defineStore('solana', () => {
     fetchEntity,
     getCurrentUser,
     getPayablePaymentId,
+    getPayableWithdrawalId,
     getUserPayableId,
     getUserPaymentId,
     getUserWithdrawalId,
     pay,
     program,
     sign,
+    walletExplorerUrl,
     withdraw,
   };
 });

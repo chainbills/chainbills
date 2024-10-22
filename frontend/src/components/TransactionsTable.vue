@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import { type Receipt, Withdrawal } from '@/schemas';
+import { type Receipt } from '@/schemas';
 import { usePaginatorsStore, useTimeStore, useWalletStore } from '@/stores';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
-import DataTable, { type DataTableSortMeta } from 'primevue/datatable';
+import DataTable from 'primevue/datatable';
 import { useToast } from 'primevue/usetoast';
 import { computed, ref } from 'vue';
 
@@ -27,10 +27,8 @@ const {
   userChainField?: string;
 }>();
 
-const multiSortMeta = ref<DataTableSortMeta[]>([
-  { field: countField, order: -1 },
-]);
 const paginators = usePaginatorsStore();
+const sortOrder = ref(-1);
 const toast = useToast();
 const time = useTimeStore();
 const wallet = useWalletStore();
@@ -45,32 +43,12 @@ const copy = (text: string, context: string) => {
   });
 };
 
-function multiFieldSort(a: any, b: any) {
-  if (multiSortMeta.value.length == 0) return 0;
-
-  for (const sorter of multiSortMeta.value) {
-    const aValue = a[sorter.field as keyof typeof a];
-    const bValue = b[sorter.field as keyof typeof b];
-
-    let comparison = 0;
-    if (typeof aValue === 'string' && typeof bValue === 'string') {
-      comparison = aValue.localeCompare(bValue);
-    } else if (typeof aValue === 'number' && typeof bValue === 'number') {
-      comparison = aValue - bValue;
-    }
-
-    if (comparison !== 0) {
-      return sorter.order === 1 ? comparison : -comparison;
-    }
-  }
-
-  return 0;
-}
-
 const shorten = (v: string) =>
   `${v.substring(0, 5)}...${v.substring(v.length - 5)}`;
 
-const sortedReceipts = computed(() => receipts.sort(multiFieldSort));
+const sortedReceipts = computed(() =>
+  receipts.sort((a, b) => (a.timestamp - b.timestamp) * sortOrder.value)
+);
 </script>
 
 <template>
@@ -84,13 +62,12 @@ const sortedReceipts = computed(() => receipts.sort(multiFieldSort));
     :rows="paginators.rowsPerPage"
     :rowsPerPageOptions="paginators.rowsPerPageOptions"
     :resizableColumns="true"
-    removableSort
-    sortMode="multiple"
     showGridlines
+    sortField="timestamp"
     stripedRows
     :totalRecords="totalCount"
     :value="sortedReceipts"
-    v-model:multiSortMeta="multiSortMeta"
+    v-model:sortOrder="sortOrder"
     @page="
       (e) => {
         paginators.setRowsPerPage(e.rows);
@@ -98,11 +75,7 @@ const sortedReceipts = computed(() => receipts.sort(multiFieldSort));
       }
     "
   >
-    <Column :field="countField" sortable>
-      <template #header>
-        <span>N<sup>th</sup></span>
-      </template>
-    </Column>
+    <Column :field="countField" header="No" />
     <Column field="timestamp" header="Timestamp" sortable>
       <template #body="{ data }">
         <span class="text-nowrap">{{ time.display(data.timestamp) }}</span>
@@ -110,7 +83,7 @@ const sortedReceipts = computed(() => receipts.sort(multiFieldSort));
     </Column>
     <Column field="details" header="Details">
       <template #body="{ data }">
-        <p class="flex gap-x-2 items-center">
+        <p class="flex gap-x-2 items-center w-32">
           <img
             :src="`/assets/tokens/${data.details.name}.png`"
             class="w-6 h-6"
@@ -145,7 +118,7 @@ const sortedReceipts = computed(() => receipts.sort(multiFieldSort));
         </p>
       </template>
     </Column>
-    <Column field="payableId" header="Payable" sortable v-if="!hidePayable">
+    <Column field="payableId" header="Payable" v-if="!hidePayable">
       <template #body="{ data }">
         <p class="flex gap-x-2 items-center">
           <span class="text-sm text-gray-500 w-[6rem]">
@@ -171,7 +144,6 @@ const sortedReceipts = computed(() => receipts.sort(multiFieldSort));
     <Column
       :field="!!($data as any)['payer'] ? 'payer' : 'host'"
       header="Wallet Address"
-      sortable
       v-if="!hideUser"
     >
       <template #body="{ data }">

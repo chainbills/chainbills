@@ -3,7 +3,7 @@ import Footer from '@/components/Footer.vue';
 import Header from '@/components/Header.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { useAuthStore, useThemeStore } from '@/stores';
+import { useAuthStore, useNotificationsStore, useThemeStore } from '@/stores';
 import { useAppLoadingStore } from '@/stores/app-loading';
 import Toast from 'primevue/toast';
 import { RouterView } from 'vue-router';
@@ -12,6 +12,7 @@ const appLoading = useAppLoadingStore();
 
 // ensures necessary stores are initialized
 useAuthStore();
+useNotificationsStore();
 useThemeStore();
 </script>
 

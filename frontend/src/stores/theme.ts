@@ -1,5 +1,6 @@
+import { useAppKitTheme } from '@reown/appkit/vue';
 import { defineStore } from 'pinia';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 export type ThemeMode = 'Dark Theme' | 'Light Theme' | 'System Mode';
 
@@ -11,6 +12,7 @@ export const useThemeStore = defineStore('theme', () => {
   const icon = ref<ThemeMode>('Dark Theme');
   const isDisplayDark = ref(false);
   const mode = ref<ThemeMode>('System Mode');
+  const { setThemeMode: setWalletConnectTheme } = useAppKitTheme();
 
   const css = () => {
     if (mode.value == 'Dark Theme') {
@@ -53,6 +55,12 @@ export const useThemeStore = defineStore('theme', () => {
       .addEventListener('change', () => {
         if (mode.value == 'System Mode') css();
       });
+
+    setWalletConnectTheme(isDisplayDark.value ? 'dark' : 'light');
+    watch(
+      () => isDisplayDark.value,
+      (yes) => setWalletConnectTheme(yes ? 'dark' : 'light')
+    );
   });
 
   return { icon, isDisplayDark, isSystemDark, mode, set };

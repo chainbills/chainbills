@@ -90,9 +90,10 @@ const validateBalance = async () => {
 
 const validateConfig = () => {
   if (!selectedConfig.value) {
-    configError.value = allowsFreePayments
-      ? 'Please select a token'
-      : 'Please make a choice';
+    if (allowsFreePayments) configError.value = 'Please select a token';
+    else if (allowedTokensAndAmounts.length > 1) {
+      configError.value = 'Please make a choice';
+    } else configError.value = '';
   } else configError.value = '';
 };
 
@@ -177,7 +178,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="grow md:max-w-xs md:mt-12">
+      <div class="grow basis-1/2 md:max-w-md md:mt-12">
         <div class="text-center pt-8" v-if="isPaying">
           <p class="mb-12">Paying ...</p>
           <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
@@ -284,7 +285,7 @@ onMounted(() => {
                     class="w-3 h-3 inline-block mt-px mr-1 stroke-black dark:stroke-white"
                   />
                   <span class="text-[10px] text-gray-500">
-                    {{ Math.trunc(balances[i] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
+                    {{ Math.trunc(balances[i]! * 10 ** 5) / 10 ** 5 }}&nbsp;{{
                       taa.name
                     }}</span
                   >

@@ -1,10 +1,7 @@
-import type { User } from '@/schemas';
-import type { Token } from '@/schemas/tokens-and-amounts';
-import {
-  disconnect as evmDisconnect,
-  account as evmWallet,
-} from '@kolirt/vue-web3-auth';
+import { type Token, User } from '@/schemas';
+import { useCosmwasmStore, useEvmStore, useSolanaStore } from '@/stores';
 import type { Cluster } from '@solana/web3.js';
+import { useAccount, useDisconnect } from '@wagmi/vue';
 import { toChainId } from '@wormhole-foundation/sdk';
 import { encoding } from '@wormhole-foundation/sdk-base';
 import { defineStore } from 'pinia';
@@ -14,9 +11,6 @@ import {
   useWallet as useSolanaWallet,
 } from 'solana-wallets-vue';
 import { onMounted, ref, watch } from 'vue';
-import { useCosmwasmStore } from './cosmwasm';
-import { useEvmStore } from './evm';
-import { useSolanaStore } from './solana';
 
 export const AUTH_MESSAGE = 'Authentication';
 export const SOLANA_CLUSTER: Cluster = 'devnet';
@@ -61,6 +55,8 @@ export const useAuthStore = defineStore('auth', () => {
   const solana = useSolanaStore();
   const solanaWallet = useSolanaWallet();
   const toast = useToast();
+  const { disconnect: evmDisconnect } = useDisconnect();
+  const evmAccount = useAccount();
 
   const getChainStore: any = (chain?: Chain) =>
     ({
@@ -80,13 +76,12 @@ export const useAuthStore = defineStore('auth', () => {
     return await getChainStore()['balance'](token);
   };
 
-  const disconnect = async (): Promise<void> => {
-    if (!currentUser.value) return;
+  const disconnect = async (user: User): Promise<void> => {
     return await {
       'Burnt Xion': cosmwasm.logout,
       'Ethereum Sepolia': evmDisconnect,
       Solana: solanaWallet.disconnect,
-    }[currentUser.value.chain]();
+    }[user.chain]();
   };
 
   const getEntityId = async (
@@ -125,7 +120,7 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         const signed = await getChainStore(user.chain)['sign'](AUTH_MESSAGE);
         if (signed) localStorage.setItem(lsKey(user), signed);
-        else await disconnect();
+        else await disconnect(user);
         signature.value = signed ?? null;
       } catch (e) {
         signature.value = null;
@@ -173,6 +168,9 @@ export const useAuthStore = defineStore('auth', () => {
     // TODO: Remove signing exemption for Burnt Xion
     if (signature.value || newChain == 'Burnt Xion') {
       currentUser.value = newUser;
+    } else {
+      currentUser.value = null;
+      await disconnect(newUser);
     }
 
     const disconnectFns = [
@@ -187,14 +185,14 @@ export const useAuthStore = defineStore('auth', () => {
     updateCurrentUser([
       cosmwasm.address,
       anchorWallet.value,
-      evmWallet.address,
+      evmAccount.address.value,
     ]);
 
     watch(
       [
         () => cosmwasm.address,
         () => anchorWallet.value,
-        () => evmWallet.address,
+        () => evmAccount.address.value,
       ],
       updateCurrentUser,
       { deep: true }

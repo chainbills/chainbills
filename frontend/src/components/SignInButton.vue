@@ -2,11 +2,8 @@
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
 import { useCosmwasmStore, useSidebarStore, useThemeStore } from '@/stores';
-import {
-  account,
-  connect as connectEvm,
-  disconnect as disconnectEvm,
-} from '@kolirt/vue-web3-auth';
+import { useAppKit } from '@reown/appkit/vue';
+import { useAccount, useDisconnect } from '@wagmi/vue';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
@@ -26,12 +23,15 @@ const toast = useToast();
 const theme = useThemeStore();
 const { isLoggedIn: isXionLoggedIn } = storeToRefs(cosmwasm);
 const xionMenu = ref();
+const { open: evmConnect } = useAppKit();
+const { disconnect: evmDisconnect } = useDisconnect();
+const evmAccount = useAccount();
 
 const evmItems = ref([
   {
     label: 'Copy Address',
     command: () => {
-      navigator.clipboard.writeText(account.address!);
+      navigator.clipboard.writeText(evmAccount.address!.value!);
       toast.add({
         severity: 'info',
         summary: 'Copied',
@@ -45,7 +45,7 @@ const evmItems = ref([
   {
     label: 'Disconnect',
     command: () => {
-      disconnectEvm();
+      evmDisconnect();
       sidebar.close();
     },
   },
@@ -78,7 +78,7 @@ const xionItems = ref([
 const onClickEvm = () => {
   sidebar.close();
   isModalVisible.value = false;
-  connectEvm();
+  evmConnect();
 };
 
 const onClickXion = async () => {
@@ -119,14 +119,15 @@ onMounted(() => {
     :dark="theme.isDisplayDark"
   ></wallet-multi-button>
   <Button
-    v-else-if="account.connected"
+    v-else-if="evmAccount.isConnected.value"
     @click="($event) => evmMenu.toggle($event)"
     aria-haspopup="true"
     aria-controls="evm-menu"
     class="bg-primary text-white dark:text-black px-4 py-2"
-    ><span class="w-6 h-6 mr-3">
-      <Web3Avatar :address="account.address!" class="h-6" /></span
-    >{{ account.shortAddress }}
+  >
+    <span class="w-6 h-6 mr-3">
+      <Web3Avatar :address="evmAccount.address!.value!" class="h-6" /></span
+    >{{ shortenAddress(evmAccount.address!.value!) }}
   </Button>
   <Button
     @click="isModalVisible = true"

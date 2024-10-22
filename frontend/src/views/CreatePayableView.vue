@@ -235,6 +235,7 @@ onMounted(() => {
             <span class="px-2 py-1 border mr-2 rounded">{{ token.name }}</span>
             <Button
               @click="() => removeToken(i)"
+              class="bg-transparent border-none text-current p-1"
               type="button"
               :aria-label="'Remove Selected ' + token"
             >
@@ -286,11 +287,7 @@ onMounted(() => {
         </div>
 
         <p class="mt-12 text-right">
-          <Button
-            type="submit"
-            class="bg-primary text-white dark:text-black text-xl px-6 py-2"
-            >Create</Button
-          >
+          <Button type="submit" class="text-xl px-6 py-2">Create</Button>
         </p>
       </div>
     </form>

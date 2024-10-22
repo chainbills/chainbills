@@ -19,7 +19,7 @@ const items = ref(
       theme.set(mode);
       sidebar.close();
     },
-  })),
+  }))
 );
 const menu = ref();
 const sidebar = useSidebarStore();

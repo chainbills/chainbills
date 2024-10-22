@@ -11,8 +11,9 @@ import {
   useWithdrawalStore,
 } from '@/stores';
 import Button from 'primevue/button';
-import TabPanel from 'primevue/tabpanel';
-import TabView from 'primevue/tabview';
+import Tab from 'primevue/tab';
+import TabList from 'primevue/tablist';
+import Tabs from 'primevue/tabs';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const activeCat = ref(0);
@@ -80,16 +81,19 @@ onMounted(async () => {
 <template>
   <div class="max-w-screen-xl mx-auto pb-20">
     <div class="mb-8 sm:flex justify-between items-center">
-      <h2 class="text-3xl font-bold">Your Activity</h2>
+      <h2 class="text-3xl font-bold max-sm:mb-6">Your Activity</h2>
 
       <div class="max-sm:flex justify-end">
-        <TabView :scrollable="true" v-model:activeIndex="activeCat">
-          <TabPanel v-for="(category, index) of categories">
-            <template #header>
-              <Button @click="activeCat = index">{{ category }}</Button>
-            </template>
-          </TabPanel>
-        </TabView>
+        <Tabs scrollable v-model:value="activeCat">
+          <TabList>
+            <Tab
+              v-for="(category, i) of categories"
+              :value="i"
+              class="bg-app-bg"
+              >{{ category }}</Tab
+            >
+          </TabList>
+        </Tabs>
       </div>
     </div>
 
@@ -108,9 +112,7 @@ onMounted(async () => {
     <template v-else-if="!transactions">
       <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
       <p class="mx-auto w-fit">
-        <Button
-          class="bg-primary text-white dark:text-black text-xl px-6 py-2"
-          @click="getTransactions"
+        <Button class="text-xl px-6 py-2" @click="getTransactions"
           >Retry</Button
         >
       </p>
@@ -127,9 +129,7 @@ onMounted(async () => {
       </p>
       <p class="text-center">
         <router-link to="/start">
-          <Button class="bg-primary text-white dark:text-black px-3 py-2"
-            >Get Started</Button
-          >
+          <Button class="px-3 py-2">Get Started</Button>
         </router-link>
       </p>
     </template>

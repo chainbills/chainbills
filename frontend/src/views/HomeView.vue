@@ -26,7 +26,7 @@ import Button from 'primevue/button';
           </p>
           <p class="max-sm:mb-16">
             <router-link to="/start">
-              <Button class="bg-black rounded-full px-6 py-2"
+              <Button class="border-none bg-black text-white rounded-full px-6 py-2"
                 >Get Started</Button
               >
             </router-link>
@@ -257,7 +257,7 @@ import Button from 'primevue/button';
             rel="noopener noreferrer"
           >
             <Button
-              class="bg-black text-white rounded-full px-6 py-2 md:text-lg"
+              class="border-none bg-black text-white rounded-full px-6 py-2 md:text-lg"
               >Learn More</Button
             >
           </a>
@@ -278,7 +278,7 @@ import Button from 'primevue/button';
     </p>
     <p>
       <router-link to="/start">
-        <Button class="bg-black rounded-full px-6 py-2 md:text-lg"
+        <Button class="border-none bg-black text-white rounded-full px-6 py-2 md:text-lg"
           >Get Started Now</Button
         >
       </router-link>
@@ -287,22 +287,6 @@ import Button from 'primevue/button';
 </template>
 
 <style scoped>
-.blue-gradient {
-  background: -webkit-linear-gradient(left, var(--blue-100), var(--blue-900));
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-body.dark .blue-gradient {
-  background: -webkit-linear-gradient(
-    left,
-    var(--blue-800) 40%,
-    var(--blue-300)
-  );
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
 [triangle] {
   border-left: 15px solid transparent;
   border-right: 15px solid transparent;
@@ -314,7 +298,7 @@ body.dark .blue-gradient {
   width: 0;
 }
 
-body.dark [triangle] {
+html.dark [triangle] {
   border-top-color: #fff;
 }
 </style>

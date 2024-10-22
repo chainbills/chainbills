@@ -34,7 +34,7 @@ const theme = useThemeStore()
         </ul>
       </nav>
     </div>
-    <Button @click="sidebar.open" menu><IconMenu /></Button>
+    <Button @click="sidebar.open" menu class="bg-transparent border-none text-current -mr-4"><IconMenu /></Button>
     </div>
   </header>
 </template>
@@ -43,8 +43,8 @@ const theme = useThemeStore()
 header {
   background-color: var(--app-bg);
   box-shadow:
-    0 1px 3px 0 var(--shadow),
-    0 1px 2px -1px var(--shadow);
+    0 1px 1.5px 0 var(--shadow),
+    0 1px 1px -1px var(--shadow);
   height: 64px;
 }
 

@@ -216,10 +216,10 @@ onMounted(() => {
               <Button
                 v-for="taa of allowedTokensAndAmounts"
                 :class="
-                  'shadow-md px-3 py-2 ' +
+                  'text-current border-none shadow-md px-3 py-2 ' +
                   (selectedConfig?.name == taa.name
                     ? 'bg-primary bg-opacity-30'
-                    : '')
+                    : 'bg-transparent')
                 "
                 @click="selectedConfig = taa"
               >
@@ -254,11 +254,7 @@ onMounted(() => {
               class="mt-8 mb-24 text-right"
               v-if="!chain.current || chain.current == payable.chain"
             >
-              <Button
-                type="submit"
-                class="bg-primary text-white dark:text-black text-xl px-6 py-2"
-                >Pay Now</Button
-              >
+              <Button type="submit" class="text-xl px-6 py-2">Pay Now</Button>
             </p>
           </template>
         </form>

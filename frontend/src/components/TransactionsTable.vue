@@ -102,11 +102,12 @@ const sortedReceipts = computed(() =>
     </Column>
     <Column field="id" header="Receipt ID">
       <template #body="{ data }">
-        <p class="flex gap-x-2 items-center">
-          <span class="text-sm text-gray-500 w-[6rem]">
+        <p class="flex items-center">
+          <span class="text-sm text-gray-500 w-[6rem] mr-1">
             {{ shorten(data.id) }}
           </span>
           <Button
+            class="bg-transparent p-1 border-none"
             @click="copy(data.id, `Receipt ID: ${data.id}`)"
             title="Copy Receipt ID"
           >
@@ -117,6 +118,8 @@ const sortedReceipts = computed(() =>
             target="_blank"
             rel="noopener noreferrer"
             title="View Receipt"
+            class="p-1 rounded-md"
+            v-ripple
           >
             <IconOpenInNew class="text-primary" />
           </a>
@@ -125,11 +128,12 @@ const sortedReceipts = computed(() =>
     </Column>
     <Column field="payableId" header="Payable" v-if="!hidePayable">
       <template #body="{ data }">
-        <p class="flex gap-x-2 items-center">
-          <span class="text-sm text-gray-500 w-[6rem]">
+        <p class="flex items-center">
+          <span class="text-sm text-gray-500 w-[6rem] mr-1">
             {{ shorten(data.payableId) }}
           </span>
           <Button
+            class="bg-transparent p-1 border-none"
             @click="copy(data.payableId, `Payable ID: ${data.payableId}`)"
             title="Copy Payable ID"
           >
@@ -140,6 +144,8 @@ const sortedReceipts = computed(() =>
             target="_blank"
             rel="noopener noreferrer"
             title="Payment Page"
+            class="p-1 rounded-md"
+            v-ripple
           >
             <IconOpenInNew class="text-primary" />
           </a>
@@ -152,11 +158,12 @@ const sortedReceipts = computed(() =>
       :header="`${userField[0].toUpperCase() + userField.substring(1)}'s Wallet Address`"
     >
       <template #body="{ data }">
-        <p class="flex gap-x-2 items-center">
-          <span class="text-sm text-gray-500 w-[6rem]">
+        <p class="flex items-center">
+          <span class="text-sm text-gray-500 w-[6rem] mr-1">
             {{ shorten(data.user()) }}
           </span>
           <Button
+            class="bg-transparent p-1 border-none"
             @click="copy(data.user(), `Wallet Address: ${data.user()}`)"
             title="Copy Wallet Address"
           >
@@ -169,6 +176,8 @@ const sortedReceipts = computed(() =>
             target="_blank"
             rel="noopener noreferrer"
             title="View on Explorer"
+            class="p-1 rounded-md"
+            v-ripple
           >
             <IconOpenInNew class="text-primary" />
           </a>

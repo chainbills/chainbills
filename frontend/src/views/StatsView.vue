@@ -33,11 +33,7 @@ onMounted(() => {
 <template>
   <div class="mb-8 flex justify-between items-center">
     <h2 class="text-3xl font-bold">Burnt Xion Stats</h2>
-    <Button
-      class="bg-primary text-white dark:text-black px-4 py-1"
-      @click="fetchStats"
-      >Refresh</Button
-    >
+    <Button class="px-4 py-1" @click="fetchStats">Refresh</Button>
   </div>
 
   <template v-if="isLoading">
@@ -48,11 +44,7 @@ onMounted(() => {
   <template v-else-if="!stats">
     <p class="pt-8 mb-8 text-center text-xl">Something went wrong</p>
     <p class="mx-auto w-fit mb-40">
-      <Button
-        class="bg-primary text-white dark:text-black text-xl px-6 py-2"
-        @click="fetchStats"
-        >Retry</Button
-      >
+      <Button class="text-xl px-6 py-2" @click="fetchStats">Retry</Button>
     </p>
   </template>
 

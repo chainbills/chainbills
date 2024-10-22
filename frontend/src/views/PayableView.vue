@@ -13,8 +13,9 @@ import {
 } from '@/stores';
 import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
-import TabPanel from 'primevue/tabpanel';
-import TabView from 'primevue/tabview';
+import Tab from 'primevue/tab';
+import TabList from 'primevue/tablist';
+import Tabs from 'primevue/tabs';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
@@ -215,14 +216,12 @@ onMounted(() => {
       </p>
       <p class="text-center">
         <router-link to="/">
-          <Button class="border border-blue-500 text-blue-500 px-3 py-2 mr-6"
+          <Button class="bg-transparent text-primary px-3 py-2 mr-6"
             >Go Home</Button
           >
         </router-link>
         <router-link to="/start">
-          <Button class="-mt-1 bg-blue-500 text-white dark:text-black px-3 py-2"
-            >Get Started</Button
-          >
+          <Button class="-mt-1 px-3 py-2">Get Started</Button>
         </router-link>
       </p>
     </template>
@@ -245,7 +244,7 @@ onMounted(() => {
           </p>
           <Button
             @click="copy"
-            class="sm:ml-4 px-3 py-1 border border-blue-500 text-blue-500 text-center"
+            class="sm:ml-4 px-3 py-1 bg-transparent text-primary text-center"
             float-button
             >Copy</Button
           >
@@ -270,9 +269,7 @@ onMounted(() => {
         <p class="text-4xl mr-6">
           {{ balsDisplay[0].display(payable.chain) }}
         </p>
-        <Button
-          @click="withdraw(balsDisplay[0])"
-          class="bg-blue-500 text-white dark:text-white text-sm px-3 py-1"
+        <Button @click="withdraw(balsDisplay[0])" class="text-sm px-3 py-1"
           >Withdraw</Button
         >
       </div>
@@ -288,7 +285,7 @@ onMounted(() => {
             {{ taa.display(payable.chain) }}
           </p>
           <Button
-            class="border border-blue-500 text-blue-500 text-sm px-3 py-1"
+            class="bg-transparent text-primary text-sm px-3 py-1"
             @click="withdraw(taa)"
             >Withdraw</Button
           >
@@ -306,7 +303,7 @@ onMounted(() => {
             class="outline-none w-full px-3 py-2 bg-blue-50 dark:bg-slate-900 rounded-md shadow-inner mb-2 sm:mb-0 sm:mr-4"
           ></textarea>
           <Button
-            class="border border-blue-500 text-blue-500 text-sm px-3 py-1"
+            class="bg-transparent text-primary text-sm px-3 py-1"
             float-button
             @click="comingSoon"
             >Update</Button
@@ -329,21 +326,24 @@ onMounted(() => {
       <p class="mb-2 text-xs">Stop receiving payments?</p>
       <Button
         @click="comingSoon"
-        class="px-3 py-1 border border-red-500 text-sm text-red-500 text-center"
+        class="px-3 py-1 border bg-transparent border-red-500 text-sm text-red-500 text-center"
         >Close Payable</Button
       >
 
       <div class="mt-12 mb-8 sm:flex justify-between items-center">
-        <h2 class="text-3xl font-bold">Payable Activity</h2>
+        <h2 class="text-3xl font-bold max-sm:mb-6">Payable Activity</h2>
 
         <div class="max-sm:flex justify-end">
-          <TabView :scrollable="true" v-model:activeIndex="activeCat">
-            <TabPanel v-for="(category, index) of categories">
-              <template #header>
-                <Button @click="activeCat = index">{{ category }}</Button>
-              </template>
-            </TabPanel>
-          </TabView>
+          <Tabs scrollable v-model:value="activeCat">
+            <TabList>
+              <Tab
+                v-for="(category, i) of categories"
+                :value="i"
+                class="bg-app-bg"
+                >{{ category }}</Tab
+              >
+            </TabList>
+          </Tabs>
         </div>
       </div>
 
@@ -355,9 +355,7 @@ onMounted(() => {
       <template v-else-if="!transactions">
         <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
         <p class="mx-auto w-fit">
-          <Button
-            class="bg-primary text-white dark:text-black text-xl px-6 py-2"
-            @click="getTransactions"
+          <Button class="text-xl px-6 py-2" @click="getTransactions"
             >Retry</Button
           >
         </p>

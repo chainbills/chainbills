@@ -31,6 +31,11 @@ const paginators = usePaginatorsStore();
 const sortOrder = ref(-1);
 const toast = useToast();
 const time = useTimeStore();
+const userField = computed(() => {
+  if (receipts.length === 0) return '';
+  if ((receipts[0] as any)['payer']) return 'payer';
+  return 'host';
+});
 const wallet = useWalletStore();
 
 const copy = (text: string, context: string) => {
@@ -142,9 +147,9 @@ const sortedReceipts = computed(() =>
       </template>
     </Column>
     <Column
-      :field="!!($data as any)['payer'] ? 'payer' : 'host'"
-      header="Wallet Address"
-      v-if="!hideUser"
+      v-if="!hideUser && userField"
+      :field="userField"
+      :header="`${userField[0].toUpperCase() + userField.substring(1)}'s Wallet Address`"
     >
       <template #body="{ data }">
         <p class="flex gap-x-2 items-center">

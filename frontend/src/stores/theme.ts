@@ -63,6 +63,14 @@ export const useThemeStore = defineStore('theme', () => {
       () => isDisplayDark.value,
       (yes) => setWalletConnectTheme(yes ? 'dark' : 'light')
     );
+
+    window.addEventListener('storage', () => {
+      const saved = localStorage.getItem('chainbills::theme');
+      if (saved && isThemeMode(saved)) {
+        mode.value = saved;
+        css();
+      }
+    });
   });
 
   return { icon, isDisplayDark, isSystemDark, mode, set };

@@ -53,7 +53,7 @@ const year = new Date().getFullYear();
                 <router-link to="/dashboard">Dashboard</router-link>
               </li>
               <li class="mb-1 hover:underline">
-                <router-link to="/activity">My Activity</router-link>
+                <router-link to="/activity">Activity</router-link>
               </li>
             </ul>
           </nav>

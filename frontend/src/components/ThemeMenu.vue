@@ -21,7 +21,7 @@ const items = ref(
     label: mode,
     command: () => {
       theme.set(mode);
-      sidebar.close();
+      setTimeout(sidebar.close);
     },
   }))
 );
@@ -51,6 +51,10 @@ const theme = useThemeStore();
 </template>
 
 <style scoped>
+.full {
+  width: 100%;
+}
+
 .full svg {
   margin-right: 0.5rem;
 }

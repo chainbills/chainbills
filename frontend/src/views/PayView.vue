@@ -5,7 +5,7 @@ import IconWallet from '@/icons/IconWallet.vue';
 import { Payable, TokenAndAmount, tokens, type Token } from '@/schemas';
 import { useAuthStore, usePaymentStore, type Chain } from '@/stores';
 import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
+import Select from 'primevue/select';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -203,7 +203,7 @@ onMounted(() => {
                 }}</small>
               </div>
               <div class="flex flex-col">
-                <Dropdown
+                <Select
                   :options="availableTokens"
                   optionLabel="name"
                   v-model="selectedToken"

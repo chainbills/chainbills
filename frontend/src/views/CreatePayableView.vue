@@ -6,8 +6,8 @@ import { TokenAndAmount, tokens, type Token } from '@/schemas';
 import { useAuthStore, usePayableStore } from '@/stores';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
-import InputSwitch from 'primevue/inputswitch';
+import Select from 'primevue/select';
+import ToggleSwitch from 'primevue/toggleswitch';
 import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -218,7 +218,7 @@ onMounted(() => {
             <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')"
               >No</span
             >
-            <InputSwitch
+            <ToggleSwitch
               inputId="allow-any-token"
               v-model="allowsFreePayments"
             />
@@ -267,7 +267,7 @@ onMounted(() => {
               <IconClose />
             </Button>
           </label>
-          <Dropdown
+          <Select
             :options="availableTokens"
             optionLabel="name"
             @change="(e) => chooseToken(e.value)"

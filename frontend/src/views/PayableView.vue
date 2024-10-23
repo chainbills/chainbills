@@ -19,15 +19,20 @@ import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
-const activeCat = ref(0);
+const route = useRoute();
+const payable = ref(route.meta.details as Payable);
+const lsCatKey = () =>
+  `chainbills::payable=>${payable.value.id}::activity_table_category`;
+const lsPageKey = () =>
+  `chainbills::payable=>${payable.value.id}::activity_table_page`;
+
+const activeCat = ref(+(localStorage.getItem(lsCatKey()) ?? '0'));
 const auth = useAuthStore();
 const categories = ['Payments', 'Withdrawals'];
-const currentTablePage = ref(0);
+const currentTablePage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
 const isLoadingActivities = ref(true);
 const transactions = ref<Receipt[] | null>(null);
 const paginators = usePaginatorsStore();
-const route = useRoute();
-const payable = ref(route.meta.details as Payable);
 const time = useTimeStore();
 const toast = useToast();
 const { origin } = window.location;
@@ -128,6 +133,7 @@ const resetTablePage = () => {
 const updateTablePage = (page: number) => {
   if (currentTablePage.value == page) return;
   currentTablePage.value = page;
+  localStorage.setItem(lsPageKey(), page.toString());
   getTransactions();
 };
 
@@ -166,6 +172,7 @@ onMounted(() => {
   getTransactions();
 
   watch([() => auth.currentUser, () => activeCat.value], (_) => {
+    localStorage.setItem(lsCatKey(), activeCat.value.toString());
     resetTablePage();
     getTransactions();
   });

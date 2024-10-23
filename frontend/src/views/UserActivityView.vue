@@ -15,11 +15,18 @@ import TabList from 'primevue/tablist';
 import Tabs from 'primevue/tabs';
 import { computed, onMounted, ref, watch } from 'vue';
 
-const activeCat = ref(0);
 const auth = useAuthStore();
+const lsCatKey = () =>
+  `chainbills::user=>${auth.currentUser?.walletAddress}` +
+  '::activity_table_category';
+const lsPageKey = () => 
+  `chainbills::user=>${auth.currentUser?.walletAddress}` +
+  '::activity_table_page';
+
+const activeCat = ref(+(localStorage.getItem(lsCatKey()) ?? '0'));
 const categories = ['Payments', 'Withdrawals'];
 const countFields = ['payerCount', 'hostCount'];
-const currentTablePage = ref(0);
+const currentTablePage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
 const isLoading = ref(true);
 const paginators = usePaginatorsStore();
 const payments = usePaymentStore();
@@ -53,6 +60,7 @@ const resetTablePage = () => {
 const updateTablePage = (page: number) => {
   if (currentTablePage.value == page) return;
   currentTablePage.value = page;
+  localStorage.setItem(lsPageKey(), page.toString());
   getTransactions();
 };
 
@@ -73,6 +81,7 @@ onMounted(async () => {
     () => activeCat.value,
     (_) => {
       if (!auth.currentUser) return;
+      localStorage.setItem(lsCatKey(), activeCat.value.toString());
       resetTablePage();
       getTransactions();
     }

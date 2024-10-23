@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import { type Receipt } from '@/schemas';
+import { type Receipt, Withdrawal } from '@/schemas';
 import { useAuthStore, usePaginatorsStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
@@ -46,6 +46,14 @@ const copy = (text: string, context: string) => {
     detail: `${context} copied to clipboard`,
     life: 3000,
   });
+};
+
+const payableRoute = (receipt: Receipt) => {
+  const isMine = auth.currentUser?.walletAddress == receipt.user();
+  return (
+    `/${receipt instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` +
+    receipt.payableId
+  );
 };
 
 const shorten = (v: string) =>
@@ -140,10 +148,14 @@ const sortedReceipts = computed(() =>
             <IconCopy class="text-primary" />
           </Button>
           <a
-            :href="`/pay/${data.payableId}`"
+            :href="payableRoute(data)"
             target="_blank"
             rel="noopener noreferrer"
-            title="Payment Page"
+            :title="
+              payableRoute(data).includes('payable')
+                ? 'Payable Page'
+                : 'Payment Page'
+            "
             class="p-1 rounded-md"
             v-ripple
           >

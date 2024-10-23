@@ -107,7 +107,7 @@ const year = new Date().getFullYear();
 <style scoped>
 footer {
   box-shadow:
-    0 -1px 3px 0 var(--shadow),
-    0 -1px 2px -1px var(--shadow);
+    0 -1px 1.5px 0 var(--shadow),
+    0 -1px 1px -1px var(--shadow);
 }
 </style>

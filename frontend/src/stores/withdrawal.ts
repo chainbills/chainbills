@@ -1,22 +1,30 @@
-import { TokenAndAmount, Withdrawal } from '@/schemas';
+import { Payable, TokenAndAmount, Withdrawal } from '@/schemas';
 import {
   useAuthStore,
+  useCacheStore,
   useCosmwasmStore,
   useEvmStore,
+  usePayableStore,
   useServerStore,
   useSolanaStore,
   type Chain,
 } from '@/stores';
+import { PublicKey } from '@solana/web3.js';
+import { encoding } from '@wormhole-foundation/sdk';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const useWithdrawalStore = defineStore('withdrawal', () => {
   const auth = useAuthStore();
+  const cache = useCacheStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
+  const payableStore = usePayableStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
+
+  const cacheKey = (chain: string, id: string) => `${chain}::withdrawal::${id}`;
 
   const exec = async (
     payableId: string,
@@ -52,41 +60,110 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     }
   };
 
-  const get = async (id: string, chain: Chain): Promise<Withdrawal | null> => {
+  const get = async (
+    id: string,
+    chain?: Chain,
+    ignoreErrors?: boolean
+  ): Promise<Withdrawal | null> => {
+    // A simple trick to guess the chain based on the ID's format
+    // (if not provided)
+    if (!chain) {
+      chain = 'Solana';
+      try {
+        new PublicKey(id);
+      } catch (_) {
+        if (encoding.hex.valid(id)) {
+          if (id.startsWith('0x')) chain = 'Ethereum Sepolia';
+          else chain = 'Burnt Xion';
+        }
+        // If it's not a valid Solana public key or it is not a hex string,
+        // then it's not a valid ID.
+        else return null;
+      }
+    }
+
+    // Check if the withdrawal is already in the cache and return if so.
+    let withdrawal = await cache.retrieve(cacheKey(chain, id));
+    if (withdrawal) {
+      withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
+      withdrawal.details = Object.setPrototypeOf(
+        withdrawal.details,
+        TokenAndAmount.prototype
+      );
+      return withdrawal;
+    }
+
     try {
       let raw: any;
       if (chain == 'Solana') raw = await solana.fetchEntity('withdrawal', id);
-      else if (chain == 'Ethereum Sepolia') raw = await evm.fetchWithdrawal(id);
+      else if (chain == 'Ethereum Sepolia')
+        raw = await evm.fetchWithdrawal(id, ignoreErrors);
       else if (chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('withdrawal', id);
+        raw = await cosmwasm.fetchEntity('withdrawal', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
-      if (raw) return new Withdrawal(id, chain, raw);
+      if (raw) withdrawal = new Withdrawal(id, chain, raw);
     } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
+      if (!ignoreErrors) {
+        console.error(e);
+        toastError(`${e}`);
+      }
     }
-    return null;
+
+    // If a withdrawal was found, cache it and return it.
+    if (withdrawal) await cache.save(cacheKey(chain, id), withdrawal);
+
+    return withdrawal;
   };
 
-  const mines = async (): Promise<Withdrawal[] | null> => {
+  const getManyForCurrentUser = async (
+    page: number,
+    count: number
+  ): Promise<Withdrawal[] | null> => {
     if (!auth.currentUser) return null;
-    const { withdrawalsCount: count } = auth.currentUser;
+    const { withdrawalsCount: totalCount } = auth.currentUser;
     if (count === 0) return [];
 
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
       const withdrawals: Withdrawal[] = [];
-
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
+      for (let i = start; i >= target; i--) {
         const id = await auth.getWithdrawalId(i);
         if (id) {
           const withdrawal = await get(id, auth.currentUser.chain);
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;
-        fetched++;
+      }
+      return withdrawals;
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+      return null;
+    }
+  };
+
+  const getManyForPayable = async (
+    payable: Payable,
+    page: number,
+    count: number
+  ): Promise<Withdrawal[] | null> => {
+    const { withdrawalsCount: totalCount, chain } = payable;
+    if (count === 0) return [];
+
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
+    try {
+      const withdrawals: Withdrawal[] = [];
+      for (let i = start; i >= target; i--) {
+        const id = await payableStore.getWithdrawalId(payable.id, chain, i);
+        if (id) {
+          const withdrawal = await get(id, chain);
+          if (withdrawal) withdrawals.push(withdrawal);
+          else return null;
+        } else return null;
       }
       return withdrawals;
     } catch (e) {
@@ -99,5 +176,5 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { exec, get, mines };
+  return { exec, get, getManyForCurrentUser, getManyForPayable };
 });

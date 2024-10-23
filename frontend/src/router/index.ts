@@ -1,4 +1,10 @@
-import { useAppLoadingStore, usePayableStore, usePaymentStore } from '@/stores';
+import type { Receipt } from '@/schemas';
+import {
+  useAppLoadingStore,
+  usePayableStore,
+  usePaymentStore,
+  useWithdrawalStore,
+} from '@/stores';
 import {
   createRouter,
   createWebHistory,
@@ -30,15 +36,23 @@ const beforeEnterPayableDetails = async (to: RouteLocationNormalized) => {
   }
 };
 
-const beforeEnterPaymentDetails = async (to: RouteLocationNormalized) => {
+const beforeEnterReceiptDetails = async (to: RouteLocationNormalized) => {
   const appLoading = useAppLoadingStore();
-  const payable = usePayableStore();
   const payment = usePaymentStore();
+  const withdrawal = useWithdrawalStore();
+
   appLoading.show();
-  const result = await payment.get(to.params['id'] as string);
-  if (result) {
-    to.meta.payment = result;
-    to.meta.payable = await payable.get(result.payableId);
+  let receipt = (await payment.get(
+    to.params['id'] as string,
+    undefined,
+    true
+  )) as Receipt | null;
+  if (!receipt) {
+    receipt = await withdrawal.get(to.params['id'] as string, undefined, true);
+  }
+
+  if (receipt) {
+    to.meta.receipt = receipt;
     appLoading.hide();
     return true;
   } else {
@@ -71,8 +85,8 @@ const router = createRouter({
     {
       path: '/activity',
       name: 'activity',
-      component: () => import('../views/MyActivityView.vue'),
-      meta: { title: `My Activity | ${baseTitle}` },
+      component: () => import('../views/UserActivityView.vue'),
+      meta: { title: `Activity | ${baseTitle}` },
     },
     {
       path: '/stats',
@@ -97,9 +111,9 @@ const router = createRouter({
     {
       path: '/receipt/:id',
       name: 'receipt',
-      component: () => import('../views/PaymentView.vue'),
-      meta: { title: `Payment Receipt | ${baseTitle}` },
-      beforeEnter: beforeEnterPaymentDetails,
+      component: () => import('../views/ReceiptView.vue'),
+      meta: { title: `Receipt | ${baseTitle}` },
+      beforeEnter: beforeEnterReceiptDetails,
     },
     {
       path: '/pitch',

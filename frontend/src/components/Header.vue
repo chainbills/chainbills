@@ -39,14 +39,14 @@ const theme = useThemeStore();
               <router-link to="/dashboard">Dashboard</router-link>
             </li>
             <li class="mr-6">
-              <router-link to="/activity">My Activity</router-link>
+              <router-link to="/activity">Activity</router-link>
             </li>
             <li class="max-md:hidden inline mr-4"><SignInButton /></li>
             <li><ThemeMenu :full="false" /></li>
           </ul>
         </nav>
       </div>
-      <Button @click="sidebar.open" menu><IconMenu /></Button>
+      <Button @click="sidebar.open" menu class="bg-transparent border-none text-current -mr-4"><IconMenu /></Button>
     </div>
   </header>
 </template>
@@ -55,8 +55,8 @@ const theme = useThemeStore();
 header {
   background-color: var(--app-bg);
   box-shadow:
-    0 1px 3px 0 var(--shadow),
-    0 1px 2px -1px var(--shadow);
+    0 1px 1.5px 0 var(--shadow),
+    0 1px 1px -1px var(--shadow);
   height: 64px;
 }
 

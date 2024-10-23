@@ -1,5 +1,10 @@
 import { type Token, User } from '@/schemas';
-import { useCosmwasmStore, useEvmStore, useSolanaStore } from '@/stores';
+import {
+  useCacheStore,
+  useCosmwasmStore,
+  useEvmStore,
+  useSolanaStore,
+} from '@/stores';
 import type { Cluster } from '@solana/web3.js';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { toChainId } from '@wormhole-foundation/sdk';
@@ -48,6 +53,7 @@ export const getChainId = (chain: Chain): number => {
 
 export const useAuthStore = defineStore('auth', () => {
   const anchorWallet = useAnchorWallet();
+  const cache = useCacheStore();
   const cosmwasm = useCosmwasmStore();
   const currentUser = ref<User | null>(null);
   const evm = useEvmStore();
@@ -76,6 +82,12 @@ export const useAuthStore = defineStore('auth', () => {
     return await getChainStore()['balance'](token);
   };
 
+  const cacheKey = (entity: string, count: number) => {
+    if (!currentUser.value) return null;
+    const { chain, walletAddress } = currentUser.value;
+    return `${chain}::user::${walletAddress}::${entity}::${count}`;
+  };
+
   const disconnect = async (user: User): Promise<void> => {
     return await {
       'Burnt Xion': cosmwasm.logout,
@@ -89,18 +101,31 @@ export const useAuthStore = defineStore('auth', () => {
     count: number
   ): Promise<string | null> => {
     if (!currentUser.value) return null;
+
+    let id = await cache.retrieve(cacheKey(entity, count)!);
+    if (id) return id;
+
     entity = entity[0].toUpperCase() + entity.slice(1);
-    return await getChainStore()[`getUser${entity}Id`](count);
+    id = await getChainStore()[`getUser${entity}Id`](count);
+
+    entity = entity[0].toLowerCase() + entity.slice(1);
+    if (id) await cache.save(cacheKey(entity, count)!, id);
+
+    return id;
+  };
+
+  const getExplorerUrl = (walletAddress: string, chain: Chain): string => {
+    return getChainStore(chain)['walletExplorerUrl'](walletAddress);
   };
 
   const getPayableId = async (count: number): Promise<string | null> =>
-    getEntityId('Payable', count);
+    getEntityId('payable', count);
 
   const getPaymentId = async (count: number): Promise<string | null> =>
-    getEntityId('Payment', count);
+    getEntityId('payment', count);
 
   const getWithdrawalId = async (count: number): Promise<string | null> =>
-    getEntityId('Withdrawal', count);
+    getEntityId('withdrawal', count);
 
   const lsKey = (user: User) =>
     `chainbills::chainId=>${getChainId(user.chain)}` +
@@ -202,6 +227,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     balance,
     currentUser,
+    getExplorerUrl,
     getPayableId,
     getPaymentId,
     getWithdrawalId,

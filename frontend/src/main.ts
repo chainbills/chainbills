@@ -1,9 +1,10 @@
 import 'aos/dist/aos.css';
-import 'primevue/resources/themes/aura-light-green/theme.css';
 import 'solana-wallets-vue/styles.css';
 import 'web3-avatar-vue/dist/style.css';
 import './assets/main.css';
 
+import { definePreset } from '@primevue/themes';
+import Aura from '@primevue/themes/aura';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { sepolia, type AppKitNetwork } from '@reown/appkit/networks';
 import { createAppKit } from '@reown/appkit/vue';
@@ -17,6 +18,7 @@ import AOS from 'aos';
 import type { WalletStoreProps } from 'node_modules/solana-wallets-vue/dist/types';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
+import Ripple from 'primevue/ripple';
 import ToastService from 'primevue/toastservice';
 import SolanaWallets from 'solana-wallets-vue';
 import { createApp } from 'vue';
@@ -35,7 +37,41 @@ const walletOptions: WalletStoreProps = {
 const app = createApp(App);
 
 app.use(createPinia());
-app.use(PrimeVue, { ripple: true });
+app.use(PrimeVue, {
+  theme: {
+    preset: definePreset(Aura, {
+      semantic: {
+        primary: {
+          50: '#cde5f3',
+          100: '#acd4ec',
+          200: '#82bfe2',
+          300: '#58a9d8',
+          400: '#2f94cf',
+          500: '#057ec5',
+          600: '#0469a4',
+          700: '#035483',
+          800: '#033f63',
+          900: '#022a42',
+          950: '#011927',
+        },
+        dark: {
+          surface: {
+            900: '#0f0f0f',
+          },
+        },
+      },
+    }),
+    options: {
+      cssLayer: {
+        name: 'primevue',
+        order: 'tailwind-base, primevue, tailwind-utilities',
+      },
+      darkModeSelector: '.dark',
+    },
+  },
+  ripple: true,
+});
+app.directive('ripple', Ripple);
 app.use(router);
 app.use(SolanaWallets, walletOptions);
 app.use(ToastService);

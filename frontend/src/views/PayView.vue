@@ -264,10 +264,10 @@ onMounted(() => {
               >
                 <Button
                   :class="
-                    'shadow-md px-3 py-2 text-xl ' +
+                    'text-current border-none shadow-md px-3 py-2 text-xl ' +
                     (selectedConfig?.name == taa.name
                       ? 'bg-primary bg-opacity-30'
-                      : '')
+                      : 'bg-transparent')
                   "
                   @click="selectedConfig = taa"
                 >
@@ -316,12 +316,7 @@ onMounted(() => {
               class="mt-8 mb-24 text-right"
               v-if="auth.currentUser.chain == payable.chain"
             >
-              <Button
-                type="submit"
-                class="bg-primary text-white dark:text-black text-xl px-6 py-2"
-              >
-                Pay Now
-              </Button>
+              <Button type="submit" class="text-xl px-6 py-2"> Pay Now </Button>
               <small class="text-xs block text-red-500 mt-1.5">{{
                 balanceError
               }}</small>

@@ -109,9 +109,9 @@ onMounted(() => {
     @click="($event) => xionMenu.toggle($event)"
     aria-haspopup="true"
     aria-controls="xion-menu"
-    class="bg-primary text-white dark:text-black px-4 py-2"
+    class="px-4 py-2"
   >
-    <span class="bg-black rounded-full w-5 h-5 mr-2"></span>
+    <span class="bg-black rounded-full w-5 h-5"></span>
     {{ shortenAddress(cosmwasm.address!) }}
   </Button>
   <wallet-multi-button
@@ -123,9 +123,9 @@ onMounted(() => {
     @click="($event) => evmMenu.toggle($event)"
     aria-haspopup="true"
     aria-controls="evm-menu"
-    class="bg-primary text-white dark:text-black px-4 py-2"
+    class="px-4 py-2"
   >
-    <span class="w-6 h-6 mr-3">
+    <span class="w-6 h-6">
       <Web3Avatar :address="evmAccount.address!.value!" class="h-6" /></span
     >{{ shortenAddress(evmAccount.address!.value!) }}
   </Button>
@@ -134,7 +134,7 @@ onMounted(() => {
     v-else
     aria-haspopup="true"
     aria-controls="wallet-menu"
-    class="bg-primary text-white dark:text-black px-4 py-2"
+    class="px-4 py-2"
     >Sign In</Button
   >
   <Dialog
@@ -146,10 +146,7 @@ onMounted(() => {
     <p class="mb-4">Choose your Sign In Option from the following:</p>
 
     <h2 class="text-lg mb-2">XION (Recommended)</h2>
-    <Button
-      class="bg-primary text-white dark:text-black px-4 py-2"
-      @click="onClickXion"
-    >
+    <Button class="px-4 py-2" @click="onClickXion">
       <template v-if="isLoggingInXion">
         <IconSpinnerBlack class="mx-4" v-if="theme.isDisplayDark" />
         <IconSpinnerWhite class="mx-4" v-else />
@@ -161,12 +158,7 @@ onMounted(() => {
     <wallet-multi-button :dark="theme.isDisplayDark"></wallet-multi-button>
 
     <h2 class="text-lg mt-8 mb-2">Ethereum Sepolia</h2>
-    <Button
-      class="bg-primary text-white dark:text-black px-4 py-2"
-      @click="onClickEvm"
-    >
-      Select Wallet
-    </Button>
+    <Button class="px-4 py-2" @click="onClickEvm">Select Wallet</Button>
   </Dialog>
   <Menu ref="evmMenu" id="evm-menu" :model="evmItems" :popup="true" />
   <Menu ref="xionMenu" id="xion-menu" :model="xionItems" :popup="true" />

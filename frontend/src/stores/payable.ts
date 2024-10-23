@@ -1,6 +1,7 @@
 import { Payable, TokenAndAmount } from '@/schemas';
 import {
   useAuthStore,
+  useCacheStore,
   useCosmwasmStore,
   useEvmStore,
   useNotificationsStore,
@@ -13,12 +14,44 @@ import { useToast } from 'primevue/usetoast';
 
 export const usePayableStore = defineStore('payable', () => {
   const auth = useAuthStore();
+  const cache = useCacheStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const notifications = useNotificationsStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
+
+  const cacheKey = (chain: string, id: string, entity: string, count: number) =>
+    `${chain}::payable::${id}::${entity}::${count}`;
+
+  const getChainStore: any = () =>
+    ({
+      'Burnt Xion': cosmwasm,
+      'Ethereum Sepolia': evm,
+      Solana: solana,
+    })[auth.currentUser!.chain];
+
+  const getEntityId = async (
+    payableId: string,
+    chain: Chain,
+    entity: string,
+    count: number
+  ): Promise<string | null> => {
+    if (!auth.currentUser) return null;
+
+    const key = cacheKey(payableId, chain, entity, count);
+    let id = await cache.retrieve(key);
+    if (id) return id;
+
+    entity = entity[0].toUpperCase() + entity.slice(1);
+    id = await getChainStore()[`getPayable${entity}Id`](payableId, count);
+
+    entity = entity[0].toLowerCase() + entity.slice(1);
+    if (id) await cache.save(key, id);
+
+    return id;
+  };
 
   const create = async (
     description: string,
@@ -27,11 +60,7 @@ export const usePayableStore = defineStore('payable', () => {
     if (!auth.currentUser) return null;
 
     try {
-      const result = await {
-        'Burnt Xion': cosmwasm,
-        'Ethereum Sepolia': evm,
-        Solana: solana,
-      }[auth.currentUser.chain]['createPayable'](tokensAndAmounts);
+      const result = await getChainStore()['createPayable'](tokensAndAmounts);
       if (!result) return null;
 
       console.log(
@@ -80,13 +109,14 @@ export const usePayableStore = defineStore('payable', () => {
     payableId: string,
     chain: Chain,
     count: number
-  ): Promise<string | null> => {
-    return await {
-      'Burnt Xion': cosmwasm,
-      'Ethereum Sepolia': evm,
-      Solana: solana,
-    }[chain]['getPayablePaymentId'](payableId, count);
-  };
+  ): Promise<string | null> => getEntityId(payableId, chain, 'payment', count);
+
+  const getWithdrawalId = async (
+    payableId: string,
+    chain: Chain,
+    count: number
+  ): Promise<string | null> =>
+    getEntityId(payableId, chain, 'withdrawal', count);
 
   const mines = async (): Promise<Payable[] | null> => {
     if (!auth.currentUser) return null;
@@ -118,5 +148,5 @@ export const usePayableStore = defineStore('payable', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { create, get, getPaymentId, mines };
+  return { create, get, getPaymentId, getWithdrawalId, mines };
 });

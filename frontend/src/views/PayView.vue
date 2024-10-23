@@ -118,6 +118,7 @@ const pay = async () => {
 
 onMounted(() => {
   updateBalances();
+  document.addEventListener('visibilitychange', updateBalances);
   watch(() => amount.value, validateAmount);
   watch(
     () => selectedConfig.value,

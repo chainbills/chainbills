@@ -47,7 +47,7 @@ export const useThemeStore = defineStore('theme', () => {
   };
 
   onMounted(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = localStorage.getItem('chainbills::theme');
     if (saved && isThemeMode(saved)) mode.value = saved;
 
     css();

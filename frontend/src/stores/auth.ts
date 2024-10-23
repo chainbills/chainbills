@@ -57,6 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
   const cosmwasm = useCosmwasmStore();
   const currentUser = ref<User | null>(null);
   const evm = useEvmStore();
+  const isLoading = ref(true);
   const signature = ref<string | null>(null);
   const solana = useSolanaStore();
   const solanaWallet = useSolanaWallet();
@@ -88,12 +89,14 @@ export const useAuthStore = defineStore('auth', () => {
     return `${chain}::user::${walletAddress}::${entity}::${count}`;
   };
 
-  const disconnect = async (user: User): Promise<void> => {
-    return await {
-      'Burnt Xion': cosmwasm.logout,
-      'Ethereum Sepolia': evmDisconnect,
-      Solana: solanaWallet.disconnect,
-    }[user.chain]();
+  const disconnect = async (chain?: Chain): Promise<void> => {
+    if (chain || currentUser.value) {
+      return await {
+        'Burnt Xion': cosmwasm.logout,
+        'Ethereum Sepolia': evmDisconnect,
+        Solana: solanaWallet.disconnect,
+      }[chain ?? currentUser.value!.chain]();
+    }
   };
 
   const getEntityId = async (
@@ -145,7 +148,7 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         const signed = await getChainStore(user.chain)['sign'](AUTH_MESSAGE);
         if (signed) localStorage.setItem(lsKey(user), signed);
-        else await disconnect(user);
+        else await disconnect(user.chain);
         signature.value = signed ?? null;
       } catch (e) {
         signature.value = null;
@@ -170,6 +173,7 @@ export const useAuthStore = defineStore('auth', () => {
     newAnchorWallet,
     newEvmAddress,
   ]: any[]) => {
+    isLoading.value = true;
     let newChain: Chain | null = null;
     if (newCosmWasmAddr) newChain = 'Burnt Xion';
     else if (newEvmAddress) newChain = 'Ethereum Sepolia';
@@ -179,6 +183,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!newChain) {
       currentUser.value = null;
       signature.value = null;
+      isLoading.value = false;
       return;
     }
 
@@ -186,6 +191,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!newUser) {
       currentUser.value = null;
       signature.value = null;
+      isLoading.value = false;
       return;
     }
 
@@ -195,7 +201,7 @@ export const useAuthStore = defineStore('auth', () => {
       currentUser.value = newUser;
     } else {
       currentUser.value = null;
-      await disconnect(newUser);
+      await disconnect(newUser.chain);
     }
 
     const disconnectFns = [
@@ -204,6 +210,7 @@ export const useAuthStore = defineStore('auth', () => {
       ...(newEvmAddress ? [] : [evmDisconnect]),
     ];
     await Promise.all(disconnectFns.map((d) => d()));
+    isLoading.value = false;
   };
 
   onMounted(() => {
@@ -227,6 +234,8 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     balance,
     currentUser,
+    disconnect,
+    isLoading,
     getExplorerUrl,
     getPayableId,
     getPaymentId,

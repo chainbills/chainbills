@@ -1,6 +1,5 @@
 import 'aos/dist/aos.css';
 import 'solana-wallets-vue/styles.css';
-import 'web3-avatar-vue/dist/style.css';
 import './assets/main.css';
 
 import { definePreset } from '@primevue/themes';
@@ -13,7 +12,7 @@ import {
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
-import { WagmiPlugin } from '@wagmi/vue';
+import { WagmiPlugin, type WagmiPluginOptions } from '@wagmi/vue';
 import AOS from 'aos';
 import type { WalletStoreProps } from 'node_modules/solana-wallets-vue/dist/types';
 import { createPinia } from 'pinia';
@@ -99,7 +98,9 @@ createAppKit({
     icons: ['https://chainbills.xyz/assets/chainbills-light.png'],
   },
 });
-app.use(WagmiPlugin, { config: wagmiAdapter.wagmiConfig });
+app.use(WagmiPlugin, {
+  config: wagmiAdapter.wagmiConfig,
+} as WagmiPluginOptions);
 app.use(VueQueryPlugin, { queryClient });
 
 if (!import.meta.env.DEV) {

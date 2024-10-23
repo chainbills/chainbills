@@ -60,7 +60,7 @@ const year = new Date().getFullYear();
         </div>
 
         <div class="sm:mt-12">
-          <h2 class="font-medium mb-2 text-lg">Contact Us</h2>
+          <h2 class="font-medium mb-2 text-lg">Join Us</h2>
           <a
             href="mailto:contact@chainbills.xyz"
             target="_blank"

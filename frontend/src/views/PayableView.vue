@@ -324,7 +324,7 @@ onMounted(() => {
         <h2 class="text-3xl font-bold max-sm:mb-6">Payable Activity</h2>
 
         <div class="max-sm:flex justify-end">
-          <Tabs scrollable v-model:value="activeCat">
+          <Tabs v-model:value="activeCat">
             <TabList>
               <Tab
                 v-for="(category, i) of categories"

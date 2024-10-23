@@ -47,7 +47,7 @@ const copy = (text: string, context: string) => {
   toast.add({
     severity: 'info',
     summary: 'Copied',
-    detail: `${context} copied to clipboard`,
+    detail: `${context} copied to clipboard.`,
     life: 3000,
   });
 };

@@ -65,7 +65,7 @@ const theme = useThemeStore();
         <li class="w-full p-2 rounded-md" v-ripple>
           <ThemeMenu :full="true" />
         </li>
-        <li class="mt-6"><SignInButton /></li>
+        <li class="mt-4"><SignInButton /></li>
       </ul>
     </nav>
   </Drawer>

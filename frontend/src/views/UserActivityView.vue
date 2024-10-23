@@ -95,7 +95,7 @@ onMounted(async () => {
       <h2 class="text-3xl font-bold max-sm:mb-6">Your Activity</h2>
 
       <div class="max-sm:flex justify-end">
-        <Tabs scrollable v-model:value="activeCat">
+        <Tabs v-model:value="activeCat">
           <TabList>
             <Tab
               v-for="(category, i) of categories"

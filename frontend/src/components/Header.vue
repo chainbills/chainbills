@@ -11,9 +11,9 @@ const theme = useThemeStore();
 
 <template>
   <header
-    class="max-md:py-4 py-2 px-8 lg:px-12 fixed top-0 left-0 right-0 z-10"
+    class="max-md:py-4 py-2 px-8 lg:px-12 fixed top-0 left-0 right-0 z-10 h-16 bg-app-bg"
   >
-    <div class="flex justify-between max-w-screen-xl mx-auto" wrapper>
+    <div class="flex justify-between max-w-screen-xl mx-auto md:items-start">
       <h1 class="text-2xl font-bold max-md:pt-0 pt-2">
         <router-link to="/" class="flex items-center">
           <img
@@ -41,23 +41,25 @@ const theme = useThemeStore();
             <li class="mr-6">
               <router-link to="/activity">Activity</router-link>
             </li>
-            <li class="max-md:hidden inline mr-4"><SignInButton /></li>
+            <li class="mr-4"><SignInButton id="header" /></li>
             <li><ThemeMenu :full="false" /></li>
           </ul>
         </nav>
       </div>
-      <Button @click="sidebar.open" menu class="bg-transparent border-none text-current -mr-4"><IconMenu /></Button>
+      <Button
+        @click="sidebar.open"
+        class="bg-transparent border-none text-current -mr-4 md:hidden"
+        ><IconMenu
+      /></Button>
     </div>
   </header>
 </template>
 
 <style scoped>
 header {
-  background-color: var(--app-bg);
   box-shadow:
     0 1px 1.5px 0 var(--shadow),
     0 1px 1px -1px var(--shadow);
-  height: 64px;
 }
 
 nav .router-link-active::after {
@@ -65,15 +67,5 @@ nav .router-link-active::after {
   content: ' ';
   display: block;
   height: 1px;
-}
-
-@media (min-width: 768px) {
-  [wrapper] {
-    align-items: start;
-  }
-
-  [menu] {
-    display: none;
-  }
 }
 </style>

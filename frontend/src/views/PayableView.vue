@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import SignInButton from '@/components/SignInButton.vue';
+import TableLoader from '@/components/TableLoader.vue';
 import TransactionsTable from '@/components/TransactionsTable.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable, type Receipt, TokenAndAmount } from '@/schemas';
@@ -319,10 +320,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <template v-if="isLoadingActivities">
-        <p class="text-center my-12">Loading ...</p>
-        <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
-      </template>
+      <template v-if="isLoadingActivities"><TableLoader /></template>
 
       <template v-else-if="!transactions">
         <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>

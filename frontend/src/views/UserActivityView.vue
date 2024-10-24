@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SignInButton from '@/components/SignInButton.vue';
+import TableLoader from '@/components/TableLoader.vue';
 import TransactionsTable from '@/components/TransactionsTable.vue';
-import IconSpinner from '@/icons/IconSpinner.vue';
 import { type Receipt } from '@/schemas';
 import {
   useAuthStore,
@@ -19,7 +19,7 @@ const auth = useAuthStore();
 const lsCatKey = () =>
   `chainbills::user=>${auth.currentUser?.walletAddress}` +
   '::activity_table_category';
-const lsPageKey = () => 
+const lsPageKey = () =>
   `chainbills::user=>${auth.currentUser?.walletAddress}` +
   '::activity_table_page';
 
@@ -114,10 +114,7 @@ onMounted(async () => {
       <p class="mx-auto w-fit"><SignInButton /></p>
     </template>
 
-    <template v-else-if="isLoading">
-      <p class="text-center my-12">Loading ...</p>
-      <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
-    </template>
+    <template v-else-if="isLoading"><TableLoader /></template>
 
     <template v-else-if="!transactions">
       <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>

@@ -2,7 +2,6 @@
 import Footer from '@/components/Footer.vue';
 import Header from '@/components/Header.vue';
 import Sidebar from '@/components/Sidebar.vue';
-import IconSpinner from '@/icons/IconSpinner.vue';
 import {
   useAuthStore,
   useCacheStore,
@@ -28,11 +27,7 @@ useThemeStore();
   <main class="p-8 lg:px-12">
     <Sidebar />
 
-    <div v-if="appLoading.status" class="py-20">
-      <p class="text-center text-xl mb-12">{{ appLoading.text }} ...</p>
-      <IconSpinner height="144" width="144" class="mx-auto" />
-    </div>
-
+    <component v-if="appLoading.loader" :is="appLoading.loader" />
     <RouterView v-else />
 
     <Toast />

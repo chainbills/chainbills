@@ -29,7 +29,7 @@ const beforeEnterPayableDetails = async (
   const appLoading = useAppLoadingStore();
   const payable = usePayableStore();
   appLoading.show(loaderType);
-  const details = await payable.get(to.params['id'] as string);
+  const details = await payable.get(to.params['id'] as string, true);
   if (details) {
     to.meta.details = details;
     appLoading.hide();

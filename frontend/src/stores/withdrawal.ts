@@ -95,7 +95,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
     try {
       let raw: any;
-      if (chain == 'Solana') raw = await solana.fetchEntity('withdrawal', id);
+      if (chain == 'Solana') raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
       else if (chain == 'Ethereum Sepolia')
         raw = await evm.fetchWithdrawal(id, ignoreErrors);
       else if (chain == 'Burnt Xion')

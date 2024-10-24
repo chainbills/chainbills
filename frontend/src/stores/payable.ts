@@ -84,18 +84,21 @@ export const usePayableStore = defineStore('payable', () => {
     }
   };
 
-  const get = async (id: string): Promise<Payable | null> => {
-    const dbData = await server.getPayable(id);
+  const get = async (
+    id: string,
+    ignoreErrors?: boolean
+  ): Promise<Payable | null> => {
+    const dbData = await server.getPayable(id, ignoreErrors);
     if (!dbData) return null;
 
     try {
       let raw: any;
       if (dbData.chain == 'Solana')
-        raw = await solana.fetchEntity('payable', id);
+        raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
       else if (dbData.chain == 'Ethereum Sepolia')
-        raw = await evm.fetchPayable(id);
+        raw = await evm.fetchPayable(id, ignoreErrors);
       else if (dbData.chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('payable', id);
+        raw = await cosmwasm.fetchEntity('payable', id, ignoreErrors);
       else throw `Unknown chain: ${dbData.chain}`;
       if (raw) return new Payable(id, dbData.chain, dbData.description, raw);
     } catch (e) {

@@ -6,9 +6,9 @@ import {
   type Token,
 } from '@/schemas';
 import {
+  IDL,
   SOLANA_CLUSTER,
   WH_CHAIN_ID_SOLANA,
-  IDL,
   type Chainbills,
 } from '@/stores';
 import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
@@ -316,6 +316,22 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  
+  const tryFetchEntity = async (
+    entity: keyof AllAccountsMap<Chainbills>,
+    id: string,
+    ignoreErrors = false
+  ) => {
+    try {
+      return await program().account[entity].fetch(new PublicKey(id));
+    } catch (e) {
+      if (!ignoreErrors) {
+        console.error(e);
+        toastError(`${e}`);
+      }
+      return null;
+    }
+  };
 
   const walletExplorerUrl = (wallet: string) =>
     `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
@@ -423,6 +439,7 @@ export const useSolanaStore = defineStore('solana', () => {
     pay,
     program,
     sign,
+    tryFetchEntity,
     walletExplorerUrl,
     withdraw,
   };

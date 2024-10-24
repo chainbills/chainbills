@@ -125,7 +125,8 @@ export const usePaymentStore = defineStore('payment', () => {
     // Otherwise, first try to fetch the payment as if it was a user payment.
     try {
       let raw: any;
-      if (chain == 'Solana') raw = await solana.fetchEntity('userPayment', id);
+      if (chain == 'Solana')
+        raw = await solana.tryFetchEntity('userPayment', id, ignoreErrors);
       else if (chain == 'Ethereum Sepolia')
         raw = await evm.fetchUserPayment(id, ignoreErrors);
       else if (chain == 'Burnt Xion')
@@ -142,7 +143,7 @@ export const usePaymentStore = defineStore('payment', () => {
       try {
         let raw: any;
         if (chain == 'Solana')
-          raw = await solana.fetchEntity('payablePayment', id);
+          raw = await solana.tryFetchEntity('payablePayment', id, ignoreErrors);
         else if (chain == 'Ethereum Sepolia')
           raw = await evm.fetchPayablePayment(id, ignoreErrors);
         else if (chain == 'Burnt Xion')

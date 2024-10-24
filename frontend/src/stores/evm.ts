@@ -173,11 +173,15 @@ export const useEvmStore = defineStore('evm', () => {
     });
   };
 
-  const fetchPayable = async (id: string) => {
+  const fetchPayable = async (id: string, ignoreErrors?: boolean) => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('payables', [xId]);
-    const aTAAs = await readContract('getAllowedTokensAndAmounts', [xId]);
-    const balances = await readContract('getBalances', [xId]);
+    const raw = await readContract('payables', [xId], ignoreErrors);
+    const aTAAs = await readContract(
+      'getAllowedTokensAndAmounts',
+      [xId],
+      ignoreErrors
+    );
+    const balances = await readContract('getBalances', [xId], ignoreErrors);
     if (!raw || !aTAAs || !balances) return null;
     // the following was just to reduce the number of code lines
     const [host, chainCount, hostCount, createdAt, paymentsCount] = raw;

@@ -64,11 +64,11 @@ const copy = (text: string, context: string) => {
           receipt.id
         }}</span>
         <Button
-          class="bg-transparent p-1 border-none"
+          class="bg-transparent p-1 border-none block w-fit h-fit"
           @click="copy(receipt.id, `Receipt ID: ${receipt.id}`)"
           title="Copy Receipt ID"
         >
-          <IconCopy class="text-primary" />
+          <IconCopy class="text-primary w-4 h-4" />
         </Button>
       </p>
     </div>
@@ -85,21 +85,21 @@ const copy = (text: string, context: string) => {
           {{ receipt.user() }}
         </span>
         <Button
-          class="bg-transparent p-1 border-none"
+          class="bg-transparent p-1 border-none block w-fit h-fit"
           @click="copy(receipt.user(), `Wallet Address: ${receipt.user()}`)"
           title="Copy Wallet Address"
         >
-          <IconCopy class="text-primary" />
+          <IconCopy class="text-primary w-4 h-4" />
         </Button>
         <a
           :href="auth.getExplorerUrl(receipt.user(), userChain)"
           target="_blank"
           rel="noopener noreferrer"
           title="View on Explorer"
-          class="p-1 rounded-md"
+          class="p-1 rounded-md block w-fit h-fit"
           v-ripple
         >
-          <IconOpenInNew class="text-primary" />
+          <IconOpenInNew class="text-primary w-4 h-4" />
         </a>
       </p>
     </div>
@@ -137,21 +137,21 @@ const copy = (text: string, context: string) => {
           {{ receipt.payableId }}
         </span>
         <Button
-          class="bg-transparent p-1 border-none"
+          class="bg-transparent p-1 border-none block w-fit h-fit"
           @click="copy(receipt.payableId, `Payable ID: ${receipt.payableId}`)"
           title="Copy Payable ID"
         >
-          <IconCopy class="text-primary" />
+          <IconCopy class="text-primary w-4 h-4" />
         </Button>
         <a
           :href="`${payableRoute}`"
           target="_blank"
           rel="noopener noreferrer"
           title="About"
-          class="p-1 rounded-md"
+          class="p-1 rounded-md block w-fit h-fit"
           v-ripple
         >
-          <IconOpenInNew class="text-primary" />
+          <IconOpenInNew class="text-primary w-4 h-4" />
         </a>
       </p>
     </div>

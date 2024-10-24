@@ -215,7 +215,7 @@ onMounted(() => {
                 />
                 <p v-if="selectedToken && balances.length == 1 && balances[0]">
                   <IconWallet
-                    class="w-3 h-3 inline-block mt-px mr-1 stroke-black dark:stroke-white"
+                    class="w-3 h-3 inline-block mt-px mr-1 stroke-current"
                   />
                   <span class="text-[10px] text-gray-500">
                     {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
@@ -248,7 +248,7 @@ onMounted(() => {
               </p>
               <p v-if="balances.length == 1 && balances[0]">
                 <IconWallet
-                  class="w-3 h-3 inline-block mt-px mr-1 stroke-black dark:stroke-white"
+                  class="w-3 h-3 inline-block mt-px mr-1 stroke-current"
                 />
                 <span class="text-[10px] text-gray-500">
                   {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
@@ -283,7 +283,7 @@ onMounted(() => {
                   "
                 >
                   <IconWallet
-                    class="w-3 h-3 inline-block mt-px mr-1 stroke-black dark:stroke-white"
+                    class="w-3 h-3 inline-block mt-px mr-1 stroke-current"
                   />
                   <span class="text-[10px] text-gray-500">
                     {{ Math.trunc(balances[i]! * 10 ** 5) / 10 ** 5 }}&nbsp;{{

@@ -58,7 +58,6 @@ const resetTablePage = () => {
 };
 
 const updateTablePage = (page: number) => {
-  if (currentTablePage.value == page) return;
   currentTablePage.value = page;
   localStorage.setItem(lsPageKey(), page.toString());
   getTransactions();
@@ -92,7 +91,7 @@ onMounted(async () => {
 <template>
   <div class="max-w-screen-xl mx-auto pb-20">
     <div class="mb-8 sm:flex justify-between items-center">
-      <h2 class="text-3xl font-bold max-sm:mb-6">Your Activity</h2>
+      <h2 class="text-3xl font-bold max-sm:mb-6">Activity</h2>
 
       <div class="max-sm:flex justify-end">
         <Tabs v-model:value="activeCat">

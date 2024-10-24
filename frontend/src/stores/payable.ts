@@ -105,6 +105,32 @@ export const usePayableStore = defineStore('payable', () => {
     return null;
   };
 
+  const getIdsForCurrentUser = async (
+    page: number,
+    count: number
+  ): Promise<string[] | null> => {
+    if (!auth.currentUser) return null;
+    const { payablesCount: totalCount } = auth.currentUser;
+    if (totalCount === 0) return [];
+
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
+    try {
+      const ids = [];
+      for (let i = start; i >= target; i--) {
+        const id = await auth.getPayableId(i);
+        if (id) ids.push(id);
+        else return null;
+      }
+      return ids;
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+      return null;
+    }
+  };
+
   const getPaymentId = async (
     payableId: string,
     chain: Chain,
@@ -118,35 +144,14 @@ export const usePayableStore = defineStore('payable', () => {
   ): Promise<string | null> =>
     getEntityId(payableId, chain, 'withdrawal', count);
 
-  const mines = async (): Promise<Payable[] | null> => {
-    if (!auth.currentUser) return null;
-    const { payablesCount: count } = auth.currentUser;
-    if (count === 0) return [];
-
-    try {
-      const payables: Payable[] = [];
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
-        const id = await auth.getPayableId(i);
-        if (id) {
-          const payable = await get(id);
-          if (payable) payables.push(payable);
-          else return null;
-        } else return null;
-        fetched++;
-      }
-      return payables;
-    } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
-      return null;
-    }
-  };
-
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { create, get, getPaymentId, getWithdrawalId, mines };
+  return {
+    create,
+    get,
+    getIdsForCurrentUser,
+    getPaymentId,
+    getWithdrawalId,
+  };
 });

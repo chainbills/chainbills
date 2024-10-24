@@ -93,23 +93,7 @@ const comingSoon = () => {
   toast.add({ severity: 'info', summary: 'Coming Soon!', life: 5000 });
 };
 
-const getBalsDisplay = () => {
-  const all: TokenAndAmount[] = [];
-  const { allowedTokensAndAmounts, balances } = payable.value;
-  if (allowedTokensAndAmounts.length == 0) {
-    balances.forEach((b) => all.push(b));
-  } else {
-    const copied = [...balances];
-    for (let taa of allowedTokensAndAmounts) {
-      const found = balances.find((b) => b.name == taa.name);
-      all.push(new TokenAndAmount(taa.token(), found?.amount ?? 0));
-      if (found) copied.splice(copied.indexOf(found), 1);
-    }
-    for (let bal of copied) all.push(bal);
-  }
-  return all;
-};
-const balsDisplay = ref(getBalsDisplay());
+const balsDisplay = computed(() => payable.value.getBalsDisplay());
 const isWithdrawing = ref(false);
 
 const getTransactions = async () => {
@@ -131,7 +115,6 @@ const resetTablePage = () => {
 };
 
 const updateTablePage = (page: number) => {
-  if (currentTablePage.value == page) return;
   currentTablePage.value = page;
   localStorage.setItem(lsPageKey(), page.toString());
   getTransactions();
@@ -152,7 +135,6 @@ const withdraw = async (balance: TokenAndAmount) => {
       const newPayable = await payableStore.get(payable.value.id);
       if (newPayable) {
         payable.value = newPayable;
-        balsDisplay.value = getBalsDisplay();
         cards.value = getCards();
         isWithdrawing.value = false;
 

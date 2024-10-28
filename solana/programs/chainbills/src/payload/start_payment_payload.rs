@@ -16,7 +16,7 @@ pub struct StartPaymentPayload {
 impl AnchorSerialize for StartPaymentPayload {
   fn serialize<W: io::Write>(&self, writer: &mut W) -> io::Result<()> {
     self.payable_id.serialize(writer)?;
-    self.payer_count.to_be_bytes().serialize(writer)?;
+    self.payer_count.to_le_bytes().serialize(writer)?;
     Ok(())
   }
 }
@@ -30,7 +30,7 @@ impl AnchorDeserialize for StartPaymentPayload {
     let payer_count = {
       let mut out = [0u8; 8];
       out.copy_from_slice(&buf[index..(index + 8)]);
-      u64::from_be_bytes(out) as u64
+      u64::from_le_bytes(out) as u64
     };
     index += 8;
 

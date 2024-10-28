@@ -50,11 +50,22 @@ const getTransactions = async () => {
 
 const resetTablePage = () => {
   if (!auth.currentUser) return (currentTablePage.value = 0);
-  currentTablePage.value = paginators.getLastPage(
+  activeCat.value = +(localStorage.getItem(lsCatKey()) ?? '0');
+  const finalPage = paginators.getLastPage(
     auth.currentUser[
       activeCat.value == 0 ? 'paymentsCount' : 'withdrawalsCount'
     ]
   );
+  const lastSavedPage = +(localStorage.getItem(lsPageKey()) ?? '0');
+  if (
+    lastSavedPage < 0 ||
+    lastSavedPage > finalPage ||
+    !Number.isInteger(lastSavedPage)
+  ) {
+    currentTablePage.value = finalPage;
+  } else {
+    currentTablePage.value = lastSavedPage;
+  }
 };
 
 const updateTablePage = (page: number) => {

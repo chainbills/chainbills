@@ -108,9 +108,20 @@ const getTransactions = async () => {
 
 const resetTablePage = () => {
   if (!payable.value) return;
-  currentTablePage.value = paginators.getLastPage(
+  activeCat.value = +(localStorage.getItem(lsCatKey()) ?? '0');
+  const finalPage = paginators.getLastPage(
     payable.value[activeCat.value == 0 ? 'paymentsCount' : 'withdrawalsCount']
   );
+  const lastSavedPage = +(localStorage.getItem(lsPageKey()) ?? '0');
+  if (
+    lastSavedPage < 0 ||
+    lastSavedPage > finalPage ||
+    !Number.isInteger(lastSavedPage)
+  ) {
+    currentTablePage.value = finalPage;
+  } else {
+    currentTablePage.value = lastSavedPage;
+  }
 };
 
 const shorten = (v: string) =>

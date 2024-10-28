@@ -521,7 +521,7 @@ impl Payments for Chainbills {
         user_count: user.activities_count,
         payable_count: 0, // Setting 0 because it's not a payable activity.
         timestamp: ctx.env.block.time.seconds(),
-        reference: HexBinary::from(&payment_id).to_hex(),
+        entity: HexBinary::from(&payment_id).to_hex(),
         activity_type: ActivityType::UserPaid,
       },
     )?;
@@ -535,7 +535,7 @@ impl Payments for Chainbills {
         user_count: 0, // Setting 0 because it's not a user activity.
         payable_count: payable.activities_count,
         timestamp: ctx.env.block.time.seconds(),
-        reference: HexBinary::from(&payment_id).to_hex(),
+        entity: HexBinary::from(&payment_id).to_hex(),
         activity_type: ActivityType::PayableReceived,
       },
     )?;

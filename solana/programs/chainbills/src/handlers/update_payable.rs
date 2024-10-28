@@ -32,7 +32,7 @@ fn record_update_payable_activity(
   activity.user_count = host.activities_count;
   activity.payable_count = payable.activities_count;
   activity.timestamp = Clock::get()?.unix_timestamp as u64;
-  activity.reference = payable.key();
+  activity.entity = payable.key();
   activity.activity_type = activity_type;
 
   // Initialize the user activity info.

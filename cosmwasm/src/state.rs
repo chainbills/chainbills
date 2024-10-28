@@ -335,7 +335,7 @@ pub struct ActivityRecord {
   pub timestamp: u64,
   /// The ID of the entity (Payable, Payment, or Withdrawal) that is relevant
   /// to this activity.
-  pub reference: String,
+  pub entity: String,
   /// The type of activity.
   pub activity_type: ActivityType,
 }

@@ -334,7 +334,7 @@ impl Withdrawals for Chainbills {
         user_count: user.activities_count,
         payable_count: payable.activities_count,
         timestamp: ctx.env.block.time.seconds(),
-        reference: HexBinary::from(&withdrawal_id).to_hex(),
+        entity: HexBinary::from(&withdrawal_id).to_hex(),
         activity_type: ActivityType::Withdrew,
       },
     )?;

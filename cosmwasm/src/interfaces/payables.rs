@@ -210,7 +210,7 @@ impl Payables for Chainbills {
         user_count: user.activities_count,
         payable_count: 1,
         timestamp: ctx.env.block.time.seconds(),
-        reference: HexBinary::from(&payable_id).to_hex(),
+        entity: HexBinary::from(&payable_id).to_hex(),
         activity_type: ActivityType::CreatedPayable,
       },
     )?;

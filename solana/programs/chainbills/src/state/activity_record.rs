@@ -48,7 +48,7 @@ pub struct ActivityRecord {
 
   /// The ID of the entity (Payable, Payment, or Withdrawal) that is relevant
   /// to this activity.
-  pub reference: Pubkey, // 32 bytes
+  pub entity: Pubkey, // 32 bytes
 
   /// The type of activity.
   pub activity_type: ActivityType, // 1 byte

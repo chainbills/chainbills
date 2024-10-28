@@ -247,7 +247,7 @@ impl Chainbills {
           user_count: 1,
           payable_count: 0, // no payable involved
           timestamp: env.block.time.seconds(),
-          reference: wallet.to_string(),
+          entity: wallet.to_string(),
           activity_type: ActivityType::InitializedUser,
         },
       )?;
@@ -367,7 +367,7 @@ impl Chainbills {
         user_count: user.activities_count,
         payable_count,
         timestamp: env.block.time.seconds(),
-        reference: HexBinary::from(&payable_id).to_hex(),
+        entity: HexBinary::from(&payable_id).to_hex(),
         activity_type,
       },
     )?;

@@ -149,7 +149,7 @@ fn update_state_for_payment(
   // Setting 0 because it's not a payable activity.
   user_activity.payable_count = 0;
   user_activity.timestamp = timestamp;
-  user_activity.reference = user_payment.key();
+  user_activity.entity = user_payment.key();
   user_activity.activity_type = ActivityType::UserPaid;
 
   // Initialize the User Activity Info.
@@ -161,7 +161,7 @@ fn update_state_for_payment(
   payable_activity.user_count = 0;
   payable_activity.payable_count = payable.activities_count;
   payable_activity.timestamp = timestamp;
-  payable_activity.reference = payable_payment.key();
+  payable_activity.entity = payable_payment.key();
   payable_activity.activity_type = ActivityType::PayableReceived;
 
   // Initialize the Payable Activity Info.

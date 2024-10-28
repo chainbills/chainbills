@@ -78,7 +78,7 @@ pub fn create_payable_handler<'info>(
   activity.user_count = host.activities_count;
   activity.payable_count = payable.activities_count;
   activity.timestamp = timestamp;
-  activity.reference = payable.key();
+  activity.entity = payable.key();
   activity.activity_type = ActivityType::CreatedPayable;
 
   // Initialize the user activity info.

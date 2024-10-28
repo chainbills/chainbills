@@ -26,10 +26,10 @@ pub fn initialize_user_handler(ctx: Context<InitializeUser>) -> Result<()> {
   activity.user_count = user.activities_count;
   activity.payable_count = 0; // Setting 0 because it's not a payable activity.
   activity.timestamp = clock::Clock::get()?.unix_timestamp as u64;
-  activity.reference = ctx.accounts.signer.key();
+  activity.entity = ctx.accounts.signer.key();
   activity.activity_type = ActivityType::InitializedUser;
 
-  // Initialize the user activity info. 
+  // Initialize the user activity info.
   let user_activity_info = ctx.accounts.user_activity_info.as_mut();
   user_activity_info.chain_count = chain_stats.activities_count;
 

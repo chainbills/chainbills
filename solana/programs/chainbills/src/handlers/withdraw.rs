@@ -118,7 +118,7 @@ fn update_state_for_withdrawal(
   activity.user_count = host.activities_count;
   activity.payable_count = payable.activities_count;
   activity.timestamp = timestamp;
-  activity.reference = withdrawal.key();
+  activity.entity = withdrawal.key();
   activity.activity_type = ActivityType::Withdrew;
 
   // Initialize the user activity info.

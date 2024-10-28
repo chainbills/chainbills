@@ -3,6 +3,10 @@ use anchor_lang::prelude::*;
 /// Keeps track of details about supported tokens.
 #[account]
 pub struct TokenDetails {
+  /// The token's mint. Normally shouldn't have being stored but this is to
+  /// help with verifying token details at creating payables.
+  pub mint: Pubkey, // 32 bytes
+
   /// Whether payments are currently accepted in this token.
   pub is_supported: bool, // 1 byte
 
@@ -24,7 +28,7 @@ pub struct TokenDetails {
 
 impl TokenDetails {
   // discriminator (8) included
-  pub const SPACE: usize = 1 + 6 * 8;
+  pub const SPACE: usize = 1 + 6 * 8 + 32;
 
   /// AKA `b"token_details`.
   #[constant]

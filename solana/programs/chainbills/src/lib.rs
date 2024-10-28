@@ -89,8 +89,8 @@ pub mod chainbills {
   /// * allowed_tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens
   ///         (and their amounts) on this payable. If this vector is empty,
   ///         then the payable will accept payments in any token.
-  pub fn create_payable(
-    ctx: Context<CreatePayable>,
+  pub fn create_payable<'info>(
+    ctx: Context<'_, '_, 'info, 'info, CreatePayable>,
     allowed_tokens_and_amounts: Vec<TokenAndAmount>,
   ) -> Result<()> {
     handlers::create_payable_handler(ctx, allowed_tokens_and_amounts)

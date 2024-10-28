@@ -25,6 +25,7 @@ pub fn update_max_withdrawal_fees(
   }
 
   let token_details = ctx.accounts.token_details.as_mut();
+  token_details.mint = token;
   token_details.is_supported = true;
   token_details.max_withdrawal_fees = max_withdrawal_fees;
 
@@ -45,6 +46,7 @@ pub fn update_max_withdrawal_fees_native(
   max_withdrawal_fees: u64,
 ) -> Result<()> {
   let token_details = ctx.accounts.token_details.as_mut();
+  token_details.mint = crate::ID;
   token_details.is_supported = true;
   token_details.max_withdrawal_fees = max_withdrawal_fees;
 

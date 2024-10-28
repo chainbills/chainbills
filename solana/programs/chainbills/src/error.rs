@@ -6,6 +6,15 @@ pub enum ChainbillsError {
   /// The maximum capacity of payable tokens has been reached.
   MaxPayableTokensCapacityReached,
 
+  #[msg("InvalidRemainingAccountsLength")]
+  /// The length of remaining accounts in the context does not match the length
+  /// of the allowed tokens and amounts vector.
+  InvalidRemainingAccountsLength,
+
+  #[msg("NonTokenDetailsAccountProvided")]
+  /// A non-token details account was provided in the remaining accounts.
+  NonTokenDetailsAccountProvided,
+
   #[msg("UnsupportedToken")]
   /// The token is not supported.
   UnsupportedToken,

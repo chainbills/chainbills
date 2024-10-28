@@ -7,8 +7,8 @@ use anchor_lang::{prelude::*, solana_program::clock};
 /// * allowed_tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens
 ///         (and their amounts) on this payable. If this vector is empty,
 ///         then the payable will accept payments in any token.
-pub fn create_payable_handler(
-  ctx: Context<CreatePayable>,
+pub fn create_payable_handler<'info>(
+  ctx: Context<'_, '_, 'info, 'info, CreatePayable>,
   allowed_tokens_and_amounts: Vec<TokenAndAmount>,
 ) -> Result<()> {
   /* CHECKS */
@@ -19,8 +19,31 @@ pub fn create_payable_handler(
     ChainbillsError::MaxPayableTokensCapacityReached
   );
 
-  // Ensure that all specified acceptable amounts are greater than zero.
-  for taa in allowed_tokens_and_amounts.iter() {
+  // Ensure that length of remaining_accounts in context matches that of the
+  // allowed_tokens_and_amounts (ataas) vector. This is necessary inorder to
+  // use remaining_accounts to get the token details.
+  require!(
+    ctx.remaining_accounts.len() == allowed_tokens_and_amounts.len(),
+    ChainbillsError::InvalidRemainingAccountsLength
+  );
+
+  for (i, taa) in allowed_tokens_and_amounts.iter().enumerate() {
+    // Get the token details for the specified token.
+    let token_details =
+      Account::<'info, TokenDetails>::try_from(&ctx.remaining_accounts[i])
+        .map_err(|_| ChainbillsError::NonTokenDetailsAccountProvided)?;
+
+    // Ensure that the token is supported.
+    require!(
+      taa.token == token_details.mint,
+      ChainbillsError::UnsupportedToken
+    );
+    require!(
+      token_details.is_supported,
+      ChainbillsError::UnsupportedToken
+    );
+
+    // Ensure that all specified acceptable amounts are greater than zero.
     require!(taa.amount > 0, ChainbillsError::ZeroAmountSpecified);
   }
 

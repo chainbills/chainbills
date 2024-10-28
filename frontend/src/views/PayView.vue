@@ -1,9 +1,16 @@
 <script setup lang="ts">
+import MakePaymentLoader from '@/components/MakePaymentLoader.vue';
 import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import IconWallet from '@/icons/IconWallet.vue';
 import { Payable, TokenAndAmount, tokens, type Token } from '@/schemas';
-import { useAuthStore, usePaymentStore, type Chain } from '@/stores';
+import {
+  useAuthStore,
+  usePayableStore,
+  usePaymentStore,
+  type Chain,
+} from '@/stores';
+import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -18,20 +25,24 @@ const availableTokens = computed(() =>
   tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain])
 );
 const configError = ref('');
+const isLoading = ref(true);
 const isPaying = ref(false);
 const payment = usePaymentStore();
 const route = useRoute();
-const payable = route.meta.details as Payable;
-const { allowedTokensAndAmounts } = payable;
-const allowsFreePayments = allowedTokensAndAmounts.length == 0;
+const payable = ref<Payable | null>(null);
+const payables = usePayableStore();
+const aTAAs = computed(() => payable.value?.allowedTokensAndAmounts ?? []);
+const allowsFreePayments = aTAAs.value.length == 0;
 const router = useRouter();
 const selectedConfig = ref<TokenAndAmount | null>(null);
 const selectedToken = ref<Token | null>(null);
 
 const selectToken = (token: Token) => {
+  if (!payable.value) return;
+
   // Obtaining a Choice Chain first is good when no wallet is connected
   // and the User is interacting with the dropdown of tokens.
-  let choiceChain = auth.currentUser?.chain ?? payable.chain;
+  let choiceChain = auth.currentUser?.chain ?? payable.value.chain;
   // If the token the user selected has no details in the choice chain,
   // we default to the first chain that has details for the token.
   if (!token.details[choiceChain]) {
@@ -46,16 +57,16 @@ const selectToken = (token: Token) => {
 };
 
 const validateAmount = () => {
+  if (!payable.value) return;
+
   const v = amount.value;
   if (Number.isNaN(v) || +v == 0) amountError.value = 'Required';
   else if (v <= 0) amountError.value = 'Should be positive';
   else amountError.value = '';
   if (allowsFreePayments && selectedConfig.value) {
+    const chain = auth.currentUser?.chain ?? payable.value.chain;
     selectedConfig.value.amount =
-      v *
-      10 **
-        (selectedConfig.value.details[auth.currentUser?.chain ?? payable.chain]
-          ?.decimals ?? 0);
+      v * 10 ** (selectedConfig.value.details[chain]?.decimals ?? 0);
   }
   validateBalance();
 };
@@ -70,9 +81,7 @@ const updateBalances = async () => {
       ];
     } else {
       balances.value = await Promise.all(
-        allowedTokensAndAmounts.map(
-          async (taa) => await auth.balance(taa.token())
-        )
+        aTAAs.value.map(async (taa) => await auth.balance(taa.token()))
       );
     }
   }
@@ -91,13 +100,15 @@ const validateBalance = async () => {
 const validateConfig = () => {
   if (!selectedConfig.value) {
     if (allowsFreePayments) configError.value = 'Please select a token';
-    else if (allowedTokensAndAmounts.length > 1) {
+    else if (aTAAs.value.length > 1) {
       configError.value = 'Please make a choice';
     } else configError.value = '';
   } else configError.value = '';
 };
 
 const pay = async () => {
+  if (!payable.value || !auth.currentUser) return;
+
   validateAmount();
   await validateBalance();
   validateConfig();
@@ -110,14 +121,17 @@ const pay = async () => {
   }
 
   isPaying.value = true;
-  const id = await payment.exec(payable.id, selectedConfig.value!);
+  const id = await payment.exec(payable.value.id, selectedConfig.value!);
 
   if (id) router.push(`/receipt/${id}`);
   else isPaying.value = false;
 };
 
-onMounted(() => {
-  updateBalances();
+onMounted(async () => {
+  payable.value = await payables.get(route.params.id as string);
+  isLoading.value = false;
+
+  await updateBalances();
   document.addEventListener('visibilitychange', updateBalances);
   watch(() => amount.value, validateAmount);
   watch(
@@ -140,8 +154,8 @@ onMounted(() => {
     }
   );
 
-  if (!allowsFreePayments && allowedTokensAndAmounts.length == 1) {
-    selectedConfig.value = allowedTokensAndAmounts[0];
+  if (!allowsFreePayments && aTAAs.value.length == 1) {
+    selectedConfig.value = aTAAs.value[0];
   }
 
   if (allowsFreePayments) {
@@ -157,7 +171,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="max-md:max-w-md md:max-w-screen-md mx-auto md:pt-8 pb-20">
+  <MakePaymentLoader v-if="isLoading" />
+
+  <NotFoundView v-else-if="!payable" />
+
+  <section
+    class="max-md:max-w-md md:max-w-screen-md mx-auto md:pt-8 pb-20"
+    v-else
+  >
     <div class="md:flex gap-12">
       <div class="grow">
         <h2 class="text-3xl mb-4 font-bold">Make Payment</h2>
@@ -233,19 +254,14 @@ onMounted(() => {
 
           <div class="pb-4" v-else>
             <p class="mb-1">
-              {{
-                allowedTokensAndAmounts.length == 1 ? 'Pay' : 'Select an Option'
-              }}
+              {{ aTAAs.length == 1 ? 'Pay' : 'Select an Option' }}
             </p>
 
-            <div
-              class="w-fit flex flex-col"
-              v-if="allowedTokensAndAmounts.length == 1"
-            >
+            <div class="w-fit flex flex-col" v-if="aTAAs.length == 1">
               <p class="font-bold text-3xl">
                 <!-- TODO: Review whether to use the payable's chain for 
            formatting tokenAndAmount display especially when swaps start -->
-                {{ allowedTokensAndAmounts[0].display(payable.chain) }}
+                {{ aTAAs[0].display(payable.chain) }}
               </p>
               <p v-if="balances.length == 1 && balances[0]">
                 <IconWallet
@@ -253,17 +269,14 @@ onMounted(() => {
                 />
                 <span class="text-[10px] text-gray-500">
                   {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
-                    allowedTokensAndAmounts[0].name
+                    aTAAs[0].name
                   }}
                 </span>
               </p>
             </div>
 
             <div class="flex gap-4 flex-wrap mb-3 pt-2" v-else>
-              <div
-                class="w-fit flex flex-col gap-1"
-                v-for="(taa, i) of allowedTokensAndAmounts"
-              >
+              <div class="w-fit flex flex-col gap-1" v-for="(taa, i) of aTAAs">
                 <Button
                   :class="
                     'text-current border-none shadow-md px-3 py-2 text-xl ' +
@@ -277,12 +290,7 @@ onMounted(() => {
            formatting tokenAndAmount display especially when swaps start -->
                   {{ taa.display(payable.chain) }}
                 </Button>
-                <p
-                  v-if="
-                    balances.length == allowedTokensAndAmounts.length &&
-                    balances[i]
-                  "
-                >
+                <p v-if="balances.length == aTAAs.length && balances[i]">
                   <IconWallet
                     class="w-3 h-3 inline-block mt-px mr-1 stroke-current"
                   />
@@ -301,8 +309,7 @@ onMounted(() => {
             <p
               v-if="
                 (allowsFreePayments ||
-                  (!allowsFreePayments &&
-                    allowedTokensAndAmounts.length != 1)) &&
+                  (!allowsFreePayments && aTAAs.length != 1)) &&
                 selectedConfig &&
                 selectedConfig.amount
               "

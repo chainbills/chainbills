@@ -8,11 +8,8 @@ import {
   useNotificationsStore,
   useThemeStore,
 } from '@/stores';
-import { useAppLoadingStore } from '@/stores/app-loading';
 import Toast from 'primevue/toast';
 import { RouterView } from 'vue-router';
-
-const appLoading = useAppLoadingStore();
 
 // ensures necessary stores are initialized
 useAuthStore();
@@ -27,8 +24,7 @@ useThemeStore();
   <main class="p-8 lg:px-12">
     <Sidebar />
 
-    <component v-if="appLoading.loader" :is="appLoading.loader" />
-    <RouterView v-else />
+    <RouterView />
 
     <Toast />
   </main>

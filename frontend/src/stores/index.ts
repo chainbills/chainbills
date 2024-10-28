@@ -1,5 +1,4 @@
 export * from './abi';
-export * from './app-loading';
 export * from './auth';
 export * from './cache';
 export * from './cosmwasm';

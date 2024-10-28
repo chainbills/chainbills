@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ReceiptLoader from '@/components/ReceiptLoader.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import {
@@ -7,38 +8,48 @@ import {
   Withdrawal,
   type Receipt,
 } from '@/schemas';
-import { useAuthStore, useTimeStore } from '@/stores';
+import {
+  useAuthStore,
+  usePaymentStore,
+  useTimeStore,
+  useWithdrawalStore,
+} from '@/stores';
+import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 const auth = useAuthStore();
+const isLoading = ref(true);
+const payments = usePaymentStore();
 const route = useRoute();
-const receipt = route.meta.receipt as Receipt;
+const receipt = ref<Receipt | null>(null);
 const time = useTimeStore();
 const toast = useToast();
+const withdrawals = useWithdrawalStore();
 
-const receiptType = receipt instanceof Withdrawal ? 'Withdrawal' : 'Payment';
-const userType = receipt instanceof Withdrawal ? 'Host' : 'Payer';
-const activityType = receipt instanceof Withdrawal ? 'Withdrew' : 'Paid';
+const receiptType =
+  receipt.value instanceof Withdrawal ? 'Withdrawal' : 'Payment';
+const userType = receipt.value instanceof Withdrawal ? 'Host' : 'Payer';
+const activityType = receipt.value instanceof Withdrawal ? 'Withdrew' : 'Paid';
 const payableIntro =
-  receipt instanceof Withdrawal ? 'Withdrew From' : 'Paid To';
+  receipt.value instanceof Withdrawal ? 'Withdrew From' : 'Paid To';
 
 const userChain =
-  receipt instanceof PayablePayment
-    ? (receipt as PayablePayment).payerChain
-    : receipt.chain;
+  receipt.value instanceof PayablePayment
+    ? (receipt.value as PayablePayment).payerChain
+    : receipt.value?.chain;
 const payableChain =
-  receipt instanceof UserPayment
-    ? (receipt as UserPayment).payableChain
-    : receipt.chain;
+  receipt.value instanceof UserPayment
+    ? (receipt.value as UserPayment).payableChain
+    : receipt.value?.chain;
 
 const payableRoute = computed(() => {
-  const isMine = auth.currentUser?.walletAddress == receipt.user();
+  const isMine = auth.currentUser?.walletAddress == receipt.value?.user();
   return (
     `/${receipt instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` +
-    receipt.payableId
+    receipt.value?.payableId
   );
 });
 
@@ -51,10 +62,23 @@ const copy = (text: string, context: string) => {
     life: 3000,
   });
 };
+
+onMounted(async () => {
+  const id = route.params.id as string;
+  receipt.value = (await payments.get(id, undefined, true)) as Receipt | null;
+  if (!receipt.value) {
+    receipt.value = await withdrawals.get(id, undefined, true);
+  }
+  isLoading.value = false;
+});
 </script>
 
 <template>
-  <section class="max-w-screen-md mx-auto pb-20">
+  <ReceiptLoader v-if="isLoading" />
+
+  <NotFoundView v-else-if="!receipt" />
+
+  <section class="max-w-screen-md mx-auto pb-20" v-else>
     <h2 class="text-3xl mb-4 font-bold">{{ receiptType }} Receipt</h2>
 
     <div class="mb-8 leading-tight">
@@ -98,6 +122,7 @@ const copy = (text: string, context: string) => {
           title="View on Explorer"
           class="p-1 rounded-md block w-fit h-fit"
           v-ripple
+          v-if="userChain"
         >
           <IconOpenInNew class="text-primary w-4 h-4" />
         </a>

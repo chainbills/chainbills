@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PayableDetailLoader from '@/components/PayableDetailLoader.vue';
 import SignInButton from '@/components/SignInButton.vue';
 import TableLoader from '@/components/TableLoader.vue';
 import TransactionsTable from '@/components/TransactionsTable.vue';
@@ -14,6 +15,7 @@ import {
   usePaymentStore,
   useWithdrawalStore,
 } from '@/stores';
+import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
@@ -22,35 +24,51 @@ import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
+const payable = ref<Payable | null>(null);
 const route = useRoute();
-const payable = ref(route.meta.details as Payable);
+
+const fetchPayable = async () => {
+  if (!route.params.id) return;
+  isLoading.value = true;
+  payable.value = await payableStore.get(route.params.id as string);
+  isLoading.value = false;
+};
+
 const lsCatKey = () =>
-  `chainbills::payable=>${payable.value.id}::activity_table_category`;
+  (payable.value &&
+    `chainbills::payable=>${payable.value.id}::activity_table_category`) ??
+  '';
 const lsPageKey = () =>
-  `chainbills::payable=>${payable.value.id}::activity_table_page`;
+  (payable.value &&
+    `chainbills::payable=>${payable.value.id}::activity_table_page`) ??
+  '';
 
 const activeCat = ref(+(localStorage.getItem(lsCatKey()) ?? '0'));
 const auth = useAuthStore();
 const categories = ['Payments', 'Withdrawals'];
 const currentTablePage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
+const isLoading = ref(true);
 const isLoadingActivities = ref(true);
 const transactions = ref<Receipt[] | null>(null);
 const paginators = usePaginatorsStore();
 const toast = useToast();
 const { origin } = window.location;
-const link = `${origin}/pay/${payable.value.id}`;
+const link = computed(
+  () => (payable.value && `${origin}/pay/${payable.value.id}`) ?? ''
+);
 const payments = usePaymentStore();
 const payableStore = usePayableStore();
 const withdrawals = useWithdrawalStore();
 
 const totalActivitiesCount = computed(() => {
+  if (!payable.value) return 0;
   return activeCat.value == 0
     ? payable.value.paymentsCount
     : payable.value.withdrawalsCount;
 });
 
 const isMine = computed(
-  () => auth.currentUser?.walletAddress == payable.value.host
+  () => auth.currentUser?.walletAddress == (payable.value?.host ?? '')
 );
 
 const copy = () => {
@@ -60,17 +78,20 @@ const copy = () => {
     detail: 'Link successfully copied to clipboard',
     life: 5000,
   });
-  navigator.clipboard.writeText(link);
+  navigator.clipboard.writeText(link.value ?? '');
 };
 
 const comingSoon = () => {
   toast.add({ severity: 'info', summary: 'Coming Soon!', life: 5000 });
 };
 
-const balsDisplay = computed(() => payable.value.getBalsDisplay());
+const balsDisplay = computed(
+  () => (payable.value && payable.value.getBalsDisplay()) ?? []
+);
 const isWithdrawing = ref(false);
 
 const getTransactions = async () => {
+  if (!payable.value) return;
   isLoadingActivities.value = true;
   transactions.value = await (
     activeCat.value == 0 ? payments : withdrawals
@@ -83,6 +104,7 @@ const getTransactions = async () => {
 };
 
 const resetTablePage = () => {
+  if (!payable.value) return;
   currentTablePage.value = paginators.getLastPage(
     payable.value[activeCat.value == 0 ? 'paymentsCount' : 'withdrawalsCount']
   );
@@ -92,12 +114,14 @@ const shorten = (v: string) =>
   `${v.substring(0, 5)}...${v.substring(v.length - 5)}`;
 
 const updateTablePage = (page: number) => {
+  if (!payable.value) return;
   currentTablePage.value = page;
-  localStorage.setItem(lsPageKey(), page.toString());
+  localStorage.setItem(lsPageKey()!, page.toString());
   getTransactions();
 };
 
 const withdraw = async (balance: TokenAndAmount) => {
+  if (!payable.value || !auth.currentUser) return;
   if (balance.amount == 0) {
     toast.add({
       severity: 'info',
@@ -125,12 +149,15 @@ const withdraw = async (balance: TokenAndAmount) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchPayable();
+
   resetTablePage();
-  getTransactions();
+  await getTransactions();
 
   watch([() => auth.currentUser, () => activeCat.value], (_) => {
-    localStorage.setItem(lsCatKey(), activeCat.value.toString());
+    if (!payable.value) return;
+    localStorage.setItem(lsCatKey()!, activeCat.value.toString());
     resetTablePage();
     getTransactions();
   });
@@ -145,7 +172,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="max-w-screen-xl mx-auto pb-20">
+  <PayableDetailLoader v-if="isLoading" />
+
+  <NotFoundView v-else-if="!payable" />
+
+  <section class="max-w-screen-xl mx-auto pb-20" v-else>
     <template v-if="!auth.currentUser">
       <p class="my-12 text-center text-xl">
         Please connect your wallet to continue
@@ -188,7 +219,12 @@ onMounted(() => {
           }}</span>
         </h2>
 
-        <Button class="px-4 py-1 max-sm:ml-auto max-sm:block">Refresh</Button>
+        <Button
+          class="px-4 py-1 max-sm:ml-auto max-sm:block"
+          @click="fetchPayable"
+        >
+          Refresh
+        </Button>
       </div>
 
       <div class="sm:flex sm:justify-between sm:gap-x-4 mb-16">

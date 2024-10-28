@@ -48,10 +48,13 @@ fn update_state_for_payment(
   chain_stats: &mut Account<ChainStats>,
   payable: &mut Account<Payable>,
   payer: &mut Account<User>,
-  payable_chain_counter: &mut Account<PayableChainCounter>,
+  payable_per_chain_payments_counter: &mut Account<
+    PayablePerChainPaymentsCounter,
+  >,
   token_details: &mut Account<TokenDetails>,
   user_payment: &mut Account<UserPayment>,
   payable_payment: &mut Account<PayablePayment>,
+  payable_per_chain_payment_info: &mut Account<PayablePerChainPaymentInfo>,
 ) -> Result<()> {
   // Increment the chain stats for payments counts.
   chain_stats.user_payments_count = chain_stats.next_user_payment();
@@ -87,7 +90,8 @@ fn update_state_for_payment(
   }
 
   // Increment payments_count on the payable_chain_counter for Solana.
-  payable_chain_counter.payments_count = payable_chain_counter.next_payment();
+  payable_per_chain_payments_counter.payments_count =
+    payable_per_chain_payments_counter.next_payment();
 
   // Increase the supported token's totals from this payment.
   token_details.add_user_paid(amount);
@@ -113,10 +117,16 @@ fn update_state_for_payment(
   payable_payment.payer = signer.to_bytes();
   payable_payment.chain_count = chain_stats.payable_payments_count;
   payable_payment.payer_chain_id = chain_stats.chain_id;
-  payable_payment.local_chain_count = payable_chain_counter.payments_count;
+  payable_payment.local_chain_count =
+    payable_per_chain_payments_counter.payments_count;
   payable_payment.payable_count = payable.payments_count;
   payable_payment.timestamp = timestamp;
   payable_payment.details = payment_details;
+
+  // Initialize the Payable Per Chain Payment. This is used for retrieving
+  // payments per chain. The stored payable_count can then be used to get the
+  // main payable_payment.
+  payable_per_chain_payment_info.payable_count = payable.payments_count;
 
   // Emit logs and events.
   msg!(
@@ -180,10 +190,11 @@ pub fn pay(ctx: Context<Pay>, amount: u64) -> Result<()> {
     ctx.accounts.chain_stats.as_mut(),
     payable,
     ctx.accounts.payer.as_mut(),
-    ctx.accounts.payable_chain_counter.as_mut(),
+    ctx.accounts.payable_per_chain_payments_counter.as_mut(),
     token_details,
     ctx.accounts.user_payment.as_mut(),
     ctx.accounts.payable_payment.as_mut(),
+    ctx.accounts.payable_per_chain_payment_info.as_mut(),
   )
 }
 
@@ -217,9 +228,10 @@ pub fn pay_native(ctx: Context<PayNative>, amount: u64) -> Result<()> {
     ctx.accounts.chain_stats.as_mut(),
     payable,
     ctx.accounts.payer.as_mut(),
-    ctx.accounts.payable_chain_counter.as_mut(),
+    ctx.accounts.payable_per_chain_payments_counter.as_mut(),
     token_details,
     ctx.accounts.user_payment.as_mut(),
     ctx.accounts.payable_payment.as_mut(),
+    ctx.accounts.payable_per_chain_payment_info.as_mut(),
   )
 }

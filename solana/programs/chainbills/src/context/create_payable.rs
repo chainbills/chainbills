@@ -27,11 +27,12 @@ pub struct CreatePayable<'info> {
         ],
         bump,
         payer = signer,
-        space = PayableChainCounter::SPACE
+        space = PayablePerChainPaymentsCounter::SPACE
     )]
   /// The payable chain counter account to create. It houses the payments_count
   /// for the payable per chain.
-  pub payable_chain_counter: Box<Account<'info, PayableChainCounter>>,
+  pub payable_per_chain_payments_counter:
+    Box<Account<'info, PayablePerChainPaymentsCounter>>,
 
   #[account(mut, seeds = [signer.key().to_bytes().as_ref()], bump)]
   /// The user account of the signer that is creating the payable.

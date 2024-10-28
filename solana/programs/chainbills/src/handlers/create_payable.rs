@@ -61,9 +61,9 @@ pub fn create_payable_handler<'info>(
   payable.withdrawals_count = 0;
   payable.is_closed = false;
 
-  // Initialize the payable_chain_counter for Solana.
-  let payable_chain_counter = ctx.accounts.payable_chain_counter.as_mut();
-  payable_chain_counter.payments_count = 0;
+  // Initialize the payable_per_chain_payments_counter for Solana.
+  let ppcpc = ctx.accounts.payable_per_chain_payments_counter.as_mut();
+  ppcpc.payments_count = 0;
 
   // Emit log and event.
   msg!(

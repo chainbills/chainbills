@@ -30,6 +30,19 @@ pub struct PayNative<'info> {
   pub payable_payment: Box<Account<'info, PayablePayment>>,
 
   #[account(
+        init,
+        seeds = [
+            payable.key().as_ref(),
+            &chain_stats.chain_id.to_le_bytes()[..],
+            &payable_per_chain_payments_counter.next_payment().to_le_bytes()[..]
+        ],
+        bump,
+        payer = signer,
+        space = PayablePerChainPayment::SPACE
+    )]
+  pub payable_per_chain_payment: Box<Account<'info, PayablePerChainPayment>>,
+
+  #[account(
         mut,
         seeds = [
             payable.key().as_ref(),
@@ -37,7 +50,8 @@ pub struct PayNative<'info> {
         ],
         bump
     )]
-  pub payable_chain_counter: Box<Account<'info, PayableChainCounter>>,
+  pub payable_per_chain_payments_counter:
+    Box<Account<'info, PayablePerChainPaymentsCounter>>,
 
   #[account(mut, realloc = payable.space_update_balance(crate::ID), realloc::payer = signer, realloc::zero = false)]
   pub payable: Box<Account<'info, Payable>>,

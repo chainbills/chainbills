@@ -27,10 +27,13 @@ import { useRoute } from 'vue-router';
 const payable = ref<Payable | null>(null);
 const route = useRoute();
 
-const fetchPayable = async () => {
+const fetchPayable = async (ignoreErrors: boolean) => {
   if (!route.params.id) return;
   isLoading.value = true;
-  payable.value = await payableStore.get(route.params.id as string);
+  payable.value = await payableStore.get(
+    route.params.id as string,
+    ignoreErrors
+  );
   isLoading.value = false;
 };
 
@@ -150,7 +153,7 @@ const withdraw = async (balance: TokenAndAmount) => {
 };
 
 onMounted(async () => {
-  await fetchPayable();
+  await fetchPayable(true);
 
   resetTablePage();
   await getTransactions();
@@ -221,7 +224,7 @@ onMounted(async () => {
 
         <Button
           class="px-4 py-1 max-sm:ml-auto max-sm:block"
-          @click="fetchPayable"
+          @click="() => fetchPayable(false)"
         >
           Refresh
         </Button>

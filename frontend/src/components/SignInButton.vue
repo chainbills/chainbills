@@ -147,7 +147,7 @@ onMounted(() => {
   <Menu ref="walletMenu" id="wallet-menu" :model="walletItems()" :popup="true">
     <template #item="{ item, props }">
       <p v-if="!item.command" class="px-2 py-1 text-lg text-gray-500">
-        {{ item.label }}
+        {{ item.label == 'Burnt Xion' ? 'XION' : item.label }}
       </p>
       <Button
         class="flex items-center bg-transparent border-none hover:text-current"
@@ -173,7 +173,7 @@ onMounted(() => {
     >
       <h2 class="text-lg flex items-center">
         <IconBurntXion class="w-5.5 h-5.5 mr-1.5" />
-        <span>Burnt Xion</span>
+        <span>XION <span class="text-sm opacity-70">(Recommended)</span></span>
       </h2>
       <Button class="px-4 py-2" @click="onClickXion">
         <template v-if="isLoggingInXion">
@@ -191,7 +191,10 @@ onMounted(() => {
         <IconSolana class="w-5.5 h-5.5 mr-1.5" />
         <span>Solana</span>
       </h2>
-      <wallet-multi-button :dark="theme.isDisplayDark"></wallet-multi-button>
+      <Button class="px-4 py-2" v-if="isLoggingInXion" disabled>
+        Select Wallet
+      </Button>
+      <wallet-multi-button :dark="theme.isDisplayDark" v-else />
     </div>
 
     <div
@@ -201,7 +204,9 @@ onMounted(() => {
         <IconEthereum class="w-5.5 h-5.5 mr-1.5" />
         <span>Ethereum Sepolia</span>
       </h2>
-      <Button class="px-4 py-2" @click="onClickEvm">Select Wallet</Button>
+      <Button class="px-4 py-2" @click="onClickEvm" :disabled="isLoggingInXion">
+        Select Wallet
+      </Button>
     </div>
   </Dialog>
 </template>

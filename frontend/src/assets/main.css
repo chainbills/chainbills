@@ -53,5 +53,16 @@ html.dark {
   color: var(--app-bg);
   font-family: 'Inter var', sans-serif;
   font-weight: normal;
+  height: unset;
+  line-height: unset;
   padding: 0.5rem 1rem;
+}
+
+html.dark .swv-button.swv-button-trigger,
+html.dark .swv-button.swv-button-trigger:hover {
+  background-color: #2f94cf; /* "400" variant of primary palette. See main.ts file */
+}
+
+textarea[description] {
+  field-sizing: content;
 }

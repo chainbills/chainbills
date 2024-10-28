@@ -101,7 +101,7 @@ const router = createRouter({
     {
       path: '/payable/:id',
       name: 'payable',
-      component: () => import('../views/PayableView.vue'),
+      component: () => import('../views/PayableDetailView.vue'),
       meta: { title: `Payable's Details | ${baseTitle}` },
       beforeEnter: (to) => beforeEnterPayableDetails(to, 'payable'),
     },

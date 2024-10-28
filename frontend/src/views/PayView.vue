@@ -172,8 +172,9 @@ onMounted(() => {
           <div class="mb-8 sm:flex items-end">
             <textarea
               readonly
+              description
               v-model="payable.description"
-              class="outline-none w-full px-3 py-2 bg-primary bg-opacity-10 dark:bg-opacity-5 rounded-md shadow-inner mb-2 sm:mb-0 sm:mr-4"
+              class="outline-none w-full px-3 py-2 bg-primary bg-opacity-10 dark:bg-opacity-5 rounded-md shadow-inner mb-2 sm:mb-0 sm:mr-4 min-h-20 max-h-40"
             ></textarea>
           </div>
         </div>

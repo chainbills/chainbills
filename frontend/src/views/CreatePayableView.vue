@@ -195,12 +195,12 @@ onMounted(() => {
             >About your Payable. What others see when they are paying.</small
           >
           <textarea
-            class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+            class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent min-h-20 max-h-40"
             :style="{ color: 'var(--text)' }"
             required
             @input="() => (description = DomPurify.sanitize(description))"
             v-model="description"
-            rows="5"
+            description 
           ></textarea>
           <small class="text-xs block mb-10">{{ descriptionError }}</small>
         </label>

@@ -2,8 +2,12 @@
 const { full } = defineProps(['full']);
 import IconMoon from '@/icons/IconMoon.vue';
 import IconSun from '@/icons/IconSun.vue';
-import { useSidebarStore } from '@/stores/sidebar';
-import { themes, useThemeStore, type ThemeMode } from '@/stores/theme';
+import {
+  themes,
+  useSidebarStore,
+  useThemeStore,
+  type ThemeMode,
+} from '@/stores';
 import Menu from 'primevue/menu';
 import { ref } from 'vue';
 
@@ -17,7 +21,7 @@ const items = ref(
     label: mode,
     command: () => {
       theme.set(mode);
-      sidebar.close();
+      setTimeout(sidebar.close);
     },
   }))
 );
@@ -47,6 +51,10 @@ const theme = useThemeStore();
 </template>
 
 <style scoped>
+.full {
+  width: 100%;
+}
+
 .full svg {
   margin-right: 0.5rem;
 }

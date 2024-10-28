@@ -1,4 +1,5 @@
 import {
+  ChainStats,
   OnChainSuccess,
   TokenAndAmount,
   User,
@@ -6,7 +7,6 @@ import {
   XION_USDC_ADDRESS,
   type Token,
 } from '@/schemas';
-import { ChainStats } from '@/schemas/chain-stats';
 import {
   AbstraxionAuth,
   GranteeSignerClient,
@@ -150,6 +150,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     if (!client.value || !address.value) return null;
     return User.fromCosmwasm(
       address.value,
+      walletExplorerUrl(address.value),
       await query({ user: { msg: { id: address.value } } })
     );
   };

@@ -1,53 +1,74 @@
-import { type Chain } from '@/stores/chain';
+import { type Chain } from '@/stores';
 
 export class User {
-  walletAddress!: string;
   chain!: Chain;
   chainCount!: number;
+  explorerUrl!: string;
   payablesCount!: number;
   paymentsCount!: number;
+  walletAddress!: string;
   withdrawalsCount!: number;
 
-  static fromCosmwasm(walletAddress: string, onChainData: any): User {
+  static fromCosmwasm(
+    walletAddress: string,
+    explorerUrl: string,
+    onChainData: any
+  ): User {
     return {
-      walletAddress,
       chain: 'Burnt Xion',
       chainCount: onChainData.chain_count,
+      explorerUrl,
       payablesCount: onChainData.payables_count,
       paymentsCount: onChainData.payments_count,
+      walletAddress,
       withdrawalsCount: onChainData.withdrawals_count,
     };
   }
 
-  static fromEvm(walletAddress: string, onChainData: any): User {
+  static fromEvm(
+    walletAddress: string,
+    explorerUrl: string,
+    onChainData: any
+  ): User {
     return {
-      walletAddress,
       chain: 'Ethereum Sepolia',
       chainCount: Number(onChainData[0]),
+      explorerUrl,
       payablesCount: Number(onChainData[1]),
       paymentsCount: Number(onChainData[2]),
+      walletAddress,
       withdrawalsCount: Number(onChainData[3]),
     };
   }
 
-  static fromSolana(onChainData: any): User {
+  static fromSolana(
+    walletAddress: string,
+    explorerUrl: string,
+    onChainData: any
+  ): User {
     return {
-      walletAddress: onChainData.walletAddress,
       chain: 'Solana',
       chainCount: Number(onChainData.chainCount),
+      explorerUrl,
       payablesCount: Number(onChainData.payablesCount),
       paymentsCount: Number(onChainData.paymentsCount),
+      walletAddress,
       withdrawalsCount: Number(onChainData.withdrawalsCount),
     };
   }
 
-  static newUser(chain: Chain, walletAddress: string): User {
+  static newUser(
+    chain: Chain,
+    walletAddress: string,
+    explorerUrl: string
+  ): User {
     return {
-      walletAddress,
       chain,
       chainCount: 0,
+      explorerUrl,
       payablesCount: 0,
       paymentsCount: 0,
+      walletAddress,
       withdrawalsCount: 0,
     };
   }

@@ -8,6 +8,7 @@ export default {
         'app-bg': 'var(--app-bg)',
         primary: '#057ec5',
         'purple-light': '#eae6fe',
+        shadow: 'var(--shadow)',
       },
     },
   },

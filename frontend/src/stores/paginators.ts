@@ -2,8 +2,10 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export const usePaginatorsStore = defineStore('paginators', () => {
-  const getLastPage = (total: number) =>
-    Math.ceil(total / rowsPerPage.value) - 1;
+  const getLastPage = (total: number) => {
+    const last = Math.ceil(total / rowsPerPage.value);
+    return last == 0 ? 0 : last - 1;
+  };
 
   const rowsPerPage = ref<number>(
     Number(localStorage.getItem('rowsPerPage')) || 10

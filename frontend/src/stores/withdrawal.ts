@@ -1,14 +1,12 @@
 import { Payable, TokenAndAmount, Withdrawal } from '@/schemas';
 import {
+  useAuthStore,
   useCacheStore,
-  useChainStore,
   useCosmwasmStore,
   useEvmStore,
   usePayableStore,
   useServerStore,
   useSolanaStore,
-  useUserStore,
-  useWalletStore,
   type Chain,
 } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
@@ -17,16 +15,14 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const useWithdrawalStore = defineStore('withdrawal', () => {
+  const auth = useAuthStore();
   const cache = useCacheStore();
-  const chain = useChainStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const payableStore = usePayableStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
-  const user = useUserStore();
-  const wallet = useWalletStore();
 
   const cacheKey = (chain: string, id: string) => `${chain}::withdrawal::${id}`;
 
@@ -34,16 +30,16 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     payableId: string,
     details: TokenAndAmount
   ): Promise<string | null> => {
-    if (!wallet.connected || !chain.current) return null;
+    if (!auth.currentUser) return null;
 
     try {
       const result = await {
         'Burnt Xion': cosmwasm,
         'Ethereum Sepolia': evm,
         Solana: solana,
-      }[chain.current]['withdraw'](payableId, details);
+      }[auth.currentUser.chain]['withdraw'](payableId, details);
       if (!result) return null;
-      await user.refresh();
+      await auth.refreshUser();
 
       console.log(
         `Made Withdrawal Transaction Details: ${result.explorerUrl()}`
@@ -99,7 +95,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
     try {
       let raw: any;
-      if (chain == 'Solana') raw = await solana.fetchEntity('withdrawal', id);
+      if (chain == 'Solana') raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
       else if (chain == 'Ethereum Sepolia')
         raw = await evm.fetchWithdrawal(id, ignoreErrors);
       else if (chain == 'Burnt Xion')
@@ -123,8 +119,8 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     page: number,
     count: number
   ): Promise<Withdrawal[] | null> => {
-    if (!user.current) return null;
-    const { withdrawalsCount: totalCount } = user.current;
+    if (!auth.currentUser) return null;
+    const { withdrawalsCount: totalCount } = auth.currentUser;
     if (count === 0) return [];
 
     let start = (page + 1) * count;
@@ -133,9 +129,9 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     try {
       const withdrawals: Withdrawal[] = [];
       for (let i = start; i >= target; i--) {
-        const id = await user.getWithdrawalId(i);
+        const id = await auth.getWithdrawalId(i);
         if (id) {
-          const withdrawal = await get(id, user.current.chain);
+          const withdrawal = await get(id, auth.currentUser.chain);
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;

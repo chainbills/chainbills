@@ -2,27 +2,21 @@
 import SignInButton from '@/components/SignInButton.vue';
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import {
-  TokenAndAmount,
-  tokens,
-  type Token,
-} from '@/schemas/tokens-and-amounts';
-import { useChainStore } from '@/stores';
-import { usePayableStore } from '@/stores/payable';
-import { useWalletStore } from '@/stores/wallet';
+import { TokenAndAmount, tokens, type Token } from '@/schemas';
+import { useAuthStore, usePayableStore } from '@/stores';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
-import InputSwitch from 'primevue/inputswitch';
+import Select from 'primevue/select';
+import ToggleSwitch from 'primevue/toggleswitch';
 import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const allowsFreePayments = ref(false);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
-const chain = useChainStore();
+const auth = useAuthStore();
 const availableTokens = computed(() =>
-  tokens.filter((t) => chain.current && !!t.details[chain.current!])
+  tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain])
 );
 const configError = ref('');
 const displayedConfig = ref<TokenAndAmount[]>([]);
@@ -32,7 +26,6 @@ const descriptionError = ref('');
 const payable = usePayableStore();
 const router = useRouter();
 const selectedTokens = ref<Token[]>([]);
-const wallet = useWalletStore();
 
 const removeToken = (index: number) => {
   selectedTokens.value.splice(index, 1);
@@ -42,13 +35,18 @@ const removeToken = (index: number) => {
 };
 
 const chooseToken = (token: any) => {
+  amounts.value.push(ref(undefined));
+  amountErrors.value.push(ref('Required'));
+  displayedConfig.value = [];
   selectedTokens.value = [...selectedTokens.value, token];
+
   // wrapping in set time out to allow the other listeners to finish
   setTimeout(() => {
-    // undefined is to keep the placeholder (Amount) in the input field
-    amounts.value.push(ref(undefined));
-    amountErrors.value.push(ref('Required'));
-    displayedConfig.value = [];
+    document.querySelectorAll('input.amount[type=number]').forEach((el) => {
+      (el as HTMLInputElement).addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+      });
+    });
   });
 };
 
@@ -71,17 +69,29 @@ const updateDisplayedConfig = () => {
 };
 
 const validateAmount = (v: any) => {
-  if (Number.isNaN(v) || +v == 0) return 'Required';
+  if (typeof v !== 'number' || +v == 0) return 'Required';
   else if (v <= 0) return 'Should be positive';
   else return '';
 };
 
 const validateConfig = () => {
-  configError.value =
-    !allowsFreePayments.value && selectedTokens.value.length == 0
-      ? 'Either allow free payments OR specify at least one allowed ' +
-        'token and its amount.'
-      : '';
+  if (!allowsFreePayments.value && selectedTokens.value.length == 0) {
+    configError.value =
+      'Either allow free payments OR specify at least one allowed ' +
+      'token and its amount.';
+  } else {
+    const tempConfig = selectedTokens.value.map(({ name }, i) =>
+      JSON.stringify({
+        token: name,
+        amount: amounts.value[i].value,
+      })
+    );
+    if (new Set(tempConfig).size != tempConfig.length) {
+      configError.value = 'Remove duplicate tokens and amounts.';
+    } else {
+      configError.value = '';
+    }
+  }
 };
 
 const validateDescription = () => {
@@ -93,6 +103,8 @@ const validateDescription = () => {
 };
 
 const create = async () => {
+  if (!auth.currentUser) return;
+
   validateDescription();
   validateConfig();
   if (descriptionError.value || configError.value) return;
@@ -107,7 +119,9 @@ const create = async () => {
           new TokenAndAmount(
             selectedTokens.value[i],
             amounts.value[i].value *
-              10 ** selectedTokens.value[i].details[chain.current!]!.decimals
+              10 **
+                selectedTokens.value[i].details[auth.currentUser.chain]!
+                  .decimals
           )
         );
     }
@@ -132,6 +146,17 @@ onMounted(() => {
   watch(() => description.value, validateDescription);
   watch(() => allowsFreePayments.value, reviewConfig);
   watch(() => selectedTokens.value, reviewConfig);
+  watch(() => amounts.value, reviewConfig, { deep: true });
+  watch(
+    () => auth.currentUser,
+    () => {
+      // Reset the form when the user changes to avoid cross-chain token issues
+      selectedTokens.value = [];
+      amounts.value = [];
+      amountErrors.value = [];
+      displayedConfig.value = [];
+    }
+  );
 });
 </script>
 
@@ -143,7 +168,7 @@ onMounted(() => {
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
 
-    <div class="text-center pb-20" v-if="!wallet.connected">
+    <div class="text-center pb-20" v-if="!auth.currentUser">
       <p class="mb-8">Please connect your wallet to continue.</p>
       <p class="mx-auto w-fit"><SignInButton /></p>
     </div>
@@ -170,12 +195,12 @@ onMounted(() => {
             >About your Payable. What others see when they are paying.</small
           >
           <textarea
-            class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+            class="block w-full pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent min-h-20 max-h-40"
             :style="{ color: 'var(--text)' }"
             required
             @input="() => (description = DomPurify.sanitize(description))"
             v-model="description"
-            rows="5"
+            description 
           ></textarea>
           <small class="text-xs block mb-10">{{ descriptionError }}</small>
         </label>
@@ -193,7 +218,7 @@ onMounted(() => {
             <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')"
               >No</span
             >
-            <InputSwitch
+            <ToggleSwitch
               inputId="allow-any-token"
               v-model="allowsFreePayments"
             />
@@ -214,12 +239,12 @@ onMounted(() => {
           >
             <div class="w-36 flex flex-col mr-4">
               <input
-                class="pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
+                class="amount pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
                 placeholder="Amount"
                 v-model="amounts[i].value"
                 required
                 :min="0"
-                :step="10 ** (-1 * 18)"
+                :step="10 ** -(1 * 18)"
                 type="number"
                 @input="
                   () => {
@@ -242,14 +267,9 @@ onMounted(() => {
               <IconClose />
             </Button>
           </label>
-          <Dropdown
-            :options="
-              availableTokens.filter(
-                (t) => !selectedTokens.find((st) => st.name == t.name)
-              )
-            "
+          <Select
+            :options="availableTokens"
             optionLabel="name"
-            v-if="availableTokens.length > selectedTokens.length"
             @change="(e) => chooseToken(e.value)"
             placeholder="Select a Token"
             class="mb-2"
@@ -259,32 +279,34 @@ onMounted(() => {
           configError
         }}</small>
 
-        <p v-if="allowsFreePayments" class="text-xl mb-2 md:max-w-xs">
-          This payable will accept payments of any amounts in any token.
-        </p>
-        <p v-else-if="displayedConfig.length == 1" class="md:max-w-xs">
-          This payable will accept
-          <span class="font-bold text-2xl"
-            >{{ displayedConfig[0].amount }}&nbsp;{{
-              displayedConfig[0].name
-            }}</span
-          >
-        </p>
-        <div class="pt-4" v-else-if="displayedConfig.length > 1">
-          <p class="mb-2 text-lg md:max-w-xs">
-            This payable will accept <span class="font-bold">any</span> of the
-            following
+        <template v-if="!configError">
+          <p v-if="allowsFreePayments" class="text-xl mb-2 md:max-w-xs">
+            This payable will accept payments of any amounts in any token.
           </p>
-          <div class="flex gap-4 flex-wrap">
-            <span
-              v-for="config of displayedConfig"
-              class="border rounded-md px-3 py-2 font-medium text-xl"
-              style="border-color: var(--shadow)"
+          <p v-else-if="displayedConfig.length == 1" class="md:max-w-xs">
+            This payable will accept
+            <span class="font-bold text-2xl"
+              >{{ displayedConfig[0].amount }}&nbsp;{{
+                displayedConfig[0].name
+              }}</span
             >
-              {{ config.amount }}&nbsp;{{ config.name }}
-            </span>
+          </p>
+          <div class="pt-4" v-else-if="displayedConfig.length > 1">
+            <p class="mb-2 text-lg md:max-w-xs">
+              This payable will accept <span class="font-bold">any</span> of the
+              following
+            </p>
+            <div class="flex gap-4 flex-wrap">
+              <span
+                v-for="config of displayedConfig"
+                class="border rounded-md px-3 py-2 font-medium text-xl"
+                style="border-color: var(--shadow)"
+              >
+                {{ config.amount }}&nbsp;{{ config.name }}
+              </span>
+            </div>
           </div>
-        </div>
+        </template>
 
         <p class="mt-12 text-right">
           <Button type="submit" class="text-xl px-6 py-2">Create</Button>

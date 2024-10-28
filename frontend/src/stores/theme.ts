@@ -1,5 +1,6 @@
+import { useAppKitTheme } from '@reown/appkit/vue';
 import { defineStore } from 'pinia';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 export type ThemeMode = 'Dark Theme' | 'Light Theme' | 'System Mode';
 
@@ -13,6 +14,7 @@ export const useThemeStore = defineStore('theme', () => {
   const icon = ref<ThemeMode>('Dark Theme');
   const isDisplayDark = ref(false);
   const mode = ref<ThemeMode>('System Mode');
+  const { setThemeMode: setWalletConnectTheme } = useAppKitTheme();
 
   const css = () => {
     if (mode.value == 'Dark Theme') {
@@ -45,7 +47,7 @@ export const useThemeStore = defineStore('theme', () => {
   };
 
   onMounted(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = localStorage.getItem('chainbills::theme');
     if (saved && isThemeMode(saved)) mode.value = saved;
 
     css();
@@ -55,6 +57,20 @@ export const useThemeStore = defineStore('theme', () => {
       .addEventListener('change', () => {
         if (mode.value == 'System Mode') css();
       });
+
+    setWalletConnectTheme(isDisplayDark.value ? 'dark' : 'light');
+    watch(
+      () => isDisplayDark.value,
+      (yes) => setWalletConnectTheme(yes ? 'dark' : 'light')
+    );
+
+    window.addEventListener('storage', () => {
+      const saved = localStorage.getItem('chainbills::theme');
+      if (saved && isThemeMode(saved)) {
+        mode.value = saved;
+        css();
+      }
+    });
   });
 
   return { icon, isDisplayDark, isSystemDark, mode, set };

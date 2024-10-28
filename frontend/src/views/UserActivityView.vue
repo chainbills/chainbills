@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import SignInButton from '@/components/SignInButton.vue';
+import TableLoader from '@/components/TableLoader.vue';
 import TransactionsTable from '@/components/TransactionsTable.vue';
-import IconSpinner from '@/icons/IconSpinner.vue';
 import { type Receipt } from '@/schemas';
 import {
+  useAuthStore,
   usePaginatorsStore,
   usePaymentStore,
-  useUserStore,
-  useWalletStore,
   useWithdrawalStore,
 } from '@/stores';
 import Button from 'primevue/button';
@@ -16,23 +15,29 @@ import TabList from 'primevue/tablist';
 import Tabs from 'primevue/tabs';
 import { computed, onMounted, ref, watch } from 'vue';
 
-const activeCat = ref(0);
+const auth = useAuthStore();
+const lsCatKey = () =>
+  `chainbills::user=>${auth.currentUser?.walletAddress}` +
+  '::activity_table_category';
+const lsPageKey = () =>
+  `chainbills::user=>${auth.currentUser?.walletAddress}` +
+  '::activity_table_page';
+
+const activeCat = ref(+(localStorage.getItem(lsCatKey()) ?? '0'));
 const categories = ['Payments', 'Withdrawals'];
 const countFields = ['payerCount', 'hostCount'];
-const currentTablePage = ref(0);
+const currentTablePage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
 const isLoading = ref(true);
 const paginators = usePaginatorsStore();
 const payments = usePaymentStore();
 const transactions = ref<Receipt[] | null>(null);
-const user = useUserStore();
-const wallet = useWalletStore();
 const withdrawals = useWithdrawalStore();
 
 const totalCount = computed(() => {
-  if (!user.current) return 0;
-  return activeCat.value == 0
-    ? user.current.paymentsCount
-    : user.current.withdrawalsCount;
+  if (!auth.currentUser) return 0;
+  return auth.currentUser[
+    activeCat.value == 0 ? 'paymentsCount' : 'withdrawalsCount'
+  ];
 });
 
 const getTransactions = async () => {
@@ -44,22 +49,36 @@ const getTransactions = async () => {
 };
 
 const resetTablePage = () => {
-  if (!user.current) return (currentTablePage.value = 0);
-  currentTablePage.value = paginators.getLastPage(
-    user.current[activeCat.value == 0 ? 'paymentsCount' : 'withdrawalsCount']
+  if (!auth.currentUser) return (currentTablePage.value = 0);
+  activeCat.value = +(localStorage.getItem(lsCatKey()) ?? '0');
+  const finalPage = paginators.getLastPage(
+    auth.currentUser[
+      activeCat.value == 0 ? 'paymentsCount' : 'withdrawalsCount'
+    ]
   );
+  const lastSavedPage = +(localStorage.getItem(lsPageKey()) ?? '0');
+  if (
+    lastSavedPage < 0 ||
+    lastSavedPage > finalPage ||
+    !Number.isInteger(lastSavedPage)
+  ) {
+    currentTablePage.value = finalPage;
+  } else {
+    currentTablePage.value = lastSavedPage;
+  }
 };
 
 const updateTablePage = (page: number) => {
-  if (currentTablePage.value == page) return;
   currentTablePage.value = page;
+  localStorage.setItem(lsPageKey(), page.toString());
   getTransactions();
 };
 
 onMounted(async () => {
-  if (user.current) await getTransactions();
+  if (auth.currentUser) await getTransactions();
+
   watch(
-    () => user.current,
+    () => auth.currentUser,
     async (currentUser) => {
       if (currentUser) {
         resetTablePage();
@@ -67,10 +86,12 @@ onMounted(async () => {
       } else transactions.value = null;
     }
   );
+
   watch(
     () => activeCat.value,
     (_) => {
-      if (!user.current) return;
+      if (!auth.currentUser) return;
+      localStorage.setItem(lsCatKey(), activeCat.value.toString());
       resetTablePage();
       getTransactions();
     }
@@ -81,10 +102,10 @@ onMounted(async () => {
 <template>
   <div class="max-w-screen-xl mx-auto pb-20">
     <div class="mb-8 sm:flex justify-between items-center">
-      <h2 class="text-3xl font-bold max-sm:mb-6">Your Activity</h2>
+      <h2 class="text-3xl font-bold max-sm:mb-6">Activity</h2>
 
       <div class="max-sm:flex justify-end">
-        <Tabs scrollable v-model:value="activeCat">
+        <Tabs v-model:value="activeCat">
           <TabList>
             <Tab
               v-for="(category, i) of categories"
@@ -97,17 +118,14 @@ onMounted(async () => {
       </div>
     </div>
 
-    <template v-if="!wallet.connected">
+    <template v-if="!auth.currentUser">
       <p class="pt-8 mb-8 text-center text-xl">
         Please connect your wallet to continue
       </p>
       <p class="mx-auto w-fit"><SignInButton /></p>
     </template>
 
-    <template v-else-if="isLoading">
-      <p class="text-center my-12">Loading ...</p>
-      <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
-    </template>
+    <template v-else-if="isLoading"><TableLoader /></template>
 
     <template v-else-if="!transactions">
       <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>

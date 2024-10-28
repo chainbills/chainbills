@@ -6,15 +6,13 @@ import {
   type Payment,
 } from '@/schemas';
 import {
+  useAuthStore,
   useCacheStore,
-  useChainStore,
   useCosmwasmStore,
   useEvmStore,
   usePayableStore,
   useServerStore,
   useSolanaStore,
-  useUserStore,
-  useWalletStore,
   type Chain,
 } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
@@ -23,16 +21,14 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const usePaymentStore = defineStore('payment', () => {
+  const auth = useAuthStore();
   const cache = useCacheStore();
-  const chain = useChainStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const payableStore = usePayableStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
-  const user = useUserStore();
-  const wallet = useWalletStore();
 
   const cacheKey = (chain: string, type: string, id: string) =>
     `${chain}::payment::${type}::${id}`;
@@ -41,16 +37,16 @@ export const usePaymentStore = defineStore('payment', () => {
     payableId: string,
     details: TokenAndAmount
   ): Promise<string | null> => {
-    if (!wallet.connected || !chain.current) return null;
+    if (!auth.currentUser) return null;
 
     try {
       const result = await {
         'Burnt Xion': cosmwasm,
         'Ethereum Sepolia': evm,
         Solana: solana,
-      }[chain.current]['pay'](payableId, details);
+      }[auth.currentUser.chain]['pay'](payableId, details);
       if (!result) return null;
-      await user.refresh();
+      await auth.refreshUser();
 
       console.log(`Made Payment Transaction Details: ${result.explorerUrl()}`);
       await server.userPaid(result.created);
@@ -129,7 +125,8 @@ export const usePaymentStore = defineStore('payment', () => {
     // Otherwise, first try to fetch the payment as if it was a user payment.
     try {
       let raw: any;
-      if (chain == 'Solana') raw = await solana.fetchEntity('userPayment', id);
+      if (chain == 'Solana')
+        raw = await solana.tryFetchEntity('userPayment', id, ignoreErrors);
       else if (chain == 'Ethereum Sepolia')
         raw = await evm.fetchUserPayment(id, ignoreErrors);
       else if (chain == 'Burnt Xion')
@@ -146,7 +143,7 @@ export const usePaymentStore = defineStore('payment', () => {
       try {
         let raw: any;
         if (chain == 'Solana')
-          raw = await solana.fetchEntity('payablePayment', id);
+          raw = await solana.tryFetchEntity('payablePayment', id, ignoreErrors);
         else if (chain == 'Ethereum Sepolia')
           raw = await evm.fetchPayablePayment(id, ignoreErrors);
         else if (chain == 'Burnt Xion')
@@ -237,8 +234,8 @@ export const usePaymentStore = defineStore('payment', () => {
     page: number,
     count: number
   ): Promise<UserPayment[] | null> => {
-    if (!user.current) return null;
-    const { paymentsCount: totalCount } = user.current;
+    if (!auth.currentUser) return null;
+    const { paymentsCount: totalCount } = auth.currentUser;
     if (totalCount === 0) return [];
 
     let start = (page + 1) * count;
@@ -247,9 +244,9 @@ export const usePaymentStore = defineStore('payment', () => {
     try {
       const payments: UserPayment[] = [];
       for (let i = start; i >= target; i--) {
-        const id = await user.getPaymentId(i);
+        const id = await auth.getPaymentId(i);
         if (id) {
-          const payment = await getForUser(id, user.current.chain);
+          const payment = await getForUser(id, auth.currentUser.chain);
           if (payment) payments.push(payment);
           else return null;
         } else return null;

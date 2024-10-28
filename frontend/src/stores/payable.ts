@@ -1,30 +1,26 @@
 import { Payable, TokenAndAmount } from '@/schemas';
 import {
+  useAuthStore,
   useCacheStore,
-  useChainStore,
   useCosmwasmStore,
   useEvmStore,
   useNotificationsStore,
   useServerStore,
   useSolanaStore,
-  useUserStore,
-  useWalletStore,
   type Chain,
 } from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const usePayableStore = defineStore('payable', () => {
+  const auth = useAuthStore();
   const cache = useCacheStore();
-  const chain = useChainStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const notifications = useNotificationsStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
-  const user = useUserStore();
-  const wallet = useWalletStore();
 
   const cacheKey = (chain: string, id: string, entity: string, count: number) =>
     `${chain}::payable::${id}::${entity}::${count}`;
@@ -34,7 +30,7 @@ export const usePayableStore = defineStore('payable', () => {
       'Burnt Xion': cosmwasm,
       'Ethereum Sepolia': evm,
       Solana: solana,
-    })[chain.current!];
+    })[auth.currentUser!.chain];
 
   const getEntityId = async (
     payableId: string,
@@ -42,7 +38,7 @@ export const usePayableStore = defineStore('payable', () => {
     entity: string,
     count: number
   ): Promise<string | null> => {
-    if (!wallet.address) return null;
+    if (!auth.currentUser) return null;
 
     const key = cacheKey(payableId, chain, entity, count);
     let id = await cache.retrieve(key);
@@ -61,7 +57,7 @@ export const usePayableStore = defineStore('payable', () => {
     description: string,
     tokensAndAmounts: TokenAndAmount[]
   ): Promise<string | null> => {
-    if (!wallet.connected || !chain.current) return null;
+    if (!auth.currentUser) return null;
 
     try {
       const result = await getChainStore()['createPayable'](tokensAndAmounts);
@@ -71,7 +67,7 @@ export const usePayableStore = defineStore('payable', () => {
         `Created Payable Transaction Details: ${result.explorerUrl()}`
       );
       await server.createPayable(result.created, description);
-      await user.refresh();
+      await auth.refreshUser();
       toast.add({
         severity: 'success',
         summary: 'Successful Payable Creation',
@@ -79,7 +75,7 @@ export const usePayableStore = defineStore('payable', () => {
         life: 12000,
       });
       // TODO: Remove this checker after integrating sign and verify in Burnt Xion
-      if (chain.current != 'Burnt Xion') notifications.ensure();
+      if (auth.currentUser.chain != 'Burnt Xion') notifications.ensure();
       return result.created;
     } catch (e) {
       console.error(e);
@@ -88,18 +84,21 @@ export const usePayableStore = defineStore('payable', () => {
     }
   };
 
-  const get = async (id: string): Promise<Payable | null> => {
-    const dbData = await server.getPayable(id);
+  const get = async (
+    id: string,
+    ignoreErrors?: boolean
+  ): Promise<Payable | null> => {
+    const dbData = await server.getPayable(id, ignoreErrors);
     if (!dbData) return null;
 
     try {
       let raw: any;
       if (dbData.chain == 'Solana')
-        raw = await solana.fetchEntity('payable', id);
+        raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
       else if (dbData.chain == 'Ethereum Sepolia')
-        raw = await evm.fetchPayable(id);
+        raw = await evm.fetchPayable(id, ignoreErrors);
       else if (dbData.chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('payable', id);
+        raw = await cosmwasm.fetchEntity('payable', id, ignoreErrors);
       else throw `Unknown chain: ${dbData.chain}`;
       if (raw) return new Payable(id, dbData.chain, dbData.description, raw);
     } catch (e) {
@@ -107,6 +106,32 @@ export const usePayableStore = defineStore('payable', () => {
       toastError(`${e}`);
     }
     return null;
+  };
+
+  const getIdsForCurrentUser = async (
+    page: number,
+    count: number
+  ): Promise<string[] | null> => {
+    if (!auth.currentUser) return null;
+    const { payablesCount: totalCount } = auth.currentUser;
+    if (totalCount === 0) return [];
+
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
+    try {
+      const ids = [];
+      for (let i = start; i >= target; i--) {
+        const id = await auth.getPayableId(i);
+        if (id) ids.push(id);
+        else return null;
+      }
+      return ids;
+    } catch (e) {
+      console.error(e);
+      toastError(`${e}`);
+      return null;
+    }
   };
 
   const getPaymentId = async (
@@ -122,35 +147,14 @@ export const usePayableStore = defineStore('payable', () => {
   ): Promise<string | null> =>
     getEntityId(payableId, chain, 'withdrawal', count);
 
-  const mines = async (): Promise<Payable[] | null> => {
-    if (!user.current) return null;
-    const { payablesCount: count } = user.current;
-    if (count === 0) return [];
-
-    try {
-      const payables: Payable[] = [];
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
-        const id = await user.getPayableId(i);
-        if (id) {
-          const payable = await get(id);
-          if (payable) payables.push(payable);
-          else return null;
-        } else return null;
-        fetched++;
-      }
-      return payables;
-    } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
-      return null;
-    }
-  };
-
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { create, get, getPaymentId, getWithdrawalId, mines };
+  return {
+    create,
+    get,
+    getIdsForCurrentUser,
+    getPaymentId,
+    getWithdrawalId,
+  };
 });

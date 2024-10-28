@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ReceiptLoader from '@/components/ReceiptLoader.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import {
@@ -7,49 +8,77 @@ import {
   Withdrawal,
   type Receipt,
 } from '@/schemas';
-import { useTimeStore, useWalletStore } from '@/stores';
+import {
+  useAuthStore,
+  usePaymentStore,
+  useTimeStore,
+  useWithdrawalStore,
+} from '@/stores';
+import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
+const auth = useAuthStore();
+const isLoading = ref(true);
+const payments = usePaymentStore();
 const route = useRoute();
-const receipt = route.meta.receipt as Receipt;
-
+const receipt = ref<Receipt | null>(null);
 const time = useTimeStore();
 const toast = useToast();
-const wallet = useWalletStore();
+const withdrawals = useWithdrawalStore();
 
-const receiptType = receipt instanceof Withdrawal ? 'Withdrawal' : 'Payment';
-const userType = receipt instanceof Withdrawal ? 'Host' : 'Payer';
-const activityType = receipt instanceof Withdrawal ? 'Withdrew' : 'Paid';
+const receiptType =
+  receipt.value instanceof Withdrawal ? 'Withdrawal' : 'Payment';
+const userType = receipt.value instanceof Withdrawal ? 'Host' : 'Payer';
+const activityType = receipt.value instanceof Withdrawal ? 'Withdrew' : 'Paid';
 const payableIntro =
-  receipt instanceof Withdrawal ? 'Withdrew From' : 'Paid To';
+  receipt.value instanceof Withdrawal ? 'Withdrew From' : 'Paid To';
 
 const userChain =
-  receipt instanceof PayablePayment
-    ? (receipt as PayablePayment).payerChain
-    : receipt.chain;
+  receipt.value instanceof PayablePayment
+    ? (receipt.value as PayablePayment).payerChain
+    : receipt.value?.chain;
 const payableChain =
-  receipt instanceof UserPayment
-    ? (receipt as UserPayment).payableChain
-    : receipt.chain;
+  receipt.value instanceof UserPayment
+    ? (receipt.value as UserPayment).payableChain
+    : receipt.value?.chain;
 
-const payableRoute =
-  `/${receipt instanceof Withdrawal ? 'payable' : 'pay'}/` + receipt.payableId;
+const payableRoute = computed(() => {
+  const isMine = auth.currentUser?.walletAddress == receipt.value?.user();
+  return (
+    `/${receipt instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` +
+    receipt.value?.payableId
+  );
+});
 
 const copy = (text: string, context: string) => {
   navigator.clipboard.writeText(text);
   toast.add({
     severity: 'info',
     summary: 'Copied',
-    detail: `${context} copied to clipboard`,
+    detail: `${context} copied to clipboard.`,
     life: 3000,
   });
 };
+
+onMounted(async () => {
+  const id = route.params.id as string;
+  receipt.value = (await payments.get(id, undefined, true)) as Receipt | null;
+  if (!receipt.value) {
+    receipt.value = await withdrawals.get(id, undefined, true);
+  }
+  isLoading.value = false;
+});
 </script>
 
 <template>
-  <section class="max-w-screen-md mx-auto pb-20">
+  <ReceiptLoader v-if="isLoading" />
+
+  <NotFoundView v-else-if="!receipt" />
+
+  <section class="max-w-screen-md mx-auto pb-20" v-else>
     <h2 class="text-3xl mb-4 font-bold">{{ receiptType }} Receipt</h2>
 
     <div class="mb-8 leading-tight">
@@ -59,11 +88,11 @@ const copy = (text: string, context: string) => {
           receipt.id
         }}</span>
         <Button
-          class="bg-transparent p-1 border-none"
+          class="bg-transparent p-1 border-none block w-fit h-fit"
           @click="copy(receipt.id, `Receipt ID: ${receipt.id}`)"
           title="Copy Receipt ID"
         >
-          <IconCopy class="text-primary" />
+          <IconCopy class="text-primary w-4 h-4" />
         </Button>
       </p>
     </div>
@@ -80,21 +109,22 @@ const copy = (text: string, context: string) => {
           {{ receipt.user() }}
         </span>
         <Button
-          class="bg-transparent p-1 border-none"
+          class="bg-transparent p-1 border-none block w-fit h-fit"
           @click="copy(receipt.user(), `Wallet Address: ${receipt.user()}`)"
           title="Copy Wallet Address"
         >
-          <IconCopy class="text-primary" />
+          <IconCopy class="text-primary w-4 h-4" />
         </Button>
         <a
-          :href="wallet.explorerUrl(receipt.user(), userChain)!"
+          :href="auth.getExplorerUrl(receipt.user(), userChain)"
           target="_blank"
           rel="noopener noreferrer"
           title="View on Explorer"
-          class="p-1 rounded-md"
+          class="p-1 rounded-md block w-fit h-fit"
           v-ripple
+          v-if="userChain"
         >
-          <IconOpenInNew class="text-primary" />
+          <IconOpenInNew class="text-primary w-4 h-4" />
         </a>
       </p>
     </div>
@@ -132,21 +162,21 @@ const copy = (text: string, context: string) => {
           {{ receipt.payableId }}
         </span>
         <Button
-          class="bg-transparent p-1 border-none"
+          class="bg-transparent p-1 border-none block w-fit h-fit"
           @click="copy(receipt.payableId, `Payable ID: ${receipt.payableId}`)"
           title="Copy Payable ID"
         >
-          <IconCopy class="text-primary" />
+          <IconCopy class="text-primary w-4 h-4" />
         </Button>
         <a
           :href="`${payableRoute}`"
           target="_blank"
           rel="noopener noreferrer"
           title="About"
-          class="p-1 rounded-md"
+          class="p-1 rounded-md block w-fit h-fit"
           v-ripple
         >
-          <IconOpenInNew class="text-primary" />
+          <IconOpenInNew class="text-primary w-4 h-4" />
         </a>
       </p>
     </div>

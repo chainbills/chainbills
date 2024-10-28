@@ -5,8 +5,12 @@ import {
   User,
   type Token,
 } from '@/schemas';
-import { SOLANA_CLUSTER, WH_CHAIN_ID_SOLANA } from '@/stores/chain';
-import { IDL, type Chainbills } from '@/stores/idl';
+import {
+  IDL,
+  SOLANA_CLUSTER,
+  WH_CHAIN_ID_SOLANA,
+  type Chainbills,
+} from '@/stores';
 import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
 import type { AllAccountsMap } from '@project-serum/anchor/dist/cjs/program/namespace/types';
 import {
@@ -136,12 +140,17 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const getCurrentUser = async () => {
     if (!anchorWallet.value) return null;
-    const addr = getCurrentUserPDA();
+    const wallet = anchorWallet.value.publicKey.toBase58();
+    const pdaAddr = getCurrentUserPDA();
     try {
-      return User.fromSolana(await fetchEntity('user', addr));
+      return User.fromSolana(
+        wallet,
+        walletExplorerUrl(wallet),
+        await fetchEntity('user', pdaAddr)
+      );
     } catch (_) {
       // TODO: Check for network errors and throw and return null instead
-      return User.newUser('Solana', addr);
+      return User.newUser('Solana', wallet, walletExplorerUrl(wallet));
     }
   };
 
@@ -307,6 +316,22 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  
+  const tryFetchEntity = async (
+    entity: keyof AllAccountsMap<Chainbills>,
+    id: string,
+    ignoreErrors = false
+  ) => {
+    try {
+      return await program().account[entity].fetch(new PublicKey(id));
+    } catch (e) {
+      if (!ignoreErrors) {
+        console.error(e);
+        toastError(`${e}`);
+      }
+      return null;
+    }
+  };
 
   const walletExplorerUrl = (wallet: string) =>
     `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
@@ -414,6 +439,7 @@ export const useSolanaStore = defineStore('solana', () => {
     pay,
     program,
     sign,
+    tryFetchEntity,
     walletExplorerUrl,
     withdraw,
   };

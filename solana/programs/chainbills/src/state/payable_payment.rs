@@ -12,6 +12,10 @@ pub struct PayablePayment {
   /// If the payer is on Solana, then will be the bytes of their wallet address.
   pub payer: [u8; 32], // 32 bytes
 
+  /// The nth count of payable payments on this chain at the point this payment
+  /// was received.
+  pub chain_count: u64, // 8 bytes
+
   /// The Wormhole Chain ID of the chain from which the payment was made.
   pub payer_chain_id: u16, // 2 bytes
 
@@ -32,7 +36,7 @@ pub struct PayablePayment {
 
 impl PayablePayment {
   // discriminator (8) included
-  pub const SPACE: usize = 2 + (4 * 8) + (2 * 32) + TokenAndAmount::SPACE;
+  pub const SPACE: usize = 2 + (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
   /// AKA `b"payment"`.
   #[constant]

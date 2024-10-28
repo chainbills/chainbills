@@ -12,8 +12,11 @@ pub struct ChainStats {
   /// Total number of payables that have ever been created on this chain.
   pub payables_count: u64, // 8 bytes
 
-  /// Total number of payments that have ever been made on this chain.
-  pub payments_count: u64, // 8 bytes
+  /// Total number of payments that users have ever been made on this chain.
+  pub user_payments_count: u64, // 8 bytes
+
+  /// Total number of payments that payables have ever received on this chain.
+  pub payable_payments_count: u64, // 8 bytes
 
   /// Total number of withdrawals that have ever been made on this chain.
   pub withdrawals_count: u64, // 8 bytes
@@ -21,7 +24,7 @@ pub struct ChainStats {
 
 impl ChainStats {
   // discriminator included
-  pub const SPACE: usize = 2 + (5 * 8);
+  pub const SPACE: usize = 2 + (6 * 8);
 
   /// AKA `b"chain"`.
   #[constant]
@@ -31,7 +34,7 @@ impl ChainStats {
     self.chain_id = chain_id;
     self.users_count = 0;
     self.payables_count = 0;
-    self.payments_count = 0;
+    self.user_payments_count = 0;
     self.withdrawals_count = 0;
   }
 
@@ -43,8 +46,12 @@ impl ChainStats {
     self.payables_count.checked_add(1).unwrap()
   }
 
-  pub fn next_payment(&self) -> u64 {
-    self.payments_count.checked_add(1).unwrap()
+  pub fn next_user_payment(&self) -> u64 {
+    self.user_payments_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_payable_payment(&self) -> u64 {
+    self.payable_payments_count.checked_add(1).unwrap()
   }
 
   pub fn next_withdrawal(&self) -> u64 {

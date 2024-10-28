@@ -11,6 +11,10 @@ pub enum ChainbillsError {
   /// A non-token details account was provided in the remaining accounts.
   NonTokenDetailsAccountProvided,
 
+  #[msg("InvalidTokenDetailsAccount")]
+  /// The token details account is invalid.
+  InvalidTokenDetailsAccount,
+
   #[msg("UnsupportedToken")]
   /// The token is not supported.
   UnsupportedToken,

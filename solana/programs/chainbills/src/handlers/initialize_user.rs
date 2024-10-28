@@ -19,7 +19,7 @@ pub fn initialize_user_handler(ctx: Context<InitializeUser>) -> Result<()> {
 
   // Emit log and event.
   msg!("Initialized User with chain_count: {}.", user.chain_count);
-  emit!(InitializedUserEvent {
+  emit!(InitializedUser {
     wallet: ctx.accounts.signer.key(),
     chain_count: user.chain_count
   });

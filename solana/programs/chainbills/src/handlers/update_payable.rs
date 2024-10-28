@@ -14,7 +14,7 @@ pub fn close_payable(ctx: Context<UpdatePayable>) -> Result<()> {
   payable.is_closed = true;
 
   msg!("Closed Payable.");
-  emit!(ClosePayableEvent {
+  emit!(ClosedPayable {
     payable_id: payable.key(),
     host_wallet: ctx.accounts.signer.key()
   });
@@ -29,7 +29,7 @@ pub fn reopen_payable(ctx: Context<UpdatePayable>) -> Result<()> {
   payable.is_closed = false;
 
   msg!("Reopened Payable.");
-  emit!(ReopenPayableEvent {
+  emit!(ReopenedPayable {
     payable_id: payable.key(),
     host_wallet: ctx.accounts.signer.key()
   });
@@ -63,7 +63,7 @@ pub fn update_payable_allowed_tokens_and_amounts<'info>(
     // Ensure that the token is supported.
     require!(
       taa.token == token_details.mint,
-      ChainbillsError::UnsupportedToken
+      ChainbillsError::InvalidTokenDetailsAccount
     );
     require!(
       token_details.is_supported,
@@ -81,7 +81,7 @@ pub fn update_payable_allowed_tokens_and_amounts<'info>(
 
   // Emit log and event.
   msg!("Updated Payable's allowedTokensAndAmounts.");
-  emit!(UpdatedPayableAllowedTokensAndAmountsEvent {
+  emit!(UpdatedPayableAllowedTokensAndAmounts {
     payable_id: payable.key(),
     host_wallet: ctx.accounts.signer.key()
   });

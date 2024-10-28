@@ -43,7 +43,7 @@ fn max_withdrawal_fees() {
       .find(|attr| attr.key == "action")
       .unwrap()
       .value,
-    "update_max_withdrawal_fees"
+    "updated_max_withdrawal_fees"
   );
   assert_eq!(
     wasm

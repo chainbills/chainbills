@@ -14,8 +14,10 @@ struct ChainStats {
   uint256 usersCount;
   /// Total number of payables that have ever been created on this chain.
   uint256 payablesCount;
-  /// Total number of payments that have ever been made on this chain.
-  uint256 paymentsCount;
+  /// Total number of payments that users have ever been made on this chain.
+  uint256 userPaymentsCount;
+  /// Total number of payments that payables have ever received on this chain.
+  uint256 payablePaymentsCount;
   /// Total number of withdrawals that have ever been made on this chain.
   uint256 withdrawalsCount;
 }
@@ -94,6 +96,9 @@ struct PayablePayment {
   /// If the payer is on this chain, this will be their address with
   /// front-padded zeros.
   bytes32 payer;
+  /// The nth count of payable payments on this chain at the point this payment
+  /// was received.
+  uint256 chainCount;
   /// The Wormhole Chain ID of the chain from which the payment was made.
   uint16 payerChainId;
   /// The nth count of payments to this payable from the payment source

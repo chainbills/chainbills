@@ -29,7 +29,7 @@ pub fn create_payable_handler<'info>(
     // Ensure that the token is supported.
     require!(
       taa.token == token_details.mint,
-      ChainbillsError::UnsupportedToken
+      ChainbillsError::InvalidTokenDetailsAccount
     );
     require!(
       token_details.is_supported,
@@ -71,7 +71,7 @@ pub fn create_payable_handler<'info>(
     payable.chain_count,
     payable.host_count
   );
-  emit!(CreatedPayableEvent {
+  emit!(CreatedPayable {
     payable_id: payable.key(),
     host_wallet: ctx.accounts.signer.key(),
     chain_count: payable.chain_count,

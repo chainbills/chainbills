@@ -32,7 +32,7 @@ pub fn register_foreign_contract_handler(
 
   // Emit log and event.
   msg!("Registered Foreign Contract and its ChainStats");
-  emit!(RegisteredForeignContractEvent {
+  emit!(RegisteredForeignContract {
     chain_id: chain,
     emitter: address
   });

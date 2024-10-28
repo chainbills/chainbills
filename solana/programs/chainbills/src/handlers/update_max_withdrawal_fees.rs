@@ -30,7 +30,7 @@ pub fn update_max_withdrawal_fees(
   token_details.max_withdrawal_fees = max_withdrawal_fees;
 
   msg!("Updated Max Withdrawal Fees.");
-  emit!(UpdatedMaxWithdrawalFeesEvent {
+  emit!(UpdatedMaxWithdrawalFees {
     token,
     max_withdrawal_fees
   });
@@ -51,7 +51,7 @@ pub fn update_max_withdrawal_fees_native(
   token_details.max_withdrawal_fees = max_withdrawal_fees;
 
   msg!("Updated Max Withdrawal Fees.");
-  emit!(UpdatedMaxWithdrawalFeesEvent {
+  emit!(UpdatedMaxWithdrawalFees {
     token: crate::ID,
     max_withdrawal_fees
   });

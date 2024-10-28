@@ -143,7 +143,7 @@ impl Withdrawals for Chainbills {
       return Err(ChainbillsError::ZeroAmountSpecified {});
     }
 
-    // - Ensure that this payable has enough of the provided amount in its balance.
+    // - Ensure that this payable has enough of the amount in its balance.
     // - Ensure that the specified token for withdrawal exists in the
     //   payable's balances.
     if payable.balances.is_empty() {
@@ -179,7 +179,7 @@ impl Withdrawals for Chainbills {
       ..
     } = token_details;
     let fees = min(percent, max_withdrawal_fees);
-    let amount_minus_fees = amount.checked_sub(fees).unwrap();
+    let amount_due = amount.checked_sub(fees).unwrap();
 
     // Prepare messages for transfer to add to the response.
     let mut bank_messages = vec![];
@@ -190,7 +190,7 @@ impl Withdrawals for Chainbills {
         to_address: ctx.info.sender.to_string(),
         amount: vec![Coin {
           denom: token.clone(),
-          amount: amount_minus_fees,
+          amount: amount_due,
         }],
       });
       // Transfer the withdrawal fee to the fee collector.
@@ -207,7 +207,7 @@ impl Withdrawals for Chainbills {
         funds: vec![],
         msg: to_json_binary(&Cw20ExecuteMsg::Transfer {
           recipient: ctx.info.sender.to_string(),
-          amount: amount_minus_fees,
+          amount: amount_due,
         })?,
       });
       cw20_messages.push(WasmMsg::Execute {
@@ -303,13 +303,13 @@ impl Withdrawals for Chainbills {
       .add_messages(bank_messages) // Add the bank messages
       .add_messages(cw20_messages)// Add the cw20 messages
       .add_attributes([
-        ("action", "withdraw".to_string()),
+        ("action", "withdrew".to_string()),
         ("payable_id", HexBinary::from(&payable_id).to_hex()),
         ("host_wallet", ctx.info.sender.to_string()),
         ("withdrawal_id", HexBinary::from(&withdrawal_id).to_hex()),
         ("chain_count", chain_stats.withdrawals_count.to_string()),
-        ("payable_count", payable.withdrawals_count.to_string()),
         ("host_count", user.withdrawals_count.to_string()),
+        ("payable_count", payable.withdrawals_count.to_string()),
       ]),
     )
   }

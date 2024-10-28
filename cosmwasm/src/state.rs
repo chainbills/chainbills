@@ -10,8 +10,10 @@ pub struct ChainStats {
   pub users_count: u64,
   /// Total number of payables that have ever been created on this chain.
   pub payables_count: u64,
-  /// Total number of payments that have ever been made on this chain.
-  pub payments_count: u64,
+  /// Total number of payments that users have ever been made on this chain.
+  pub user_payments_count: u64,
+  /// Total number of payments that payables have ever received on this chain.
+  pub payable_payments_count: u64,
   /// Total number of withdrawals that have ever been made on this chain.
   pub withdrawals_count: u64,
 }
@@ -22,7 +24,8 @@ impl ChainStats {
       chain_id,
       users_count: 0,
       payables_count: 0,
-      payments_count: 0,
+      user_payments_count: 0,
+        payable_payments_count: 0,
       withdrawals_count: 0,
     }
   }
@@ -35,8 +38,12 @@ impl ChainStats {
     self.payables_count.checked_add(1).unwrap()
   }
 
-  pub fn next_payment(&self) -> u64 {
-    self.payments_count.checked_add(1).unwrap()
+  pub fn next_user_payment(&self) -> u64 {
+    self.user_payments_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_payable_payment(&self) -> u64 {
+    self.payable_payments_count.checked_add(1).unwrap()
   }
 
   pub fn next_withdrawal(&self) -> u64 {
@@ -232,6 +239,9 @@ pub struct PayablePayment {
   /// If the payer is on CosmWasm, then will be the bytes of their wallet
   /// address.
   pub payer: [u8; 32],
+  /// The nth count of payable payments on this chain at the point this payment
+  /// was received.
+  pub chain_count: u64,
   /// The Wormhole Chain ID of the chain from which the payment was made.
   pub payer_chain_id: u16,
   /// The nth count of payments to this payable from the payment source

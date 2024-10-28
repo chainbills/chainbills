@@ -35,7 +35,7 @@ pub fn owner_withdraw_handler(
   )?;
 
   msg!("Owner made a withdrawal.");
-  emit!(OwnerWithdrawalEvent {
+  emit!(OwnerWithdrew {
     token: ctx.accounts.mint.key(),
     amount
   });

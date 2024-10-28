@@ -239,11 +239,6 @@ impl Payments for Chainbills {
     // Extract the token and amount for the payment.
     let TransactionInfoMessage { token, amount, .. } = msg;
 
-    // Ensure that amount is greater than zero.
-    if amount.is_zero() {
-      return Err(ChainbillsError::ZeroAmountSpecified {});
-    }
-
     // Fetch the TokenDetails details for the involved token.
     let mut token_details = self
       .token_details
@@ -257,9 +252,13 @@ impl Payments for Chainbills {
       });
     }
 
-    // Ensure that the specified token to be transferred is an allowed token
-    // for this payable, if this payable specified the tokens and amounts it
-    // can accept.
+    // Ensure that amount is greater than zero.
+    if amount.is_zero() {
+      return Err(ChainbillsError::ZeroAmountSpecified {});
+    }
+
+    // If this payable specified the tokens and amounts it can accept, ensure
+    // that the token and amount are matching.
     if !payable.allowed_tokens_and_amounts.is_empty() {
       let mut ataa_it = payable.allowed_tokens_and_amounts.iter().peekable();
       while let Some(taa) = ataa_it.next() {
@@ -294,9 +293,10 @@ impl Payments for Chainbills {
     }
 
     /* STATE CHANGES */
-    // Increment the chain stats for payments_count.
+    // Increment the chain stats for payments counts.
     let mut chain_stats = self.chain_stats.load(ctx.deps.storage)?;
-    chain_stats.payments_count = chain_stats.next_payment();
+    chain_stats.user_payments_count = chain_stats.next_user_payment();
+    chain_stats.payable_payments_count = chain_stats.next_payable_payment();
     self.chain_stats.save(ctx.deps.storage, &chain_stats)?;
 
     // Increment paymentsCount on the payer (address) making this payable.
@@ -377,18 +377,21 @@ impl Payments for Chainbills {
       &user_payment_ids,
     )?;
 
+    let timestamp = ctx.env.block.time.seconds();
+    let details = TokenAndAmount {
+      token: token.clone(),
+      amount,
+    };
+
     // Create and Save the UserPayment.
     let user_payment = UserPayment {
       payable_id,
       payer: ctx.info.sender.clone(),
       payable_chain_id: chain_stats.chain_id,
-      chain_count: chain_stats.payments_count,
+      chain_count: chain_stats.user_payments_count,
       payer_count: user.payments_count,
-      timestamp: ctx.env.block.time.seconds(),
-      details: TokenAndAmount {
-        token: token.clone(),
-        amount,
-      },
+      timestamp,
+      details: details.clone(),
     };
     self
       .user_payments
@@ -425,14 +428,12 @@ impl Payments for Chainbills {
     let payable_payment = PayablePayment {
       payable_id,
       payer: self.address_to_bytes32(&ctx.info.sender, ctx.deps.api),
+      chain_count: chain_stats.payable_payments_count,
       payer_chain_id: chain_stats.chain_id,
       local_chain_count,
       payable_count: payable.payments_count,
-      timestamp: ctx.env.block.time.seconds(),
-      details: TokenAndAmount {
-        token: token.clone(),
-        amount,
-      },
+      timestamp,
+      details: details.clone(),
     };
     self.payable_payments.save(
       ctx.deps.storage,
@@ -446,17 +447,18 @@ impl Payments for Chainbills {
         .add_messages(cw20_messages) // Add the cw20 messages
         .add_attributes(user_resp_attrib) // Add the user init attributes
         .add_attributes([
-          ("action", "pay".to_string()),
+          // Shared Details
           ("payable_id", HexBinary::from(&payable_id).to_hex()),
           ("payer_wallet", ctx.info.sender.to_string()),
           ("payment_id", HexBinary::from(&payment_id).to_hex()),
-          ("chain_count", chain_stats.payments_count.to_string()),
           // Details relative to the user
-          ("action", "user_pay".to_string()),
+          ("action", "user_paid".to_string()),
+          ("user_chain_count", chain_stats.user_payments_count.to_string()),
           ("payable_chain_id", chain_stats.chain_id.to_string()),
           ("payer_count", user.payments_count.to_string()),
           // Details relative to the payable
-          ("action", "payable_pay".to_string()),
+          ("action", "payable_received".to_string()),
+          ("payable_chain_count", chain_stats.payable_payments_count.to_string()),
           ("payer_chain_id", chain_stats.chain_id.to_string()),
           ("payable_count", payable.payments_count.to_string()),
         ]),

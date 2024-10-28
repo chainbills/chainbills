@@ -69,6 +69,6 @@ pub fn initialize_handler(ctx: Context<Initialize>) -> Result<()> {
 
   // Emit log and event.
   msg!("Initialized Config and Solana's ChainStats.");
-  emit!(InitializedEvent {});
+  emit!(Initialized {});
   Ok(())
 }

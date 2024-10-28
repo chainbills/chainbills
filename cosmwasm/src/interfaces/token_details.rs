@@ -91,7 +91,7 @@ impl TokenDetailsInterface for Chainbills {
 
     // Return the Response.
     Ok(Response::new().add_attributes([
-      ("action", "update_max_withdrawal_fees".to_string()),
+      ("action", "updated_max_withdrawal_fees".to_string()),
       ("token", token.clone()),
       ("is_native_token", is_native_token.to_string()),
       ("max_withdrawal_fees", max_withdrawal_fees.to_string()),

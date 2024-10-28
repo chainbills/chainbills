@@ -9,7 +9,7 @@ use cw20::Cw20ExecuteMsg;
 use cw_storage_plus::{Item, Map};
 use sha2::{Digest, Sha256};
 use sylvia::cw_std::{
-  to_json_binary, Addr, Api, Attribute, BankMsg, Coin, Env, Event, Response,
+  to_json_binary, Addr, Api, Attribute, BankMsg, Coin, Env, Response,
   StdResult, Storage, Uint128, WasmMsg,
 };
 use sylvia::types::{ExecCtx, InstantiateCtx, QueryCtx};
@@ -94,15 +94,11 @@ impl Chainbills {
     )?;
 
     // Emit an event and return a response.
-    let attributes = [
+    Ok(Response::new().add_attributes([
+      ("action", "instantiated"),
       ("owner", &*ctx.info.sender.as_str()),
       ("version", CONTRACT_VERSION),
-    ];
-    let res = Response::new()
-      .add_event(Event::new("instantiated").add_attributes(attributes.clone()))
-      .add_attribute("action", "instantiate")
-      .add_attributes(attributes.clone());
-    Ok(res)
+    ]))
   }
 
   #[sv::msg(query)]
@@ -185,7 +181,7 @@ impl Chainbills {
           .add_messages(bank_messages) // Add the bank messages
           .add_messages(cw20_messages) // Add the cw20 me
           .add_attributes([
-            ("action", "owner_withdraw".to_string()),
+            ("action", "owner_withdrew".to_string()),
             ("token", token),
             ("is_native_token", is_native_token.to_string()),
             ("amount", amount.to_string()),
@@ -216,7 +212,7 @@ impl Chainbills {
 
       // Set the response attributes
       response_attribs.append(&mut vec![
-        Attribute::from(("action", "initialize_user".to_string())),
+        Attribute::from(("action", "initialized_user".to_string())),
         Attribute::from(("wallet", wallet.as_str())),
         Attribute::from(("chain_count", chain_stats.users_count.to_string())),
       ]);

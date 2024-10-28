@@ -40,16 +40,16 @@ contract CbUsersTest is Test {
 
   function testUserInitOnCreatePayable() public {
     vm.startPrank(user);
+    (uint256 prevUsersCount,,,,) = chainbills.chainStats();
     (uint256 prevUserChainCount,,,) = chainbills.users(user);
-    (uint256 prevUsersCount,,,) = chainbills.chainStats();
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevUsersCount + 1);
 
     chainbills.createPayable(new TokenAndAmount[](0));
 
+    (uint256 newUsersCount,,,,) = chainbills.chainStats();
     (uint256 newUserChainCount,,,) = chainbills.users(user);
-    (uint256 newUsersCount,,,) = chainbills.chainStats();
     vm.stopPrank();
 
     assertEq(prevUserChainCount, 0);
@@ -62,8 +62,8 @@ contract CbUsersTest is Test {
     bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
 
     vm.startPrank(user);
+    (uint256 prevUsersCount,,,,) = chainbills.chainStats();
     (uint256 prevUserChainCount,,,) = chainbills.users(user);
-    (uint256 prevUsersCount,,,) = chainbills.chainStats();
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevUsersCount + 1);
@@ -71,8 +71,8 @@ contract CbUsersTest is Test {
     deal(user, ethAmt);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
+    (uint256 newUsersCount,,,,) = chainbills.chainStats();
     (uint256 newUserChainCount,,,) = chainbills.users(user);
-    (uint256 newUsersCount,,,) = chainbills.chainStats();
     vm.stopPrank();
 
     assertEq(prevUserChainCount, 0);
@@ -82,23 +82,23 @@ contract CbUsersTest is Test {
 
   function testUserInitOnlyOnce() public {
     vm.startPrank(user);
+    (uint256 prevUsersCount,,,,) = chainbills.chainStats();
     (uint256 prevUserChainCount,,,) = chainbills.users(user);
-    (uint256 prevUsersCount,,,) = chainbills.chainStats();
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevUsersCount + 1);
     chainbills.createPayable(new TokenAndAmount[](0));
 
+    (uint256 newUsersCount,,,,) = chainbills.chainStats();
     (uint256 newUserChainCount,,,) = chainbills.users(user);
-    (uint256 newUsersCount,,,) = chainbills.chainStats();
 
     // creating multiple payables should not trigger
     // multiple user initializations
     chainbills.createPayable(new TokenAndAmount[](0));
     chainbills.createPayable(new TokenAndAmount[](0));
 
+    (uint256 newerUsersCount,,,,) = chainbills.chainStats();
     (uint256 newerUserChainCount,,,) = chainbills.users(user);
-    (uint256 newerUsersCount,,,) = chainbills.chainStats();
     vm.stopPrank();
 
     assertEq(prevUserChainCount, 0);
@@ -110,8 +110,8 @@ contract CbUsersTest is Test {
 
   function testUserPayableCreation() public {
     vm.startPrank(user);
+    (, uint256 prevPayablesCount,,,) = chainbills.chainStats();
     (, uint256 prevUserPayableCount,,) = chainbills.users(user);
-    (, uint256 prevPayablesCount,,) = chainbills.chainStats();
 
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(
@@ -148,8 +148,8 @@ contract CbUsersTest is Test {
       ,
     ) = chainbills.payables(payableId2);
 
+    (, uint256 newPayablesCount,,,) = chainbills.chainStats();
     (, uint256 newUserPayableCount,,) = chainbills.users(user);
-    (, uint256 newPayablesCount,,) = chainbills.chainStats();
     vm.stopPrank();
 
     // check stored IDs
@@ -227,8 +227,8 @@ contract CbUsersTest is Test {
     bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
 
     vm.startPrank(user);
+    (,, uint256 prevUserPaymentsCount,,) = chainbills.chainStats();
     (,, uint256 prevUserPaymentCount,) = chainbills.users(user);
-    (,, uint256 prevPaymentsCount,) = chainbills.chainStats();
     (,, uint256 prevTotalUserPaidEth, uint256 prevTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
     (,, uint256 prevTotalUserPaidUsdc, uint256 prevTotalPayableReceivedUsdc,,) =
@@ -245,7 +245,7 @@ contract CbUsersTest is Test {
       user,
       bytes32(0),
       chainId,
-      prevPaymentsCount + 1,
+      prevUserPaymentsCount + 1,
       prevUserPaymentCount + 1
     );
     bytes32 paymentId1 =
@@ -276,7 +276,7 @@ contract CbUsersTest is Test {
       user,
       bytes32(0),
       chainId,
-      prevPaymentsCount + 2,
+      prevUserPaymentsCount + 2,
       prevUserPaymentCount + 2
     );
     bytes32 paymentId2 = chainbills.pay(payableId, address(usdc), usdcAmt);
@@ -294,8 +294,8 @@ contract CbUsersTest is Test {
       uint256 p2Timestamp
     ) = chainbills.userPayments(paymentId2);
 
+    (,, uint256 newUserPaymentsCount,,) = chainbills.chainStats();
     (,, uint256 newUserPaymentCount,) = chainbills.users(user);
-    (,, uint256 newPaymentsCount,) = chainbills.chainStats();
     (,, uint256 newTotalUserPaidEth, uint256 newTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
     (,, uint256 newTotalUserPaidUsdc, uint256 newTotalPayableReceivedUsdc,,) =
@@ -315,8 +315,8 @@ contract CbUsersTest is Test {
     // check counts
     assertEq(prevUserPaymentCount, 0);
     assertEq(prevUserPaymentCount + 2, newUserPaymentCount);
-    assertEq(prevPaymentsCount, 0);
-    assertEq(prevPaymentsCount + 2, newPaymentsCount);
+    assertEq(prevUserPaymentsCount, 0);
+    assertEq(prevUserPaymentsCount + 2, newUserPaymentsCount);
 
     // check token totals
     assertEq(prevTotalUserPaidEth + ethAmt, newTotalUserPaidEth);
@@ -330,7 +330,7 @@ contract CbUsersTest is Test {
     assertEq(p1PayableId, payableId);
     assertEq(p1Payer, user);
     assertEq(p1PayableChainId, chainId);
-    assertEq(p1ChainCount, prevPaymentsCount + 1);
+    assertEq(p1ChainCount, prevUserPaymentsCount + 1);
     assertEq(p1PayerCount, prevUserPaymentCount + 1);
     assertGt(p1Timestamp, 0);
     assertGe(p1Timestamp, block.timestamp);
@@ -341,7 +341,7 @@ contract CbUsersTest is Test {
     assertEq(p2PayableId, payableId);
     assertEq(p2Payer, user);
     assertEq(p2PayableChainId, chainId);
-    assertEq(p2ChainCount, prevPaymentsCount + 2);
+    assertEq(p2ChainCount, prevUserPaymentsCount + 2);
     assertEq(p2PayerCount, prevUserPaymentCount + 2);
     assertGt(p2Timestamp, 0);
     assertGe(p2Timestamp, block.timestamp);
@@ -376,8 +376,8 @@ contract CbUsersTest is Test {
     vm.prank(user);
     bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
 
+    (,,,, uint256 prevWithdrawalsCount) = chainbills.chainStats();
     (,,, uint256 prevUserWithdrawalCount) = chainbills.users(user);
-    (,,, uint256 prevWithdrawalsCount) = chainbills.chainStats();
     (,,,,, uint256 prevPayableWithdrawalCount,,,) =
       chainbills.payables(payableId);
     (,,,, uint256 prevTotalWithdrawnEth, uint256 prevTotalWthFeesClctdEth) =
@@ -476,8 +476,8 @@ contract CbUsersTest is Test {
     uint256 newFeeCollectorUsdcBal = usdc.balanceOf(feeCollector);
     uint256 newUserUsdcBal = usdc.balanceOf(user);
 
+    (,,,, uint256 newWithdrawalsCount) = chainbills.chainStats();
     (,,, uint256 newUserWithdrawalCount) = chainbills.users(user);
-    (,,, uint256 newWithdrawalsCount) = chainbills.chainStats();
     (,,,,, uint256 newPayableWithdrawalCount,,,) =
       chainbills.payables(payableId);
     (,,,, uint256 newTotalWithdrawnEth, uint256 newTotalWthFeesClctdEth) =

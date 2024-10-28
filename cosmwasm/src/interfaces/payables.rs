@@ -178,7 +178,7 @@ impl Payables for Chainbills {
       Response::new()
         .add_attributes(user_resp_attribs) // Add the user init attributes.
         .add_attributes([
-          ("action", "create_payable".to_string()),
+          ("action", "created_payable".to_string()),
           ("payable_id", HexBinary::from(&payable_id).to_hex()),
           ("host_wallet", ctx.info.sender.to_string()),
           ("chain_count", chain_stats.payables_count.to_string()),
@@ -218,7 +218,7 @@ impl Payables for Chainbills {
 
     // Return the Response.
     Ok(Response::new().add_attributes([
-      ("action", "close_payable".to_string()),
+      ("action", "closed_payable".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
     ]))
@@ -255,7 +255,7 @@ impl Payables for Chainbills {
 
     // Return the Response.
     Ok(Response::new().add_attributes([
-      ("action", "reopen_payable".to_string()),
+      ("action", "reopened_payable".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
     ]))
@@ -310,7 +310,7 @@ impl Payables for Chainbills {
 
     // Return the Response.
     Ok(Response::new().add_attributes([
-      ("action", "update_payable_tokens_and_amounts".to_string()),
+      ("action", "updated_payable_tokens_and_amounts".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
     ]))

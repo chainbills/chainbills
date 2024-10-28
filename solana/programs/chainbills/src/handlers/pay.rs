@@ -24,16 +24,15 @@ fn check_pay_inputs(
   // Ensure that the payable is not closed
   require!(!payable.is_closed, ChainbillsError::PayableIsClosed);
 
-  // Ensure that the specified token to be transferred (the mint) is an
-  // allowed token for this payable, if this payable doesn't allow any token
-  // outside those it specified
+  // If this payable specified the tokens and amounts it can accept, ensure
+  // that the token and amount are matching.
   if !payable.allowed_tokens_and_amounts.is_empty() {
-    let mut taas_it = payable.allowed_tokens_and_amounts.iter().peekable();
-    while let Some(taa) = taas_it.next() {
+    let mut ataa_it = payable.allowed_tokens_and_amounts.iter().peekable();
+    while let Some(taa) = ataa_it.next() {
       if taa.token == mint && taa.amount == amount {
         break;
       }
-      if taas_it.peek().is_none() {
+      if ataa_it.peek().is_none() {
         return err!(ChainbillsError::MatchingTokenAndAmountNotFound);
       }
     }
@@ -54,8 +53,9 @@ fn update_state_for_payment(
   user_payment: &mut Account<UserPayment>,
   payable_payment: &mut Account<PayablePayment>,
 ) -> Result<()> {
-  // Increment the chain stats for payments_count.
-  chain_stats.payments_count = chain_stats.next_payment();
+  // Increment the chain stats for payments counts.
+  chain_stats.user_payments_count = chain_stats.next_user_payment();
+  chain_stats.payable_payments_count = chain_stats.next_payable_payment();
 
   // Increment payments_count in the payer that just paid.
   payer.payments_count = payer.next_payment();
@@ -111,6 +111,7 @@ fn update_state_for_payment(
   // Initialize the Payable Payment.
   payable_payment.payable_id = payable.key();
   payable_payment.payer = signer.to_bytes();
+  payable_payment.chain_count = chain_stats.payable_payments_count;
   payable_payment.payer_chain_id = chain_stats.chain_id;
   payable_payment.local_chain_count = payable_chain_counter.payments_count;
   payable_payment.payable_count = payable.payments_count;
@@ -124,12 +125,11 @@ fn update_state_for_payment(
     user_payment.payer_count
   );
   msg!(
-    "Payable Payment was made from chain with wormhole ID: {}, with chain_count: {}, and payable_count: {}.",
-    payable_payment.payer_chain_id,
-    payable_payment.local_chain_count,
+    "Payable Payment was received with chain_count: {}, and payable_count: {}.",
+    payable_payment.chain_count,
     payable_payment.payable_count
   );
-  emit!(UserPayEvent {
+  emit!(UserPaid {
     payable_id: payable.key().to_bytes(),
     payer_wallet: signer,
     payment_id: user_payment.key(),
@@ -137,12 +137,12 @@ fn update_state_for_payment(
     chain_count: user_payment.chain_count,
     payer_count: user_payment.payer_count,
   });
-  emit!(PayablePayEvent {
+  emit!(PayableReceived {
     payable_id: payable.key(),
     payer_wallet: signer.to_bytes(),
     payment_id: payable_payment.key(),
     payer_chain_id: payable_payment.payer_chain_id,
-    chain_count: payable_payment.local_chain_count,
+    chain_count: payable_payment.chain_count,
     payable_count: payable_payment.payable_count,
   });
   Ok(())

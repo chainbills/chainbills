@@ -11,7 +11,7 @@ fn check_withdraw_inputs(
   // Ensure that amount is greater than zero
   require!(amount > 0, ChainbillsError::ZeroAmountSpecified);
 
-  // - Ensure that this payable has enough of the provided amount in its balance.
+  // - Ensure that this payable has enough of the amount in its balance.
   // - Ensure that the specified token (mint) for withdrawal exists in the
   //   payable's balances.
   if payable.balances.is_empty() {
@@ -32,6 +32,26 @@ fn check_withdraw_inputs(
   }
 
   Ok(())
+}
+
+struct WithdrawalAmounts {
+  amount_due: u64,
+  fees: u64,
+}
+
+fn compute_amounts(
+  amount: u64,
+  token_details: &TokenDetails,
+  config: &Config,
+) -> WithdrawalAmounts {
+  let percent = amount
+    .checked_mul(config.withdrawal_fee_percentage.into())
+    .unwrap()
+    .checked_div(10000) // 10000 is 100%
+    .unwrap();
+  let fees = min(percent, token_details.max_withdrawal_fees);
+  let amount_due = amount.checked_sub(fees).unwrap();
+  WithdrawalAmounts { amount_due, fees }
 }
 
 fn update_state_for_withdrawal(
@@ -68,7 +88,7 @@ fn update_state_for_withdrawal(
   token_details.add_withdrawal_fees_collected(fees);
 
   // Initialize the withdrawal.
-  withdrawal.chain_count = chain_stats.payables_count;
+  withdrawal.chain_count = chain_stats.withdrawals_count;
   withdrawal.payable_id = payable.key();
   withdrawal.payable_count = payable.withdrawals_count;
   withdrawal.host = signer;
@@ -86,18 +106,18 @@ fn update_state_for_withdrawal(
 
   // Emit log and event.
   msg!(
-    "Withdrawal was made with chain_count: {}, payable_count: {}, and host_count: {}.",
+    "Withdrawal was made with chain_count: {}, host_count: {}, and payable_count: {}.",
     withdrawal.chain_count,
-    withdrawal.payable_count,
-    withdrawal.host_count
+    withdrawal.host_count,
+    withdrawal.payable_count
   );
-  emit!(WithdrawalEvent {
+  emit!(Withdrew {
     payable_id: payable.key(),
     host_wallet: signer,
     withdrawal_id: withdrawal.key(),
     chain_count: withdrawal.chain_count,
-    payable_count: withdrawal.payable_count,
     host_count: withdrawal.host_count,
+    payable_count: withdrawal.payable_count,
   });
   Ok(())
 }
@@ -116,13 +136,8 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   // Prepare withdraw amounts and fees
   let config = ctx.accounts.config.load()?;
   let token_details = ctx.accounts.token_details.as_mut();
-  let percent = amount
-    .checked_mul(config.withdrawal_fee_percentage.into())
-    .unwrap()
-    .checked_div(10000) // 10000 is 100%
-    .unwrap();
-  let fees = min(percent, token_details.max_withdrawal_fees);
-  let amount_minus_fees = amount.checked_sub(fees).unwrap();
+  let WithdrawalAmounts { amount_due, fees } =
+    compute_amounts(amount, token_details, &config);
 
   // Extract Accounts needed for transferring
   let host_ta = &ctx.accounts.host_token_account;
@@ -150,7 +165,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
       cpi_accounts_host,
       &[&[ChainStats::SEED_PREFIX, &[ctx.bumps.chain_stats]]],
     ),
-    amount_minus_fees,
+    amount_due,
   )?;
 
   // Transfer the fees to the fees collector.
@@ -194,13 +209,8 @@ pub fn withdraw_native(
   // Prepare withdraw amounts and fees
   let config = ctx.accounts.config.load()?;
   let token_details = ctx.accounts.token_details.as_mut();
-  let percent = amount
-    .checked_mul(config.withdrawal_fee_percentage.into())
-    .unwrap()
-    .checked_div(10000) // 10000 is 100%
-    .unwrap();
-  let fees = min(percent, token_details.max_withdrawal_fees);
-  let amount_minus_fees = amount.checked_sub(fees).unwrap();
+  let WithdrawalAmounts { amount_due, fees } =
+    compute_amounts(amount, token_details, &config);
 
   // Extract Accounts needed for transferring
   let chain_stats = ctx.accounts.chain_stats.to_account_info();
@@ -210,11 +220,11 @@ pub fn withdraw_native(
   // Transfer the amount minus fees to the host.
   chain_stats
     .try_borrow_mut_lamports()?
-    .checked_sub(amount_minus_fees)
+    .checked_sub(amount_due)
     .unwrap();
   signer
     .try_borrow_mut_lamports()?
-    .checked_add(amount_minus_fees)
+    .checked_add(amount_due)
     .unwrap();
 
   // Transfer the fees to the fees collector.

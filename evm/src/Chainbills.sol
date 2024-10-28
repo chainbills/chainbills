@@ -24,6 +24,7 @@ error UnsuccessfulPayment();
 error InsufficientWithdrawAmount();
 error NoBalanceForWithdrawalToken();
 error UnsuccessfulWithdrawal();
+error UnsuccessfulFeesWithdrawal();
 
 /// A Cross-Chain Payment Gateway.
 contract Chainbills is CbGovernance, CbPayload {
@@ -48,7 +49,7 @@ contract Chainbills is CbGovernance, CbPayload {
     wormhole = wormhole_;
     chainId = chainId_;
     wormholeFinality = wormholeFinality_;
-    chainStats = ChainStats(0, 0, 0, 0);
+    chainStats = ChainStats(0, 0, 0, 0, 0);
   }
 
   /// Initializes a User if need be.
@@ -202,9 +203,8 @@ contract Chainbills is CbGovernance, CbPayload {
     if (_payable.host == address(0)) revert InvalidPayableId();
     if (_payable.isClosed) revert PayableIsClosed();
 
-    // Ensure that the specified token and amount to be transferred is an
-    // allowed for this payable, if this payable doesn't allow any tokens
-    // and amounts outside those it specified
+    // If this payable specified the tokens and amounts it can accept, ensure
+    // that the token and amount are matching.
     uint8 aTAALength = _payable.allowedTokensAndAmountsCount;
     if (aTAALength > 0) {
       for (uint8 i = 0; i < aTAALength; i++) {
@@ -227,8 +227,9 @@ contract Chainbills is CbGovernance, CbPayload {
     }
 
     /* STATE CHANGES */
-    // Increment the chainStats for paymentsCount.
-    chainStats.paymentsCount++;
+    // Increment the chainStats for payments counts.
+    chainStats.userPaymentsCount++;
+    chainStats.payablePaymentsCount++;
 
     // Increment paymentsCount in the payer that just paid.
     initializeUserIfNeedBe(msg.sender);
@@ -264,7 +265,7 @@ contract Chainbills is CbGovernance, CbPayload {
       payableId: payableId,
       payer: msg.sender,
       payableChainId: chainId,
-      chainCount: chainStats.paymentsCount,
+      chainCount: chainStats.userPaymentsCount,
       payerCount: users[msg.sender].paymentsCount,
       timestamp: block.timestamp
     });
@@ -276,6 +277,7 @@ contract Chainbills is CbGovernance, CbPayload {
     payablePayments[paymentId] = PayablePayment({
       payableId: payableId,
       payer: toWormholeFormat(msg.sender),
+      chainCount: chainStats.payablePaymentsCount,
       payerChainId: chainId,
       localChainCount: payableChainPaymentsCount[payableId][chainId],
       payableCount: _payable.paymentsCount,
@@ -288,7 +290,7 @@ contract Chainbills is CbGovernance, CbPayload {
       msg.sender,
       paymentId,
       chainId,
-      chainStats.paymentsCount,
+      chainStats.userPaymentsCount,
       users[msg.sender].paymentsCount
     );
     emit PayablePaid(
@@ -296,7 +298,7 @@ contract Chainbills is CbGovernance, CbPayload {
       toWormholeFormat(msg.sender),
       paymentId,
       chainId,
-      payableChainPaymentsCount[payableId][chainId],
+      chainStats.payablePaymentsCount,
       _payable.paymentsCount
     );
   }
@@ -321,7 +323,7 @@ contract Chainbills is CbGovernance, CbPayload {
     // Ensure that the amount to be withdrawn is not zero.
     if (amount == 0) revert ZeroAmountSpecified();
 
-    // - Ensure that this payable has enough of the provided amount in its balance.
+    // - Ensure that this payable has enough of the amount in its balance.
     // - Ensure that the specified token for withdrawal exists in the
     //   payable's balances.
     if (_payable.balancesCount == 0) revert NoBalanceForWithdrawalToken();
@@ -346,20 +348,22 @@ contract Chainbills is CbGovernance, CbPayload {
     uint256 amtDue = amount - fees;
 
     // Transfer the amount minus fees to the owner.
-    bool isSuccess = false;
+    bool isWtdlSuccess = false;
     if (token == address(this)) {
-      (isSuccess,) = payable(msg.sender).call{value: amtDue}('');
+      (isWtdlSuccess,) = payable(msg.sender).call{value: amtDue}('');
     } else {
-      isSuccess = IERC20(token).transfer(msg.sender, amtDue);
+      isWtdlSuccess = IERC20(token).transfer(msg.sender, amtDue);
     }
-    if (!isSuccess) revert UnsuccessfulWithdrawal();
+    if (!isWtdlSuccess) revert UnsuccessfulWithdrawal();
 
     // Transfer the fees to the fees collector.
+    bool isFeesSuccess = false;
     if (token == address(this)) {
-      (payable(feeCollector).call{value: fees}(''));
+      (isFeesSuccess,) = payable(feeCollector).call{value: fees}('');
     } else {
-      IERC20(token).transfer(feeCollector, fees);
+      isFeesSuccess = IERC20(token).transfer(feeCollector, fees);
     }
+    if (!isFeesSuccess) revert UnsuccessfulFeesWithdrawal();
 
     /* STATE CHANGES */
     // Increment the chainStats for withdrawalsCount.

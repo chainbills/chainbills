@@ -277,4 +277,14 @@ contract CbState {
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
     return payableChainPaymentsCount[payableId][chainId_];
   }
+
+  function getPayableChainPaymentIds(bytes32 payableId, uint16 chainId_)
+    external
+    view
+    returns (bytes32[] memory)
+  {
+    if (payableId == bytes32(0)) revert InvalidPayableId();
+    if (payables[payableId].host == address(0)) revert InvalidPayableId();
+    return payableChainPaymentIds[payableId][chainId_];
+  }
 }

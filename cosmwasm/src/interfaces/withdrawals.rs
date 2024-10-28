@@ -166,7 +166,7 @@ impl Withdrawals for Chainbills {
     let percent = amount
       .checked_mul(config.withdrawal_fee_percentage)
       .unwrap()
-      .checked_div(Uint128::new(100))
+      .checked_div(Uint128::new(10000))  // 10000 is 100%
       .unwrap();
     let mut token_details =
       self.token_details.load(ctx.deps.storage, token.clone())?;

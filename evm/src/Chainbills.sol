@@ -364,7 +364,7 @@ contract Chainbills is CbGovernance, CbPayload {
 
     /* TRANSFER */
     // Prepare withdraw amounts and fees
-    uint256 percent = (amount * WITHDRAWAL_FEE_PERCENTAGE) / 100;
+    uint256 percent = (amount * withdrawalFeePercentage) / 10000; // 10000 is 100%
     uint256 maxFees = tokenDetails[token].maxWithdrawalFees;
     uint256 fees = percent > maxFees ? maxFees : percent;
     uint256 amtDue = amount - fees;

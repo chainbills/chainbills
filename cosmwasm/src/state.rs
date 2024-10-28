@@ -51,7 +51,7 @@ pub struct Config {
   pub owner: Addr,
   /// Chainbills' FeeCollector address.
   pub chainbills_fee_collector: Addr,
-  /// Percentage of withdrawal for fees.
+  /// Percentage of withdrawal for fees with 2 decimal places. E.g. 2% is 200.
   pub withdrawal_fee_percentage: Uint128,
 }
 

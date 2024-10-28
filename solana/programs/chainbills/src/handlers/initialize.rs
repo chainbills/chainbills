@@ -9,6 +9,7 @@ use wormhole_anchor_sdk::wormhole;
 pub fn initialize_handler(ctx: Context<Initialize>) -> Result<()> {
   // Initialize config account.
   let config = &mut ctx.accounts.config.load_init()?;
+  config.withdrawal_fee_percentage = 200u16; // 2.00%
   config.owner = *ctx.accounts.owner.to_account_info().key;
   config.chainbills_fee_collector =
     *ctx.accounts.chainbills_fee_collector.to_account_info().key;

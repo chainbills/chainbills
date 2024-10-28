@@ -89,7 +89,7 @@ impl Chainbills {
       &Config {
         owner: ctx.info.sender.clone(),
         chainbills_fee_collector: cbfc,
-        withdrawal_fee_percentage: Uint128::new(2),
+        withdrawal_fee_percentage: Uint128::new(200),
       },
     )?;
 

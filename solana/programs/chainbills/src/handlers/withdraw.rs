@@ -110,9 +110,14 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
   /* TRANSFERS */
   // Prepare withdraw amounts and fees
+  let config = ctx.accounts.config.load()?;
   let token_details = ctx.accounts.token_details.as_mut();
-  let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
-  let fees = min(two_percent, token_details.max_withdrawal_fees);
+  let percent = amount
+    .checked_mul(config.withdrawal_fee_percentage.into())
+    .unwrap()
+    .checked_div(10000) // 10000 is 100%
+    .unwrap();
+  let fees = min(percent, token_details.max_withdrawal_fees);
   let amount_minus_fees = amount.checked_sub(fees).unwrap();
 
   // Extract Accounts needed for transferring
@@ -182,9 +187,14 @@ pub fn withdraw_native(
 
   /* TRANSFERS */
   // Prepare withdraw amounts and fees
+  let config = ctx.accounts.config.load()?;
   let token_details = ctx.accounts.token_details.as_mut();
-  let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
-  let fees = min(two_percent, token_details.max_withdrawal_fees);
+  let percent = amount
+    .checked_mul(config.withdrawal_fee_percentage.into())
+    .unwrap()
+    .checked_div(10000) // 10000 is 100%
+    .unwrap();
+  let fees = min(percent, token_details.max_withdrawal_fees);
   let amount_minus_fees = amount.checked_sub(fees).unwrap();
 
   // Extract Accounts needed for transferring

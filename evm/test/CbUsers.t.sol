@@ -496,10 +496,11 @@ contract CbUsersTest is Test {
     vm.stopPrank();
 
     // obtain fees and amount due
-    uint256 ethPercent = (ethAmt * WITHDRAWAL_FEE_PERCENTAGE) / 100;
+    uint256 ethPercent = (ethAmt * chainbills.withdrawalFeePercentage()) / 10000; 
     uint256 ethFee = ethPercent > ethMaxFee ? ethMaxFee : ethPercent;
     uint256 ethAmtDue = ethAmt - ethFee;
-    uint256 usdcPercent = (usdcAmt * WITHDRAWAL_FEE_PERCENTAGE) / 100;
+    uint256 usdcPercent =
+      (usdcAmt * chainbills.withdrawalFeePercentage()) / 10000;
     uint256 usdcFee = usdcPercent > usdcMaxFee ? usdcMaxFee : usdcPercent;
     uint256 usdcAmtDue = usdcAmt - usdcFee;
 

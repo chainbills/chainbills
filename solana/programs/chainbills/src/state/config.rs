@@ -3,6 +3,10 @@ use anchor_lang::prelude::*;
 #[account(zero_copy)]
 /// Config account data. Mainly Wormhole-related addresses and infos.
 pub struct Config {
+  /// The withdrawal fee percentage. Takes into account 2 decimal places. 
+  /// For example, 200 means 2.00%. 
+  pub withdrawal_fee_percentage: u16, // 2 bytes
+  
   /// Deployer of this program.
   pub owner: Pubkey, // 32 bytes
   
@@ -28,7 +32,7 @@ pub struct Config {
 
 impl Config {
   // discriminator (8) first
-  pub const SPACE: usize = 8 + (6 * 32);
+  pub const SPACE: usize = 2 + 8 + (6 * 32);
 
   /// AKA `b"config"`.
   pub const SEED_PREFIX: &'static [u8] = b"config";

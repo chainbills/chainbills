@@ -213,7 +213,7 @@ contract Chainbills is CbGovernance, CbPayload {
     public
     payable
     nonReentrant
-    returns (bytes32 paymentId)
+    returns (bytes32 userPaymentId)
   {
     /* CHECKS */
     // Ensure that the token is valid.
@@ -293,14 +293,14 @@ contract Chainbills is CbGovernance, CbPayload {
     tokenDetails[token].totalPayableReceived += amount;
 
     // Record payment details of user.
-    paymentId = createId(
+    userPaymentId = createId(
       toWormholeFormat(msg.sender),
       EntityType.Payment,
       users[msg.sender].paymentsCount
     );
-    userPaymentIds[msg.sender].push(paymentId);
-    userPaymentDetails[paymentId] = TokenAndAmount(token, amount);
-    userPayments[paymentId] = UserPayment({
+    userPaymentIds[msg.sender].push(userPaymentId);
+    userPaymentDetails[userPaymentId] = TokenAndAmount(token, amount);
+    userPayments[userPaymentId] = UserPayment({
       payableId: payableId,
       payer: msg.sender,
       payableChainId: config.chainId,
@@ -310,10 +310,12 @@ contract Chainbills is CbGovernance, CbPayload {
     });
 
     // Record payment details of payable.
-    payablePaymentIds[payableId].push(paymentId);
-    payableChainPaymentIds[payableId][config.chainId].push(paymentId);
-    payablePaymentDetails[paymentId] = TokenAndAmount(token, amount);
-    payablePayments[paymentId] = PayablePayment({
+    bytes32 payablePaymentId =
+      createId(payableId, EntityType.Payment, payables[payableId].paymentsCount);
+    payablePaymentIds[payableId].push(payablePaymentId);
+    payableChainPaymentIds[payableId][config.chainId].push(payablePaymentId);
+    payablePaymentDetails[payablePaymentId] = TokenAndAmount(token, amount);
+    payablePayments[payablePaymentId] = PayablePayment({
       payableId: payableId,
       payer: toWormholeFormat(msg.sender),
       chainCount: chainStats.payablePaymentsCount,
@@ -337,7 +339,7 @@ contract Chainbills is CbGovernance, CbPayload {
       userCount: users[msg.sender].activitiesCount,
       payableCount: 0, // no payable involved
       timestamp: block.timestamp,
-      entity: paymentId,
+      entity: userPaymentId,
       activityType: ActivityType.UserPaid
     });
 
@@ -351,7 +353,7 @@ contract Chainbills is CbGovernance, CbPayload {
       userCount: 0, // no user involved
       payableCount: _payable.activitiesCount,
       timestamp: block.timestamp,
-      entity: paymentId,
+      entity: payablePaymentId,
       activityType: ActivityType.PayableReceived
     });
 
@@ -359,7 +361,7 @@ contract Chainbills is CbGovernance, CbPayload {
     emit UserPaid(
       payableId,
       msg.sender,
-      paymentId,
+      userPaymentId,
       config.chainId,
       chainStats.userPaymentsCount,
       users[msg.sender].paymentsCount
@@ -367,7 +369,7 @@ contract Chainbills is CbGovernance, CbPayload {
     emit PayablePaid(
       payableId,
       toWormholeFormat(msg.sender),
-      paymentId,
+      payablePaymentId,
       config.chainId,
       chainStats.payablePaymentsCount,
       _payable.paymentsCount

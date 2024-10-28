@@ -375,8 +375,8 @@ impl Payments for Chainbills {
       .save(ctx.deps.storage, token.clone(), &token_details)?;
 
     /* PAYMENTS DATA STRUCTURES */
-    // Get a new Payment ID
-    let payment_id = self.create_id(
+    // Get a new Payment ID for the User
+    let user_payment_id = self.create_id(
       ctx.deps.storage,
       &ctx.env,
       &ctx.info.sender.as_str(),
@@ -389,7 +389,7 @@ impl Payments for Chainbills {
       .user_payment_ids
       .may_load(ctx.deps.storage, &ctx.info.sender)?
       .unwrap_or_default();
-    user_payment_ids.push(payment_id);
+    user_payment_ids.push(user_payment_id);
     self.user_payment_ids.save(
       ctx.deps.storage,
       &ctx.info.sender,
@@ -412,16 +412,27 @@ impl Payments for Chainbills {
       timestamp,
       details: details.clone(),
     };
-    self
-      .user_payments
-      .save(ctx.deps.storage, payment_id, &user_payment)?;
+    self.user_payments.save(
+      ctx.deps.storage,
+      user_payment_id,
+      &user_payment,
+    )?;
+
+    // Get a new Payment ID for the Payable.
+    let payable_payment_id = self.create_id(
+      ctx.deps.storage,
+      &ctx.env,
+      &HexBinary::from(&user_payment_id).to_hex(),
+      "payment",
+      payable.payments_count,
+    )?;
 
     // Save the Payment ID to the payables_payment_ids.
     let mut payable_payment_ids = self
       .payable_payment_ids
       .may_load(ctx.deps.storage, payable_id)?
       .unwrap_or_default();
-    payable_payment_ids.push(payment_id);
+    payable_payment_ids.push(payable_payment_id);
     self.payable_payment_ids.save(
       ctx.deps.storage,
       payable_id,
@@ -436,7 +447,7 @@ impl Payments for Chainbills {
         (payable_id.to_vec(), chain_stats.chain_id),
       )?
       .unwrap_or_default();
-    per_chain_payable_payment_ids.push(payment_id);
+    per_chain_payable_payment_ids.push(payable_payment_id);
     self.per_chain_payable_payment_ids.save(
       ctx.deps.storage,
       (payable_id.to_vec(), chain_stats.chain_id),
@@ -456,7 +467,7 @@ impl Payments for Chainbills {
     };
     self.payable_payments.save(
       ctx.deps.storage,
-      payment_id,
+      payable_payment_id,
       &payable_payment,
     )?;
 
@@ -521,7 +532,7 @@ impl Payments for Chainbills {
         user_count: user.activities_count,
         payable_count: 0, // Setting 0 because it's not a payable activity.
         timestamp: ctx.env.block.time.seconds(),
-        entity: HexBinary::from(&payment_id).to_hex(),
+        entity: HexBinary::from(&user_payment_id).to_hex(),
         activity_type: ActivityType::UserPaid,
       },
     )?;
@@ -535,7 +546,7 @@ impl Payments for Chainbills {
         user_count: 0, // Setting 0 because it's not a user activity.
         payable_count: payable.activities_count,
         timestamp: ctx.env.block.time.seconds(),
-        entity: HexBinary::from(&payment_id).to_hex(),
+        entity: HexBinary::from(&payable_payment_id).to_hex(),
         activity_type: ActivityType::PayableReceived,
       },
     )?;
@@ -550,14 +561,15 @@ impl Payments for Chainbills {
           // Shared Details
           ("payable_id", HexBinary::from(&payable_id).to_hex()),
           ("payer_wallet", ctx.info.sender.to_string()),
-          ("payment_id", HexBinary::from(&payment_id).to_hex()),
           // Details relative to the user
           ("action", "user_paid".to_string()),
+          ("user_payment_id", HexBinary::from(&user_payment_id).to_hex()),
           ("user_chain_count", chain_stats.user_payments_count.to_string()),
           ("payable_chain_id", chain_stats.chain_id.to_string()),
           ("payer_count", user.payments_count.to_string()),
           // Details relative to the payable
           ("action", "payable_received".to_string()),
+          ("payable_payment_id", HexBinary::from(&payable_payment_id).to_hex()),
           ("payable_chain_count", chain_stats.payable_payments_count.to_string()),
           ("payer_chain_id", chain_stats.chain_id.to_string()),
           ("payable_count", payable.payments_count.to_string()),

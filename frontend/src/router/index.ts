@@ -1,53 +1,7 @@
-import { useAppLoadingStore } from '@/stores/app-loading';
-import { usePayableStore } from '@/stores/payable';
-import { usePaymentStore } from '@/stores/payment';
-import {
-  createRouter,
-  createWebHistory,
-  type RouteLocationNormalized,
-} from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 
 const baseTitle = 'Chainbills';
-
-const _notFound = (to: RouteLocationNormalized) => ({
-  name: 'not-found',
-  params: { pathMatch: to.path.substring(1).split('/') },
-  query: to.query,
-  hash: to.hash,
-});
-
-const beforeEnterPayableDetails = async (to: RouteLocationNormalized) => {
-  const appLoading = useAppLoadingStore();
-  const payable = usePayableStore();
-  appLoading.show();
-  const details = await payable.get(to.params['id'] as string);
-  if (details) {
-    to.meta.details = details;
-    appLoading.hide();
-    return true;
-  } else {
-    appLoading.hide();
-    return _notFound(to);
-  }
-};
-
-const beforeEnterPaymentDetails = async (to: RouteLocationNormalized) => {
-  const appLoading = useAppLoadingStore();
-  const payable = usePayableStore();
-  const payment = usePaymentStore();
-  appLoading.show();
-  const result = await payment.get(to.params['id'] as string);
-  if (result) {
-    to.meta.payment = result;
-    to.meta.payable = await payable.get(result.payableId);
-    appLoading.hide();
-    return true;
-  } else {
-    appLoading.hide();
-    return _notFound(to);
-  }
-};
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -73,8 +27,8 @@ const router = createRouter({
     {
       path: '/activity',
       name: 'activity',
-      component: () => import('../views/MyActivityView.vue'),
-      meta: { title: `My Activity | ${baseTitle}` },
+      component: () => import('../views/UserActivityView.vue'),
+      meta: { title: `Activity | ${baseTitle}` },
     },
     {
       path: '/stats',
@@ -85,23 +39,20 @@ const router = createRouter({
     {
       path: '/payable/:id',
       name: 'payable',
-      component: () => import('../views/PayableView.vue'),
+      component: () => import('../views/PayableDetailView.vue'),
       meta: { title: `Payable's Details | ${baseTitle}` },
-      beforeEnter: beforeEnterPayableDetails,
     },
     {
       path: '/pay/:id',
       name: 'pay',
       component: () => import('../views/PayView.vue'),
       meta: { title: `Make a Payment | ${baseTitle}` },
-      beforeEnter: beforeEnterPayableDetails,
     },
     {
       path: '/receipt/:id',
       name: 'receipt',
-      component: () => import('../views/PaymentView.vue'),
-      meta: { title: `Payment Receipt | ${baseTitle}` },
-      beforeEnter: beforeEnterPaymentDetails,
+      component: () => import('../views/ReceiptView.vue'),
+      meta: { title: `Receipt | ${baseTitle}` },
     },
     {
       path: '/pitch',

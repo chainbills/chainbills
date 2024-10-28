@@ -1,26 +1,23 @@
+import { firebaseConfig, useAuthStore, useServerStore } from '@/stores';
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { onMounted } from 'vue';
 
-import { firebaseConfig } from './firebase';
-import { useServerStore } from './server';
-import { useWalletStore } from './wallet';
-
 export const useNotificationsStore = defineStore('notifications', () => {
   const app = initializeApp(firebaseConfig);
+  const auth = useAuthStore();
   const messaging = getMessaging(app);
   const server = useServerStore();
   const toast = useToast();
-  const wallet = useWalletStore();
 
+  const lsKey = () =>
+    `chainbills::fcmToken=>${auth.currentUser!.walletAddress}`;
   const ensure = async () => {
     if (
-      !wallet.connected ||
-      (Notification.permission == 'granted' &&
-        wallet.address &&
-        localStorage.getItem(`fcmToken:${wallet.address}`))
+      !auth.currentUser ||
+      (Notification.permission == 'granted' && localStorage.getItem(lsKey()))
     ) {
       return;
     }
@@ -34,9 +31,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
       vapidKey: import.meta.env.VITE_FCM_VAPID_KEY,
     });
 
-    if (wallet.address && fcmToken) {
+    if (auth.currentUser && fcmToken) {
       const success = await server.saveNotificationToken(fcmToken);
-      if (success) localStorage.setItem(`fcmToken:${wallet.address}`, 'true');
+      if (success) localStorage.setItem(lsKey(), 'true');
     }
   };
 

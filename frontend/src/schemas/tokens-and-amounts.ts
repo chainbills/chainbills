@@ -1,4 +1,4 @@
-import type { Chain } from '@/stores/chain';
+import type { Chain } from '@/stores';
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 

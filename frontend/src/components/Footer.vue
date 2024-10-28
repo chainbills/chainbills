@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import IconDiscord from '@/icons/IconDiscord.vue';
 import IconGithub from '@/icons/IconGithub.vue';
 import IconX from '@/icons/IconX.vue';
 import { useThemeStore } from '@/stores';
@@ -41,17 +42,25 @@ const year = new Date().getFullYear();
                 <router-link to="/">Home</router-link>
               </li>
               <li class="mb-1 hover:underline">
+                <a
+                  href="https://blog.chainbills.xyz"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  >Blog</a
+                >
+              </li>
+              <li class="mb-1 hover:underline">
                 <router-link to="/dashboard">Dashboard</router-link>
               </li>
               <li class="mb-1 hover:underline">
-                <router-link to="/activity">My Activity</router-link>
+                <router-link to="/activity">Activity</router-link>
               </li>
             </ul>
           </nav>
         </div>
 
         <div class="sm:mt-12">
-          <h2 class="font-medium mb-2 text-lg">Contact Us</h2>
+          <h2 class="font-medium mb-2 text-lg">Join Us</h2>
           <a
             href="mailto:contact@chainbills.xyz"
             target="_blank"
@@ -62,7 +71,15 @@ const year = new Date().getFullYear();
           >
           <p class="flex gap-4">
             <a
-              href="https://x.com/chainbills"
+              href="http://discord.chainbills.xyz"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Join our Discord"
+            >
+              <IconDiscord class="text-primary" />
+            </a>
+            <a
+              href="https://x.com/chainbills_xyz"
               target="_blank"
               rel="noopener noreferrer"
               title="Follow us on X (Twitter)"
@@ -90,7 +107,7 @@ const year = new Date().getFullYear();
 <style scoped>
 footer {
   box-shadow:
-    0 -1px 3px 0 var(--shadow),
-    0 -1px 2px -1px var(--shadow);
+    0 -1px 1.5px 0 var(--shadow),
+    0 -1px 1px -1px var(--shadow);
 }
 </style>

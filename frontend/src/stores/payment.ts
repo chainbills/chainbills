@@ -6,14 +6,13 @@ import {
   type Payment,
 } from '@/schemas';
 import {
-  useChainStore,
+  useAuthStore,
+  useCacheStore,
   useCosmwasmStore,
   useEvmStore,
   usePayableStore,
   useServerStore,
   useSolanaStore,
-  useUserStore,
-  useWalletStore,
   type Chain,
 } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
@@ -22,30 +21,32 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const usePaymentStore = defineStore('payment', () => {
-  const chain = useChainStore();
+  const auth = useAuthStore();
+  const cache = useCacheStore();
   const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const payableStore = usePayableStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
-  const user = useUserStore();
-  const wallet = useWalletStore();
+
+  const cacheKey = (chain: string, type: string, id: string) =>
+    `${chain}::payment::${type}::${id}`;
 
   const exec = async (
     payableId: string,
     details: TokenAndAmount
   ): Promise<string | null> => {
-    if (!wallet.connected || !chain.current) return null;
+    if (!auth.currentUser) return null;
 
     try {
       const result = await {
         'Burnt Xion': cosmwasm,
         'Ethereum Sepolia': evm,
         Solana: solana,
-      }[chain.current]['pay'](payableId, details);
+      }[auth.currentUser.chain]['pay'](payableId, details);
       if (!result) return null;
-      await user.refresh();
+      await auth.refreshUser();
 
       console.log(`Made Payment Transaction Details: ${result.explorerUrl()}`);
       await server.userPaid(result.created);
@@ -77,7 +78,11 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const get = async (id: string, chain?: Chain): Promise<Payment | null> => {
+  const get = async (
+    id: string,
+    chain?: Chain,
+    ignoreErrors?: boolean
+  ): Promise<Payment | null> => {
     // A simple trick to guess the chain based on the ID's format
     // (if not provided)
     if (!chain) {
@@ -95,18 +100,42 @@ export const usePaymentStore = defineStore('payment', () => {
       }
     }
 
-    let payment: Payment | null = null;
+    // Check if the payment is already in the cache and return if so.
+    let payment = await cache.retrieve(cacheKey(chain, 'user', id));
+    if (payment) {
+      // Necessary to restore callable methods on retrieved instance
+      payment = Object.setPrototypeOf(payment, UserPayment.prototype);
+      payment.details = Object.setPrototypeOf(
+        payment.details,
+        TokenAndAmount.prototype
+      );
+      return payment;
+    }
+    payment = await cache.retrieve(cacheKey(chain, 'payable', id));
+    if (payment) {
+      // Necessary to restore callable methods on retrieved instance
+      payment = Object.setPrototypeOf(payment, PayablePayment.prototype);
+      payment.details = Object.setPrototypeOf(
+        payment.details,
+        TokenAndAmount.prototype
+      );
+      return payment;
+    }
 
-    // First try to fetch the payment as if it was a user payment.
+    // Otherwise, first try to fetch the payment as if it was a user payment.
     try {
       let raw: any;
-      if (chain == 'Solana') raw = await solana.fetchEntity('userPayment', id);
+      if (chain == 'Solana')
+        raw = await solana.tryFetchEntity('userPayment', id, ignoreErrors);
       else if (chain == 'Ethereum Sepolia')
-        raw = await evm.fetchUserPayment(id);
+        raw = await evm.fetchUserPayment(id, ignoreErrors);
       else if (chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('user_payment', id);
+        raw = await cosmwasm.fetchEntity('user_payment', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
-      if (raw) payment = new UserPayment(id, chain, raw);
+      if (raw) {
+        payment = new UserPayment(id, chain, raw);
+        await cache.save(cacheKey(chain, 'user', id), payment);
+      }
     } catch (_) {}
 
     // If the payment is not a user payment, try to fetch it as a payable payment.
@@ -114,13 +143,16 @@ export const usePaymentStore = defineStore('payment', () => {
       try {
         let raw: any;
         if (chain == 'Solana')
-          raw = await solana.fetchEntity('payablePayment', id);
+          raw = await solana.tryFetchEntity('payablePayment', id, ignoreErrors);
         else if (chain == 'Ethereum Sepolia')
-          raw = await evm.fetchPayablePayment(id);
+          raw = await evm.fetchPayablePayment(id, ignoreErrors);
         else if (chain == 'Burnt Xion')
-          raw = await cosmwasm.fetchEntity('payable_payment', id);
+          raw = await cosmwasm.fetchEntity('payable_payment', id, ignoreErrors);
         else throw `Unknown chain: ${chain}`;
-        if (raw) payment = new PayablePayment(id, chain, raw);
+        if (raw) {
+          payment = new PayablePayment(id, chain, raw);
+          await cache.save(cacheKey(chain, 'payable', id), payment);
+        }
       } catch (_) {}
     }
 
@@ -131,6 +163,17 @@ export const usePaymentStore = defineStore('payment', () => {
     id: string,
     chain: Chain
   ): Promise<PayablePayment | null> => {
+    let payment = await cache.retrieve(cacheKey(chain, 'payable', id));
+    if (payment) {
+      // Necessary to restore callable methods on retrieved instance
+      payment = Object.setPrototypeOf(payment, PayablePayment.prototype);
+      payment.details = Object.setPrototypeOf(
+        payment.details,
+        TokenAndAmount.prototype
+      );
+      return payment;
+    }
+
     try {
       let raw: any;
       if (chain == 'Solana')
@@ -140,7 +183,11 @@ export const usePaymentStore = defineStore('payment', () => {
       else if (chain == 'Burnt Xion')
         raw = await cosmwasm.fetchEntity('payable_payment', id);
       else throw `Unknown chain: ${chain}`;
-      if (raw) return new PayablePayment(id, chain, raw);
+      if (raw) {
+        payment = new PayablePayment(id, chain, raw);
+        await cache.save(cacheKey(chain, 'payable', id), payment);
+        return payment;
+      }
     } catch (e) {
       console.error(e);
       toastError(`${e}`);
@@ -152,6 +199,17 @@ export const usePaymentStore = defineStore('payment', () => {
     id: string,
     chain: Chain
   ): Promise<UserPayment | null> => {
+    let payment = await cache.retrieve(cacheKey(chain, 'user', id));
+    if (payment) {
+      // Necessary to restore callable methods on retrieved instance
+      payment = Object.setPrototypeOf(payment, UserPayment.prototype);
+      payment.details = Object.setPrototypeOf(
+        payment.details,
+        TokenAndAmount.prototype
+      );
+      return payment;
+    }
+
     try {
       let raw: any;
       if (chain == 'Solana') raw = await solana.fetchEntity('userPayment', id);
@@ -160,7 +218,11 @@ export const usePaymentStore = defineStore('payment', () => {
       else if (chain == 'Burnt Xion')
         raw = await cosmwasm.fetchEntity('user_payment', id);
       else throw `Unknown chain: ${chain}`;
-      if (raw) return new UserPayment(id, chain, raw);
+      if (raw) {
+        payment = new UserPayment(id, chain, raw);
+        await cache.save(cacheKey(chain, 'user', id), payment);
+        return payment;
+      }
     } catch (e) {
       console.error(e);
       toastError(`${e}`);
@@ -168,25 +230,26 @@ export const usePaymentStore = defineStore('payment', () => {
     return null;
   };
 
-  const getManyForPayable = async (
-    payable: Payable
-  ): Promise<PayablePayment[] | null> => {
-    const { paymentsCount: count, chain } = payable;
-    if (count === 0) return [];
+  const getManyForCurrentUser = async (
+    page: number,
+    count: number
+  ): Promise<UserPayment[] | null> => {
+    if (!auth.currentUser) return null;
+    const { paymentsCount: totalCount } = auth.currentUser;
+    if (totalCount === 0) return [];
 
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
-      const payments: PayablePayment[] = [];
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
-        const id = await payableStore.getPaymentId(payable.id, chain, i);
+      const payments: UserPayment[] = [];
+      for (let i = start; i >= target; i--) {
+        const id = await auth.getPaymentId(i);
         if (id) {
-          const payment = await getForPayable(id, chain);
+          const payment = await getForUser(id, auth.currentUser.chain);
           if (payment) payments.push(payment);
           else return null;
         } else return null;
-        fetched++;
       }
       return payments;
     } catch (e) {
@@ -196,24 +259,26 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const mines = async (): Promise<UserPayment[] | null> => {
-    if (!user.current) return null;
-    const { paymentsCount: count } = user.current;
+  const getManyForPayable = async (
+    payable: Payable,
+    page: number,
+    count: number
+  ): Promise<PayablePayment[] | null> => {
+    const { paymentsCount: totalCount, chain } = payable;
     if (count === 0) return [];
 
+    let start = (page + 1) * count;
+    const target = page * count + 1;
+    if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
-      const payments: UserPayment[] = [];
-      // TODO: Implement pagination instead of this set maximum of 25
-      let fetched = 0;
-      for (let i = count; i >= 1; i--) {
-        if (fetched >= 25) break;
-        const id = await user.getPaymentId(i);
+      const payments: PayablePayment[] = [];
+      for (let i = start; i >= target; i--) {
+        const id = await payableStore.getPaymentId(payable.id, chain, i);
         if (id) {
-          const payment = await getForUser(id, user.current.chain);
+          const payment = await getForPayable(id, chain);
           if (payment) payments.push(payment);
           else return null;
         } else return null;
-        fetched++;
       }
       return payments;
     } catch (e) {
@@ -226,5 +291,12 @@ export const usePaymentStore = defineStore('payment', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  return { exec, get, getForPayable, getForUser, getManyForPayable, mines };
+  return {
+    exec,
+    get,
+    getForPayable,
+    getForUser,
+    getManyForCurrentUser,
+    getManyForPayable,
+  };
 });

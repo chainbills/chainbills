@@ -1,4 +1,5 @@
 import {
+  ChainStats,
   OnChainSuccess,
   TokenAndAmount,
   User,
@@ -6,13 +7,12 @@ import {
   XION_USDC_ADDRESS,
   type Token,
 } from '@/schemas';
-import { ChainStats } from '@/schemas/chain-stats';
 import {
   AbstraxionAuth,
   GranteeSignerClient,
 } from '@burnt-labs/abstraxion-core';
-import { type Coin } from '@cosmjs/stargate';
 import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { type Coin } from '@cosmjs/stargate';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
@@ -136,14 +136,21 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     }
   };
 
-  const fetchEntity = async (entity: string, id: string) => {
-    return recursiveToCamel(await query({ [entity]: { msg: { id } } }));
+  const fetchEntity = async (
+    entity: string,
+    id: string,
+    ignoreErrors?: boolean
+  ) => {
+    return recursiveToCamel(
+      await query({ [entity]: { msg: { id } } }, ignoreErrors)
+    );
   };
 
   const getCurrentUser = async () => {
     if (!client.value || !address.value) return null;
     return User.fromCosmwasm(
       address.value,
+      walletExplorerUrl(address.value),
       await query({ user: { msg: { id: address.value } } })
     );
   };
@@ -154,6 +161,16 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
   ): Promise<string | null> => {
     const fetched = await query({
       payable_payment_id: { msg: { reference: payableId, count } },
+    });
+    return fetched?.id ?? null;
+  };
+
+  const getPayableWithdrawalId = async (
+    payableId: string,
+    count: number
+  ): Promise<string | null> => {
+    const fetched = await query({
+      payable_withdrawal_id: { msg: { reference: payableId, count } },
     });
     return fetched?.id ?? null;
   };
@@ -212,14 +229,16 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     return null;
   };
 
-  const query = async (msg: Record<string, unknown>) => {
+  const query = async (msg: Record<string, unknown>, ignoreErrors = false) => {
     try {
       return await (
         await CosmWasmClient.connect(XION_RPC_URL)
       ).queryContractSmart(XION_CONTRACT_ADDRESS, msg);
     } catch (e) {
-      console.error(e);
-      toastError(`${e}`);
+      if (!ignoreErrors) {
+        console.error(e);
+        toastError(`${e}`);
+      }
       return null;
     }
   };
@@ -249,6 +268,9 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
 
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+
+  const walletExplorerUrl = (wallet: string) =>
+    `https://explorer.burnt.com/xion-testnet-1/account/${wallet}`;
 
   const withdraw = async (
     payable_id: string,
@@ -301,6 +323,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     fetchEntity,
     getCurrentUser,
     getPayablePaymentId,
+    getPayableWithdrawalId,
     getUserPayableId,
     getUserPaymentId,
     getUserWithdrawalId,
@@ -309,6 +332,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     logout,
     pay,
     sign,
+    walletExplorerUrl,
     withdraw,
   };
 });

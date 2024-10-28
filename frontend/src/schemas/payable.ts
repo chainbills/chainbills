@@ -10,7 +10,7 @@ export class Payable {
   description: string;
   allowedTokensAndAmounts: TokenAndAmount[];
   balances: TokenAndAmount[];
-  createdAt: Date;
+  createdAt: number;
   paymentsCount: number;
   withdrawalsCount: number;
   isClosed: boolean;
@@ -33,9 +33,42 @@ export class Payable {
     this.balances = onChainData.balances.map((bal: TokenAndAmountOnChain) =>
       TokenAndAmount.fromOnChain(bal, chain)
     );
-    this.createdAt = new Date(Number(onChainData.createdAt) * 1000);
+    this.createdAt = Number(onChainData.createdAt);
     this.paymentsCount = Number(onChainData.paymentsCount);
     this.withdrawalsCount = Number(onChainData.withdrawalsCount);
     this.isClosed = onChainData.isClosed;
+  }
+
+  getBalsDisplay() {
+    const all: TokenAndAmount[] = [];
+    const { allowedTokensAndAmounts: ataas, balances } = this;
+
+    // If there are no allowed tokens and amounts (ATAAs), display all balances.
+    if (ataas.length == 0) {
+      balances.forEach((b) => all.push(b));
+    } else {
+      // Otherwise, display the balances with the ATAAs in mind.
+      // 1. Ensure that the order of the displayed balances is same as ATAAs.
+      // 2. Append balances that are not in the ATAAs. That is if for example
+      //    the ATAAs were ever updated later on.
+
+      // Firstly, get a temporary copy of balances for mutations.
+      const copied = [...balances];
+      // Iterate through the ATAAs to ensure the order of the displayed balances
+      //
+      // Using a Set is to make ATAAs with same token but different amounts to
+      // be treated as one (a balance can only be in a token but not an ATAA).
+      for (let token of new Set(ataas.map((t) => t.token()))) {
+        // Find the balance with the token in the ATAAs.
+        const found = balances.find((b) => b.name == token.name);
+        // Add the token from the ATAA with the amount from the balance (or 0).
+        all.push(new TokenAndAmount(token, found?.amount ?? 0));
+        // Remove the found balance from the copied balances.
+        if (found) copied.splice(copied.indexOf(found), 1);
+      }
+      // Append the remaining balances that are not in the ATAAs.
+      for (let bal of copied) all.push(bal);
+    }
+    return all;
   }
 }

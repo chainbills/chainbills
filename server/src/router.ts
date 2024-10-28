@@ -2,6 +2,7 @@ import { Request, Response, Router } from 'express';
 import {
   createPayable,
   getPayable,
+  getVolumes,
   payablePaid,
   saveNotificationToken,
   userPaid,
@@ -88,6 +89,10 @@ router.post(
       );
     }
   );
+});
+
+router.get('/volumes', async (_: Request, res: Response) => {
+  await wrapper(getVolumes, 'getting volumes', res);
 });
 
 router.use('**', (_, res) =>

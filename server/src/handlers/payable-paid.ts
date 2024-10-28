@@ -49,4 +49,20 @@ export const payablePaid = async (
   await db
     .doc(`/payablePayments/${paymentId}`)
     .set({ ...payment }, { merge: true });
+
+  // Retrieve the sum of payment details for tokens and update the volumes
+  const volumesRef = await db.doc('/volumes/volumes').get();
+  let volumes: any = {};
+  if (!volumesRef.exists) {
+    volumes[payment.chain] = {
+      [payment.details.token]: payment.details.amount
+    };
+  } else {
+    volumes = volumesRef.data();
+    if (!volumes[payment.chain]) volumes[payment.chain] = {};
+    if (!volumes[payment.chain][payment.details.token])
+      volumes[payment.chain][payment.details.token] = 0;
+    volumes[payment.chain][payment.details.token] += payment.details.amount;
+  }
+  await db.doc('/volumes/volumes').set(volumes, { merge: true });
 };

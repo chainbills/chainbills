@@ -14,14 +14,12 @@ import Button from 'primevue/button';
     </p>
     <p>
       <router-link to="/">
-        <Button class="border border-primary text-primary px-3 py-2 mr-6"
+        <Button class="bg-transparent text-primary px-3 py-2 mr-6"
           >Go Home</Button
         >
       </router-link>
       <router-link to="/start">
-        <Button class="-mt-1 bg-primary text-white dark:text-black px-3 py-2"
-          >Get Started</Button
-        >
+        <Button class="-mt-1 px-3 py-2">Get Started</Button>
       </router-link>
     </p>
   </section>

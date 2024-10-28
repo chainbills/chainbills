@@ -1,39 +1,38 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer tailwind-base, primevue, tailwind-utilities;
+
+@layer tailwind-base {
+  @tailwind base;
+}
+
+@layer tailwind-utilities {
+  @tailwind components;
+  @tailwind utilities;
+}
+
+@font-face {
+  font-family: 'Inter var';
+  src: url('/assets/Inter-var.ttf');
+}
 
 :root {
   --app-bg: #fff;
   --shadow: rgb(0 0 0 / 0.1);
-  --text: #1a1a1a;
+  --text: #28282e;
   --primary: #057ec5;
+  font-family: 'Inter var', sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-variation-settings: normal;
 }
 
-body {
+html {
   background-color: var(--app-bg);
   color: var(--text);
 }
 
-body.dark {
-  --app-bg: #000;
-  --shadow: rgb(255 255 255 / 0.1);
+html.dark {
+  --app-bg: #0f0f0f;
+  --shadow: rgb(255 255 255 / 0.05);
   --text: #fff;
-}
-
-body.dark .p-component-overlay.p-dialog-mask,
-body.dark .p-component-overlay.p-sidebar-mask {
-  background-color: #fff6 !important;
-}
-
-body.dark .p-menu.p-component {
-  box-shadow:
-    0 4px 6px -1px var(--shadow),
-    0 2px 4px -2px var(--shadow);
-}
-
-body.dark .p-menu.p-component .p-menuitem-content:hover,
-body.dark .p-dropdown-panel .p-dropdown-item:hover {
-  background-color: #222;
 }
 
 #app {
@@ -41,40 +40,6 @@ body.dark .p-dropdown-panel .p-dropdown-item:hover {
   flex-direction: column;
   min-height: 100vh;
   padding-top: 64px;
-}
-
-.p-dialog-header,
-.p-dialog-content,
-.p-menu.p-component {
-  background-color: var(--app-bg);
-}
-
-.p-dialog-header,
-.p-dialog-content,
-.p-menu.p-component [menu-item],
-.p-menu.p-component .p-menuitem-text {
-  color: var(--text);
-}
-
-.p-sidebar {
-  background-color: var(--app-bg);
-  border: none;
-  color: var(--text);
-  padding: 1rem;
-}
-
-.p-sidebar-close {
-  color: var(--text);
-}
-
-.p-inputswitch:not(.p-disabled):has(.p-inputswitch-input:hover).p-highlight
-  .p-inputswitch-slider,
-.p-inputswitch.p-highlight .p-inputswitch-slider {
-  background: var(--primary);
-}
-
-.p-dropdown.p-component {
-  outline-color: var(--primary);
 }
 
 .swv-modal {
@@ -88,31 +53,16 @@ body.dark .p-dropdown-panel .p-dropdown-item:hover {
   color: var(--app-bg);
   font-family: 'Inter var', sans-serif;
   font-weight: normal;
+  height: unset;
+  line-height: unset;
   padding: 0.5rem 1rem;
 }
 
-.p-dropdown {
-  background-color: transparent;
-  border: 1px solid var(--shadow);
+html.dark .swv-button.swv-button-trigger,
+html.dark .swv-button.swv-button-trigger:hover {
+  background-color: #2f94cf; /* "400" variant of primary palette. See main.ts file */
 }
 
-.p-dropdown-panel {
-  background-color: var(--app-bg);
-  border: 1px solid var(--shadow);
-  box-shadow:
-    0 4px 6px -1px var(--shadow),
-    0 2px 4px -2px var(--shadow);
-}
-
-.p-dropdown-panel .p-dropdown-item,
-.p-inputtext {
-  color: var(--text);
-}
-
-.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight.p-focus {
-  background: var(--shadow);
-}
-
-.web3-avatar {
-  /* height: 24px; */
+textarea[description] {
+  field-sizing: content;
 }

@@ -1,24 +1,23 @@
-import {
-  useAuthStore,
-  useChainStore,
-  useWalletStore,
-  type Chain,
-} from '@/stores';
+import { getChainId, useAuthStore, type Chain } from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const useServerStore = defineStore('server', () => {
   const auth = useAuthStore();
-  const chain = useChainStore();
   const toast = useToast();
-  const wallet = useWalletStore();
 
-  const call = async (path: string, body?: any): Promise<any> => {
+  const call = async (
+    path: string,
+    body?: any,
+    ignoreErrors?: boolean
+  ): Promise<any> => {
     return new Promise(async (resolve, _) => {
       // TODO: Change wh-network to Mainnet when needed
       const headers: any = { 'wh-network': 'Testnet' };
-      if (chain.currentId) headers['chain-id'] = chain.currentId;
-      if (wallet.address) headers['wallet-address'] = wallet.address;
+      if (auth.currentUser) {
+        headers['chain-id'] = getChainId(auth.currentUser.chain);
+        headers['wallet-address'] = auth.currentUser.walletAddress;
+      }
       if (auth.signature) headers['signature'] = auth.signature;
 
       try {
@@ -42,19 +41,25 @@ export const useServerStore = defineStore('server', () => {
           if (result['success']) {
             resolve(result['data'] ?? true);
           } else {
-            toastError(result['message']);
+            if (!ignoreErrors) toastError(result['message']);
             resolve(false);
           }
         } else {
-          toastError("Couldn't understand server response.");
-          console.log(result);
+          if (!ignoreErrors) {
+            toastError("Couldn't understand server response.");
+            console.log(result);
+          }
           resolve(false);
         }
       } catch (error: any) {
-        console.error(error);
-        const detail =
-          error['message'] == 'Failed to fetch' ? 'Network Error' : `${error}`;
-        toastError(detail);
+        if (!ignoreErrors) {
+          console.error(error);
+          const detail =
+            error['message'] == 'Failed to fetch'
+              ? 'Network Error'
+              : `${error}`;
+          toastError(detail);
+        }
         resolve(false);
       }
     });
@@ -68,9 +73,10 @@ export const useServerStore = defineStore('server', () => {
   };
 
   const getPayable = async (
-    payableId: string
+    payableId: string,
+    ignoreErrors?: boolean
   ): Promise<{ chain: Chain; description: string } | null> => {
-    return await call(`/payable/${payableId}`);
+    return await call(`/payable/${payableId}`, null, ignoreErrors);
   };
 
   const payablePaid = async (paymentId: string): Promise<boolean> => {
@@ -88,6 +94,10 @@ export const useServerStore = defineStore('server', () => {
     return await call(`/payment/user/${paymentId}`);
   };
 
+  const volumes = async (): Promise<any> => {
+    return await call('/volumes');
+  };
+
   const withdrew = async (withdrawalId: string): Promise<boolean> => {
     return await call(`/withdrawal/${withdrawalId}`);
   };
@@ -98,6 +108,7 @@ export const useServerStore = defineStore('server', () => {
     payablePaid,
     saveNotificationToken,
     userPaid,
+    volumes,
     withdrew,
   };
 });

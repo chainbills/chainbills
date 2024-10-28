@@ -18,13 +18,13 @@ pub struct Withdraw<'info> {
   #[account(
         init,
         seeds = [payable.key().as_ref(),
-            PayableWithdrawalCounter::SEED_PREFIX,
+            PayableWithdrawalInfo::SEED_PREFIX,
             &payable.next_withdrawal().to_le_bytes()[..]],
         bump,
         payer = signer,
-        space = PayableWithdrawalCounter::SPACE
+        space = PayableWithdrawalInfo::SPACE
     )]
-  pub payable_withdrawal_counter: Box<Account<'info, PayableWithdrawalCounter>>,
+  pub payable_withdrawal_info: Box<Account<'info, PayableWithdrawalInfo>>,
 
   #[account(mut, constraint = payable.host == *signer.key @ ChainbillsError::NotYourPayable)]
   pub payable: Box<Account<'info, Payable>>,

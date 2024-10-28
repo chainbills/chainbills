@@ -4,8 +4,6 @@ use sylvia::cw_std::{Addr, Uint128};
 #[cw_serde(crate = "sylvia::cw_schema")]
 /// Keeps track of all activities on this chain.
 pub struct ChainStats {
-  /// Wormhole-Chain ID for this chain.
-  pub chain_id: u16,
   /// Total number of users that have ever been initialized on this chain.
   pub users_count: u64,
   /// Total number of payables that have ever been created on this chain.
@@ -21,9 +19,8 @@ pub struct ChainStats {
 }
 
 impl ChainStats {
-  pub const fn initialize(chain_id: u16) -> Self {
+  pub const fn initialize() -> Self {
     ChainStats {
-      chain_id,
       users_count: 0,
       payables_count: 0,
       user_payments_count: 0,
@@ -61,6 +58,8 @@ impl ChainStats {
 #[cw_serde(crate = "sylvia::cw_schema")]
 /// Config account data. Mainly Governance.
 pub struct Config {
+  /// Wormhole-Chain ID for this chain.
+  pub chain_id: u16,
   /// Deployer of this contract.
   pub owner: Addr,
   /// Chainbills' FeeCollector address.

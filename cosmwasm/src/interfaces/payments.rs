@@ -352,18 +352,17 @@ impl Payments for Chainbills {
     // Save the Updated Payable.
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
 
+    let config = self.config.load(ctx.deps.storage)?;
+
     // Increment the local-chain paymentsCount for the payable.
     let mut local_chain_count = self
       .per_chain_payable_payments_count
-      .may_load(
-        ctx.deps.storage,
-        (payable_id.to_vec(), chain_stats.chain_id),
-      )?
+      .may_load(ctx.deps.storage, (payable_id.to_vec(), config.chain_id))?
       .unwrap_or_default();
     local_chain_count = local_chain_count.checked_add(1).unwrap();
     self.per_chain_payable_payments_count.save(
       ctx.deps.storage,
-      (payable_id.to_vec(), chain_stats.chain_id),
+      (payable_id.to_vec(), config.chain_id),
       &local_chain_count,
     )?;
 
@@ -406,7 +405,7 @@ impl Payments for Chainbills {
     let user_payment = UserPayment {
       payable_id,
       payer: ctx.info.sender.clone(),
-      payable_chain_id: chain_stats.chain_id,
+      payable_chain_id: config.chain_id,
       chain_count: chain_stats.user_payments_count,
       payer_count: user.payments_count,
       timestamp,
@@ -442,15 +441,12 @@ impl Payments for Chainbills {
     // Save the Payment ID to the per_chain_payable_payment_ids.
     let mut per_chain_payable_payment_ids = self
       .per_chain_payable_payment_ids
-      .may_load(
-        ctx.deps.storage,
-        (payable_id.to_vec(), chain_stats.chain_id),
-      )?
+      .may_load(ctx.deps.storage, (payable_id.to_vec(), config.chain_id))?
       .unwrap_or_default();
     per_chain_payable_payment_ids.push(payable_payment_id);
     self.per_chain_payable_payment_ids.save(
       ctx.deps.storage,
-      (payable_id.to_vec(), chain_stats.chain_id),
+      (payable_id.to_vec(), config.chain_id),
       &per_chain_payable_payment_ids,
     )?;
 
@@ -459,7 +455,7 @@ impl Payments for Chainbills {
       payable_id,
       payer: self.address_to_bytes32(&ctx.info.sender, ctx.deps.api),
       chain_count: chain_stats.payable_payments_count,
-      payer_chain_id: chain_stats.chain_id,
+      payer_chain_id: config.chain_id,
       local_chain_count,
       payable_count: payable.payments_count,
       timestamp,
@@ -565,13 +561,13 @@ impl Payments for Chainbills {
           ("action", "user_paid".to_string()),
           ("user_payment_id", HexBinary::from(&user_payment_id).to_hex()),
           ("user_chain_count", chain_stats.user_payments_count.to_string()),
-          ("payable_chain_id", chain_stats.chain_id.to_string()),
+          ("payable_chain_id", config.chain_id.to_string()),
           ("payer_count", user.payments_count.to_string()),
           // Details relative to the payable
           ("action", "payable_received".to_string()),
           ("payable_payment_id", HexBinary::from(&payable_payment_id).to_hex()),
           ("payable_chain_count", chain_stats.payable_payments_count.to_string()),
-          ("payer_chain_id", chain_stats.chain_id.to_string()),
+          ("payer_chain_id", config.chain_id.to_string()),
           ("payable_count", payable.payments_count.to_string()),
         ]),
     )

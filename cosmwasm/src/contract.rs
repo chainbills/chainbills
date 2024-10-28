@@ -89,13 +89,14 @@ impl Chainbills {
     // Initialize ChainStats
     self
       .chain_stats
-      .save(ctx.deps.storage, &mut ChainStats::initialize(msg.chain_id))?;
+      .save(ctx.deps.storage, &mut ChainStats::initialize())?;
 
     // Initialize Config
     let cbfc = ctx.deps.api.addr_validate(&msg.chainbills_fee_collector)?;
     self.config.save(
       ctx.deps.storage,
       &Config {
+        chain_id: msg.chain_id,
         owner: ctx.info.sender.clone(),
         chainbills_fee_collector: cbfc,
         withdrawal_fee_percentage: Uint128::new(200),
@@ -273,7 +274,7 @@ impl Chainbills {
   ) -> StdResult<[u8; 32]> {
     let mut hasher = Sha256::new();
     hasher.update(env.block.chain_id.as_bytes());
-    hasher.update(self.chain_stats.load(storage)?.chain_id.to_le_bytes());
+    hasher.update(self.config.load(storage)?.chain_id.to_le_bytes());
     hasher.update(env.block.time.seconds().to_le_bytes());
     hasher.update(reference.as_bytes());
     hasher.update(salt.as_bytes());

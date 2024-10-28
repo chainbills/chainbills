@@ -12,18 +12,6 @@ event CreatedPayable(
   uint256 hostCount
 );
 
-/// Emitted when a `hostWallet` closes their {Payable} with `payableId`.
-event ClosedPayable(bytes32 indexed payableId, address indexed hostWallet);
-
-/// Emitted when a `hostWallet` re-opens their {Payable} with `payableId`.
-event ReopenedPayable(bytes32 indexed payableId, address indexed hostWallet);
-
-/// Emitted when a `hostWallet` updates the allowedTokensAndAmounts on their
-/// {Payable} with `payableId`.
-event UpdatedPayableAllowedTokensAndAmounts(
-  bytes32 indexed payableId, address indexed hostWallet
-);
-
 /// Emitted when a `payerWallet` pays a {Payable} with `payableId`.
 event UserPaid(
   bytes32 indexed payableId,
@@ -56,11 +44,23 @@ event Withdrew(
   uint256 payableCount
 );
 
-/// Emitted when owner (deployer) registers/updates an emitter contract.
-event RegisteredForeignContract(uint16 chainId, bytes32 emitterAddress);
+/// Emitted when a `hostWallet` closes their {Payable} with `payableId`.
+event ClosedPayable(bytes32 indexed payableId, address indexed hostWallet);
+
+/// Emitted when a `hostWallet` re-opens their {Payable} with `payableId`.
+event ReopenedPayable(bytes32 indexed payableId, address indexed hostWallet);
+
+/// Emitted when a `hostWallet` updates the allowedTokensAndAmounts on their
+/// {Payable} with `payableId`.
+event UpdatedPayableAllowedTokensAndAmounts(
+  bytes32 indexed payableId, address indexed hostWallet
+);
 
 /// Emitted when owner (deployer) updates the `maxWithdrawalFees` of `token`.
 event UpdatedMaxWithdrawalFees(address token, uint256 maxWithdrawalFees);
 
 /// Emitted when owner (deployer) withdraws `amount`s of `token`.
 event OwnerWithdrew(address token, uint256 amount);
+
+/// Emitted when owner (deployer) registers/updates an emitter contract.
+event RegisteredForeignContract(uint16 chainId, bytes32 emitterAddress);

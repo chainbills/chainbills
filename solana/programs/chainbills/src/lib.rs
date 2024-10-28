@@ -34,46 +34,6 @@ pub mod chainbills {
     handlers::initialize_handler(ctx)
   }
 
-  /// Register (or update) a trusted contract or Wormhole emitter from another
-  /// chain. Also initialize that chain's ChainStats if need be.
-  ///
-  /// ### Arguments
-  /// * `ctx`     - `RegisterForeignEmitter` context
-  /// * `chain`   - Wormhole Chain ID
-  /// * `address` - Wormhole Emitter Address
-  pub fn register_foreign_contract(
-    ctx: Context<RegisterForeignContract>,
-    chain: u16,
-    address: [u8; 32],
-  ) -> Result<()> {
-    handlers::register_foreign_contract_handler(ctx, chain, address)
-  }
-
-  /// Updates the maximum withdrawal fees of the given token.
-  ///
-  /// ### Args
-  /// * token<Pubkey>: The address of the token for which its maximum
-  ///                   withdrawal fees is been set.
-  /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
-  pub fn update_max_withdrawal_fees(
-    ctx: Context<UpdateMaxWithdrawalFees>,
-    token: Pubkey,
-    max_withdrawal_fees: u64,
-  ) -> Result<()> {
-    handlers::update_max_withdrawal_fees(ctx, token, max_withdrawal_fees)
-  }
-
-  /// Updates the maximum withdrawal fees of the native token (Solana).
-  ///
-  /// ### Args
-  /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
-  pub fn update_max_withdrawal_fees_native(
-    ctx: Context<UpdateMaxWithdrawalFeesNative>,
-    max_withdrawal_fees: u64,
-  ) -> Result<()> {
-    handlers::update_max_withdrawal_fees_native(ctx, max_withdrawal_fees)
-  }
-
   /// Initialize a User.
   ///
   /// A User Account keeps track of the count of all entities associated with
@@ -94,33 +54,6 @@ pub mod chainbills {
     allowed_tokens_and_amounts: Vec<TokenAndAmount>,
   ) -> Result<()> {
     handlers::create_payable_handler(ctx, allowed_tokens_and_amounts)
-  }
-
-  /// Stop a payable from accepting payments. Can be called only
-  /// by the host (user) that owns the payable.
-  pub fn close_payable(ctx: Context<UpdatePayable>) -> Result<()> {
-    handlers::close_payable(ctx)
-  }
-
-  /// Allow a closed payable to continue accepting payments.
-  /// Can be called only by the host (user) that owns the payable.
-  pub fn reopen_payable(ctx: Context<UpdatePayable>) -> Result<()> {
-    handlers::reopen_payable(ctx)
-  }
-
-  /// Allows a payable's host to update the payable's allowed_tokens_and_amounts.
-  ///
-  /// ### args
-  /// * allowed_tokens_and_amounts: the new set of tokens and amounts that the payable
-  /// will accept.
-  pub fn update_payable_allowed_tokens_and_amounts<'info>(
-    ctx: Context<'_, '_, 'info, 'info, UpdatePayableAllowedTokensAndAmounts>,
-    allowed_tokens_and_amounts: Vec<TokenAndAmount>,
-  ) -> Result<()> {
-    handlers::update_payable_allowed_tokens_and_amounts(
-      ctx,
-      allowed_tokens_and_amounts,
-    )
   }
 
   /// Transfers the amount of tokens from a payer to a payable
@@ -158,6 +91,58 @@ pub mod chainbills {
     handlers::withdraw_native(ctx, amount)
   }
 
+  /// Stop a payable from accepting payments. Can be called only
+  /// by the host (user) that owns the payable.
+  pub fn close_payable(ctx: Context<UpdatePayable>) -> Result<()> {
+    handlers::close_payable(ctx)
+  }
+
+  /// Allow a closed payable to continue accepting payments.
+  /// Can be called only by the host (user) that owns the payable.
+  pub fn reopen_payable(ctx: Context<UpdatePayable>) -> Result<()> {
+    handlers::reopen_payable(ctx)
+  }
+
+  /// Allows a payable's host to update the payable's allowed_tokens_and_amounts.
+  ///
+  /// ### args
+  /// * allowed_tokens_and_amounts: the new set of tokens and amounts that the payable
+  /// will accept.
+  pub fn update_payable_allowed_tokens_and_amounts<'info>(
+    ctx: Context<'_, '_, 'info, 'info, UpdatePayableAllowedTokensAndAmounts>,
+    allowed_tokens_and_amounts: Vec<TokenAndAmount>,
+  ) -> Result<()> {
+    handlers::update_payable_allowed_tokens_and_amounts(
+      ctx,
+      allowed_tokens_and_amounts,
+    )
+  }
+
+  /// Updates the maximum withdrawal fees of the given token.
+  ///
+  /// ### Args
+  /// * token<Pubkey>: The address of the token for which its maximum
+  ///                   withdrawal fees is been set.
+  /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+  pub fn update_max_withdrawal_fees(
+    ctx: Context<UpdateMaxWithdrawalFees>,
+    token: Pubkey,
+    max_withdrawal_fees: u64,
+  ) -> Result<()> {
+    handlers::update_max_withdrawal_fees(ctx, token, max_withdrawal_fees)
+  }
+
+  /// Updates the maximum withdrawal fees of the native token (Solana).
+  ///
+  /// ### Args
+  /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+  pub fn update_max_withdrawal_fees_native(
+    ctx: Context<UpdateMaxWithdrawalFeesNative>,
+    max_withdrawal_fees: u64,
+  ) -> Result<()> {
+    handlers::update_max_withdrawal_fees_native(ctx, max_withdrawal_fees)
+  }
+
   /// Withdraws fees from this program.
   /// Should be called only by upgrade authority holder of this program.
   ///
@@ -168,5 +153,20 @@ pub mod chainbills {
     amount: u64,
   ) -> Result<()> {
     handlers::owner_withdraw_handler(ctx, amount)
+  }
+
+  /// Register (or update) a trusted contract or Wormhole emitter from another
+  /// chain. Also initialize that chain's ChainStats if need be.
+  ///
+  /// ### Arguments
+  /// * `ctx`     - `RegisterForeignEmitter` context
+  /// * `chain`   - Wormhole Chain ID
+  /// * `address` - Wormhole Emitter Address
+  pub fn register_foreign_contract(
+    ctx: Context<RegisterForeignContract>,
+    chain: u16,
+    address: [u8; 32],
+  ) -> Result<()> {
+    handlers::register_foreign_contract_handler(ctx, chain, address)
   }
 }

@@ -16,25 +16,6 @@ error ZeroAmountSpecified();
 contract CbGovernance is Ownable, CbState, ReentrancyGuard {
   constructor() Ownable(msg.sender) {}
 
-  /// Registers foreign emitters (trusted contracts).
-  /// @dev Only the deployer (owner) can invoke this method
-  /// @param emitterChainId Wormhole ChainId of the contract being registered.
-  /// @param emitterAddress Wormhole-normalized address of the contract being
-  /// registered. For EVM, contracts' first 12 bytes should be zeros.
-  function registerForeignContract(
-    uint16 emitterChainId,
-    bytes32 emitterAddress
-  ) public onlyOwner {
-    if (emitterChainId == 0 || emitterChainId == chainId) {
-      revert InvalidWormholeChainId();
-    } else if (emitterAddress == bytes32(0)) {
-      revert InvalidWormholeEmitterAddress();
-    }
-    // update the registeredEmitters state variable
-    registeredEmitters[emitterChainId] = emitterAddress;
-    emit RegisteredForeignContract(emitterChainId, emitterAddress);
-  }
-
   /// Updates the maximum withdrawal fees for the given token.
   /// @dev Only the deployer (owner) can invoke this method
   /// @param token The address of the token to update its max fees
@@ -62,5 +43,24 @@ contract CbGovernance is Ownable, CbState, ReentrancyGuard {
     if (token == address(this)) (payable(owner()).call{value: amount}(''));
     else IERC20(token).transfer(owner(), amount);
     emit OwnerWithdrew(token, amount);
+  }
+
+  /// Registers foreign emitters (trusted contracts).
+  /// @dev Only the deployer (owner) can invoke this method
+  /// @param emitterChainId Wormhole ChainId of the contract being registered.
+  /// @param emitterAddress Wormhole-normalized address of the contract being
+  /// registered. For EVM, contracts' first 12 bytes should be zeros.
+  function registerForeignContract(
+    uint16 emitterChainId,
+    bytes32 emitterAddress
+  ) public onlyOwner {
+    if (emitterChainId == 0 || emitterChainId == chainId) {
+      revert InvalidWormholeChainId();
+    } else if (emitterAddress == bytes32(0)) {
+      revert InvalidWormholeEmitterAddress();
+    }
+    // update the registeredEmitters state variable
+    registeredEmitters[emitterChainId] = emitterAddress;
+    emit RegisteredForeignContract(emitterChainId, emitterAddress);
   }
 }

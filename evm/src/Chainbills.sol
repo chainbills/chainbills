@@ -121,62 +121,6 @@ contract Chainbills is CbGovernance, CbPayload {
     );
   }
 
-  /// Stop a payable from accepting payments. Should be called only by the host
-  /// (address) that owns the payable.
-  /// @param payableId The ID of the payable to close.
-  function closePayable(bytes32 payableId) public {
-    Payable storage _payable = payables[payableId];
-    if (_payable.host != msg.sender) revert NotYourPayable();
-    if (_payable.isClosed) revert PayableIsAlreadyClosed();
-    _payable.isClosed = true;
-    emit ClosedPayable(payableId, msg.sender);
-  }
-
-  /// Allow a closed payable to continue accepting payments. Should be called
-  /// only by the host (address) that owns the payable.
-  /// @param payableId The ID of the payable to re-open.
-  function reopenPayable(bytes32 payableId) public {
-    Payable storage _payable = payables[payableId];
-    if (_payable.host != msg.sender) revert NotYourPayable();
-    if (!_payable.isClosed) revert PayableIsNotClosed();
-    _payable.isClosed = false;
-    emit ReopenedPayable(payableId, msg.sender);
-  }
-
-  /// Allows a payable's host to update the payable's allowedTokensAndAmounts.
-  /// @param payableId The ID of the payable to update.
-  /// @param allowedTokensAndAmounts The new tokens and amounts array.
-  function updatePayableAllowedTokensAndAmounts(
-    bytes32 payableId,
-    TokenAndAmount[] calldata allowedTokensAndAmounts
-  ) public {
-    /* CHECKS */
-    // Ensure that the caller owns the payable.
-    Payable storage _payable = payables[payableId];
-    if (_payable.host != msg.sender) revert NotYourPayable();
-
-    for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
-      // Ensure tokens are valid.
-      address token = allowedTokensAndAmounts[i].token;
-      if (token == address(0)) revert InvalidTokenAddress();
-
-      // Ensure that the token is supported.
-      if (!tokenDetails[token].isSupported) revert UnsupportedToken();
-
-      // Ensure that the specified amount is greater than zero.
-      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
-    }
-
-    /* STATE CHANGES */
-    // Update the payable's allowedTokensAndAmounts
-    payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
-    _payable.allowedTokensAndAmountsCount =
-      uint8(allowedTokensAndAmounts.length);
-
-    // Emit Event.
-    emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);
-  }
-
   /// Transfers the amount of tokens from a payer to a payable.
   /// @param payableId The ID of the payable to pay into.
   /// @param token The Wormhole-normalized address of the token been paid.
@@ -410,5 +354,61 @@ contract Chainbills is CbGovernance, CbPayload {
       users[msg.sender].withdrawalsCount,
       _payable.withdrawalsCount
     );
+  }
+
+  /// Stop a payable from accepting payments. Should be called only by the host
+  /// (address) that owns the payable.
+  /// @param payableId The ID of the payable to close.
+  function closePayable(bytes32 payableId) public {
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+    if (_payable.isClosed) revert PayableIsAlreadyClosed();
+    _payable.isClosed = true;
+    emit ClosedPayable(payableId, msg.sender);
+  }
+
+  /// Allow a closed payable to continue accepting payments. Should be called
+  /// only by the host (address) that owns the payable.
+  /// @param payableId The ID of the payable to re-open.
+  function reopenPayable(bytes32 payableId) public {
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+    if (!_payable.isClosed) revert PayableIsNotClosed();
+    _payable.isClosed = false;
+    emit ReopenedPayable(payableId, msg.sender);
+  }
+
+  /// Allows a payable's host to update the payable's allowedTokensAndAmounts.
+  /// @param payableId The ID of the payable to update.
+  /// @param allowedTokensAndAmounts The new tokens and amounts array.
+  function updatePayableAllowedTokensAndAmounts(
+    bytes32 payableId,
+    TokenAndAmount[] calldata allowedTokensAndAmounts
+  ) public {
+    /* CHECKS */
+    // Ensure that the caller owns the payable.
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+
+    for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
+      // Ensure tokens are valid.
+      address token = allowedTokensAndAmounts[i].token;
+      if (token == address(0)) revert InvalidTokenAddress();
+
+      // Ensure that the token is supported.
+      if (!tokenDetails[token].isSupported) revert UnsupportedToken();
+
+      // Ensure that the specified amount is greater than zero.
+      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
+    }
+
+    /* STATE CHANGES */
+    // Update the payable's allowedTokensAndAmounts
+    payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
+    _payable.allowedTokensAndAmountsCount =
+      uint8(allowedTokensAndAmounts.length);
+
+    // Emit Event.
+    emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);
   }
 }

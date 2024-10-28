@@ -4,18 +4,6 @@ use anchor_lang::prelude::*;
 pub struct Initialized {}
 
 #[event]
-pub struct RegisteredForeignContract {
-  pub chain_id: u16,
-  pub emitter: [u8; 32],
-}
-
-#[event]
-pub struct UpdatedMaxWithdrawalFees {
-  pub token: Pubkey,
-  pub max_withdrawal_fees: u64,
-}
-
-#[event]
 pub struct InitializedUser {
   pub wallet: Pubkey,
   pub chain_count: u64,
@@ -27,24 +15,6 @@ pub struct CreatedPayable {
   pub host_wallet: Pubkey,
   pub chain_count: u64,
   pub host_count: u64,
-}
-
-#[event]
-pub struct ClosedPayable {
-  pub payable_id: Pubkey,
-  pub host_wallet: Pubkey,
-}
-
-#[event]
-pub struct ReopenedPayable {
-  pub payable_id: Pubkey,
-  pub host_wallet: Pubkey,
-}
-
-#[event]
-pub struct UpdatedPayableAllowedTokensAndAmounts {
-  pub payable_id: Pubkey,
-  pub host_wallet: Pubkey,
 }
 
 #[event]
@@ -82,7 +52,37 @@ pub struct Withdrew {
 }
 
 #[event]
+pub struct ClosedPayable {
+  pub payable_id: Pubkey,
+  pub host_wallet: Pubkey,
+}
+
+#[event]
+pub struct ReopenedPayable {
+  pub payable_id: Pubkey,
+  pub host_wallet: Pubkey,
+}
+
+#[event]
+pub struct UpdatedPayableAllowedTokensAndAmounts {
+  pub payable_id: Pubkey,
+  pub host_wallet: Pubkey,
+}
+
+#[event]
+pub struct UpdatedMaxWithdrawalFees {
+  pub token: Pubkey,
+  pub max_withdrawal_fees: u64,
+}
+
+#[event]
 pub struct OwnerWithdrew {
   pub token: Pubkey,
   pub amount: u64,
+}
+
+#[event]
+pub struct RegisteredForeignContract {
+  pub chain_id: u16,
+  pub emitter: [u8; 32],
 }

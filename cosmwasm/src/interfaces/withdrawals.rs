@@ -146,6 +146,9 @@ impl Withdrawals for Chainbills {
     // - Ensure that this payable has enough of the provided amount in its balance.
     // - Ensure that the specified token for withdrawal exists in the
     //   payable's balances.
+    if payable.balances.is_empty() {
+      return Err(ChainbillsError::NoBalanceForWithdrawalToken { token });
+    }
     let mut bals_it = payable.balances.iter().peekable();
     while let Some(balance) = bals_it.next() {
       if balance.token == token {

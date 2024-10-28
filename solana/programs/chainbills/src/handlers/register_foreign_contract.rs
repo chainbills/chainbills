@@ -2,7 +2,6 @@ use crate::{
   context::RegisterForeignContract, error::ChainbillsError, events::*,
 };
 use anchor_lang::prelude::*;
-use wormhole_anchor_sdk::wormhole;
 
 /// This instruction registers a new foreign contract (from another network)
 /// and saves the contract information in a ForeignContract account. This
@@ -22,14 +21,13 @@ pub fn register_foreign_contract_handler(
   // Solana Wormhole program's. And cannot register a zero address.
   require!(
     chain > 0
-      && chain != wormhole::CHAIN_ID_SOLANA
+      && chain != ctx.accounts.chain_stats.chain_id
       && !address.iter().all(|&x| x == 0),
     ChainbillsError::InvalidForeignContract,
   );
 
   // Save the contract info into the ForeignContract account.
   let contract = &mut ctx.accounts.foreign_contract;
-  contract.chain = chain;
   contract.address = address;
 
   // Emit log and event.

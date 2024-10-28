@@ -3,9 +3,6 @@ use anchor_lang::prelude::*;
 #[account]
 /// A user is an entity that can create payables and make payments.
 pub struct User {
-  /// The address of the wallet that owns this User account.
-  pub wallet_address: Pubkey, // 32 bytes
-
   /// The nth count of users on this chain at the point this user was
   /// initialized.
   pub chain_count: u64, // 8 bytes
@@ -22,7 +19,7 @@ pub struct User {
 
 impl User {
   // discriminator (8) included
-  pub const SPACE: usize = 2 + (5 * 8) + 32;
+  pub const SPACE: usize = 5 * 8;
 
   pub fn next_payable(&self) -> u64 {
     self.payables_count.checked_add(1).unwrap()

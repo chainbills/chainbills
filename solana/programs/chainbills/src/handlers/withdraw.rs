@@ -35,6 +35,7 @@ fn update_state_for_withdrawal(
   amount: u64,
   fees: u64,
   mint: Pubkey,
+  signer: Pubkey,
   chain_stats: &mut Account<ChainStats>,
   payable: &mut Account<Payable>,
   host: &mut Account<User>,
@@ -67,7 +68,7 @@ fn update_state_for_withdrawal(
   withdrawal.chain_count = chain_stats.payables_count;
   withdrawal.payable_id = payable.key();
   withdrawal.payable_count = payable.withdrawals_count;
-  withdrawal.host = host.wallet_address;
+  withdrawal.host = signer;
   withdrawal.host_count = host.withdrawals_count;
   withdrawal.timestamp = clock::Clock::get()?.unix_timestamp as u64;
   withdrawal.details = TokenAndAmount {
@@ -89,7 +90,7 @@ fn update_state_for_withdrawal(
   );
   emit!(WithdrawalEvent {
     payable_id: payable.key(),
-    host_wallet: host.wallet_address,
+    host_wallet: signer,
     withdrawal_id: withdrawal.key(),
     chain_count: withdrawal.chain_count,
     payable_count: withdrawal.payable_count,
@@ -164,6 +165,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     amount,
     fees,
     mint.key(),
+    ctx.accounts.signer.key(),
     ctx.accounts.chain_stats.as_mut(),
     payable,
     ctx.accounts.host.as_mut(),
@@ -227,6 +229,7 @@ pub fn withdraw_native(
     amount,
     fees,
     crate::ID,
+    ctx.accounts.signer.key(),
     ctx.accounts.chain_stats.as_mut(),
     payable,
     ctx.accounts.host.as_mut(),

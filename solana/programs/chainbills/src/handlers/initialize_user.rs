@@ -12,7 +12,6 @@ pub fn initialize_user_handler(ctx: Context<InitializeUser>) -> Result<()> {
 
   // Initialize the user.
   let user = ctx.accounts.user.as_mut();
-  user.wallet_address = ctx.accounts.signer.key();
   user.chain_count = chain_stats.users_count;
   user.payables_count = 0;
   user.payments_count = 0;
@@ -21,7 +20,7 @@ pub fn initialize_user_handler(ctx: Context<InitializeUser>) -> Result<()> {
   // Emit log and event.
   msg!("Initialized User with chain_count: {}.", user.chain_count);
   emit!(InitializedUserEvent {
-    wallet: user.wallet_address,
+    wallet: ctx.accounts.signer.key(),
     chain_count: user.chain_count
   });
   Ok(())

@@ -1,7 +1,6 @@
 use crate::{error::ChainbillsError, state::*};
 use anchor_lang::prelude::*;
 
-
 #[derive(Accounts)]
 #[instruction(chain: u16)]
 /// Context used to register a foreign contract that will be emitting Wormhole
@@ -17,13 +16,17 @@ pub struct RegisterForeignContract<'info> {
         bump,
         space = ForeignContract::SPACE
     )]
-  /// Foreign Contract account. This account will be created if a contract has 
-  /// not been registered yet for this Wormhole Chain ID. If there already is a 
+  /// Foreign Contract account. This account will be created if a contract has
+  /// not been registered yet for this Wormhole Chain ID. If there already is a
   /// contract address saved in this account, its contents will be overwritted.
   pub foreign_contract: Account<'info, ForeignContract>,
 
+  #[account(seeds = [ChainStats::SEED_PREFIX], bump)]
+  /// Necessary for obtaining this chain's chain_id in the handler.
+  pub chain_stats: Account<'info, ChainStats>,
+
   #[account(seeds = [Config::SEED_PREFIX], bump)]
-  /// Config Account that stores important constant addresses that are used 
+  /// Config Account that stores important constant addresses that are used
   /// across program instructions.
   pub config: AccountLoader<'info, Config>,
 

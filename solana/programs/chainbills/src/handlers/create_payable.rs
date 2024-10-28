@@ -36,7 +36,7 @@ pub fn create_payable_handler(
   // Initialize the payable.
   let payable = ctx.accounts.payable.as_mut();
   payable.chain_count = chain_stats.payables_count;
-  payable.host = host.wallet_address;
+  payable.host = ctx.accounts.signer.key();
   payable.host_count = host.payables_count;
   payable.allowed_tokens_and_amounts = allowed_tokens_and_amounts;
   payable.balances = Vec::<TokenAndAmount>::new();
@@ -47,8 +47,6 @@ pub fn create_payable_handler(
 
   // Initialize the payable_chain_counter for Solana.
   let payable_chain_counter = ctx.accounts.payable_chain_counter.as_mut();
-  payable_chain_counter.chain_id = chain_stats.chain_id;
-  payable_chain_counter.payable_id = payable.key();
   payable_chain_counter.payments_count = 0;
 
   // Emit log and event.
@@ -59,7 +57,7 @@ pub fn create_payable_handler(
   );
   emit!(CreatedPayableEvent {
     payable_id: payable.key(),
-    host_wallet: host.wallet_address,
+    host_wallet: ctx.accounts.signer.key(),
     chain_count: payable.chain_count,
     host_count: payable.host_count,
   });

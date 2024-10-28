@@ -1,5 +1,7 @@
 use crate::error::ChainbillsError;
-use crate::messages::{IdMessage, InstantiateMessage};
+use crate::messages::{
+  AddressMessage, CountMessage, IdMessage, InstantiateMessage,
+};
 use crate::state::{
   ActivityRecord, ActivityType, ChainStats, Config, Payable, PayablePayment,
   TokenAndAmount, TokenDetails, User, UserPayment, Withdrawal,
@@ -27,6 +29,7 @@ pub struct Chainbills {
   pub activities: Map<[u8; 32], ActivityRecord>,
   pub chain_activity_ids: Item<Vec<[u8; 32]>>,
   pub users: Map<&'static Addr, User>,
+  pub user_addresses: Item<Vec<Addr>>,
   pub user_payable_ids: Map<&'static Addr, Vec<[u8; 32]>>,
   pub user_payments: Map<[u8; 32], UserPayment>,
   pub user_payment_ids: Map<&'static Addr, Vec<[u8; 32]>>,
@@ -59,6 +62,7 @@ impl Chainbills {
       activities: Map::new("activities"),
       chain_activity_ids: Item::new("chain_activity_ids"),
       users: Map::new("users"),
+      user_addresses: Item::new("user_addresses"),
       user_payable_ids: Map::new("user_payable_ids"),
       user_payments: Map::new("user_payments"),
       user_payment_ids: Map::new("user_payment_ids"),
@@ -103,8 +107,9 @@ impl Chainbills {
       },
     )?;
 
-    // Initialize Activity IDs
+    // Initialize Activity IDs and User Addresses
     self.chain_activity_ids.save(ctx.deps.storage, &vec![])?;
+    self.user_addresses.save(ctx.deps.storage, &vec![])?;
 
     // Emit an event and return a response.
     Ok(Response::new().add_attributes([
@@ -131,6 +136,26 @@ impl Chainbills {
     let valid_wallet = ctx.deps.api.addr_validate(&msg.id)?;
     let fetched_user = self.users.load(ctx.deps.storage, &valid_wallet);
     Ok(fetched_user.unwrap_or(User::initialize(0)))
+  }
+
+  #[sv::msg(query)]
+  fn user_address(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<AddressMessage, ChainbillsError> {
+    // Ensure the requested count is valid.
+    let count = msg.count;
+    let chain_stats = self.chain_stats.load(ctx.deps.storage)?;
+    if count == 0 || count > chain_stats.users_count {
+      return Err(ChainbillsError::InvalidUserAddressCount { count });
+    }
+
+    // Get and return the User Address.
+    let addresses = self.user_addresses.load(ctx.deps.storage)?;
+    Ok(AddressMessage {
+      address: addresses[(count - 1) as usize].clone(),
+    })
   }
 
   #[sv::msg(exec)]
@@ -224,6 +249,11 @@ impl Chainbills {
         wallet,
         &User::initialize(chain_stats.users_count),
       )?;
+
+      // Save the user address to user_addresses.
+      let mut user_addresses = self.user_addresses.load(storage)?;
+      user_addresses.push(wallet.clone());
+      self.user_addresses.save(storage, &user_addresses)?;
 
       // Get a new ActivityRecord ID.
       let activity_id =

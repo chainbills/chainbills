@@ -10,6 +10,9 @@ pub enum ChainbillsError {
   #[error("Payment error: {0}")]
   NativePayment(#[from] PaymentError),
 
+  #[error("Invalid User Address Count: {count}")]
+  InvalidUserAddressCount { count: u64 },
+
   #[error("OwnerUnauthorized")]
   OwnerUnauthorized {},
 

@@ -229,6 +229,8 @@ contract CbState {
   ChainStats public chainStats;
   /// Array of IDs of Activities on this chain.
   bytes32[] public chainActivityIds;
+  /// Array of Wallet Addresses of Users on this chain.
+  address[] public userAddresses;
   /// Wormhole Chain IDs against their corresponding Emitter
   /// Contract Addresses on those chains, that is, trusted caller contracts.
   mapping(uint16 => bytes32) public registeredEmitters;

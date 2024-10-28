@@ -17,6 +17,16 @@ pub struct InitializeUser<'info> {
 
   #[account(
     init,
+    seeds = [UserAddress::SEED_PREFIX, &chain_stats.next_user().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = User::SPACE
+  )]
+  /// Keeps the wallet address of the user.
+  pub user_address: Box<Account<'info, UserAddress>>,
+
+  #[account(
+    init,
     seeds = [ActivityRecord::SEED_PREFIX, &chain_stats.next_activity().to_le_bytes()[..]],
     bump,
     payer = signer,

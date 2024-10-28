@@ -61,6 +61,7 @@ contract Chainbills is CbGovernance, CbPayload {
       chainStats.activitiesCount++;
 
       // Initialize the user.
+      userAddresses.push(wallet);
       users[wallet].chainCount = chainStats.usersCount;
       users[wallet].activitiesCount = 1;
 

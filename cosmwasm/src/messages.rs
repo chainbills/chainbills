@@ -1,11 +1,16 @@
-use sylvia::cw_schema::cw_serde;
-use sylvia::cw_std::Uint128;
 use crate::state::TokenAndAmount;
+use sylvia::cw_schema::cw_serde;
+use sylvia::cw_std::{Addr, Uint128};
 
 #[cw_serde(crate = "sylvia::cw_schema")]
 pub struct InstantiateMessage {
   pub chain_id: u16,
   pub chainbills_fee_collector: String,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+pub struct AddressMessage {
+  pub address: Addr,
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
@@ -47,7 +52,6 @@ pub struct PerChainPayablePaymentsCountMessage {
 pub struct CountMessage {
   pub count: u64,
 }
-
 
 #[cw_serde(crate = "sylvia::cw_schema")]
 pub struct PerChainPayablePaymentIdMessage {

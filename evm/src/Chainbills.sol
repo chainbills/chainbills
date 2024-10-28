@@ -11,7 +11,6 @@ import './CbState.sol';
 error InvalidFeeCollector();
 error InvalidWormholeAddress();
 error InvalidWormholeFinality();
-error MaxPayableTokensCapacityReached();
 error EmitterNotRegistered();
 error UnsupportedToken();
 error NotYourPayable();
@@ -83,12 +82,6 @@ contract Chainbills is CbGovernance, CbPayload {
     returns (bytes32 payableId)
   {
     /* CHECKS */
-    // Ensure that the number of specified acceptable tokens (and their amounts)
-    // for payments don't exceed the set maximum.
-    if (allowedTokensAndAmounts.length > MAX_PAYABLES_TOKENS) {
-      revert MaxPayableTokensCapacityReached();
-    }
-
     for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
       // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
@@ -161,12 +154,6 @@ contract Chainbills is CbGovernance, CbPayload {
     Payable storage _payable = payables[payableId];
     if (_payable.host != msg.sender) revert NotYourPayable();
 
-    // Ensure that the number of specified acceptable tokens (and their amounts)
-    // for payments don't exceed the set maximum.
-    if (allowedTokensAndAmounts.length > MAX_PAYABLES_TOKENS) {
-      revert MaxPayableTokensCapacityReached();
-    }
-
     for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
       // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
@@ -215,19 +202,10 @@ contract Chainbills is CbGovernance, CbPayload {
     if (_payable.host == address(0)) revert InvalidPayableId();
     if (_payable.isClosed) revert PayableIsClosed();
 
-    // Ensure that the payable can still accept new tokens, if this
-    // payable allows any token
+    // Ensure that the specified token and amount to be transferred is an
+    // allowed for this payable, if this payable doesn't allow any tokens
+    // and amounts outside those it specified
     uint8 aTAALength = _payable.allowedTokensAndAmountsCount;
-    if (aTAALength == 0 && _payable.balancesCount >= MAX_PAYABLES_TOKENS) {
-      for (uint8 i = 0; i < aTAALength; i++) {
-        if (payableAllowedTokensAndAmounts[payableId][i].token == token) break;
-        if (i == aTAALength - 1) revert MaxPayableTokensCapacityReached();
-      }
-    }
-
-    // Ensure that the specified token to be transferred is an allowed token
-    // for this payable, if this payable doesn't allow any token outside those
-    // it specified
     if (aTAALength > 0) {
       for (uint8 i = 0; i < aTAALength; i++) {
         if (

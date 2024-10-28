@@ -146,10 +146,6 @@ struct Withdrawal {
 }
 
 contract CbState {
-  /// The maximum number of tokens a payable can hold balances in.
-  /// Also the maximum number of tokens that a payable can specify
-  /// that it can accept payments in.
-  uint256 public constant MAX_PAYABLES_TOKENS = 10;
   /// The withdrawal fee percentage with 2 decimals. 200 means 2%.
   uint256 public withdrawalFeePercentage = 200;
   /// The address that receives withdrawal fees.

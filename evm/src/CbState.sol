@@ -7,6 +7,21 @@ error InvalidPayableId();
 error InvalidPaymentId();
 error InvalidWithdrawalId();
 
+/// Config account data. Mainly Governance.
+struct Config {
+  /// The number of block confirmations needed before the wormhole network
+  /// will attest a message.
+  uint8 wormholeFinality;
+  /// Wormhole Chain ID of this chain.
+  uint16 chainId;
+  /// The withdrawal fee percentage with 2 decimals. 200 means 2%.
+  uint16 withdrawalFeePercentage;
+  /// The address that receives withdrawal fees.
+  address feeCollector;
+  /// The address of the Wormhole Core Contract on this chain.
+  address wormhole;
+}
+
 /// Keeps track of all activities on this chain. Counters for the
 /// users, payables, userPayments, and withdrawals mappings.
 struct ChainStats {
@@ -196,7 +211,7 @@ struct ActivityRecord {
   ActivityType activityType;
 }
 
-/// The type of entity that an ID is associated with. Used as a salt in 
+/// The type of entity that an ID is associated with. Used as a salt in
 /// generating unique IDs for Payables, Payments, Withdrawals, and Activities.
 ///
 /// @dev Using this enum instead of a strings to save gas.
@@ -208,17 +223,8 @@ enum EntityType {
 }
 
 contract CbState {
-  /// The withdrawal fee percentage with 2 decimals. 200 means 2%.
-  uint256 public withdrawalFeePercentage = 200;
-  /// The address that receives withdrawal fees.
-  address public feeCollector;
-  /// The address of the Wormhole Core Contract on this chain.
-  address public wormhole;
-  /// Wormhole Chain ID of this contract.
-  uint16 public chainId;
-  /// The number of block confirmations needed before the wormhole network
-  /// will attest a message.
-  uint8 public wormholeFinality;
+  /// Configuration of this chain.
+  Config public config;
   /// Counter for activities on this chain.
   ChainStats public chainStats;
   /// Array of IDs of Activities on this chain.

@@ -35,20 +35,19 @@ contract Chainbills is CbGovernance, CbPayload {
   /// Sets up this smart contract when it is deployed. Sets the feeCollector,
   /// wormhole, chainId, and wormholeFinality variables.
   constructor(
-    address feeCollector_,
-    address wormhole_,
-    uint16 chainId_,
-    uint8 wormholeFinality_
+    address feeCollector,
+    address wormhole,
+    uint16 chainId,
+    uint8 wormholeFinality
   ) {
-    if (feeCollector_ == address(0)) revert InvalidFeeCollector();
-    else if (wormhole_ == address(0)) revert InvalidWormholeAddress();
-    else if (chainId_ == 0) revert InvalidWormholeChainId();
-    else if (wormholeFinality_ == 0) revert InvalidWormholeFinality();
+    if (feeCollector == address(0)) revert InvalidFeeCollector();
+    else if (wormhole == address(0)) revert InvalidWormholeAddress();
+    else if (chainId == 0) revert InvalidWormholeChainId();
+    else if (wormholeFinality == 0) revert InvalidWormholeFinality();
 
-    feeCollector = feeCollector_;
-    wormhole = wormhole_;
-    chainId = chainId_;
-    wormholeFinality = wormholeFinality_;
+    // Set the feeCollector, wormhole, chainId, and wormholeFinality.
+    // 200 means 2% withdrawal fee (with 2 decimal places).
+    config = Config(wormholeFinality, chainId, 200, feeCollector, wormhole);
     chainStats = ChainStats(0, 0, 0, 0, 0, 0);
   }
 
@@ -92,7 +91,7 @@ contract Chainbills is CbGovernance, CbPayload {
   {
     return keccak256(
       abi.encodePacked(
-        block.chainid, chainId, block.timestamp, entity, salt, count
+        block.chainid, config.chainId, block.timestamp, entity, salt, count
       )
     );
   }
@@ -272,7 +271,7 @@ contract Chainbills is CbGovernance, CbPayload {
     // Increment  global and local-chain paymentsCount, and activitiesCount on
     // involved payable.
     _payable.paymentsCount++;
-    payableChainPaymentsCount[payableId][chainId]++;
+    payableChainPaymentsCount[payableId][config.chainId]++;
     _payable.activitiesCount++;
 
     // Update payable's balances to add this token and its amount.
@@ -304,7 +303,7 @@ contract Chainbills is CbGovernance, CbPayload {
     userPayments[paymentId] = UserPayment({
       payableId: payableId,
       payer: msg.sender,
-      payableChainId: chainId,
+      payableChainId: config.chainId,
       chainCount: chainStats.userPaymentsCount,
       payerCount: users[msg.sender].paymentsCount,
       timestamp: block.timestamp
@@ -312,14 +311,14 @@ contract Chainbills is CbGovernance, CbPayload {
 
     // Record payment details of payable.
     payablePaymentIds[payableId].push(paymentId);
-    payableChainPaymentIds[payableId][chainId].push(paymentId);
+    payableChainPaymentIds[payableId][config.chainId].push(paymentId);
     payablePaymentDetails[paymentId] = TokenAndAmount(token, amount);
     payablePayments[paymentId] = PayablePayment({
       payableId: payableId,
       payer: toWormholeFormat(msg.sender),
       chainCount: chainStats.payablePaymentsCount,
-      payerChainId: chainId,
-      localChainCount: payableChainPaymentsCount[payableId][chainId],
+      payerChainId: config.chainId,
+      localChainCount: payableChainPaymentsCount[payableId][config.chainId],
       payableCount: _payable.paymentsCount,
       timestamp: block.timestamp
     });
@@ -361,7 +360,7 @@ contract Chainbills is CbGovernance, CbPayload {
       payableId,
       msg.sender,
       paymentId,
-      chainId,
+      config.chainId,
       chainStats.userPaymentsCount,
       users[msg.sender].paymentsCount
     );
@@ -369,7 +368,7 @@ contract Chainbills is CbGovernance, CbPayload {
       payableId,
       toWormholeFormat(msg.sender),
       paymentId,
-      chainId,
+      config.chainId,
       chainStats.payablePaymentsCount,
       _payable.paymentsCount
     );
@@ -414,7 +413,7 @@ contract Chainbills is CbGovernance, CbPayload {
 
     /* TRANSFER */
     // Prepare withdraw amounts and fees
-    uint256 percent = (amount * withdrawalFeePercentage) / 10000; // 10000 is 100%
+    uint256 percent = (amount * config.withdrawalFeePercentage) / 10000; // 10000 is 100%
     uint256 maxFees = tokenDetails[token].maxWithdrawalFees;
     uint256 fees = percent > maxFees ? maxFees : percent;
     uint256 amtDue = amount - fees;
@@ -431,9 +430,9 @@ contract Chainbills is CbGovernance, CbPayload {
     // Transfer the fees to the fees collector.
     bool isFeesSuccess = false;
     if (token == address(this)) {
-      (isFeesSuccess,) = payable(feeCollector).call{value: fees}('');
+      (isFeesSuccess,) = payable(config.feeCollector).call{value: fees}('');
     } else {
-      isFeesSuccess = IERC20(token).transfer(feeCollector, fees);
+      isFeesSuccess = IERC20(token).transfer(config.feeCollector, fees);
     }
     if (!isFeesSuccess) revert UnsuccessfulFeesWithdrawal();
 

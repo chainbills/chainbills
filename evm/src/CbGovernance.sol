@@ -54,7 +54,7 @@ contract CbGovernance is Ownable, CbState, ReentrancyGuard {
     uint16 emitterChainId,
     bytes32 emitterAddress
   ) public onlyOwner {
-    if (emitterChainId == 0 || emitterChainId == chainId) {
+    if (emitterChainId == 0 || emitterChainId == config.chainId) {
       revert InvalidWormholeChainId();
     } else if (emitterAddress == bytes32(0)) {
       revert InvalidWormholeEmitterAddress();

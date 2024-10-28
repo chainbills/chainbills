@@ -34,7 +34,7 @@ pub struct Pay<'info> {
         init,
         seeds = [
             payable.key().as_ref(),
-            &chain_stats.chain_id.to_le_bytes()[..],
+            &config.load()?.chain_id.to_le_bytes()[..],
             &payable_per_chain_payments_counter.next_payment().to_le_bytes()[..]
         ],
         bump,
@@ -48,7 +48,7 @@ pub struct Pay<'info> {
         mut,
         seeds = [
             payable.key().as_ref(),
-            &chain_stats.chain_id.to_le_bytes()[..],
+            &config.load()?.chain_id.to_le_bytes()[..],
         ],
         bump
     )]
@@ -104,6 +104,9 @@ pub struct Pay<'info> {
 
   #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
+
+  #[account(seeds = [Config::SEED_PREFIX], bump)]
+  pub config: AccountLoader<'info, Config>,
 
   pub mint: Box<Account<'info, Mint>>,
 

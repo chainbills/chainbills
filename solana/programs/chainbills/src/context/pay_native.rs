@@ -33,7 +33,7 @@ pub struct PayNative<'info> {
         init,
         seeds = [
             payable.key().as_ref(),
-            &chain_stats.chain_id.to_le_bytes()[..],
+            &config.load()?.chain_id.to_le_bytes()[..],
             &payable_per_chain_payments_counter.next_payment().to_le_bytes()[..]
         ],
         bump,
@@ -47,7 +47,7 @@ pub struct PayNative<'info> {
         mut,
         seeds = [
             payable.key().as_ref(),
-            &chain_stats.chain_id.to_le_bytes()[..],
+            &config.load()?.chain_id.to_le_bytes()[..],
         ],
         bump
     )]
@@ -103,6 +103,9 @@ pub struct PayNative<'info> {
 
   #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
+
+  #[account(seeds = [Config::SEED_PREFIX], bump)]
+  pub config: AccountLoader<'info, Config>,
 
   #[account(seeds = [TokenDetails::SEED_PREFIX, crate::ID.as_ref()], bump)]
   pub token_details: Box<Account<'info, TokenDetails>>,

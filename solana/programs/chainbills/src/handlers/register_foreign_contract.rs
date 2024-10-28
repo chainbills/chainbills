@@ -22,7 +22,7 @@ pub fn register_foreign_contract_handler(
   // Solana Wormhole program's. And cannot register a zero address.
   require!(
     chain > 0
-      && chain != ctx.accounts.chain_stats.chain_id
+      && chain != ctx.accounts.config.load()?.chain_id
       && !address.iter().all(|&x| x == 0),
     ChainbillsError::InvalidForeignContract,
   );

@@ -42,6 +42,7 @@ fn check_pay_inputs(
 }
 
 fn update_state_for_payment(
+  chain_id: u16,
   amount: u64,
   mint: Pubkey,
   signer: Pubkey,
@@ -119,7 +120,7 @@ fn update_state_for_payment(
   // Initialize the User Payment.
   user_payment.chain_count = chain_stats.payables_count;
   user_payment.payable_id = payable.key().to_bytes();
-  user_payment.payable_chain_id = chain_stats.chain_id;
+  user_payment.payable_chain_id = chain_id;
   user_payment.payer = signer;
   user_payment.payer_count = payer.payments_count;
   user_payment.timestamp = timestamp;
@@ -129,7 +130,7 @@ fn update_state_for_payment(
   payable_payment.payable_id = payable.key();
   payable_payment.payer = signer.to_bytes();
   payable_payment.chain_count = chain_stats.payable_payments_count;
-  payable_payment.payer_chain_id = chain_stats.chain_id;
+  payable_payment.payer_chain_id = chain_id;
   payable_payment.local_chain_count =
     payable_per_chain_payments_counter.payments_count;
   payable_payment.payable_count = payable.payments_count;
@@ -224,6 +225,7 @@ pub fn pay(ctx: Context<Pay>, amount: u64) -> Result<()> {
 
   /* STATE CHANGES */
   update_state_for_payment(
+    ctx.accounts.config.load()?.chain_id,
     amount,
     mint.key(),
     ctx.accounts.signer.key(),
@@ -267,6 +269,7 @@ pub fn pay_native(ctx: Context<PayNative>, amount: u64) -> Result<()> {
 
   /* STATE CHANGES */
   update_state_for_payment(
+    ctx.accounts.config.load()?.chain_id,
     amount,
     crate::ID,
     ctx.accounts.signer.key(),

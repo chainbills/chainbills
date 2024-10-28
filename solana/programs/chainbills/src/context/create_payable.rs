@@ -23,7 +23,7 @@ pub struct CreatePayable<'info> {
         init,
         seeds = [
             payable.key().as_ref(),
-            &chain_stats.chain_id.to_le_bytes()[..],
+            &config.load()?.chain_id.to_le_bytes()[..],
         ],
         bump,
         payer = signer,
@@ -72,6 +72,9 @@ pub struct CreatePayable<'info> {
   /// Keeps track of entities on this chain. Its payable_count will be
   /// incremented in this instruction.
   pub chain_stats: Box<Account<'info, ChainStats>>,
+
+  #[account(seeds = [Config::SEED_PREFIX], bump)]
+  pub config: AccountLoader<'info, Config>,
 
   #[account(mut)]
   /// The signer of the transaction.

@@ -5,7 +5,8 @@ use crate::messages::{
   PerChainPayablePaymentsCountMessage, TransactionInfoMessage,
 };
 use crate::state::{
-  PayablePayment, TokenAndAmount, TokenDetails, User, UserPayment,
+  ActivityRecord, ActivityType, PayablePayment, TokenAndAmount, TokenDetails,
+  User, UserPayment,
 };
 use cw20::Cw20ExecuteMsg;
 use sylvia::cw_std::{
@@ -85,7 +86,7 @@ impl Payments for Chainbills {
       .users
       .load(ctx.deps.storage, &valid_wallet)
       .unwrap_or(User::initialize(0));
-    if count > user.payments_count {
+    if count == 0 || count > user.payments_count {
       return Err(ChainbillsError::InvalidUserPaymentCount { count });
     }
 
@@ -127,7 +128,7 @@ impl Payments for Chainbills {
     let count = msg.count;
 
     // Ensure the requested count is valid.
-    if msg.count > payable.payments_count {
+    if count == 0 || count > payable.payments_count {
       return Err(ChainbillsError::InvalidPayablePaymentCount { count });
     }
 
@@ -135,7 +136,7 @@ impl Payments for Chainbills {
     let payment_ids = self
       .payable_payment_ids
       .load(ctx.deps.storage, payable_id)?;
-    let id = HexBinary::from(payment_ids[(msg.count - 1) as usize]).to_hex();
+    let id = HexBinary::from(payment_ids[(count - 1) as usize]).to_hex();
     Ok(IdMessage { id })
   }
 
@@ -202,7 +203,7 @@ impl Payments for Chainbills {
 
     // Ensure the requested count is valid.
     let count = msg.count;
-    if count > payments_count {
+    if count == 0 || count > payments_count {
       return Err(ChainbillsError::InvalidPerChainPayablePaymentCount {
         count,
       });
@@ -271,7 +272,7 @@ impl Payments for Chainbills {
       }
     }
 
-    /* TRANSFER */
+    /* FUNDS TRANSFER */
     let mut cw20_messages = vec![];
     if token_details.is_native_token {
       // Verify Native Token Payment was made.
@@ -293,21 +294,37 @@ impl Payments for Chainbills {
     }
 
     /* STATE CHANGES */
-    // Increment the chain stats for payments counts.
+    /* COUNTS */
+    // Increment payments and activities count on the payer (address) making
+    // this payable.
+    let user_resp_attrib = self.initialize_user_if_is_new(
+      ctx.deps.storage,
+      &ctx.env,
+      &ctx.info.sender,
+    )?;
+    let mut user = self.users.load(ctx.deps.storage, &ctx.info.sender)?;
+    user.payments_count = user.next_payment();
+    user.activities_count = user.next_activity();
+    self.users.save(ctx.deps.storage, &ctx.info.sender, &user)?;
+
+    // Increment the chain stats for counts of payments.
     let mut chain_stats = self.chain_stats.load(ctx.deps.storage)?;
     chain_stats.user_payments_count = chain_stats.next_user_payment();
     chain_stats.payable_payments_count = chain_stats.next_payable_payment();
+
+    // Increment the chain stats for activities_count.
+    //
+    // Incrementing twice to account for recording two activities: one for the
+    // user and one for the payable.
+    chain_stats.activities_count = chain_stats.next_activity();
+    chain_stats.activities_count = chain_stats.next_activity();
+
+    // Save the updated chain stats.
     self.chain_stats.save(ctx.deps.storage, &chain_stats)?;
 
-    // Increment paymentsCount on the payer (address) making this payable.
-    let user_resp_attrib =
-      self.initialize_user_if_is_new(ctx.deps.storage, &ctx.info.sender)?;
-    let mut user = self.users.load(ctx.deps.storage, &ctx.info.sender)?;
-    user.payments_count = user.next_payment();
-    self.users.save(ctx.deps.storage, &ctx.info.sender, &user)?;
-
-    // Increment global paymentsCount on the payable.
+    // Increment global payments_count and the activities_count on the payable.
     payable.payments_count = payable.next_payment();
+    payable.activities_count = payable.next_activity();
 
     // Update payable's balances to add this token and its amount.
     //
@@ -357,11 +374,13 @@ impl Payments for Chainbills {
       .token_details
       .save(ctx.deps.storage, token.clone(), &token_details)?;
 
+    /* PAYMENTS DATA STRUCTURES */
     // Get a new Payment ID
     let payment_id = self.create_id(
       ctx.deps.storage,
       &ctx.env,
-      &ctx.info.sender,
+      &ctx.info.sender.as_str(),
+      "payment",
       user.payments_count,
     )?;
 
@@ -441,6 +460,87 @@ impl Payments for Chainbills {
       &payable_payment,
     )?;
 
+    /* ACTIVITIES DATA STRUCTURES */
+    // Create a new ActivityRecord ID from user's perspective.
+    let user_activity_id = self.create_id(
+      ctx.deps.storage,
+      &ctx.env,
+      &ctx.info.sender.clone().as_str(),
+      "activity",
+      user.activities_count,
+    )?;
+
+    // Create a new ActivityRecord ID from payable's perspective.
+    let payable_activity_id = self.create_id(
+      ctx.deps.storage,
+      &ctx.env,
+      &HexBinary::from(&payable_id).to_hex(),
+      "activity",
+      payable.activities_count,
+    )?;
+
+    // Save the User and Payable ActivityRecord IDs to chain_activity_ids.
+    let mut chain_activity_ids =
+      self.chain_activity_ids.load(ctx.deps.storage)?;
+    chain_activity_ids.push(user_activity_id);
+    chain_activity_ids.push(payable_activity_id);
+    self
+      .chain_activity_ids
+      .save(ctx.deps.storage, &chain_activity_ids)?;
+
+    // Save the User ActivityRecord ID to user_activity_ids.
+    let mut user_activity_ids = self
+      .user_activity_ids
+      .may_load(ctx.deps.storage, &ctx.info.sender)?
+      .unwrap_or_default();
+    user_activity_ids.push(user_activity_id);
+    self.user_activity_ids.save(
+      ctx.deps.storage,
+      &ctx.info.sender,
+      &user_activity_ids,
+    )?;
+
+    // Save the Payable ActivityRecord ID to payable_activity_ids.
+    let mut payable_activity_ids = self
+      .payable_activity_ids
+      .load(ctx.deps.storage, payable_id)?;
+    payable_activity_ids.push(payable_activity_id);
+    self.payable_activity_ids.save(
+      ctx.deps.storage,
+      payable_id,
+      &payable_activity_ids,
+    )?;
+
+    // Create and Save the ActivityRecord for the User.
+    self.activities.save(
+      ctx.deps.storage,
+      user_activity_id,
+      &ActivityRecord {
+        // subtracting 1 because we incremented the activities_count twice.
+        chain_count: chain_stats.activities_count.checked_sub(1).unwrap(),
+        user_count: user.activities_count,
+        payable_count: 0, // Setting 0 because it's not a payable activity.
+        timestamp: ctx.env.block.time.seconds(),
+        reference: HexBinary::from(&payment_id).to_hex(),
+        activity_type: ActivityType::UserPaid,
+      },
+    )?;
+
+    // Create and Save the ActivityRecord for the Payable.
+    self.activities.save(
+      ctx.deps.storage,
+      payable_activity_id,
+      &ActivityRecord {
+        chain_count: chain_stats.activities_count,
+        user_count: 0, // Setting 0 because it's not a user activity.
+        payable_count: payable.activities_count,
+        timestamp: ctx.env.block.time.seconds(),
+        reference: HexBinary::from(&payment_id).to_hex(),
+        activity_type: ActivityType::PayableReceived,
+      },
+    )?;
+
+    /* FINISH */
     // Return the Response.
     Ok(
       Response::new()

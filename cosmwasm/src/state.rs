@@ -16,6 +16,8 @@ pub struct ChainStats {
   pub payable_payments_count: u64,
   /// Total number of withdrawals that have ever been made on this chain.
   pub withdrawals_count: u64,
+  /// Total number of activities that have ever been made on this chain.
+  pub activities_count: u64,
 }
 
 impl ChainStats {
@@ -25,8 +27,9 @@ impl ChainStats {
       users_count: 0,
       payables_count: 0,
       user_payments_count: 0,
-        payable_payments_count: 0,
+      payable_payments_count: 0,
       withdrawals_count: 0,
+      activities_count: 0,
     }
   }
 
@@ -48,6 +51,10 @@ impl ChainStats {
 
   pub fn next_withdrawal(&self) -> u64 {
     self.withdrawals_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_activity(&self) -> u64 {
+    self.activities_count.checked_add(1).unwrap()
   }
 }
 
@@ -74,6 +81,8 @@ pub struct User {
   pub payments_count: u64,
   /// Total number of withdrawals that this user has ever made.
   pub withdrawals_count: u64,
+  /// Total number of activities that this user has ever made.
+  pub activities_count: u64,
 }
 
 impl User {
@@ -83,6 +92,7 @@ impl User {
       payables_count: 0,
       payments_count: 0,
       withdrawals_count: 0,
+      activities_count: 1, // InitializedUser activity
     }
   }
 
@@ -96,6 +106,10 @@ impl User {
 
   pub fn next_withdrawal(&self) -> u64 {
     self.withdrawals_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_activity(&self) -> u64 {
+    self.activities_count.checked_add(1).unwrap()
   }
 }
 
@@ -193,6 +207,8 @@ pub struct Payable {
   pub payments_count: u64,
   /// The total number of withdrawals made from this payable.
   pub withdrawals_count: u64,
+  /// The total number of activities made on this payable.
+  pub activities_count: u64,
   /// Whether this payable is currently accepting payments.
   pub is_closed: bool,
 }
@@ -204,6 +220,10 @@ impl Payable {
 
   pub fn next_withdrawal(&self) -> u64 {
     self.withdrawals_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_activity(&self) -> u64 {
+    self.activities_count.checked_add(1).unwrap()
   }
 }
 
@@ -276,4 +296,46 @@ pub struct Withdrawal {
   pub timestamp: u64,
   /// The amount and token that the host withdrew
   pub details: TokenAndAmount,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+/// Variants of activities.
+pub enum ActivityType {
+  /// A user was initialized.
+  InitializedUser,
+  /// A payable was created.
+  CreatedPayable,
+  /// A payment was made by a user.
+  UserPaid,
+  /// A payment was made to the payable.
+  PayableReceived,
+  /// A withdrawal was made by a payable.
+  Withdrew,
+  /// The payable was closed and is no longer accepting payments.
+  ClosedPayable,
+  /// The payable was reopened and is now accepting payments.
+  ReopenedPayable,
+  /// The payable's allowed tokens and amounts were updated.
+  UpdatedPayableTokensAndAmounts,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+/// A record of an activity.
+pub struct ActivityRecord {
+  /// The nth count of activities on this chain at the point this activity
+  /// was recorded.
+  pub chain_count: u64,
+  /// The nth count of activities that the user has made at the point
+  /// of this activity.
+  pub user_count: u64,
+  /// The nth count of activities on the related payable at the point
+  /// of this activity.
+  pub payable_count: u64,
+  /// The timestamp of when this activity was recorded.
+  pub timestamp: u64,
+  /// The ID of the entity (Payable, Payment, or Withdrawal) that is relevant
+  /// to this activity.
+  pub reference: String,
+  /// The type of activity.
+  pub activity_type: ActivityType,
 }

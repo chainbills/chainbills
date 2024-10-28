@@ -75,4 +75,16 @@ pub enum ChainbillsError {
 
   #[error("Insufficient Withdraw Amount")]
   InsufficientWithdrawAmount {},
+
+  #[error("Invalid Activity Count: {count}")]
+  InvalidChainActivityCount { count: u64 },
+
+  #[error("Invalid User Activity Count: {count}")]
+  InvalidUserActivityCount { count: u64 },
+
+  #[error("Invalid Payable Activity Count: {count}")]
+  InvalidPayableActivityCount { count: u64 },
+
+  #[error("Invalid Activity ID: {id}")]
+  InvalidActivityId { id: String },
 }

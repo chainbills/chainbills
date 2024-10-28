@@ -1,7 +1,9 @@
 use crate::contract::sv::mt::{ChainbillsProxy, CodeId};
+use crate::interfaces::activities::sv::mt::ActivitiesProxy;
 use crate::interfaces::payables::sv::mt::PayablesProxy;
 use crate::messages::{
-  CreatePayableMessage, FetchIdMessage, IdMessage, InstantiateMessage,
+  CountMessage, CreatePayableMessage, FetchIdMessage, IdMessage,
+  InstantiateMessage,
 };
 use sylvia::cw_multi_test::IntoAddr;
 use sylvia::multitest::App;
@@ -51,5 +53,50 @@ fn creating_payables() {
   println!("Payable ID: {:?}", payable_id_resp.clone().id);
   println!("{:?}", payable);
 
-  // TODO: Assert payable details and events
+  // Fetch and Display Activities
+  println!();
+  println!();
+  println!("CHAIN ACTIVITIES");
+  for i in 0..chain_stats.activities_count {
+    let id_msg = contract
+        .chain_activity_id(CountMessage { count: i + 1 })
+        .unwrap();
+    let activity = contract.activity(id_msg.clone()).unwrap();
+    println!(
+      "Count {:?}, ID {:?}, {:?}",
+      i + 1,
+      id_msg.clone().id,
+      activity
+    );
+  }
+  println!();
+  println!();
+  println!("USER ACTIVITIES");
+  for i in 0..user_data.activities_count {
+    let id_msg = contract
+        .user_activity_id(FetchIdMessage { reference: user.to_string(), count: i + 1 })
+        .unwrap();
+    let activity = contract.activity(id_msg.clone()).unwrap();
+    println!(
+      "Count {:?}, ID {:?}, {:?}",
+      i + 1,
+      id_msg.clone().id,
+      activity
+    );
+  }
+  println!();
+  println!();
+  println!("PAYABLE ACTIVITIES");
+  for i in 0..payable.activities_count {
+    let id_msg = contract
+        .payable_activity_id(FetchIdMessage { reference: payable_id_resp.clone().id, count: i + 1 })
+        .unwrap();
+    let activity = contract.activity(id_msg.clone()).unwrap();
+    println!(
+      "Count {:?}, ID {:?}, {:?}",
+      i + 1,
+      id_msg.clone().id,
+      activity
+    );
+  }
 }

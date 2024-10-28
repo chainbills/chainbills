@@ -1,11 +1,12 @@
 use crate::contract::sv::mt::{ChainbillsProxy, CodeId};
+use crate::interfaces::activities::sv::mt::ActivitiesProxy;
 use crate::interfaces::payables::sv::mt::PayablesProxy;
 use crate::interfaces::payments::sv::mt::PaymentsProxy;
 use crate::interfaces::token_details::sv::mt::TokenDetailsInterfaceProxy;
 use crate::interfaces::withdrawals::sv::mt::WithdrawalsProxy;
 use crate::messages::{
-  CreatePayableMessage, FetchIdMessage, IdMessage, InstantiateMessage,
-  TransactionInfoMessage, UpdateMaxWithdrawalFeesMessage,
+  CountMessage, CreatePayableMessage, FetchIdMessage, IdMessage,
+  InstantiateMessage, TransactionInfoMessage, UpdateMaxWithdrawalFeesMessage,
 };
 use cw20::{BalanceResponse, Cw20Coin};
 use cw20_base::msg::InstantiateMsg;
@@ -122,15 +123,19 @@ fn making_withdrawals() {
     .unwrap();
 
   // Native TokenDetails
-  let mut native_token_details = contract.token_details(IdMessage {
-    id: "native".to_string(),
-  }).unwrap();
+  let mut native_token_details = contract
+    .token_details(IdMessage {
+      id: "native".to_string(),
+    })
+    .unwrap();
   println!("Native TokenDetails: {:?}", native_token_details);
 
   // Cw20 TokenDetails
-  let mut cw20_token_details = contract.token_details(IdMessage {
-    id: usdc_addr.clone().to_string(),
-  }).unwrap();
+  let mut cw20_token_details = contract
+    .token_details(IdMessage {
+      id: usdc_addr.clone().to_string(),
+    })
+    .unwrap();
   println!("Cw20 TokenDetails: {:?}", cw20_token_details);
 
   let tx_info_native = TransactionInfoMessage {
@@ -243,12 +248,16 @@ fn making_withdrawals() {
       id: user.to_string(),
     })
     .unwrap();
-  native_token_details = contract.token_details(IdMessage {
-    id: "native".to_string(),
-  }).unwrap();
-  cw20_token_details = contract.token_details(IdMessage {
-    id: usdc_addr.clone().to_string(),
-  }).unwrap();
+  native_token_details = contract
+    .token_details(IdMessage {
+      id: "native".to_string(),
+    })
+    .unwrap();
+  cw20_token_details = contract
+    .token_details(IdMessage {
+      id: usdc_addr.clone().to_string(),
+    })
+    .unwrap();
   payable = contract
     .payable(IdMessage {
       id: payable_id.clone(),
@@ -331,5 +340,56 @@ fn making_withdrawals() {
       .unwrap()
   );
 
-  // TODO: Assert payment details and events
+  // Fetch and Display Activities
+  println!();
+  println!();
+  println!("CHAIN ACTIVITIES");
+  for i in 0..chain_stats.activities_count {
+    let id_msg = contract
+      .chain_activity_id(CountMessage { count: i + 1 })
+      .unwrap();
+    let activity = contract.activity(id_msg.clone()).unwrap();
+    println!(
+      "Count {:?}, ID {:?}, {:?}",
+      i + 1,
+      id_msg.clone().id,
+      activity
+    );
+  }
+  println!();
+  println!();
+  println!("USER ACTIVITIES");
+  for i in 0..user_data.activities_count {
+    let id_msg = contract
+      .user_activity_id(FetchIdMessage {
+        reference: user.to_string(),
+        count: i + 1,
+      })
+      .unwrap();
+    let activity = contract.activity(id_msg.clone()).unwrap();
+    println!(
+      "Count {:?}, ID {:?}, {:?}",
+      i + 1,
+      id_msg.clone().id,
+      activity
+    );
+  }
+  println!();
+  println!();
+  println!("PAYABLE ACTIVITIES");
+  for i in 0..payable.activities_count {
+    let id_msg = contract
+      .payable_activity_id(FetchIdMessage {
+        reference: payable_id.clone(),
+        count: i + 1,
+      })
+      .unwrap();
+    let activity = contract.activity(id_msg.clone()).unwrap();
+    println!(
+      "Count {:?}, ID {:?}, {:?}",
+      i + 1,
+      id_msg.clone().id,
+      activity
+    );
+  }
 }

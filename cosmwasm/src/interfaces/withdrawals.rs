@@ -1,7 +1,9 @@
 use crate::contract::Chainbills;
 use crate::error::ChainbillsError;
 use crate::messages::{FetchIdMessage, IdMessage, TransactionInfoMessage};
-use crate::state::{TokenAndAmount, TokenDetails, User, Withdrawal};
+use crate::state::{
+  ActivityRecord, ActivityType, TokenAndAmount, TokenDetails, User, Withdrawal,
+};
 use cw20::Cw20ExecuteMsg;
 use std::cmp::min;
 use sylvia::cw_std::{
@@ -61,7 +63,7 @@ impl Withdrawals for Chainbills {
       .users
       .load(ctx.deps.storage, &valid_wallet)
       .unwrap_or(User::initialize(0));
-    if count > user.withdrawals_count {
+    if count == 0 || count > user.withdrawals_count {
       return Err(ChainbillsError::InvalidUserWithdrawalCount { count });
     }
 
@@ -89,7 +91,7 @@ impl Withdrawals for Chainbills {
     let count = msg.count;
 
     // Ensure the requested count is valid.
-    if count > payable.withdrawals_count {
+    if count == 0 || count > payable.withdrawals_count {
       return Err(ChainbillsError::InvalidPayableWithdrawalCount { count });
     }
 
@@ -163,7 +165,7 @@ impl Withdrawals for Chainbills {
       }
     }
 
-    /* TRANSFER */
+    /* FUNDS TRANSFER */
     // Prepare withdraw amounts and fees
     let config = self.config.load(ctx.deps.storage)?;
     let percent = amount
@@ -221,18 +223,24 @@ impl Withdrawals for Chainbills {
     }
 
     /* STATE CHANGES */
-    // Increment the chain stats for withdrawals_count.
+    /* COUNTS */
+    // Increment the chain stats for counts of withdrawals.
     let mut chain_stats = self.chain_stats.load(ctx.deps.storage)?;
     chain_stats.withdrawals_count = chain_stats.next_withdrawal();
+    chain_stats.activities_count = chain_stats.next_activity();
     self.chain_stats.save(ctx.deps.storage, &chain_stats)?;
 
-    // Increment withdrawalsCount in the host that just withdrew.
+    // Increment withdrawals and activities count in the host(address) that
+    // just withdrew.
     let mut user = self.users.load(ctx.deps.storage, &ctx.info.sender)?;
     user.withdrawals_count = user.next_withdrawal();
+    user.activities_count = user.next_activity();
     self.users.save(ctx.deps.storage, &ctx.info.sender, &user)?;
 
-    // Increment withdrawalsCount and deduct balances on the involved payable.
+    // Increment withdrawals_count and activities_count on the payable.
+    // Also deduct balances on the involved payable.
     payable.withdrawals_count = payable.next_withdrawal();
+    payable.activities_count = payable.next_activity();
     for balance in payable.balances.iter_mut() {
       if balance.token == token {
         balance.amount = balance.amount.checked_sub(amount).unwrap();
@@ -248,12 +256,14 @@ impl Withdrawals for Chainbills {
       .token_details
       .save(ctx.deps.storage, token.clone(), &token_details)?;
 
+    /* WITHDRAWAL DATA STRUCTURE */
     // Get a new Withdrawal ID
     let withdrawal_id = self.create_id(
       ctx.deps.storage,
       &ctx.env,
-      &ctx.info.sender,
-      user.payments_count,
+      &ctx.info.sender.as_str(),
+      "withdrawal",
+      user.withdrawals_count,
     )?;
 
     // Save the Withdrawal ID to the users_withdrawal_ids.
@@ -297,6 +307,39 @@ impl Withdrawals for Chainbills {
       .withdrawals
       .save(ctx.deps.storage, withdrawal_id, &withdrawal)?;
 
+    /* ACTIVITY DATA STRUCTURE */
+    // Create a new ActivityRecord ID from user's perspective.
+    let activity_id = self.create_id(
+      ctx.deps.storage,
+      &ctx.env,
+      &ctx.info.sender.clone().as_str(),
+      "activity",
+      user.activities_count,
+    )?;
+
+    // Save the ActivityRecord ID to involved entities.
+    self.save_activity_id_for_all(
+      ctx.deps.storage,
+      &ctx.info.sender,
+      payable_id,
+      activity_id,
+    )?;
+
+    // Create and Save the ActivityRecord.
+    self.activities.save(
+      ctx.deps.storage,
+      activity_id,
+      &ActivityRecord {
+        chain_count: chain_stats.activities_count,
+        user_count: user.activities_count,
+        payable_count: payable.activities_count,
+        timestamp: ctx.env.block.time.seconds(),
+        reference: HexBinary::from(&withdrawal_id).to_hex(),
+        activity_type: ActivityType::Withdrew,
+      },
+    )?;
+
+    /* FINISH */
     // Return the Response.
     Ok(
       Response::new()

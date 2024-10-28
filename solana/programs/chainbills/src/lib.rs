@@ -56,9 +56,9 @@ pub mod chainbills {
   ///                   withdrawal fees is been set.
   /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
   pub fn update_max_withdrawal_fees(
-      ctx: Context<UpdateMaxWithdrawalFees>,
-      token: Pubkey,
-      max_withdrawal_fees: u64,
+    ctx: Context<UpdateMaxWithdrawalFees>,
+    token: Pubkey,
+    max_withdrawal_fees: u64,
   ) -> Result<()> {
     handlers::update_max_withdrawal_fees(ctx, token, max_withdrawal_fees)
   }
@@ -113,8 +113,8 @@ pub mod chainbills {
   /// ### args
   /// * allowed_tokens_and_amounts: the new set of tokens and amounts that the payable
   /// will accept.
-  pub fn update_payable_allowed_tokens_and_amounts(
-    ctx: Context<UpdatePayable>,
+  pub fn update_payable_allowed_tokens_and_amounts<'info>(
+    ctx: Context<'_, '_, 'info, 'info, UpdatePayableAllowedTokensAndAmounts>,
     allowed_tokens_and_amounts: Vec<TokenAndAmount>,
   ) -> Result<()> {
     handlers::update_payable_allowed_tokens_and_amounts(

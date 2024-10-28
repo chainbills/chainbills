@@ -16,11 +16,11 @@ pub struct Payable {
   pub host_count: u64, // 8 bytes
 
   /// The allowed tokens (and their amounts) on this payable.
-  /* TokenAndAmount::SPACE * MAX_PAYABLES_TOKENS */
+  /* TokenAndAmount::SPACE * len() */
   pub allowed_tokens_and_amounts: Vec<TokenAndAmount>,
 
   /// Records of how much is in this payable.
-  /* TokenAndAmount::SPACE * MAX_PAYABLES_TOKENS */
+  /* TokenAndAmount::SPACE * len() */
   pub balances: Vec<TokenAndAmount>,
 
   /// The timestamp of when this payable was created.
@@ -37,18 +37,6 @@ pub struct Payable {
 }
 
 impl Payable {
-  /// The maximum number of tokens a payable can hold balances in.
-  /// Also the maximum number of tokens that a payable can specify
-  /// that it can accept payments in.
-  #[constant]
-  pub const MAX_PAYABLES_TOKENS: usize = 10;
-
-  // discriminator (8) included
-  pub const SPACE: usize = 1
-    + (6 * 8)
-    + 32
-    + (2 * Payable::MAX_PAYABLES_TOKENS * TokenAndAmount::SPACE);
-
   /// AKA `b"payable"`.
   #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"payable";
@@ -59,5 +47,29 @@ impl Payable {
 
   pub fn next_withdrawal(&self) -> u64 {
     self.withdrawals_count.checked_add(1).unwrap()
+  }
+
+  pub fn space_new(ataa_len: usize) -> usize {
+    // discriminator (8) included
+    1 + (6 * 8) + 32 + (ataa_len * TokenAndAmount::SPACE)
+  }
+
+  pub fn space_update_ataa(&self, ataa_len: usize) -> usize {
+    1 + (6 * 8) // discriminator (8) included
+      + 32
+      + (ataa_len * TokenAndAmount::SPACE)
+      + (self.balances.len() * TokenAndAmount::SPACE)
+  }
+
+  pub fn space_update_balance(&self, token: Pubkey) -> usize {
+    let will_add_new_balance = !self.balances.iter().any(|t| t.token == token);
+
+    let new_bals_len =
+      self.balances.len() + if will_add_new_balance { 1 } else { 0 };
+
+    1 + (6 * 8) // discriminator (8) included
+      + 32
+      + (self.allowed_tokens_and_amounts.len() * TokenAndAmount::SPACE)
+      + (new_bals_len * TokenAndAmount::SPACE)
   }
 }

@@ -40,7 +40,7 @@ pub struct Pay<'info> {
     )]
   pub payable_chain_counter: Box<Account<'info, PayableChainCounter>>,
 
-  #[account(mut)]
+  #[account(mut, realloc = payable.space_update_balance(mint.key()), realloc::payer = signer, realloc::zero = false)]
   pub payable: Box<Account<'info, Payable>>,
 
   #[account(mut, seeds = [signer.key().as_ref()], bump)]

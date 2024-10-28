@@ -1,8 +1,8 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 
-
 #[derive(Accounts)]
+#[instruction(allowed_tokens_and_amounts: Vec<TokenAndAmount>)]
 /// Context used to create a Payable.
 pub struct CreatePayable<'info> {
   #[account(
@@ -14,7 +14,7 @@ pub struct CreatePayable<'info> {
         ],
         bump,
         payer = signer,
-        space = Payable::SPACE
+        space = Payable::space_new(allowed_tokens_and_amounts.len())
     )]
   /// The payable account to create. It houses details about the payable.
   pub payable: Box<Account<'info, Payable>>,

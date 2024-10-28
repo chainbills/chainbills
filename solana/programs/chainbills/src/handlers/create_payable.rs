@@ -12,13 +12,6 @@ pub fn create_payable_handler<'info>(
   allowed_tokens_and_amounts: Vec<TokenAndAmount>,
 ) -> Result<()> {
   /* CHECKS */
-  // Ensure that the number of specified acceptable tokens (and their amounts)
-  // for payments don't exceed the set maximum.
-  require!(
-    allowed_tokens_and_amounts.len() <= Payable::MAX_PAYABLES_TOKENS,
-    ChainbillsError::MaxPayableTokensCapacityReached
-  );
-
   // Ensure that length of remaining_accounts in context matches that of the
   // allowed_tokens_and_amounts (ataas) vector. This is necessary inorder to
   // use remaining_accounts to get the token details.

@@ -24,22 +24,6 @@ fn check_pay_inputs(
   // Ensure that the payable is not closed
   require!(!payable.is_closed, ChainbillsError::PayableIsClosed);
 
-  // Ensure that the payable can still accept new tokens, if this
-  // payable allows any token
-  if payable.allowed_tokens_and_amounts.is_empty()
-    && payable.balances.len() >= Payable::MAX_PAYABLES_TOKENS
-  {
-    let mut bals_it = payable.balances.iter().peekable();
-    while let Some(balance) = bals_it.next() {
-      if balance.token == mint {
-        break;
-      }
-      if bals_it.peek().is_none() {
-        return err!(ChainbillsError::MaxPayableTokensCapacityReached);
-      }
-    }
-  }
-
   // Ensure that the specified token to be transferred (the mint) is an
   // allowed token for this payable, if this payable doesn't allow any token
   // outside those it specified

@@ -1,10 +1,11 @@
+use crate::contract::Chainbills;
+use crate::error::ChainbillsError;
 use crate::messages::{
   CreatePayableMessage, FetchIdMessage, IdMessage,
   UpdatePayableTokensAndAmountsMessage,
 };
-use crate::state::{Payable, User};
-use crate::{contract::Chainbills, error::ChainbillsError};
-use sylvia::cw_std::{HexBinary, Response, StdError};
+use crate::state::{Payable, TokenDetails, User};
+use sylvia::cw_std::{HexBinary, Response, StdError, Uint128};
 use sylvia::interface;
 use sylvia::types::{ExecCtx, QueryCtx};
 
@@ -108,13 +109,13 @@ impl Payables for Chainbills {
       allowed_tokens_and_amounts,
     } = msg;
     for taa in allowed_tokens_and_amounts.iter() {
-      // Ensure tokens are valid and are supported. Basically if a token's max
-      // withdrawal fees is not set, then it isn't supported.
-      if !self
-        .max_fees_per_token
-        .has(ctx.deps.storage, taa.token.clone())
-      {
-        return Err(ChainbillsError::InvalidToken {
+      // Ensure that the token is supported.
+      let token_details = self
+        .token_details
+        .load(ctx.deps.storage, taa.token.clone())
+        .unwrap_or(TokenDetails::initialize(false, false, Uint128::zero()));
+      if !token_details.is_supported {
+        return Err(ChainbillsError::UnsupportedToken {
           token: taa.token.clone(),
         });
       }
@@ -285,13 +286,13 @@ impl Payables for Chainbills {
       ..
     } = msg;
     for taa in allowed_tokens_and_amounts.iter() {
-      // Ensure tokens are valid and are supported. Basically if a token's max
-      // withdrawal fees is not set, then it isn't supported.
-      if !self
-        .max_fees_per_token
-        .has(ctx.deps.storage, taa.token.clone())
-      {
-        return Err(ChainbillsError::InvalidToken {
+      // Ensure that the token is supported.
+      let token_details = self
+        .token_details
+        .load(ctx.deps.storage, taa.token.clone())
+        .unwrap_or(TokenDetails::initialize(false, false, Uint128::zero()));
+      if !token_details.is_supported {
+        return Err(ChainbillsError::UnsupportedToken {
           token: taa.token.clone(),
         });
       }

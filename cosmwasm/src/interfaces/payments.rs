@@ -5,10 +5,12 @@ use crate::messages::{
   PerChainPayablePaymentsCountMessage, TransactionInfoMessage,
 };
 use crate::state::{
-  MaxWithdrawalFeeDetails, PayablePayment, TokenAndAmount, User, UserPayment,
+  PayablePayment, TokenAndAmount, TokenDetails, User, UserPayment,
 };
 use cw20::Cw20ExecuteMsg;
-use sylvia::cw_std::{to_json_binary, HexBinary, Response, StdError, WasmMsg};
+use sylvia::cw_std::{
+  to_json_binary, HexBinary, Response, StdError, Uint128, WasmMsg,
+};
 use sylvia::interface;
 use sylvia::types::{ExecCtx, QueryCtx};
 
@@ -242,21 +244,18 @@ impl Payments for Chainbills {
       return Err(ChainbillsError::ZeroAmountSpecified {});
     }
 
-    // Ensure that the token is valid and is supported. Basically if a token's
-    // max withdrawal fees is not set, then it isn't supported.
-    //
-    // Also determine if the token is a native one in the process.
-    let MaxWithdrawalFeeDetails {
-      is_native_token, ..
-    } = match self
-      .max_fees_per_token
-      .may_load(ctx.deps.storage, token.clone())?
-    {
-      Some(details) => Ok(details),
-      None => Err(ChainbillsError::InvalidToken {
+    // Fetch the TokenDetails details for the involved token.
+    let mut token_details = self
+      .token_details
+      .load(ctx.deps.storage, token.clone())
+      .unwrap_or(TokenDetails::initialize(false, false, Uint128::zero()));
+
+    // Return an error if the token isn't supported.
+    if !token_details.is_supported {
+      return Err(ChainbillsError::UnsupportedToken {
         token: token.clone(),
-      }),
-    }?;
+      });
+    }
 
     // Ensure that the specified token to be transferred is an allowed token
     // for this payable, if this payable specified the tokens and amounts it
@@ -275,7 +274,7 @@ impl Payments for Chainbills {
 
     /* TRANSFER */
     let mut cw20_messages = vec![];
-    if is_native_token {
+    if token_details.is_native_token {
       // Verify Native Token Payment was made.
       let verified_amount = cw_utils::must_pay(&ctx.info, &token.clone())?;
       if verified_amount != amount {
@@ -350,6 +349,13 @@ impl Payments for Chainbills {
       (payable_id.to_vec(), chain_stats.chain_id),
       &local_chain_count,
     )?;
+
+    // Increase the supported token's totals from this payment.
+    token_details.add_user_paid(amount);
+    token_details.add_payable_received(amount);
+    self
+      .token_details
+      .save(ctx.deps.storage, token.clone(), &token_details)?;
 
     // Get a new Payment ID
     let payment_id = self.create_id(

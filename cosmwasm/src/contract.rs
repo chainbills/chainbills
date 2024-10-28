@@ -1,8 +1,8 @@
 use crate::error::ChainbillsError;
 use crate::messages::{IdMessage, InstantiateMessage};
 use crate::state::{
-  ChainStats, Config, MaxWithdrawalFeeDetails, Payable, PayablePayment, User,
-  UserPayment, Withdrawal,
+  ChainStats, Config, Payable, PayablePayment, TokenAndAmount, TokenDetails,
+  User, UserPayment, Withdrawal,
 };
 use cw2::set_contract_version;
 use cw20::Cw20ExecuteMsg;
@@ -23,7 +23,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub struct Chainbills {
   pub config: Item<Config>,
   pub chain_stats: Item<ChainStats>,
-  pub max_fees_per_token: Map<String, MaxWithdrawalFeeDetails>,
+  pub token_details: Map<String, TokenDetails>,
   pub users: Map<&'static Addr, User>,
   pub user_payable_ids: Map<&'static Addr, Vec<[u8; 32]>>,
   pub user_payments: Map<[u8; 32], UserPayment>,
@@ -41,16 +41,16 @@ pub struct Chainbills {
 #[cfg_attr(not(feature = "library"), entry_points)]
 #[contract]
 #[sv::error(crate::error::ChainbillsError)]
-#[sv::messages(crate::interfaces::max_withdrawal_fees as MaxWithdrawalFees)]
 #[sv::messages(crate::interfaces::payables as Payables)]
 #[sv::messages(crate::interfaces::payments as Payments)]
+#[sv::messages(crate::interfaces::token_details as TokenDetailsInterface)]
 #[sv::messages(crate::interfaces::withdrawals as Withdrawals)]
 impl Chainbills {
   pub const fn new() -> Self {
     Self {
       config: Item::new("config"),
       chain_stats: Item::new("chain_stats"),
-      max_fees_per_token: Map::new("max_fees_per_token"),
+      token_details: Map::new("token_details"),
       users: Map::new("users"),
       user_payable_ids: Map::new("user_payable_ids"),
       user_payments: Map::new("user_payments"),
@@ -128,7 +128,7 @@ impl Chainbills {
   fn owner_withdraw(
     &self,
     ctx: ExecCtx,
-    msg: MaxWithdrawalFeeDetails,
+    msg: TokenAndAmount,
   ) -> Result<Response, ChainbillsError> {
     // Ensure the caller is the owner.
     let config = self.config.load(ctx.deps.storage)?;
@@ -136,17 +136,26 @@ impl Chainbills {
       return Err(ChainbillsError::OwnerUnauthorized {});
     }
 
-    // Extract the details token and amount for the withdrawal.
-    let MaxWithdrawalFeeDetails {
-      token,
-      max_fee: amount,
-      is_native_token,
-    } = msg;
+    // Extract the token and amount for the payment.
+    let TokenAndAmount { token, amount } = msg;
 
-    // If the token is not a native one, ensure it is a valid token address.
-    if !is_native_token {
-      ctx.deps.api.addr_validate(&token.clone())?;
+    // Ensure that the specified amount is greater than zero.
+    if amount.is_zero() {
+      return Err(ChainbillsError::ZeroAmountSpecified {});
     }
+
+    // Ensure the token is supported and know if it is a native one.
+    let TokenDetails {
+      is_native_token, ..
+    } = match self
+      .token_details
+      .may_load(ctx.deps.storage, token.clone())?
+    {
+      Some(details) => Ok(details),
+      None => Err(ChainbillsError::InvalidToken {
+        token: token.clone(),
+      }),
+    }?;
 
     // Prepare messages for transfer to add to the response.
     let mut bank_messages = vec![];

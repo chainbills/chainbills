@@ -9,8 +9,10 @@ pub struct InstantiateMessage {
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
-pub struct FetchMaxFeeMessage {
+pub struct UpdateMaxWithdrawalFeesMessage {
   pub token: String,
+  pub is_native_token: bool,
+  pub max_withdrawal_fees: Uint128,
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]

@@ -93,16 +93,61 @@ impl User {
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
-/// Indicates supported tokens. Stores the maximum withdrawal fees for each
-/// token. Also tells whether the token is a native token (its denom) or
-/// a Cw20 (its Addr).
-pub struct MaxWithdrawalFeeDetails {
-  /// The associated token.
-  pub token: String,
+/// Keeps data about tokens that have ever been used for payments. Also tells
+/// whether the token is a native token (its denom) or a Cw20 (its Addr).
+pub struct TokenDetails {
+  /// Whether payments are currently accepted in this token.
+  pub is_supported: bool,
   /// Whether this token is a native token or a Cw20 token.
   pub is_native_token: bool,
   /// The maximum withdrawal fee for this token.
-  pub max_fee: Uint128,
+  pub max_withdrawal_fees: Uint128,
+  /// The total amount of user payments in this token.
+  pub total_user_paid: Uint128,
+  /// The total amount of payable payments in this token.
+  pub total_payable_received: Uint128,
+  /// The total amount of withdrawals in this token.
+  pub total_withdrawn: Uint128,
+  /// The total amount of fees collected from withdrawals in this token.
+  pub total_withdrawal_fees_collected: Uint128,
+}
+
+impl TokenDetails {
+  pub const fn initialize(
+    is_supported: bool,
+    is_native_token: bool,
+    max_withdrawal_fees: Uint128,
+  ) -> Self {
+    TokenDetails {
+      is_supported,
+      is_native_token,
+      max_withdrawal_fees,
+      total_user_paid: Uint128::zero(),
+      total_payable_received: Uint128::zero(),
+      total_withdrawn: Uint128::zero(),
+      total_withdrawal_fees_collected: Uint128::zero(),
+    }
+  }
+
+  pub fn add_user_paid(&mut self, amount: Uint128) {
+    self.total_user_paid = self.total_user_paid.checked_add(amount).unwrap()
+  }
+
+  pub fn add_payable_received(&mut self, amount: Uint128) {
+    self.total_payable_received =
+      self.total_payable_received.checked_add(amount).unwrap()
+  }
+
+  pub fn add_withdrawn(&mut self, amount: Uint128) {
+    self.total_withdrawn = self.total_withdrawn.checked_add(amount).unwrap()
+  }
+
+  pub fn add_withdrawal_fees_collected(&mut self, amount: Uint128) {
+    self.total_withdrawal_fees_collected = self
+      .total_withdrawal_fees_collected
+      .checked_add(amount)
+      .unwrap()
+  }
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]

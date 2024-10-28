@@ -35,6 +35,22 @@ struct User {
   uint256 withdrawalsCount;
 }
 
+/// Keeps track of details about tokens ever supported on this chain.
+struct TokenDetails {
+  /// Tells whether payments are currently accepted in this token.
+  bool isSupported;
+  /// The maximum fees for withdrawal (with its decimals).
+  uint256 maxWithdrawalFees;
+  /// The total amount of user payments in this token.
+  uint256 totalUserPaid;
+  /// The total amount of payable payments in this token.
+  uint256 totalPayableReceived;
+  /// The total amount of withdrawals in this token.
+  uint256 totalWithdrawn;
+  /// The total amount of fees collected from withdrawals in this token.
+  uint256 totalWithdrawalFeesCollected;
+}
+
 /// A combination of a token address and its associated amount.
 ///
 /// This combination is used to constrain how much of a token
@@ -157,8 +173,8 @@ contract CbState {
   /// Wormhole Chain IDs against their corresponding Emitter
   /// Contract Addresses on those chains, that is, trusted caller contracts.
   mapping(uint16 => bytes32) public registeredEmitters;
-  /// Maximum Fees per token withdrawals.
-  mapping(address => uint256) public maxFeesPerToken;
+  /// Details of Supported Tokens on this chain.
+  mapping(address => TokenDetails) public tokenDetails;
   /// User accounts on this chain.
   mapping(address => User) public users;
   /// Array of IDs of Payable created by users.

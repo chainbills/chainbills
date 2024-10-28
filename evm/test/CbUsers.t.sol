@@ -32,10 +32,10 @@ contract CbUsersTest is Test {
     chainbills = new Chainbills(feeCollector, wormhole, chainId, 200);
     usdc = new USDC();
 
-    // calling updateMaxWithdrawalFee with contract address and USDC
+    // calling updateMaxWithdrawalFees with contract address and USDC
     // is to allow native token (ETH) and ERC20 to be used for payments
-    chainbills.updateMaxWithdrawalFee(address(chainbills), ethMaxFee);
-    chainbills.updateMaxWithdrawalFee(address(usdc), usdcMaxFee);
+    chainbills.updateMaxWithdrawalFees(address(chainbills), ethMaxFee);
+    chainbills.updateMaxWithdrawalFees(address(usdc), usdcMaxFee);
   }
 
   function testUserInitOnCreatePayable() public {
@@ -184,12 +184,12 @@ contract CbUsersTest is Test {
     vm.startPrank(user);
 
     // payment should revert if given token is address zero, or if token is
-    // not allowed (doesn't have its maxWithdrawalFee set).
+    // not supported (doesn't have its maxWithdrawalFees updated at least once).
     // NOTE: ETH and USDC are allowed in the top-level setUp function for this
     // test contract.
     vm.expectRevert(InvalidTokenAddress.selector);
     chainbills.pay(payableId, address(0), 0);
-    vm.expectRevert(InvalidTokenAddress.selector);
+    vm.expectRevert(UnsupportedToken.selector);
     chainbills.pay(payableId, address(this), 0);
 
     // payment should revert if zero amount was requested.
@@ -217,9 +217,9 @@ contract CbUsersTest is Test {
     // payment should revert if token is ERC20 and amount is not approved.
     deal(address(usdc), user, 1);
     vm.expectRevert();
-    chainbills.pay(payableId, address(usdc), 1);   
+    chainbills.pay(payableId, address(usdc), 1);
 
-    vm.stopPrank(); 
+    vm.stopPrank();
   }
 
   function testUserMakingSuccessfulPayments() public {
@@ -230,6 +230,10 @@ contract CbUsersTest is Test {
     (,, uint256 prevUserPaymentCount,) = chainbills.users(user);
     (,, uint256 prevPaymentsCount,) = chainbills.chainStats();
     (,,,, uint256 prevPayablePaymentsCount,,,,) = chainbills.payables(payableId);
+    (,, uint256 prevTotalUserPaidEth, uint256 prevTotalPayableReceivedEth,,) =
+      chainbills.tokenDetails(address(chainbills));
+    (,, uint256 prevTotalUserPaidUsdc, uint256 prevTotalPayableReceivedUsdc,,) =
+      chainbills.tokenDetails(address(usdc));
 
     // testing successful first payment with native token (ETH)
     deal(user, ethAmt);
@@ -296,6 +300,10 @@ contract CbUsersTest is Test {
     (,, uint256 newUserPaymentCount,) = chainbills.users(user);
     (,, uint256 newPaymentsCount,) = chainbills.chainStats();
     (,,,, uint256 newPayablePaymentsCount,,,,) = chainbills.payables(payableId);
+    (,, uint256 newTotalUserPaidEth, uint256 newTotalPayableReceivedEth,,) =
+      chainbills.tokenDetails(address(chainbills));
+    (,, uint256 newTotalUserPaidUsdc, uint256 newTotalPayableReceivedUsdc,,) =
+      chainbills.tokenDetails(address(usdc));
     vm.stopPrank();
 
     // check balances
@@ -315,6 +323,14 @@ contract CbUsersTest is Test {
     assertEq(prevPaymentsCount + 2, newPaymentsCount);
     assertEq(prevPayablePaymentsCount, 0);
     assertEq(prevPayablePaymentsCount + 2, newPayablePaymentsCount);
+
+    // check token totals
+    assertEq(prevTotalUserPaidEth + ethAmt, newTotalUserPaidEth);
+    assertEq(prevTotalPayableReceivedEth + ethAmt, newTotalPayableReceivedEth);
+    assertEq(prevTotalUserPaidUsdc + usdcAmt, newTotalUserPaidUsdc);
+    assertEq(
+      prevTotalPayableReceivedUsdc + usdcAmt, newTotalPayableReceivedUsdc
+    );
 
     // check payment 1's details
     assertEq(p1PayableId, payableId);
@@ -367,18 +383,22 @@ contract CbUsersTest is Test {
     // create a payable as the user
     vm.prank(user);
     bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
-    
+
     (,,, uint256 prevUserWithdrawalCount) = chainbills.users(user);
     (,,, uint256 prevWithdrawalsCount) = chainbills.chainStats();
     (,,,,, uint256 prevPayableWithdrawalCount,,,) =
       chainbills.payables(payableId);
+    (,,,, uint256 prevTotalWithdrawnEth, uint256 prevTotalWthFeesClctdEth) =
+      chainbills.tokenDetails(address(chainbills));
+    (,,,, uint256 prevTotalWithdrawnUsdc, uint256 prevTotalWthFeesClctdUsdc) =
+      chainbills.tokenDetails(address(usdc));
 
     // make payments as the test contract to the user's payable.
     deal(address(this), ethAmt);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
     // withdrawal should revert if payable hasn't received payments in
-    // the requested token. 
+    // the requested token.
     vm.prank(user);
     vm.expectRevert(NoBalanceForWithdrawalToken.selector);
     chainbills.withdraw(payableId, address(usdc), 1);
@@ -398,9 +418,9 @@ contract CbUsersTest is Test {
     chainbills.withdraw(payableId, address(chainbills), ethAmt * 2);
 
     // withdrawal should revert if payable doesn't have balance in given token.
-    // well specifically for this case, withdrawal should revert if the token 
-    // is not supported (doesn't have maxWithdrawalFee set). though this is 
-    // redundant, it is worth having.
+    // well specifically for this case, withdrawal should revert if the token
+    // is not supported (doesn't have its maxWithdrawalFees updated at least
+    // once). Though this is redundant, it is worth having.
     // NOTE: ETH and USDC are allowed in the top-level setUp function for this
     // test contract.
     vm.expectRevert(NoBalanceForWithdrawalToken.selector);
@@ -468,6 +488,10 @@ contract CbUsersTest is Test {
     (,,, uint256 newWithdrawalsCount) = chainbills.chainStats();
     (,,,,, uint256 newPayableWithdrawalCount,,,) =
       chainbills.payables(payableId);
+    (,,,, uint256 newTotalWithdrawnEth, uint256 newTotalWthFeesClctdEth) =
+      chainbills.tokenDetails(address(chainbills));
+    (,,,, uint256 newTotalWithdrawnUsdc, uint256 newTotalWthFeesClctdUsdc) =
+      chainbills.tokenDetails(address(usdc));
 
     vm.stopPrank();
 
@@ -499,6 +523,12 @@ contract CbUsersTest is Test {
     assertEq(prevWithdrawalsCount + 2, newWithdrawalsCount);
     assertEq(prevPayableWithdrawalCount, 0);
     assertEq(prevPayableWithdrawalCount + 2, newPayableWithdrawalCount);
+
+    // check token totals
+    assertEq(prevTotalWithdrawnEth + ethAmt, newTotalWithdrawnEth);
+    assertEq(prevTotalWthFeesClctdEth + ethFee, newTotalWthFeesClctdEth);
+    assertEq(prevTotalWithdrawnUsdc + usdcAmt, newTotalWithdrawnUsdc);
+    assertEq(prevTotalWthFeesClctdUsdc + usdcFee, newTotalWthFeesClctdUsdc);
 
     // check withdrawal 1's details
     assertEq(w1PayableId, payableId);

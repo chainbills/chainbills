@@ -1,7 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 
-
 #[derive(Accounts)]
 pub struct PayNative<'info> {
   #[account(
@@ -49,8 +48,8 @@ pub struct PayNative<'info> {
   #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
-  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, crate::ID.as_ref()], bump)]
-  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
+  #[account(seeds = [TokenDetails::SEED_PREFIX, crate::ID.as_ref()], bump)]
+  pub token_details: Box<Account<'info, TokenDetails>>,
 
   #[account(mut)]
   pub signer: Signer<'info>,

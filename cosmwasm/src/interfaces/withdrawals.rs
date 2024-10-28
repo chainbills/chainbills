@@ -1,7 +1,7 @@
 use crate::contract::Chainbills;
 use crate::error::ChainbillsError;
 use crate::messages::{FetchIdMessage, IdMessage, TransactionInfoMessage};
-use crate::state::{MaxWithdrawalFeeDetails, TokenAndAmount, User, Withdrawal};
+use crate::state::{TokenAndAmount, TokenDetails, User, Withdrawal};
 use cw20::Cw20ExecuteMsg;
 use std::cmp::min;
 use sylvia::cw_std::{
@@ -168,14 +168,14 @@ impl Withdrawals for Chainbills {
       .unwrap()
       .checked_div(Uint128::new(100))
       .unwrap();
-    let MaxWithdrawalFeeDetails {
+    let mut token_details =
+      self.token_details.load(ctx.deps.storage, token.clone())?;
+    let TokenDetails {
       is_native_token, // Determine if token is a native one
-      max_fee,
+      max_withdrawal_fees,
       ..
-    } = self
-      .max_fees_per_token
-      .load(ctx.deps.storage, token.clone())?;
-    let fees = min(percent, max_fee);
+    } = token_details;
+    let fees = min(percent, max_withdrawal_fees);
     let amount_minus_fees = amount.checked_sub(fees).unwrap();
 
     // Prepare messages for transfer to add to the response.
@@ -237,6 +237,13 @@ impl Withdrawals for Chainbills {
       }
     }
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
+
+    // Increase the supported token's totals from this withdrawal.
+    token_details.add_withdrawn(amount);
+    token_details.add_withdrawal_fees_collected(fees);
+    self
+      .token_details
+      .save(ctx.deps.storage, token.clone(), &token_details)?;
 
     // Get a new Withdrawal ID
     let withdrawal_id = self.create_id(

@@ -60,8 +60,8 @@ event Withdrew(
 /// Emitted when owner (deployer) registers/updates an emitter contract.
 event RegisteredForeignContract(uint16 chainId, bytes32 emitterAddress);
 
-/// Emitted when owner (deployer) updates the `maxFee` of `token`.
-event UpdatedMaxWithdrawalFee(address token, uint256 maxFee);
+/// Emitted when owner (deployer) updates the `maxWithdrawalFees` of `token`.
+event UpdatedMaxWithdrawalFees(address token, uint256 maxWithdrawalFees);
 
 /// Emitted when owner (deployer) withdraws `amount`s of `token`.
 event OwnerWithdrew(address token, uint256 amount);

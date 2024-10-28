@@ -13,6 +13,7 @@ error InvalidWormholeAddress();
 error InvalidWormholeFinality();
 error MaxPayableTokensCapacityReached();
 error EmitterNotRegistered();
+error UnsupportedToken();
 error NotYourPayable();
 error PayableIsAlreadyClosed();
 error PayableIsNotClosed();
@@ -63,23 +64,24 @@ contract Chainbills is CbGovernance, CbPayload {
   }
 
   /// Returns a hash that should be used for entity IDs.
-  function createId(
-    address wallet,
-    uint256 count
-  ) internal view returns (bytes32) {
-    return
-      keccak256(
-        abi.encodePacked(block.chainid, chainId, block.timestamp, wallet, count)
-      );
+  function createId(address wallet, uint256 count)
+    internal
+    view
+    returns (bytes32)
+  {
+    return keccak256(
+      abi.encodePacked(block.chainid, chainId, block.timestamp, wallet, count)
+    );
   }
 
   /// Create a Payable.
   /// @param allowedTokensAndAmounts The accepted tokens (and their amounts) on
   /// the payable. If empty, then the payable will accept payments in any token.
   /// @return payableId The ID of the newly created payable.
-  function createPayable(
-    TokenAndAmount[] calldata allowedTokensAndAmounts
-  ) public returns (bytes32 payableId) {
+  function createPayable(TokenAndAmount[] calldata allowedTokensAndAmounts)
+    public
+    returns (bytes32 payableId)
+  {
     /* CHECKS */
     // Ensure that the number of specified acceptable tokens (and their amounts)
     // for payments don't exceed the set maximum.
@@ -88,12 +90,13 @@ contract Chainbills is CbGovernance, CbPayload {
     }
 
     for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
-      // Ensure tokens are valid and are supported. Basically if a token's max
-      // fees is not set, then it isn't supported
+      // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
-      if (token == address(0) || maxFeesPerToken[token] == 0) {
-        revert InvalidTokenAddress();
-      }
+      if (token == address(0)) revert InvalidTokenAddress();
+
+      // Ensure that the token is supported.
+      if (!tokenDetails[token].isSupported) revert UnsupportedToken();
+
       // Ensure that the specified amount is greater than zero.
       if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
     }
@@ -114,17 +117,13 @@ contract Chainbills is CbGovernance, CbPayload {
     _payable.chainCount = chainStats.payablesCount;
     _payable.host = msg.sender;
     _payable.hostCount = users[msg.sender].payablesCount;
-    _payable.allowedTokensAndAmountsCount = uint8(
-      allowedTokensAndAmounts.length
-    );
+    _payable.allowedTokensAndAmountsCount =
+      uint8(allowedTokensAndAmounts.length);
     _payable.createdAt = block.timestamp;
 
     // Emit Event.
     emit CreatedPayable(
-      payableId,
-      msg.sender,
-      _payable.chainCount,
-      _payable.hostCount
+      payableId, msg.sender, _payable.chainCount, _payable.hostCount
     );
   }
 
@@ -169,12 +168,13 @@ contract Chainbills is CbGovernance, CbPayload {
     }
 
     for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
-      // Ensure tokens are valid and are supported. Basically if a token's max
-      // fees is not set, then it isn't supported
+      // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
-      if (token == address(0) || maxFeesPerToken[token] == 0) {
-        revert InvalidTokenAddress();
-      }
+      if (token == address(0)) revert InvalidTokenAddress();
+
+      // Ensure that the token is supported.
+      if (!tokenDetails[token].isSupported) revert UnsupportedToken();
+
       // Ensure that the specified amount is greater than zero.
       if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
     }
@@ -182,9 +182,8 @@ contract Chainbills is CbGovernance, CbPayload {
     /* STATE CHANGES */
     // Update the payable's allowedTokensAndAmounts
     payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
-    _payable.allowedTokensAndAmountsCount = uint8(
-      allowedTokensAndAmounts.length
-    );
+    _payable.allowedTokensAndAmountsCount =
+      uint8(allowedTokensAndAmounts.length);
 
     // Emit Event.
     emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);
@@ -195,17 +194,18 @@ contract Chainbills is CbGovernance, CbPayload {
   /// @param token The Wormhole-normalized address of the token been paid.
   /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
   /// token.
-  function pay(
-    bytes32 payableId,
-    address token,
-    uint256 amount
-  ) public payable nonReentrant returns (bytes32 paymentId) {
+  function pay(bytes32 payableId, address token, uint256 amount)
+    public
+    payable
+    nonReentrant
+    returns (bytes32 paymentId)
+  {
     /* CHECKS */
-    // Ensure that the token is valid and is supported. Basically if a token's
-    // max fees is not set, then it isn't supported.
-    if (token == address(0) || maxFeesPerToken[token] == 0) {
-      revert InvalidTokenAddress();
-    }
+    // Ensure that the token is valid.
+    if (token == address(0)) revert InvalidTokenAddress();
+
+    // Ensure that the token is supported.
+    if (!tokenDetails[token].isSupported) revert UnsupportedToken();
 
     // Ensure that amount is greater than zero
     if (amount == 0) revert ZeroAmountSpecified();
@@ -231,8 +231,8 @@ contract Chainbills is CbGovernance, CbPayload {
     if (aTAALength > 0) {
       for (uint8 i = 0; i < aTAALength; i++) {
         if (
-          payableAllowedTokensAndAmounts[payableId][i].token == token &&
-          payableAllowedTokensAndAmounts[payableId][i].amount == amount
+          payableAllowedTokensAndAmounts[payableId][i].token == token
+            && payableAllowedTokensAndAmounts[payableId][i].amount == amount
         ) break;
         if (i == aTAALength - 1) revert MatchingTokenAndAmountNotFound();
       }
@@ -274,8 +274,25 @@ contract Chainbills is CbGovernance, CbPayload {
       _payable.balancesCount++;
     }
 
-    // Record payment details of payable.
+    // Increase the supported token's totals from this payment.
+    tokenDetails[token].totalUserPaid += amount;
+    tokenDetails[token].totalPayableReceived += amount;
+
+    // Record payment details of user.
     paymentId = createId(msg.sender, users[msg.sender].paymentsCount);
+    userPaymentIds[msg.sender].push(paymentId);
+    userPaymentDetails[paymentId] = TokenAndAmount(token, amount);
+    userPayments[paymentId] = UserPayment({
+      payableId: payableId,
+      payer: msg.sender,
+      payableChainId: chainId,
+      chainCount: chainStats.paymentsCount,
+      payerCount: users[msg.sender].paymentsCount,
+      payableCount: _payable.paymentsCount,
+      timestamp: block.timestamp
+    });
+
+    // Record payment details of payable.
     payablePaymentIds[payableId].push(paymentId);
     payableChainPaymentIds[payableId][chainId].push(paymentId);
     payablePaymentDetails[paymentId] = TokenAndAmount(token, amount);
@@ -289,28 +306,7 @@ contract Chainbills is CbGovernance, CbPayload {
       timestamp: block.timestamp
     });
 
-    // Record payment details of user.
-    userPaymentIds[msg.sender].push(paymentId);
-    userPaymentDetails[paymentId] = TokenAndAmount(token, amount);
-    userPayments[paymentId] = UserPayment({
-      payableId: payableId,
-      payer: msg.sender,
-      payableChainId: chainId,
-      chainCount: chainStats.paymentsCount,
-      payerCount: users[msg.sender].paymentsCount,
-      payableCount: _payable.paymentsCount,
-      timestamp: block.timestamp
-    });
-
     // Emit Events.
-    emit PayablePaid(
-      payableId,
-      toWormholeFormat(msg.sender),
-      paymentId,
-      chainId,
-      payableChainPaymentsCount[payableId][chainId],
-      _payable.paymentsCount
-    );
     emit UserPaid(
       payableId,
       msg.sender,
@@ -319,6 +315,14 @@ contract Chainbills is CbGovernance, CbPayload {
       chainStats.paymentsCount,
       users[msg.sender].paymentsCount
     );
+    emit PayablePaid(
+      payableId,
+      toWormholeFormat(msg.sender),
+      paymentId,
+      chainId,
+      payableChainPaymentsCount[payableId][chainId],
+      _payable.paymentsCount
+    );
   }
 
   /// Transfers the amount of tokens from a payable to the owner host.
@@ -326,11 +330,12 @@ contract Chainbills is CbGovernance, CbPayload {
   /// @param token The Wormhole-normalized address of the token been withdrawn.
   /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
   /// token.
-  function withdraw(
-    bytes32 payableId,
-    address token,
-    uint256 amount
-  ) public payable nonReentrant returns (bytes32 withdrawalId) {
+  function withdraw(bytes32 payableId, address token, uint256 amount)
+    public
+    payable
+    nonReentrant
+    returns (bytes32 withdrawalId)
+  {
     /* CHECKS */
     // Ensure that the payable exists and that the caller owns the payable.
     Payable storage _payable = payables[payableId];
@@ -360,14 +365,14 @@ contract Chainbills is CbGovernance, CbPayload {
     /* TRANSFER */
     // Prepare withdraw amounts and fees
     uint256 percent = (amount * WITHDRAWAL_FEE_PERCENTAGE) / 100;
-    uint256 maxFee = maxFeesPerToken[token];
-    uint256 fee = percent > maxFee ? maxFee : percent;
-    uint256 amtDue = amount - fee;
+    uint256 maxFees = tokenDetails[token].maxWithdrawalFees;
+    uint256 fees = percent > maxFees ? maxFees : percent;
+    uint256 amtDue = amount - fees;
 
     // Transfer the amount minus fees to the owner.
     bool isSuccess = false;
     if (token == address(this)) {
-      (isSuccess, ) = payable(msg.sender).call{value: amtDue}('');
+      (isSuccess,) = payable(msg.sender).call{value: amtDue}('');
     } else {
       isSuccess = IERC20(token).transfer(msg.sender, amtDue);
     }
@@ -375,9 +380,9 @@ contract Chainbills is CbGovernance, CbPayload {
 
     // Transfer the fees to the fees collector.
     if (token == address(this)) {
-      (payable(feeCollector).call{value: fee}(''));
+      (payable(feeCollector).call{value: fees}(''));
     } else {
-      IERC20(token).transfer(feeCollector, fee);
+      IERC20(token).transfer(feeCollector, fees);
     }
 
     /* STATE CHANGES */
@@ -397,6 +402,10 @@ contract Chainbills is CbGovernance, CbPayload {
         break;
       }
     }
+
+    // Increase the supported token's totals from this withdrawal.
+    tokenDetails[token].totalWithdrawn += amount;
+    tokenDetails[token].totalWithdrawalFeesCollected += fees;
 
     // Initialize the withdrawal.
     withdrawalId = createId(msg.sender, users[msg.sender].withdrawalsCount);

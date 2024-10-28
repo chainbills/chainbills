@@ -40,8 +40,8 @@ pub struct WithdrawNative<'info> {
   #[account(address = config.load()?.chainbills_fee_collector)]
   pub fee_collector: SystemAccount<'info>,
 
-  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, crate::ID.as_ref()], bump)]
-  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
+  #[account(seeds = [TokenDetails::SEED_PREFIX, crate::ID.as_ref()], bump)]
+  pub token_details: Box<Account<'info, TokenDetails>>,
 
   #[account(mut)]
   pub signer: Signer<'info>,

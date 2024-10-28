@@ -1,12 +1,11 @@
 use crate::{error::ChainbillsError, state::*};
 use anchor_lang::prelude::*;
 
-
 #[derive(Accounts)]
-pub struct UpdateMaxWithdrawalFeeNative<'info> {
-  #[account(init_if_needed, payer = owner, seeds = [MaxFeeDetails::SEED_PREFIX, crate::ID.as_ref()], bump, space = MaxFeeDetails::SPACE)]
-  /// Account that stores the max withdrawal fee details.
-  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
+pub struct UpdateMaxWithdrawalFeesNative<'info> {
+  #[account(init_if_needed, payer = owner, seeds = [TokenDetails::SEED_PREFIX, crate::ID.as_ref()], bump, space = TokenDetails::SPACE)]
+  /// Account that stores the details of the token to updates its max withdrawal fees.
+  pub token_details: Box<Account<'info, TokenDetails>>,
 
   #[account(seeds = [Config::SEED_PREFIX], bump)]
   pub config: AccountLoader<'info, Config>,

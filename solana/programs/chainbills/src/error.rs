@@ -6,6 +6,10 @@ pub enum ChainbillsError {
   /// The maximum capacity of payable tokens has been reached.
   MaxPayableTokensCapacityReached,
 
+  #[msg("UnsupportedToken")]
+  /// The token is not supported.
+  UnsupportedToken,
+
   #[msg("ZeroAmountSpecified")]
   /// The amount specified is zero.
   ZeroAmountSpecified,

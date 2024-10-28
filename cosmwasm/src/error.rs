@@ -16,6 +16,9 @@ pub enum ChainbillsError {
   #[error("Invalid Token: {token}")]
   InvalidToken { token: String },
 
+  #[error("Unsupported Token: {token}")]
+  UnsupportedToken { token: String },
+
   #[error("Zero Amount Specified")]
   ZeroAmountSpecified {},
 

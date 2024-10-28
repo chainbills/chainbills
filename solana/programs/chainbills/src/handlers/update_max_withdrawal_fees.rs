@@ -6,11 +6,11 @@ use anchor_lang::prelude::*;
 /// ### Args
 /// * token<Pubkey>: The token mint for which its maximum withdrawal fees is
 ///                  been set.
-/// * fee<u64>: The max fee to set.
-pub fn update_max_withdrawal_fee(
-  ctx: Context<UpdateMaxWithdrawalFee>,
+/// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+pub fn update_max_withdrawal_fees(
+  ctx: Context<UpdateMaxWithdrawalFees>,
   token: Pubkey,
-  fee: u64,
+  max_withdrawal_fees: u64,
 ) -> Result<()> {
   // Carrying out these checks here and not in the context constraints
   // to bypass stack offset errors.
@@ -24,16 +24,14 @@ pub fn update_max_withdrawal_fee(
     return Err(ChainbillsError::WrongFeeCollectorAddress.into());
   }
 
-  let max_withdrawal_fee_details =
-    ctx.accounts.max_withdrawal_fee_details.as_mut();
+  let token_details = ctx.accounts.token_details.as_mut();
+  token_details.is_supported = true;
+  token_details.max_withdrawal_fees = max_withdrawal_fees;
 
-  max_withdrawal_fee_details.token = token;
-  max_withdrawal_fee_details.amount = fee;
-
-  msg!("Updated Max Withdrawal Fee.");
-  emit!(UpdatedMaxWithdrawalFeeEvent {
+  msg!("Updated Max Withdrawal Fees.");
+  emit!(UpdatedMaxWithdrawalFeesEvent {
     token,
-    max_fee: fee
+    max_withdrawal_fees
   });
   Ok(())
 }
@@ -41,21 +39,19 @@ pub fn update_max_withdrawal_fee(
 /// Updates the maximum withdrawal fees of the native token (Solana).
 ///
 /// ### Args
-/// * fee<u64>: The max fee to set.
-pub fn update_max_withdrawal_fee_native(
-  ctx: Context<UpdateMaxWithdrawalFeeNative>,
-  fee: u64,
+/// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+pub fn update_max_withdrawal_fees_native(
+  ctx: Context<UpdateMaxWithdrawalFeesNative>,
+  max_withdrawal_fees: u64,
 ) -> Result<()> {
-  let max_withdrawal_fee_details =
-    ctx.accounts.max_withdrawal_fee_details.as_mut();
+  let token_details = ctx.accounts.token_details.as_mut();
+  token_details.is_supported = true;
+  token_details.max_withdrawal_fees = max_withdrawal_fees;
 
-  max_withdrawal_fee_details.token = crate::ID;
-  max_withdrawal_fee_details.amount = fee;
-
-  msg!("Updated Max Withdrawal Fee.");
-  emit!(UpdatedMaxWithdrawalFeeEvent {
+  msg!("Updated Max Withdrawal Fees.");
+  emit!(UpdatedMaxWithdrawalFeesEvent {
     token: crate::ID,
-    max_fee: fee
+    max_withdrawal_fees
   });
   Ok(())
 }

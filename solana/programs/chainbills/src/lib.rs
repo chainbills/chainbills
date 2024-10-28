@@ -54,24 +54,24 @@ pub mod chainbills {
   /// ### Args
   /// * token<Pubkey>: The address of the token for which its maximum
   ///                   withdrawal fees is been set.
-  /// * fee<u64>: The max fee to set.
-  pub fn update_max_withdrawal_fee(
-    ctx: Context<UpdateMaxWithdrawalFee>,
-    token: Pubkey,
-    fee: u64,
+  /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+  pub fn update_max_withdrawal_fees(
+      ctx: Context<UpdateMaxWithdrawalFees>,
+      token: Pubkey,
+      max_withdrawal_fees: u64,
   ) -> Result<()> {
-    handlers::update_max_withdrawal_fee(ctx, token, fee)
+    handlers::update_max_withdrawal_fees(ctx, token, max_withdrawal_fees)
   }
 
   /// Updates the maximum withdrawal fees of the native token (Solana).
   ///
   /// ### Args
-  /// * fee<u64>: The max fee to set.
-  pub fn update_max_withdrawal_fee_native(
-    ctx: Context<UpdateMaxWithdrawalFeeNative>,
-    fee: u64,
+  /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+  pub fn update_max_withdrawal_fees_native(
+    ctx: Context<UpdateMaxWithdrawalFeesNative>,
+    max_withdrawal_fees: u64,
   ) -> Result<()> {
-    handlers::update_max_withdrawal_fee_native(ctx, fee)
+    handlers::update_max_withdrawal_fees_native(ctx, max_withdrawal_fees)
   }
 
   /// Initialize a User.

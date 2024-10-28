@@ -2,7 +2,6 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
-
 #[derive(Accounts)]
 pub struct Pay<'info> {
   #[account(
@@ -52,9 +51,8 @@ pub struct Pay<'info> {
 
   pub mint: Box<Account<'info, Mint>>,
 
-  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, mint.key().as_ref()], bump)]
-  /// Ensures that payers don't pay into unsupported tokens.
-  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
+  #[account(seeds = [TokenDetails::SEED_PREFIX, mint.key().as_ref()], bump)]
+  pub token_details: Box<Account<'info, TokenDetails>>,
 
   #[account(
         mut,

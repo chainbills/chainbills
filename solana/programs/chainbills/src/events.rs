@@ -10,9 +10,9 @@ pub struct RegisteredForeignContractEvent {
 }
 
 #[event]
-pub struct UpdatedMaxWithdrawalFeeEvent {
+pub struct UpdatedMaxWithdrawalFeesEvent {
   pub token: Pubkey,
-  pub max_fee: u64,
+  pub max_withdrawal_fees: u64,
 }
 
 #[event]
@@ -48,7 +48,7 @@ pub struct UpdatedPayableAllowedTokensAndAmountsEvent {
 }
 
 #[event]
-/// Emitted when a payment is made to a payable. payer_wallet is [u8; 32] to 
+/// Emitted when a payment is made to a payable. payer_wallet is [u8; 32] to
 /// take into account payments from other chains.
 pub struct PayablePayEvent {
   pub payable_id: Pubkey,

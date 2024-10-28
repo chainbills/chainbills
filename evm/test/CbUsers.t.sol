@@ -229,7 +229,6 @@ contract CbUsersTest is Test {
     vm.startPrank(user);
     (,, uint256 prevUserPaymentCount,) = chainbills.users(user);
     (,, uint256 prevPaymentsCount,) = chainbills.chainStats();
-    (,,,, uint256 prevPayablePaymentsCount,,,,) = chainbills.payables(payableId);
     (,, uint256 prevTotalUserPaidEth, uint256 prevTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
     (,, uint256 prevTotalUserPaidUsdc, uint256 prevTotalPayableReceivedUsdc,,) =
@@ -262,7 +261,6 @@ contract CbUsersTest is Test {
       uint16 p1PayableChainId,
       uint256 p1ChainCount,
       uint256 p1PayerCount,
-      uint256 p1PayableCount,
       uint256 p1Timestamp
     ) = chainbills.userPayments(paymentId1);
 
@@ -293,13 +291,11 @@ contract CbUsersTest is Test {
       uint16 p2PayableChainId,
       uint256 p2ChainCount,
       uint256 p2PayerCount,
-      uint256 p2PayableCount,
       uint256 p2Timestamp
     ) = chainbills.userPayments(paymentId2);
 
     (,, uint256 newUserPaymentCount,) = chainbills.users(user);
     (,, uint256 newPaymentsCount,) = chainbills.chainStats();
-    (,,,, uint256 newPayablePaymentsCount,,,,) = chainbills.payables(payableId);
     (,, uint256 newTotalUserPaidEth, uint256 newTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
     (,, uint256 newTotalUserPaidUsdc, uint256 newTotalPayableReceivedUsdc,,) =
@@ -321,8 +317,6 @@ contract CbUsersTest is Test {
     assertEq(prevUserPaymentCount + 2, newUserPaymentCount);
     assertEq(prevPaymentsCount, 0);
     assertEq(prevPaymentsCount + 2, newPaymentsCount);
-    assertEq(prevPayablePaymentsCount, 0);
-    assertEq(prevPayablePaymentsCount + 2, newPayablePaymentsCount);
 
     // check token totals
     assertEq(prevTotalUserPaidEth + ethAmt, newTotalUserPaidEth);
@@ -338,7 +332,6 @@ contract CbUsersTest is Test {
     assertEq(p1PayableChainId, chainId);
     assertEq(p1ChainCount, prevPaymentsCount + 1);
     assertEq(p1PayerCount, prevUserPaymentCount + 1);
-    assertEq(p1PayableCount, prevPayablePaymentsCount + 1);
     assertGt(p1Timestamp, 0);
     assertGe(p1Timestamp, block.timestamp);
     assertEq(p1Token, address(chainbills));
@@ -350,7 +343,6 @@ contract CbUsersTest is Test {
     assertEq(p2PayableChainId, chainId);
     assertEq(p2ChainCount, prevPaymentsCount + 2);
     assertEq(p2PayerCount, prevUserPaymentCount + 2);
-    assertEq(p2PayableCount, prevPayablePaymentsCount + 2);
     assertGt(p2Timestamp, 0);
     assertGe(p2Timestamp, block.timestamp);
     assertEq(p2Token, address(usdc));

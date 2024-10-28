@@ -121,7 +121,6 @@ fn update_state_for_payment(
   user_payment.payable_chain_id = chain_stats.chain_id;
   user_payment.payer = signer;
   user_payment.payer_count = payer.payments_count;
-  user_payment.payable_count = payable.payments_count;
   user_payment.timestamp = timestamp;
   user_payment.details = payment_details;
 
@@ -131,7 +130,6 @@ fn update_state_for_payment(
   payable_payment.payer_chain_id = chain_stats.chain_id;
   payable_payment.local_chain_count = payable_chain_counter.payments_count;
   payable_payment.payable_count = payable.payments_count;
-  payable_payment.payer_count = payer.payments_count;
   payable_payment.timestamp = timestamp;
   payable_payment.details = payment_details;
 
@@ -161,7 +159,7 @@ fn update_state_for_payment(
     payment_id: payable_payment.key(),
     payer_chain_id: payable_payment.payer_chain_id,
     chain_count: payable_payment.local_chain_count,
-    payable_count: payable_payment.payer_count,
+    payable_count: payable_payment.payable_count,
   });
   Ok(())
 }

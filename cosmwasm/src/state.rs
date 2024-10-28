@@ -216,9 +216,6 @@ pub struct UserPayment {
   /// The nth count of payments that the payer has made
   /// at the point of making this payment.
   pub payer_count: u64,
-  /// The nth count of payments that the payable has received
-  /// at the point when this payment was made.
-  pub payable_count: u64,
   /// When this payment was made.
   pub timestamp: u64,
   /// The amount and token that the payer paid
@@ -243,9 +240,6 @@ pub struct PayablePayment {
   /// The nth count of payments that the payable has received
   /// at the point when this payment was made.
   pub payable_count: u64,
-  /// The nth count of payments that the payer has made
-  /// at the point of making this payment.
-  pub payer_count: u64,
   /// When this payment was made.
   pub timestamp: u64,
   /// The amount and token that the payer paid

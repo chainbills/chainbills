@@ -102,9 +102,6 @@ struct PayablePayment {
   /// The nth count of payments that the payable has received
   /// at the point when this payment was made.
   uint256 payableCount;
-  /// The nth count of payments that the payer has made
-  /// at the point this payment was recorded.
-  uint256 payerCount;
   /// When this payment was made.
   uint256 timestamp;
 }
@@ -124,9 +121,6 @@ struct UserPayment {
   /// The nth count of payments that the payer has made
   /// at the point of making this payment.
   uint256 payerCount;
-  /// The nth count of payments that the payable has received
-  /// at the point when this payment was made.
-  uint256 payableCount;
   /// When this payment was made.
   uint256 timestamp;
 }

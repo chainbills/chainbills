@@ -10,7 +10,6 @@ export class UserPayment implements Payment {
   payerCount: number;
   payableId: string;
   payableChain: Chain;
-  payableCount: number;
   timestamp: number;
   details: TokenAndAmount;
 
@@ -43,7 +42,6 @@ export class UserPayment implements Payment {
     } else throw `Unknown chain: ${chain}`;
 
     this.payerCount = Number(onChainData.payerCount);
-    this.payableCount = Number(onChainData.payableCount);
     this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
     this.timestamp = Number(onChainData.timestamp);
   }

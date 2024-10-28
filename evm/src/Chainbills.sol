@@ -288,7 +288,6 @@ contract Chainbills is CbGovernance, CbPayload {
       payableChainId: chainId,
       chainCount: chainStats.paymentsCount,
       payerCount: users[msg.sender].paymentsCount,
-      payableCount: _payable.paymentsCount,
       timestamp: block.timestamp
     });
 
@@ -302,7 +301,6 @@ contract Chainbills is CbGovernance, CbPayload {
       payerChainId: chainId,
       localChainCount: payableChainPaymentsCount[payableId][chainId],
       payableCount: _payable.paymentsCount,
-      payerCount: users[msg.sender].paymentsCount,
       timestamp: block.timestamp
     });
 

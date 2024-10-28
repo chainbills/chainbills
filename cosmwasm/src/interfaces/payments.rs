@@ -384,7 +384,6 @@ impl Payments for Chainbills {
       payable_chain_id: chain_stats.chain_id,
       chain_count: chain_stats.payments_count,
       payer_count: user.payments_count,
-      payable_count: payable.payments_count,
       timestamp: ctx.env.block.time.seconds(),
       details: TokenAndAmount {
         token: token.clone(),
@@ -429,7 +428,6 @@ impl Payments for Chainbills {
       payer_chain_id: chain_stats.chain_id,
       local_chain_count,
       payable_count: payable.payments_count,
-      payer_count: user.payments_count,
       timestamp: ctx.env.block.time.seconds(),
       details: TokenAndAmount {
         token: token.clone(),

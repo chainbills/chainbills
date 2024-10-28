@@ -18,7 +18,6 @@ export class PayablePayment {
   localChainCount: number;
   payer: string;
   payerChain: Chain;
-  payerCount: number;
   timestamp: Timestamp;
   details: TokenAndAmountDB;
 
@@ -52,7 +51,6 @@ export class PayablePayment {
 
     this.payableCount = Number(onChainData.payableCount);
     this.localChainCount = Number(onChainData.localChainCount);
-    this.payerCount = Number(onChainData.payerCount);
     const taa = TokenAndAmount.fromOnChain(onChainData.details, chain);
     this.details = { token: taa.name, amount: taa.format(chain) };
     this.timestamp = Timestamp.fromMillis(Number(onChainData.timestamp) * 1000);

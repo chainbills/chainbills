@@ -13,7 +13,6 @@ export class UserPayment {
   payerCount: number;
   payableId: string;
   payableChain: Chain;
-  payableCount: number;
   timestamp: Timestamp;
   details: TokenAndAmountDB;
 
@@ -48,7 +47,6 @@ export class UserPayment {
     } else throw `Unknown chain: ${chain}`;
 
     this.payerCount = Number(onChainData.payerCount);
-    this.payableCount = Number(onChainData.payableCount);
     const taa = TokenAndAmount.fromOnChain(onChainData.details, chain);
     this.details = { token: taa.name, amount: taa.format(chain) };
     this.timestamp = Timestamp.fromMillis(Number(onChainData.timestamp) * 1000);

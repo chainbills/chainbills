@@ -316,7 +316,7 @@ pub enum ActivityType {
   /// The payable was reopened and is now accepting payments.
   ReopenedPayable,
   /// The payable's allowed tokens and amounts were updated.
-  UpdatedPayableTokensAndAmounts,
+  UpdatedPayableAllowedTokensAndAmounts,
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]

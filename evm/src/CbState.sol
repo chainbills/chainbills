@@ -20,6 +20,8 @@ struct ChainStats {
   uint256 payablePaymentsCount;
   /// Total number of withdrawals that have ever been made on this chain.
   uint256 withdrawalsCount;
+  /// Total number of activities that have ever been made on this chain.
+  uint256 activitiesCount;
 }
 
 /// A user is an entity that can create payables and make payments.
@@ -33,6 +35,8 @@ struct User {
   uint256 paymentsCount;
   /// Total number of withdrawals that this user has ever made.
   uint256 withdrawalsCount;
+  /// Total number of activities that this user has ever made.
+  uint256 activitiesCount;
 }
 
 /// Keeps track of details about tokens ever supported on this chain.
@@ -79,6 +83,8 @@ struct Payable {
   uint256 paymentsCount;
   /// The total number of withdrawals made from this payable.
   uint256 withdrawalsCount;
+  /// The total number of activities made on this payable.
+  uint256 activitiesCount;
   /// The number of the allowedTokensAndAmounts of this Payable.
   uint8 allowedTokensAndAmountsCount;
   /// The length of the balances array in this Payable.
@@ -150,6 +156,57 @@ struct Withdrawal {
   uint256 timestamp;
 }
 
+/// A record of an activity.
+enum ActivityType {
+  /// A user was initialized.
+  InitializedUser,
+  /// A payable was created.
+  CreatedPayable,
+  /// A payment was made by a user.
+  UserPaid,
+  /// A payment was made to the payable.
+  PayableReceived,
+  /// A withdrawal was made by a payable.
+  Withdrew,
+  /// The payable was closed and is no longer accepting payments.
+  ClosedPayable,
+  /// The payable was reopened and is now accepting payments.
+  ReopenedPayable,
+  /// The payable's allowed tokens and amounts were updated.
+  UpdatedPayableAllowedTokensAndAmounts
+}
+
+/// A record of an activity.
+struct ActivityRecord {
+  /// The nth count of activities on this chain at the point this activity
+  /// was recorded.
+  uint256 chainCount;
+  /// The nth count of activities that the user has made at the point
+  /// of this activity.
+  uint256 userCount;
+  /// The nth count of activities on the related payable at the point
+  /// of this activity.
+  uint256 payableCount;
+  /// The timestamp of when this activity was recorded.
+  uint256 timestamp;
+  /// The ID of the entity (Payable, Payment, or Withdrawal) that is relevant
+  /// to this activity.
+  bytes32 entity;
+  /// The type of activity.
+  ActivityType activityType;
+}
+
+/// The type of entity that an ID is associated with. Used as a salt in 
+/// generating unique IDs for Payables, Payments, Withdrawals, and Activities.
+///
+/// @dev Using this enum instead of a strings to save gas.
+enum EntityType {
+  Payable,
+  Payment,
+  Withdrawal,
+  Activity
+}
+
 contract CbState {
   /// The withdrawal fee percentage with 2 decimals. 200 means 2%.
   uint256 public withdrawalFeePercentage = 200;
@@ -164,11 +221,15 @@ contract CbState {
   uint8 public wormholeFinality;
   /// Counter for activities on this chain.
   ChainStats public chainStats;
+  /// Array of IDs of Activities on this chain.
+  bytes32[] public chainActivityIds;
   /// Wormhole Chain IDs against their corresponding Emitter
   /// Contract Addresses on those chains, that is, trusted caller contracts.
   mapping(uint16 => bytes32) public registeredEmitters;
   /// Details of Supported Tokens on this chain.
   mapping(address => TokenDetails) public tokenDetails;
+  /// Activities on this chain.
+  mapping(bytes32 => ActivityRecord) public activities;
   /// User accounts on this chain.
   mapping(address => User) public users;
   /// Array of IDs of Payable created by users.
@@ -179,6 +240,8 @@ contract CbState {
   mapping(bytes32 => UserPayment) public userPayments;
   /// The amount and token that the payers paid
   mapping(bytes32 => TokenAndAmount) public userPaymentDetails;
+  /// Array of IDs of Activities made by users.
+  mapping(address => bytes32[]) public userActivityIds;
   /// Payables on this chain by their IDs
   mapping(bytes32 => Payable) public payables;
   /// The allowed tokens (and their amounts) on payables.
@@ -200,6 +263,8 @@ contract CbState {
   /// Payment IDs of payments made to this payable, from each chain by
   /// their Wormhole Chain IDs.
   mapping(bytes32 => mapping(uint16 => bytes32[])) public payableChainPaymentIds;
+  /// Array of IDs of Activities of payables.
+  mapping(bytes32 => bytes32[]) public payableActivityIds;
   /// Withdrawals on this chain by their IDs
   mapping(bytes32 => Withdrawal) public withdrawals;
   /// Array of IDs of Withdrawals made by users.

@@ -49,7 +49,7 @@ contract Chainbills is CbGovernance, CbPayload {
     wormhole = wormhole_;
     chainId = chainId_;
     wormholeFinality = wormholeFinality_;
-    chainStats = ChainStats(0, 0, 0, 0, 0);
+    chainStats = ChainStats(0, 0, 0, 0, 0, 0);
   }
 
   /// Initializes a User if need be.
@@ -57,21 +57,79 @@ contract Chainbills is CbGovernance, CbPayload {
   function initializeUserIfNeedBe(address wallet) internal {
     // Check if the user has not yet been initialized, if yes, initialize.
     if (users[wallet].chainCount == 0) {
+      // Increment chain count for users and activities.
       chainStats.usersCount++;
+      chainStats.activitiesCount++;
+
+      // Initialize the user.
       users[wallet].chainCount = chainStats.usersCount;
+      users[wallet].activitiesCount = 1;
+
+      // Record the Activity.
+      bytes32 activityId =
+        createId(toWormholeFormat(wallet), EntityType.Activity, 1);
+      chainActivityIds.push(activityId);
+      userActivityIds[wallet].push(activityId);
+      activities[activityId] = ActivityRecord({
+        chainCount: chainStats.activitiesCount,
+        userCount: 1, // for initialization
+        payableCount: 0, // no payable involved
+        timestamp: block.timestamp,
+        entity: toWormholeFormat(wallet),
+        activityType: ActivityType.InitializedUser
+      });
+
+      // Emit Event.
       emit InitializedUser(wallet, chainStats.usersCount);
     }
   }
 
   /// Returns a hash that should be used for entity IDs.
-  function createId(address wallet, uint256 count)
+  function createId(bytes32 entity, EntityType salt, uint256 count)
     internal
     view
     returns (bytes32)
   {
     return keccak256(
-      abi.encodePacked(block.chainid, chainId, block.timestamp, wallet, count)
+      abi.encodePacked(
+        block.chainid, chainId, block.timestamp, entity, salt, count
+      )
     );
+  }
+
+  /// Records an activity for updating a Payable.
+  /// @param payableId The ID of the payable being updated.
+  /// @param activityType The type of activity being recorded.
+  function recordUpdatePayableActivity(
+    bytes32 payableId,
+    ActivityType activityType
+  ) internal {
+    // Increment the chainStats for activitiesCount.
+    chainStats.activitiesCount++;
+
+    // Increment activitiesCount on the user.
+    users[msg.sender].activitiesCount++;
+
+    // Increment activitiesCount on the involved payable.
+    payables[payableId].activitiesCount++;
+
+    // Record the Activity.
+    bytes32 activityId = createId(
+      toWormholeFormat(msg.sender),
+      EntityType.Activity,
+      users[msg.sender].activitiesCount
+    );
+    chainActivityIds.push(activityId);
+    userActivityIds[msg.sender].push(activityId);
+    payableActivityIds[payableId].push(activityId);
+    activities[activityId] = ActivityRecord({
+      chainCount: chainStats.activitiesCount,
+      userCount: users[msg.sender].activitiesCount,
+      payableCount: payables[payableId].activitiesCount,
+      timestamp: block.timestamp,
+      entity: payableId,
+      activityType: activityType
+    });
   }
 
   /// Create a Payable.
@@ -96,15 +154,22 @@ contract Chainbills is CbGovernance, CbPayload {
     }
 
     /* STATE CHANGES */
-    // Increment the chain stats for payablesCount
-    chainStats.payablesCount++;
-
-    // Increment payablesCount on the host (address) creating this payable.
+    // Increment payables and activities counts on the host (address) creating
+    // this payable.
     initializeUserIfNeedBe(msg.sender);
     users[msg.sender].payablesCount++;
+    users[msg.sender].activitiesCount++;
+
+    // Increment the chainStats for payablesCount and activitiesCount.
+    chainStats.payablesCount++;
+    chainStats.activitiesCount++;
 
     // Create the payable.
-    payableId = createId(msg.sender, users[msg.sender].payablesCount);
+    payableId = createId(
+      toWormholeFormat(msg.sender),
+      EntityType.Payable,
+      users[msg.sender].payablesCount
+    );
     userPayableIds[msg.sender].push(payableId);
     payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
     Payable storage _payable = payables[payableId];
@@ -114,6 +179,25 @@ contract Chainbills is CbGovernance, CbPayload {
     _payable.allowedTokensAndAmountsCount =
       uint8(allowedTokensAndAmounts.length);
     _payable.createdAt = block.timestamp;
+    _payable.activitiesCount = 1; // for creation
+
+    // Record the Activity.
+    bytes32 activityId = createId(
+      toWormholeFormat(msg.sender),
+      EntityType.Activity,
+      users[msg.sender].activitiesCount
+    );
+    chainActivityIds.push(activityId);
+    userActivityIds[msg.sender].push(activityId);
+    payableActivityIds[payableId].push(activityId);
+    activities[activityId] = ActivityRecord({
+      chainCount: chainStats.activitiesCount,
+      userCount: users[msg.sender].activitiesCount,
+      payableCount: 1, // for creation
+      timestamp: block.timestamp,
+      entity: payableId,
+      activityType: ActivityType.CreatedPayable
+    });
 
     // Emit Event.
     emit CreatedPayable(
@@ -171,17 +255,25 @@ contract Chainbills is CbGovernance, CbPayload {
     }
 
     /* STATE CHANGES */
-    // Increment the chainStats for payments counts.
-    chainStats.userPaymentsCount++;
-    chainStats.payablePaymentsCount++;
-
     // Increment paymentsCount in the payer that just paid.
     initializeUserIfNeedBe(msg.sender);
     users[msg.sender].paymentsCount++;
 
-    // Increment global and local-chain paymentsCount on involved payable.
+    // Increment the chainStats for payments counts.
+    chainStats.userPaymentsCount++;
+    chainStats.payablePaymentsCount++;
+
+    // Increment the chain stats for activitiesCount.
+    //
+    // Incrementing twice to account for recording two activities: one for the
+    // user and one for the payable.
+    chainStats.activitiesCount += 2;
+
+    // Increment  global and local-chain paymentsCount, and activitiesCount on
+    // involved payable.
     _payable.paymentsCount++;
     payableChainPaymentsCount[payableId][chainId]++;
+    _payable.activitiesCount++;
 
     // Update payable's balances to add this token and its amount.
     bool wasMatchingBalanceUpdated = false;
@@ -202,7 +294,11 @@ contract Chainbills is CbGovernance, CbPayload {
     tokenDetails[token].totalPayableReceived += amount;
 
     // Record payment details of user.
-    paymentId = createId(msg.sender, users[msg.sender].paymentsCount);
+    paymentId = createId(
+      toWormholeFormat(msg.sender),
+      EntityType.Payment,
+      users[msg.sender].paymentsCount
+    );
     userPaymentIds[msg.sender].push(paymentId);
     userPaymentDetails[paymentId] = TokenAndAmount(token, amount);
     userPayments[paymentId] = UserPayment({
@@ -226,6 +322,38 @@ contract Chainbills is CbGovernance, CbPayload {
       localChainCount: payableChainPaymentsCount[payableId][chainId],
       payableCount: _payable.paymentsCount,
       timestamp: block.timestamp
+    });
+
+    // Record User Activity.
+    bytes32 userActivityId = createId(
+      toWormholeFormat(msg.sender),
+      EntityType.Activity,
+      users[msg.sender].activitiesCount
+    );
+    chainActivityIds.push(userActivityId);
+    userActivityIds[msg.sender].push(userActivityId);
+    activities[userActivityId] = ActivityRecord({
+      // subtracting 1 because we incremented the activities_count twice.
+      chainCount: chainStats.activitiesCount - 1,
+      userCount: users[msg.sender].activitiesCount,
+      payableCount: 0, // no payable involved
+      timestamp: block.timestamp,
+      entity: paymentId,
+      activityType: ActivityType.UserPaid
+    });
+
+    // Record Payable Activity.
+    bytes32 payableActivityId =
+      createId(payableId, EntityType.Activity, _payable.activitiesCount);
+    chainActivityIds.push(payableActivityId);
+    payableActivityIds[payableId].push(payableActivityId);
+    activities[payableActivityId] = ActivityRecord({
+      chainCount: chainStats.activitiesCount,
+      userCount: 0, // no user involved
+      payableCount: _payable.activitiesCount,
+      timestamp: block.timestamp,
+      entity: paymentId,
+      activityType: ActivityType.PayableReceived
     });
 
     // Emit Events.
@@ -310,14 +438,18 @@ contract Chainbills is CbGovernance, CbPayload {
     if (!isFeesSuccess) revert UnsuccessfulFeesWithdrawal();
 
     /* STATE CHANGES */
-    // Increment the chainStats for withdrawalsCount.
+    // Increment the chainStats for withdrawalsCount and activitiesCount.
     chainStats.withdrawalsCount++;
+    chainStats.activitiesCount++;
 
-    // Increment withdrawalsCount in the host that just withdrew.
+    // Increment withdrawalsCount and activitiesCount in the host (address)
+    // that just withdrew.
     users[msg.sender].withdrawalsCount++;
+    users[msg.sender].activitiesCount++;
 
-    // Increment withdrawalsCount on involved payable.
+    // Increment withdrawalsCount and activitiesCount on involved payable.
     _payable.withdrawalsCount++;
+    _payable.activitiesCount++;
 
     // Deduct the balances on the involved payable.
     for (uint8 i = 0; i < _payable.balancesCount; i++) {
@@ -332,7 +464,11 @@ contract Chainbills is CbGovernance, CbPayload {
     tokenDetails[token].totalWithdrawalFeesCollected += fees;
 
     // Initialize the withdrawal.
-    withdrawalId = createId(msg.sender, users[msg.sender].withdrawalsCount);
+    withdrawalId = createId(
+      toWormholeFormat(msg.sender),
+      EntityType.Withdrawal,
+      users[msg.sender].withdrawalsCount
+    );
     userWithdrawalIds[msg.sender].push(withdrawalId);
     payableWithdrawalIds[payableId].push(withdrawalId);
     withdrawalDetails[withdrawalId] = TokenAndAmount(token, amount);
@@ -343,6 +479,24 @@ contract Chainbills is CbGovernance, CbPayload {
       hostCount: users[msg.sender].withdrawalsCount,
       payableCount: _payable.withdrawalsCount,
       timestamp: block.timestamp
+    });
+
+    // Record the Activity.
+    bytes32 activityId = createId(
+      toWormholeFormat(msg.sender),
+      EntityType.Activity,
+      users[msg.sender].activitiesCount
+    );
+    chainActivityIds.push(activityId);
+    userActivityIds[msg.sender].push(activityId);
+    payableActivityIds[payableId].push(activityId);
+    activities[activityId] = ActivityRecord({
+      chainCount: chainStats.activitiesCount,
+      userCount: users[msg.sender].activitiesCount,
+      payableCount: _payable.activitiesCount,
+      timestamp: block.timestamp,
+      entity: withdrawalId,
+      activityType: ActivityType.Withdrew
     });
 
     // Emit Event.
@@ -364,6 +518,7 @@ contract Chainbills is CbGovernance, CbPayload {
     if (_payable.host != msg.sender) revert NotYourPayable();
     if (_payable.isClosed) revert PayableIsAlreadyClosed();
     _payable.isClosed = true;
+    recordUpdatePayableActivity(payableId, ActivityType.ClosedPayable);
     emit ClosedPayable(payableId, msg.sender);
   }
 
@@ -375,6 +530,7 @@ contract Chainbills is CbGovernance, CbPayload {
     if (_payable.host != msg.sender) revert NotYourPayable();
     if (!_payable.isClosed) revert PayableIsNotClosed();
     _payable.isClosed = false;
+    recordUpdatePayableActivity(payableId, ActivityType.ReopenedPayable);
     emit ReopenedPayable(payableId, msg.sender);
   }
 
@@ -407,6 +563,11 @@ contract Chainbills is CbGovernance, CbPayload {
     payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
     _payable.allowedTokensAndAmountsCount =
       uint8(allowedTokensAndAmounts.length);
+
+    // Record the Activity.
+    recordUpdatePayableActivity(
+      payableId, ActivityType.UpdatedPayableAllowedTokensAndAmounts
+    );
 
     // Emit Event.
     emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);

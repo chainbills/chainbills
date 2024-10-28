@@ -158,7 +158,7 @@ pub fn update_payable_allowed_tokens_and_amounts<'info>(
     ctx.accounts.activity.as_mut(),
     ctx.accounts.user_activity_info.as_mut(),
     ctx.accounts.payable_activity_info.as_mut(),
-    ActivityType::UpdatedPayableTokensAndAmounts,
+    ActivityType::UpdatedPayableAllowedTokensAndAmounts,
   )?;
 
   // Emit log and event.

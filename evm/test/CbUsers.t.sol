@@ -40,16 +40,16 @@ contract CbUsersTest is Test {
 
   function testUserInitOnCreatePayable() public {
     vm.startPrank(user);
-    (uint256 prevUsersCount,,,,) = chainbills.chainStats();
-    (uint256 prevUserChainCount,,,) = chainbills.users(user);
+    (uint256 prevUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 prevUserChainCount,,,,) = chainbills.users(user);
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevUsersCount + 1);
 
     chainbills.createPayable(new TokenAndAmount[](0));
 
-    (uint256 newUsersCount,,,,) = chainbills.chainStats();
-    (uint256 newUserChainCount,,,) = chainbills.users(user);
+    (uint256 newUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 newUserChainCount,,,,) = chainbills.users(user);
     vm.stopPrank();
 
     assertEq(prevUserChainCount, 0);
@@ -62,8 +62,8 @@ contract CbUsersTest is Test {
     bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
 
     vm.startPrank(user);
-    (uint256 prevUsersCount,,,,) = chainbills.chainStats();
-    (uint256 prevUserChainCount,,,) = chainbills.users(user);
+    (uint256 prevUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 prevUserChainCount,,,,) = chainbills.users(user);
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevUsersCount + 1);
@@ -71,8 +71,8 @@ contract CbUsersTest is Test {
     deal(user, ethAmt);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
-    (uint256 newUsersCount,,,,) = chainbills.chainStats();
-    (uint256 newUserChainCount,,,) = chainbills.users(user);
+    (uint256 newUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 newUserChainCount,,,,) = chainbills.users(user);
     vm.stopPrank();
 
     assertEq(prevUserChainCount, 0);
@@ -82,23 +82,23 @@ contract CbUsersTest is Test {
 
   function testUserInitOnlyOnce() public {
     vm.startPrank(user);
-    (uint256 prevUsersCount,,,,) = chainbills.chainStats();
-    (uint256 prevUserChainCount,,,) = chainbills.users(user);
+    (uint256 prevUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 prevUserChainCount,,,,) = chainbills.users(user);
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevUsersCount + 1);
     chainbills.createPayable(new TokenAndAmount[](0));
 
-    (uint256 newUsersCount,,,,) = chainbills.chainStats();
-    (uint256 newUserChainCount,,,) = chainbills.users(user);
+    (uint256 newUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 newUserChainCount,,,,) = chainbills.users(user);
 
     // creating multiple payables should not trigger
     // multiple user initializations
     chainbills.createPayable(new TokenAndAmount[](0));
     chainbills.createPayable(new TokenAndAmount[](0));
 
-    (uint256 newerUsersCount,,,,) = chainbills.chainStats();
-    (uint256 newerUserChainCount,,,) = chainbills.users(user);
+    (uint256 newerUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 newerUserChainCount,,,,) = chainbills.users(user);
     vm.stopPrank();
 
     assertEq(prevUserChainCount, 0);
@@ -110,8 +110,8 @@ contract CbUsersTest is Test {
 
   function testUserPayableCreation() public {
     vm.startPrank(user);
-    (, uint256 prevPayablesCount,,,) = chainbills.chainStats();
-    (, uint256 prevUserPayableCount,,) = chainbills.users(user);
+    (, uint256 prevPayablesCount,,,,) = chainbills.chainStats();
+    (, uint256 prevUserPayableCount,,,) = chainbills.users(user);
 
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(
@@ -124,6 +124,7 @@ contract CbUsersTest is Test {
       uint256 p1ChainCount,
       uint256 p1HostCount,
       uint256 p1CreatedAt,
+      ,
       ,
       ,
       ,
@@ -146,10 +147,11 @@ contract CbUsersTest is Test {
       ,
       ,
       ,
+      ,
     ) = chainbills.payables(payableId2);
 
-    (, uint256 newPayablesCount,,,) = chainbills.chainStats();
-    (, uint256 newUserPayableCount,,) = chainbills.users(user);
+    (, uint256 newPayablesCount,,,,) = chainbills.chainStats();
+    (, uint256 newUserPayableCount,,,) = chainbills.users(user);
     vm.stopPrank();
 
     // check stored IDs
@@ -227,8 +229,8 @@ contract CbUsersTest is Test {
     bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
 
     vm.startPrank(user);
-    (,, uint256 prevUserPaymentsCount,,) = chainbills.chainStats();
-    (,, uint256 prevUserPaymentCount,) = chainbills.users(user);
+    (,, uint256 prevUserPaymentsCount,,,) = chainbills.chainStats();
+    (,, uint256 prevUserPaymentCount,,) = chainbills.users(user);
     (,, uint256 prevTotalUserPaidEth, uint256 prevTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
     (,, uint256 prevTotalUserPaidUsdc, uint256 prevTotalPayableReceivedUsdc,,) =
@@ -294,8 +296,8 @@ contract CbUsersTest is Test {
       uint256 p2Timestamp
     ) = chainbills.userPayments(paymentId2);
 
-    (,, uint256 newUserPaymentsCount,,) = chainbills.chainStats();
-    (,, uint256 newUserPaymentCount,) = chainbills.users(user);
+    (,, uint256 newUserPaymentsCount,,,) = chainbills.chainStats();
+    (,, uint256 newUserPaymentCount,,) = chainbills.users(user);
     (,, uint256 newTotalUserPaidEth, uint256 newTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
     (,, uint256 newTotalUserPaidUsdc, uint256 newTotalPayableReceivedUsdc,,) =
@@ -376,9 +378,9 @@ contract CbUsersTest is Test {
     vm.prank(user);
     bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
 
-    (,,,, uint256 prevWithdrawalsCount) = chainbills.chainStats();
-    (,,, uint256 prevUserWithdrawalCount) = chainbills.users(user);
-    (,,,,, uint256 prevPayableWithdrawalCount,,,) =
+    (,,,, uint256 prevWithdrawalsCount,) = chainbills.chainStats();
+    (,,, uint256 prevUserWithdrawalCount,) = chainbills.users(user);
+    (,,,,, uint256 prevPayableWithdrawalCount,,,,) =
       chainbills.payables(payableId);
     (,,,, uint256 prevTotalWithdrawnEth, uint256 prevTotalWthFeesClctdEth) =
       chainbills.tokenDetails(address(chainbills));
@@ -476,9 +478,9 @@ contract CbUsersTest is Test {
     uint256 newFeeCollectorUsdcBal = usdc.balanceOf(feeCollector);
     uint256 newUserUsdcBal = usdc.balanceOf(user);
 
-    (,,,, uint256 newWithdrawalsCount) = chainbills.chainStats();
-    (,,, uint256 newUserWithdrawalCount) = chainbills.users(user);
-    (,,,,, uint256 newPayableWithdrawalCount,,,) =
+    (,,,, uint256 newWithdrawalsCount,) = chainbills.chainStats();
+    (,,, uint256 newUserWithdrawalCount,) = chainbills.users(user);
+    (,,,,, uint256 newPayableWithdrawalCount,,,,) =
       chainbills.payables(payableId);
     (,,,, uint256 newTotalWithdrawnEth, uint256 newTotalWthFeesClctdEth) =
       chainbills.tokenDetails(address(chainbills));
@@ -488,7 +490,7 @@ contract CbUsersTest is Test {
     vm.stopPrank();
 
     // obtain fees and amount due
-    uint256 ethPercent = (ethAmt * chainbills.withdrawalFeePercentage()) / 10000; 
+    uint256 ethPercent = (ethAmt * chainbills.withdrawalFeePercentage()) / 10000;
     uint256 ethFee = ethPercent > ethMaxFee ? ethMaxFee : ethPercent;
     uint256 ethAmtDue = ethAmt - ethFee;
     uint256 usdcPercent =

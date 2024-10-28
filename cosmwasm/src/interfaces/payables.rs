@@ -393,7 +393,7 @@ impl Payables for Chainbills {
       &ctx.info.sender,
       payable_id,
       payable.activities_count,
-      ActivityType::UpdatedPayableTokensAndAmounts,
+      ActivityType::UpdatedPayableAllowedTokensAndAmounts,
     )?;
 
     // Return the Response.

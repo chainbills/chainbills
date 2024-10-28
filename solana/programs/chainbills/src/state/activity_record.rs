@@ -25,7 +25,7 @@ pub enum ActivityType {
   ReopenedPayable,
 
   /// The payable's allowed tokens and amounts were updated.
-  UpdatedPayableTokensAndAmounts,
+  UpdatedPayableAllowedTokensAndAmounts,
 }
 
 #[account]

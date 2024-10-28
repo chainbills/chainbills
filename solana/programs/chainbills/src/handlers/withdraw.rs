@@ -65,15 +65,22 @@ fn update_state_for_withdrawal(
   token_details: &mut Account<TokenDetails>,
   withdrawal: &mut Account<Withdrawal>,
   payable_withdrawal_info: &mut Account<PayableWithdrawalInfo>,
+  activity: &mut Account<ActivityRecord>,
+  user_activity_info: &mut Account<UserActivityInfo>,
+  payable_activity_info: &mut Account<PayableActivityInfo>,
 ) -> Result<()> {
-  // Increment the chain stats for payables_count.
+  // Increment the chain stats for payables_count and activities_count.
   chain_stats.withdrawals_count = chain_stats.next_withdrawal();
+  chain_stats.activities_count = chain_stats.next_activity();
 
-  // Increment withdrawals_count in the host that just withdrew.
+  // Increment withdrawals_count and activities_count in the host that just
+  // withdrew.
   host.withdrawals_count = host.next_withdrawal();
+  host.activities_count = host.next_activity();
 
-  // Increment withdrawals_count on the involved payable.
+  // Increment withdrawals_count and activities_count on the involved payable.
   payable.withdrawals_count = payable.next_withdrawal();
+  payable.activities_count = payable.next_activity();
 
   // Deduct the balances on the involved payable.
   for balance in payable.balances.iter_mut() {
@@ -87,13 +94,15 @@ fn update_state_for_withdrawal(
   token_details.add_withdrawn(amount);
   token_details.add_withdrawal_fees_collected(fees);
 
+  let timestamp = clock::Clock::get()?.unix_timestamp as u64;
+
   // Initialize the withdrawal.
   withdrawal.chain_count = chain_stats.withdrawals_count;
   withdrawal.payable_id = payable.key();
   withdrawal.payable_count = payable.withdrawals_count;
   withdrawal.host = signer;
   withdrawal.host_count = host.withdrawals_count;
-  withdrawal.timestamp = clock::Clock::get()?.unix_timestamp as u64;
+  withdrawal.timestamp = timestamp;
   withdrawal.details = TokenAndAmount {
     token: mint,
     amount,
@@ -103,6 +112,20 @@ fn update_state_for_withdrawal(
   // for the caller to use to get the main withdrawal account when retrieving
   // withdrawals in context of payables.
   payable_withdrawal_info.host_count = host.withdrawals_count;
+
+  // Initialize the activity.
+  activity.chain_count = chain_stats.activities_count;
+  activity.user_count = host.activities_count;
+  activity.payable_count = payable.activities_count;
+  activity.timestamp = timestamp;
+  activity.reference = withdrawal.key();
+  activity.activity_type = ActivityType::Withdrew;
+
+  // Initialize the user activity info.
+  user_activity_info.chain_count = chain_stats.activities_count;
+
+  // Initialize the payable activity info.
+  payable_activity_info.chain_count = chain_stats.activities_count;
 
   // Emit log and event.
   msg!(
@@ -126,6 +149,7 @@ fn update_state_for_withdrawal(
 ///
 /// ### args
 /// * amount<u64>: The amount to be withdrawn
+#[inline(never)]
 pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   /* CHECKS */
   let payable = ctx.accounts.payable.as_mut();
@@ -190,6 +214,9 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     token_details,
     ctx.accounts.withdrawal.as_mut(),
     ctx.accounts.payable_withdrawal_info.as_mut(),
+    ctx.accounts.activity.as_mut(),
+    ctx.accounts.user_activity_info.as_mut(),
+    ctx.accounts.payable_activity_info.as_mut(),
   )
 }
 
@@ -197,6 +224,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 ///
 /// ### args
 /// * amount<u64>: The amount to be withdrawn
+#[inline(never)]
 pub fn withdraw_native(
   ctx: Context<WithdrawNative>,
   amount: u64,
@@ -249,5 +277,8 @@ pub fn withdraw_native(
     token_details,
     ctx.accounts.withdrawal.as_mut(),
     ctx.accounts.payable_withdrawal_info.as_mut(),
+    ctx.accounts.activity.as_mut(),
+    ctx.accounts.user_activity_info.as_mut(),
+    ctx.accounts.payable_activity_info.as_mut(),
   )
 }

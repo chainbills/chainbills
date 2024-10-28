@@ -6,6 +6,7 @@ use wormhole_anchor_sdk::wormhole;
 ///
 /// Should be run once by the deployer of the program
 /// before other instructions in this program should be invoked.
+#[inline(never)]
 pub fn initialize_handler(ctx: Context<Initialize>) -> Result<()> {
   // Initialize config account.
   let config = &mut ctx.accounts.config.load_init()?;

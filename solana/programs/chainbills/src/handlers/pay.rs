@@ -55,16 +55,29 @@ fn update_state_for_payment(
   user_payment: &mut Account<UserPayment>,
   payable_payment: &mut Account<PayablePayment>,
   payable_per_chain_payment_info: &mut Account<PayablePerChainPaymentInfo>,
+  user_activity: &mut Account<ActivityRecord>,
+  user_activity_info: &mut Account<UserActivityInfo>,
+  payable_activity: &mut Account<ActivityRecord>,
+  payable_activity_info: &mut Account<PayableActivityInfo>,
 ) -> Result<()> {
   // Increment the chain stats for payments counts.
   chain_stats.user_payments_count = chain_stats.next_user_payment();
   chain_stats.payable_payments_count = chain_stats.next_payable_payment();
 
-  // Increment payments_count in the payer that just paid.
-  payer.payments_count = payer.next_payment();
+  // Increment the chain stats for activities_count.
+  //
+  // Incrementing twice to account for recording two activities: one for the
+  // user and one for the payable.
+  chain_stats.activities_count = chain_stats.next_activity();
+  chain_stats.activities_count = chain_stats.next_activity();
 
-  // Increment payments_count on involved payable.
+  // Increment payments_count and activities_count in the payer that just paid.
+  payer.payments_count = payer.next_payment();
+  payer.activities_count = payer.next_activity();
+
+  // Increment payments_count and activities_count on involved payable.
   payable.payments_count = payable.next_payment();
+  payable.activities_count = payable.next_activity();
 
   // Update payable's balances to add this token and its amount.
   //
@@ -128,6 +141,32 @@ fn update_state_for_payment(
   // main payable_payment.
   payable_per_chain_payment_info.payable_count = payable.payments_count;
 
+  // Initialize the User Activity.
+  // subtracting 1 because we incremented the activities_count twice.
+  user_activity.chain_count =
+    chain_stats.activities_count.checked_sub(1).unwrap();
+  user_activity.user_count = payer.activities_count;
+  // Setting 0 because it's not a payable activity.
+  user_activity.payable_count = 0;
+  user_activity.timestamp = timestamp;
+  user_activity.reference = user_payment.key();
+  user_activity.activity_type = ActivityType::UserPaid;
+
+  // Initialize the User Activity Info.
+  user_activity_info.chain_count = chain_stats.activities_count;
+
+  // Initialize the Payable Activity.
+  payable_activity.chain_count = chain_stats.activities_count;
+  // Setting 0 because it's not a user activity.
+  payable_activity.user_count = 0;
+  payable_activity.payable_count = payable.activities_count;
+  payable_activity.timestamp = timestamp;
+  payable_activity.reference = payable_payment.key();
+  payable_activity.activity_type = ActivityType::PayableReceived;
+
+  // Initialize the Payable Activity Info.
+  payable_activity_info.chain_count = chain_stats.activities_count;
+
   // Emit logs and events.
   msg!(
     "User Payment was made with chain_count: {} and payer_count: {}.",
@@ -162,6 +201,7 @@ fn update_state_for_payment(
 ///
 /// ### args
 /// * amount<u64>: The Wormhole-normalized amount to be paid
+#[inline(never)]
 pub fn pay(ctx: Context<Pay>, amount: u64) -> Result<()> {
   /* CHECKS */
   let mint = &ctx.accounts.mint;
@@ -195,6 +235,10 @@ pub fn pay(ctx: Context<Pay>, amount: u64) -> Result<()> {
     ctx.accounts.user_payment.as_mut(),
     ctx.accounts.payable_payment.as_mut(),
     ctx.accounts.payable_per_chain_payment_info.as_mut(),
+    ctx.accounts.user_activity.as_mut(),
+    ctx.accounts.user_activity_info.as_mut(),
+    ctx.accounts.payable_activity.as_mut(),
+    ctx.accounts.payable_activity_info.as_mut(),
   )
 }
 
@@ -202,6 +246,7 @@ pub fn pay(ctx: Context<Pay>, amount: u64) -> Result<()> {
 ///
 /// ### args
 /// * amount<u64>: The Wormhole-normalized amount to be paid
+#[inline(never)]
 pub fn pay_native(ctx: Context<PayNative>, amount: u64) -> Result<()> {
   /* CHECKS */
   let payable = ctx.accounts.payable.as_mut();
@@ -233,5 +278,9 @@ pub fn pay_native(ctx: Context<PayNative>, amount: u64) -> Result<()> {
     ctx.accounts.user_payment.as_mut(),
     ctx.accounts.payable_payment.as_mut(),
     ctx.accounts.payable_per_chain_payment_info.as_mut(),
+    ctx.accounts.user_activity.as_mut(),
+    ctx.accounts.user_activity_info.as_mut(),
+    ctx.accounts.payable_activity.as_mut(),
+    ctx.accounts.payable_activity_info.as_mut(),
   )
 }

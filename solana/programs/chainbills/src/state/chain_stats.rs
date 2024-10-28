@@ -20,11 +20,14 @@ pub struct ChainStats {
 
   /// Total number of withdrawals that have ever been made on this chain.
   pub withdrawals_count: u64, // 8 bytes
+
+  /// Total number of activities that have ever been made on this chain.
+  pub activities_count: u64, // 8 bytes
 }
 
 impl ChainStats {
   // discriminator included
-  pub const SPACE: usize = 2 + (6 * 8);
+  pub const SPACE: usize = 2 + (7 * 8);
 
   /// AKA `b"chain"`.
   #[constant]
@@ -36,6 +39,7 @@ impl ChainStats {
     self.payables_count = 0;
     self.user_payments_count = 0;
     self.withdrawals_count = 0;
+    self.activities_count = 0;
   }
 
   pub fn next_user(&self) -> u64 {
@@ -56,5 +60,9 @@ impl ChainStats {
 
   pub fn next_withdrawal(&self) -> u64 {
     self.withdrawals_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_activity(&self) -> u64 {
+    self.activities_count.checked_add(1).unwrap()
   }
 }

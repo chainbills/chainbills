@@ -7,6 +7,7 @@ use anchor_lang::prelude::*;
 /// * token<Pubkey>: The token mint for which its maximum withdrawal fees is
 ///                  been set.
 /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+#[inline(never)]
 pub fn update_max_withdrawal_fees(
   ctx: Context<UpdateMaxWithdrawalFees>,
   token: Pubkey,

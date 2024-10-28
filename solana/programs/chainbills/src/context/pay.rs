@@ -55,6 +55,47 @@ pub struct Pay<'info> {
   pub payable_per_chain_payments_counter:
     Box<Account<'info, PayablePerChainPaymentsCounter>>,
 
+  #[account(
+    init,
+    seeds = [ActivityRecord::SEED_PREFIX, &chain_stats.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = ActivityRecord::SPACE
+  )]
+  /// Houses Details of this activity as one of UserPaid.
+  pub user_activity: Box<Account<'info, ActivityRecord>>,
+
+  #[account(
+    init,
+    seeds = [signer.key().as_ref(), ActivityRecord::SEED_PREFIX, &payer.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = UserActivityInfo::SPACE
+  )]
+  /// Houses Chain Count of activities for this activity.
+  pub user_activity_info: Box<Account<'info, UserActivityInfo>>,
+
+  #[account(
+    init,
+    // added 1 to chain_stats.next_activity() because the previous addition in this same transaction is for the user activity
+    seeds = [ActivityRecord::SEED_PREFIX, &(chain_stats.next_activity().checked_add(1).unwrap()).to_le_bytes()[..]], 
+    bump,
+    payer = signer,
+    space = ActivityRecord::SPACE
+  )]
+  /// Houses Details of this activity as one of PayableReceived.
+  pub payable_activity: Box<Account<'info, ActivityRecord>>,
+
+  #[account(
+    init,
+    seeds = [payable.key().as_ref(), ActivityRecord::SEED_PREFIX, &payable.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = PayableActivityInfo::SPACE
+  )]
+  /// Houses Chain Count of activities for this activity.
+  pub payable_activity_info: Box<Account<'info, PayableActivityInfo>>,
+
   #[account(mut, realloc = payable.space_update_balance(mint.key()), realloc::payer = signer, realloc::zero = false)]
   pub payable: Box<Account<'info, Payable>>,
 

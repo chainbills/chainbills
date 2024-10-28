@@ -34,6 +34,36 @@ pub struct CreatePayable<'info> {
   pub payable_per_chain_payments_counter:
     Box<Account<'info, PayablePerChainPaymentsCounter>>,
 
+  #[account(
+    init,
+    seeds = [ActivityRecord::SEED_PREFIX, &chain_stats.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = ActivityRecord::SPACE
+  )]
+  /// Houses Details of this activity as CreatedPayable.
+  pub activity: Box<Account<'info, ActivityRecord>>,
+
+  #[account(
+    init,
+    seeds = [signer.key().as_ref(), ActivityRecord::SEED_PREFIX, &host.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = UserActivityInfo::SPACE
+  )]
+  /// Houses Chain Count of activities for this activity.
+  pub user_activity_info: Box<Account<'info, UserActivityInfo>>,
+
+  #[account(
+    init,
+    seeds = [payable.key().as_ref(), ActivityRecord::SEED_PREFIX, &payable.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = PayableActivityInfo::SPACE
+  )]
+  /// Houses Chain Count of activities for this activity.
+  pub payable_activity_info: Box<Account<'info, PayableActivityInfo>>,
+
   #[account(mut, seeds = [signer.key().to_bytes().as_ref()], bump)]
   /// The user account of the signer that is creating the payable.
   pub host: Box<Account<'info, User>>,

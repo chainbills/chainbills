@@ -12,6 +12,7 @@ use anchor_lang::prelude::*;
 /// * `ctx`     - `RegisterForeignContract` context
 /// * `chain`   - Wormhole Chain ID
 /// * `address` - Wormhole Emitter Address
+#[inline(never)]
 pub fn register_foreign_contract_handler(
   ctx: Context<RegisterForeignContract>,
   chain: u16,

@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.20;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
+import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
+import
+  '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
 
 import './CbEvents.sol';
 import './CbState.sol';
@@ -13,8 +16,20 @@ error InvalidWormholeEmitterAddress();
 error InvalidTokenAddress();
 error ZeroAmountSpecified();
 
-contract CbGovernance is Ownable, CbState, ReentrancyGuard {
-  constructor() Ownable(msg.sender) {}
+contract CbGovernance is
+  CbState,
+  Initializable,
+  OwnableUpgradeable,
+  ReentrancyGuardUpgradeable,
+  UUPSUpgradeable
+{
+  function __CbGovernance_init() public onlyInitializing {
+    __Ownable_init(msg.sender);
+    __ReentrancyGuard_init();
+    __UUPSUpgradeable_init();
+  }
+
+  function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
 
   /// Updates the maximum withdrawal fees for the given token.
   /// @dev Only the deployer (owner) can invoke this method

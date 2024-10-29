@@ -27,19 +27,24 @@ error UnsuccessfulWithdrawal();
 error UnsuccessfulFeesWithdrawal();
 
 /// A Cross-Chain Payment Gateway.
-contract Chainbills is CbGovernance, CbPayload {
+contract Chainbills is Initializable, CbGovernance, CbPayload {
   fallback() external payable {}
 
   receive() external payable {}
 
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
+  }
+
   /// Sets up this smart contract when it is deployed. Sets the feeCollector,
   /// wormhole, chainId, and wormholeFinality variables.
-  constructor(
+  function initialize(
     address feeCollector,
     address wormhole,
     uint16 chainId,
     uint8 wormholeFinality
-  ) {
+  ) public initializer {
     if (feeCollector == address(0)) revert InvalidFeeCollector();
     else if (wormhole == address(0)) revert InvalidWormholeAddress();
     else if (chainId == 0) revert InvalidWormholeChainId();
@@ -49,6 +54,9 @@ contract Chainbills is CbGovernance, CbPayload {
     // 200 means 2% withdrawal fee (with 2 decimal places).
     config = Config(wormholeFinality, chainId, 200, feeCollector, wormhole);
     chainStats = ChainStats(0, 0, 0, 0, 0, 0);
+
+    // Initialize the Governance.
+    __CbGovernance_init();
   }
 
   /// Initializes a User if need be.

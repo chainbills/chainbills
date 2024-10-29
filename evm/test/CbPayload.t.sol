@@ -12,17 +12,16 @@ contract CbPayloadTest is Test {
     cbpd = new CbPayload();
   }
 
-  function testEncodeDecodeStartPaymentPayload() public  {  
+  function testEncodeDecodeStartPaymentPayload() public view {
     bytes memory encoded = cbpd.encodeStartPaymentPayload(
       StartPaymentPayload({payableId: bytes32(0), payerCount: 10})
     );
-    StartPaymentPayload memory parsed = cbpd
-      .decodeStartPaymentPayload(encoded);
+    StartPaymentPayload memory parsed = cbpd.decodeStartPaymentPayload(encoded);
     assert(parsed.payableId == bytes32(0));
     assert(parsed.payerCount == 10);
   }
 
-  function testEncodeDecodeCompletePaymentPayload() public {    
+  function testEncodeDecodeCompletePaymentPayload() public view {
     bytes memory encoded = cbpd.encodeCompletePaymentPayload(
       CompletePaymentPayload({
         payableId: bytes32(0),
@@ -33,8 +32,8 @@ contract CbPayloadTest is Test {
         timestamp: 1631234567
       })
     );
-    CompletePaymentPayload memory parsed = cbpd
-      .decodeCompletePaymentPayload(encoded);
+    CompletePaymentPayload memory parsed =
+      cbpd.decodeCompletePaymentPayload(encoded);
     assert(parsed.payableId == bytes32(0));
     assert(parsed.wallet == bytes32(0));
     assert(parsed.token == bytes32(0));

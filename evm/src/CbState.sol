@@ -281,6 +281,8 @@ contract CbState {
   mapping(bytes32 => bytes32[]) public payableWithdrawalIds;
   /// The amount and token that a host withdrew
   mapping(bytes32 => TokenAndAmount) public withdrawalDetails;
+  /// storage gap for additional state variables in future versions
+  uint256[50] __gap;
 
   function getAllowedTokensAndAmounts(bytes32 payableId)
     external

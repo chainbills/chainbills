@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import 'src/CbState.sol';
 import 'src/Chainbills.sol';
 import 'forge-std/Test.sol';
@@ -27,9 +28,13 @@ contract CbUsersTest is Test {
   uint256 ethMaxFee = 5e15;
   uint256 usdcAmt = 1e8;
   uint256 usdcMaxFee = 50e6;
+  uint8 wormholeFinality = 200;
 
   function setUp() public {
-    chainbills = new Chainbills(feeCollector, wormhole, chainId, 200);
+    chainbills = Chainbills(
+      payable(address(new ERC1967Proxy(address(new Chainbills()), '')))
+    );
+    chainbills.initialize(feeCollector, wormhole, chainId, wormholeFinality);
     usdc = new USDC();
 
     // calling updateMaxWithdrawalFees with contract address and USDC

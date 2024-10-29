@@ -1,12 +1,11 @@
 use crate::contract::sv::mt::{ChainbillsProxy, CodeId};
-use crate::interfaces::max_withdrawal_fees::sv::mt::MaxWithdrawalFeesProxy;
+use crate::interfaces::activities::sv::mt::ActivitiesProxy;
 use crate::interfaces::payables::sv::mt::PayablesProxy;
 use crate::interfaces::payments::sv::mt::PaymentsProxy;
+use crate::interfaces::token_details::sv::mt::TokenDetailsInterfaceProxy;
 use crate::messages::{
-  CreatePayableMessage, FetchIdMessage, IdMessage, InstantiateMessage,
-  TransactionInfoMessage,
+  CountMessage, CreatePayableMessage, FetchIdMessage, IdMessage, InstantiateMessage, TransactionInfoMessage, UpdateMaxWithdrawalFeesMessage
 };
-use crate::state::MaxWithdrawalFeeDetails;
 use cw20::{BalanceResponse, Cw20Coin};
 use cw20_base::msg::InstantiateMsg;
 use sylvia::cw_multi_test::{Contract, ContractWrapper, Executor, IntoAddr};
@@ -130,25 +129,41 @@ fn making_payments() {
       .unwrap()
   );
 
-  // Set MaxFee for Native Token
+  // Set MaxWithdrawalFees for Native Token
   contract
-    .update_max_withdrawal_fee(MaxWithdrawalFeeDetails {
+    .update_max_withdrawal_fees(UpdateMaxWithdrawalFeesMessage {
       token: "native".to_string(),
-      max_fee: Uint128::new(100),
+      max_withdrawal_fees: Uint128::new(100),
       is_native_token: true,
     })
     .call(&owner)
     .unwrap();
 
-  // Set MaxFee for Cw20 Token
+  // Set MaxWithdrawalFees for Cw20 Token
   contract
-    .update_max_withdrawal_fee(MaxWithdrawalFeeDetails {
+    .update_max_withdrawal_fees(UpdateMaxWithdrawalFeesMessage {
       token: usdc_addr.clone().to_string(),
-      max_fee: Uint128::new(100),
+      max_withdrawal_fees: Uint128::new(100),
       is_native_token: false,
     })
     .call(&owner)
     .unwrap();
+
+  // Native TokenDetails
+  let mut native_token_details = contract
+    .token_details(IdMessage {
+      id: "native".to_string(),
+    })
+    .unwrap();
+  println!("Native TokenDetails: {:?}", native_token_details);
+
+  // Cw20 TokenDetails
+  let mut cw20_token_details = contract
+    .token_details(IdMessage {
+      id: usdc_addr.clone().to_string(),
+    })
+    .unwrap();
+  println!("Cw20 TokenDetails: {:?}", cw20_token_details);
 
   // Make a Payment in Native Token
   contract
@@ -196,6 +211,16 @@ fn making_payments() {
       id: user.to_string(),
     })
     .unwrap();
+  native_token_details = contract
+    .token_details(IdMessage {
+      id: "native".to_string(),
+    })
+    .unwrap();
+  cw20_token_details = contract
+    .token_details(IdMessage {
+      id: usdc_addr.clone().to_string(),
+    })
+    .unwrap();
   payable = contract
     .payable(IdMessage {
       id: payable_id.clone(),
@@ -225,6 +250,8 @@ fn making_payments() {
     .unwrap();
   println!("{:?}", chain_stats);
   println!("{:?}", user_data);
+  println!("Native TokenDetails: {:?}", native_token_details);
+  println!("Cw20 TokenDetails: {:?}", cw20_token_details);
   println!("Payable ID: {:?}", payable_id.clone());
   println!("{:?}", payable);
   println!("UserPayment ID: {:?}", upid_res.clone().id);
@@ -262,5 +289,50 @@ fn making_payments() {
       .unwrap()
   );
 
-  // TODO: Assert payment details and events
+    // Fetch and Display Activities
+    println!();
+    println!();
+    println!("CHAIN ACTIVITIES");
+    for i in 0..chain_stats.activities_count {
+        let id_msg = contract
+            .chain_activity_id(CountMessage { count: i + 1 })
+            .unwrap();
+        let activity = contract.activity(id_msg.clone()).unwrap();
+        println!(
+            "Count {:?}, ID {:?}, {:?}",
+            i + 1,
+            id_msg.clone().id,
+            activity
+        );
+    }
+    println!();
+    println!();
+    println!("USER ACTIVITIES");
+    for i in 0..user_data.activities_count {
+        let id_msg = contract
+            .user_activity_id(FetchIdMessage { reference: user.to_string(), count: i + 1 })
+            .unwrap();
+        let activity = contract.activity(id_msg.clone()).unwrap();
+        println!(
+            "Count {:?}, ID {:?}, {:?}",
+            i + 1,
+            id_msg.clone().id,
+            activity
+        );
+    }
+    println!();
+    println!();
+    println!("PAYABLE ACTIVITIES");
+    for i in 0..payable.activities_count {
+        let id_msg = contract
+            .payable_activity_id(FetchIdMessage { reference: payable_id.clone(), count: i + 1 })
+            .unwrap();
+        let activity = contract.activity(id_msg.clone()).unwrap();
+        println!(
+            "Count {:?}, ID {:?}, {:?}",
+            i + 1,
+            id_msg.clone().id,
+            activity
+        );
+    }
 }

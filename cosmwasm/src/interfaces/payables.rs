@@ -1,10 +1,11 @@
+use crate::contract::Chainbills;
+use crate::error::ChainbillsError;
 use crate::messages::{
   CreatePayableMessage, FetchIdMessage, IdMessage,
   UpdatePayableTokensAndAmountsMessage,
 };
-use crate::state::{Payable, User};
-use crate::{contract::Chainbills, error::ChainbillsError};
-use sylvia::cw_std::{HexBinary, Response, StdError};
+use crate::state::{ActivityRecord, ActivityType, Payable, TokenDetails, User};
+use sylvia::cw_std::{HexBinary, Response, StdError, Uint128};
 use sylvia::interface;
 use sylvia::types::{ExecCtx, QueryCtx};
 
@@ -72,7 +73,7 @@ impl Payables for Chainbills {
       .users
       .load(ctx.deps.storage, &valid_wallet)
       .unwrap_or(User::initialize(0));
-    if count > user.payables_count {
+    if count == 0 || count > user.payables_count {
       return Err(ChainbillsError::InvalidUserPayableCount { count });
     }
 
@@ -108,13 +109,13 @@ impl Payables for Chainbills {
       allowed_tokens_and_amounts,
     } = msg;
     for taa in allowed_tokens_and_amounts.iter() {
-      // Ensure tokens are valid and are supported. Basically if a token's max
-      // withdrawal fees is not set, then it isn't supported.
-      if !self
-        .max_fees_per_token
-        .has(ctx.deps.storage, taa.token.clone())
-      {
-        return Err(ChainbillsError::InvalidToken {
+      // Ensure that the token is supported.
+      let token_details = self
+        .token_details
+        .load(ctx.deps.storage, taa.token.clone())
+        .unwrap_or(TokenDetails::initialize(false, false, Uint128::zero()));
+      if !token_details.is_supported {
+        return Err(ChainbillsError::UnsupportedToken {
           token: taa.token.clone(),
         });
       }
@@ -126,23 +127,32 @@ impl Payables for Chainbills {
     }
 
     /* STATE CHANGES */
-    // Increment the chain stats for payables_count.
-    let mut chain_stats = self.chain_stats.load(ctx.deps.storage)?;
-    chain_stats.payables_count = chain_stats.next_payable();
-    self.chain_stats.save(ctx.deps.storage, &chain_stats)?;
-
-    // Increment payablesCount on the host (address) creating this payable.
-    let user_resp_attribs =
-      self.initialize_user_if_is_new(ctx.deps.storage, &ctx.info.sender)?;
+    /* COUNTS */
+    // Increment payables and activities counts on the host (address)
+    // creating this payable.
+    let user_resp_attribs = self.initialize_user_if_is_new(
+      ctx.deps.storage,
+      &ctx.env,
+      &ctx.info.sender,
+    )?;
     let mut user = self.users.load(ctx.deps.storage, &ctx.info.sender)?;
     user.payables_count = user.next_payable();
+    user.activities_count = user.next_activity();
     self.users.save(ctx.deps.storage, &ctx.info.sender, &user)?;
 
+    // Increment the chain stats for payables_count and activities_count.
+    let mut chain_stats = self.chain_stats.load(ctx.deps.storage)?;
+    chain_stats.payables_count = chain_stats.next_payable();
+    chain_stats.activities_count = chain_stats.next_activity();
+    self.chain_stats.save(ctx.deps.storage, &chain_stats)?;
+
+    /* PAYABLE DATA STRUCTURE */
     // Get a new Payable ID
     let payable_id = self.create_id(
       ctx.deps.storage,
       &ctx.env,
-      &ctx.info.sender,
+      &ctx.info.sender.as_str(),
+      "payable",
       user.payables_count,
     )?;
 
@@ -168,16 +178,50 @@ impl Payables for Chainbills {
       created_at: ctx.env.block.time.seconds(),
       payments_count: 0,
       withdrawals_count: 0,
+      activities_count: 1,
       is_closed: false,
     };
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
 
+    /* ACTIVITY DATA STRUCTURE */
+    // Get a new ActivityRecord ID.
+    let activity_id = self.create_id(
+      ctx.deps.storage,
+      &ctx.env,
+      &ctx.info.sender.as_str(),
+      "activity",
+      user.activities_count,
+    )?;
+
+    // Save the ActivityRecord ID to involved entities.
+    self.save_activity_id_for_all(
+      ctx.deps.storage,
+      &ctx.info.sender,
+      payable_id,
+      activity_id,
+    )?;
+
+    // Create and Save the ActivityRecord.
+    self.activities.save(
+      ctx.deps.storage,
+      activity_id,
+      &ActivityRecord {
+        chain_count: chain_stats.activities_count,
+        user_count: user.activities_count,
+        payable_count: 1,
+        timestamp: ctx.env.block.time.seconds(),
+        entity: HexBinary::from(&payable_id).to_hex(),
+        activity_type: ActivityType::CreatedPayable,
+      },
+    )?;
+
+    /* FINISH */
     // Return the Response.
     Ok(
       Response::new()
         .add_attributes(user_resp_attribs) // Add the user init attributes.
         .add_attributes([
-          ("action", "create_payable".to_string()),
+          ("action", "created_payable".to_string()),
           ("payable_id", HexBinary::from(&payable_id).to_hex()),
           ("host_wallet", ctx.info.sender.to_string()),
           ("chain_count", chain_stats.payables_count.to_string()),
@@ -211,13 +255,28 @@ impl Payables for Chainbills {
     }
 
     /* STATE CHANGES */
-    // Close the payable and save it.
+    // Close the payable
     payable.is_closed = true;
+
+    // Increment the activity count on the payable.
+    payable.activities_count = payable.next_activity();
+
+    // Save the payable.
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
+
+    // Record the activity.
+    self.record_update_payable_activity(
+      ctx.deps.storage,
+      &ctx.env,
+      &ctx.info.sender,
+      payable_id,
+      payable.activities_count,
+      ActivityType::ClosedPayable,
+    )?;
 
     // Return the Response.
     Ok(Response::new().add_attributes([
-      ("action", "close_payable".to_string()),
+      ("action", "closed_payable".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
     ]))
@@ -248,13 +307,28 @@ impl Payables for Chainbills {
     }
 
     /* STATE CHANGES */
-    // Reopen the payable and save it.
+    // Reopen the payable.
     payable.is_closed = false;
+
+    // Increment the activity count on the payable.
+    payable.activities_count = payable.next_activity();
+
+    // Save the payable.
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
+
+    // Record the activity.
+    self.record_update_payable_activity(
+      ctx.deps.storage,
+      &ctx.env,
+      &ctx.info.sender,
+      payable_id,
+      payable.activities_count,
+      ActivityType::ReopenedPayable,
+    )?;
 
     // Return the Response.
     Ok(Response::new().add_attributes([
-      ("action", "reopen_payable".to_string()),
+      ("action", "reopened_payable".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
     ]))
@@ -285,13 +359,13 @@ impl Payables for Chainbills {
       ..
     } = msg;
     for taa in allowed_tokens_and_amounts.iter() {
-      // Ensure tokens are valid and are supported. Basically if a token's max
-      // withdrawal fees is not set, then it isn't supported.
-      if !self
-        .max_fees_per_token
-        .has(ctx.deps.storage, taa.token.clone())
-      {
-        return Err(ChainbillsError::InvalidToken {
+      // Ensure that the token is supported.
+      let token_details = self
+        .token_details
+        .load(ctx.deps.storage, taa.token.clone())
+        .unwrap_or(TokenDetails::initialize(false, false, Uint128::zero()));
+      if !token_details.is_supported {
+        return Err(ChainbillsError::UnsupportedToken {
           token: taa.token.clone(),
         });
       }
@@ -303,13 +377,28 @@ impl Payables for Chainbills {
     }
 
     /* STATE CHANGES */
-    // Update the payable's allowed_tokens_and_amounts and save it.
+    // Update the payable's allowed_tokens_and_amounts.
     payable.allowed_tokens_and_amounts = allowed_tokens_and_amounts;
+
+    // Increment the activity count on the payable.
+    payable.activities_count = payable.next_activity();
+
+    // Save the payable.
     self.payables.save(ctx.deps.storage, payable_id, &payable)?;
+
+    // Record the activity.
+    self.record_update_payable_activity(
+      ctx.deps.storage,
+      &ctx.env,
+      &ctx.info.sender,
+      payable_id,
+      payable.activities_count,
+      ActivityType::UpdatedPayableAllowedTokensAndAmounts,
+    )?;
 
     // Return the Response.
     Ok(Response::new().add_attributes([
-      ("action", "update_payable_tokens_and_amounts".to_string()),
+      ("action", "updated_payable_tokens_and_amounts".to_string()),
       ("payable_id", HexBinary::from(&payable_id).to_hex()),
       ("host_wallet", ctx.info.sender.to_string()),
     ]))

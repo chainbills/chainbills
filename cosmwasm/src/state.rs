@@ -4,26 +4,29 @@ use sylvia::cw_std::{Addr, Uint128};
 #[cw_serde(crate = "sylvia::cw_schema")]
 /// Keeps track of all activities on this chain.
 pub struct ChainStats {
-  /// Wormhole-Chain ID for this chain.
-  pub chain_id: u16,
   /// Total number of users that have ever been initialized on this chain.
   pub users_count: u64,
   /// Total number of payables that have ever been created on this chain.
   pub payables_count: u64,
-  /// Total number of payments that have ever been made on this chain.
-  pub payments_count: u64,
+  /// Total number of payments that users have ever been made on this chain.
+  pub user_payments_count: u64,
+  /// Total number of payments that payables have ever received on this chain.
+  pub payable_payments_count: u64,
   /// Total number of withdrawals that have ever been made on this chain.
   pub withdrawals_count: u64,
+  /// Total number of activities that have ever been made on this chain.
+  pub activities_count: u64,
 }
 
 impl ChainStats {
-  pub const fn initialize(chain_id: u16) -> Self {
+  pub const fn initialize() -> Self {
     ChainStats {
-      chain_id,
       users_count: 0,
       payables_count: 0,
-      payments_count: 0,
+      user_payments_count: 0,
+      payable_payments_count: 0,
       withdrawals_count: 0,
+      activities_count: 0,
     }
   }
 
@@ -35,23 +38,33 @@ impl ChainStats {
     self.payables_count.checked_add(1).unwrap()
   }
 
-  pub fn next_payment(&self) -> u64 {
-    self.payments_count.checked_add(1).unwrap()
+  pub fn next_user_payment(&self) -> u64 {
+    self.user_payments_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_payable_payment(&self) -> u64 {
+    self.payable_payments_count.checked_add(1).unwrap()
   }
 
   pub fn next_withdrawal(&self) -> u64 {
     self.withdrawals_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_activity(&self) -> u64 {
+    self.activities_count.checked_add(1).unwrap()
   }
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
 /// Config account data. Mainly Governance.
 pub struct Config {
+  /// Wormhole-Chain ID for this chain.
+  pub chain_id: u16,
   /// Deployer of this contract.
   pub owner: Addr,
   /// Chainbills' FeeCollector address.
   pub chainbills_fee_collector: Addr,
-  /// Percentage of withdrawal for fees.
+  /// Percentage of withdrawal for fees with 2 decimal places. E.g. 2% is 200.
   pub withdrawal_fee_percentage: Uint128,
 }
 
@@ -67,6 +80,8 @@ pub struct User {
   pub payments_count: u64,
   /// Total number of withdrawals that this user has ever made.
   pub withdrawals_count: u64,
+  /// Total number of activities that this user has ever made.
+  pub activities_count: u64,
 }
 
 impl User {
@@ -76,6 +91,7 @@ impl User {
       payables_count: 0,
       payments_count: 0,
       withdrawals_count: 0,
+      activities_count: 1, // InitializedUser activity
     }
   }
 
@@ -90,19 +106,68 @@ impl User {
   pub fn next_withdrawal(&self) -> u64 {
     self.withdrawals_count.checked_add(1).unwrap()
   }
+
+  pub fn next_activity(&self) -> u64 {
+    self.activities_count.checked_add(1).unwrap()
+  }
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
-/// Indicates supported tokens. Stores the maximum withdrawal fees for each
-/// token. Also tells whether the token is a native token (its denom) or
-/// a Cw20 (its Addr).
-pub struct MaxWithdrawalFeeDetails {
-  /// The associated token.
-  pub token: String,
+/// Keeps data about tokens that have ever been used for payments. Also tells
+/// whether the token is a native token (its denom) or a Cw20 (its Addr).
+pub struct TokenDetails {
+  /// Whether payments are currently accepted in this token.
+  pub is_supported: bool,
   /// Whether this token is a native token or a Cw20 token.
   pub is_native_token: bool,
   /// The maximum withdrawal fee for this token.
-  pub max_fee: Uint128,
+  pub max_withdrawal_fees: Uint128,
+  /// The total amount of user payments in this token.
+  pub total_user_paid: Uint128,
+  /// The total amount of payable payments in this token.
+  pub total_payable_received: Uint128,
+  /// The total amount of withdrawals in this token.
+  pub total_withdrawn: Uint128,
+  /// The total amount of fees collected from withdrawals in this token.
+  pub total_withdrawal_fees_collected: Uint128,
+}
+
+impl TokenDetails {
+  pub const fn initialize(
+    is_supported: bool,
+    is_native_token: bool,
+    max_withdrawal_fees: Uint128,
+  ) -> Self {
+    TokenDetails {
+      is_supported,
+      is_native_token,
+      max_withdrawal_fees,
+      total_user_paid: Uint128::zero(),
+      total_payable_received: Uint128::zero(),
+      total_withdrawn: Uint128::zero(),
+      total_withdrawal_fees_collected: Uint128::zero(),
+    }
+  }
+
+  pub fn add_user_paid(&mut self, amount: Uint128) {
+    self.total_user_paid = self.total_user_paid.checked_add(amount).unwrap()
+  }
+
+  pub fn add_payable_received(&mut self, amount: Uint128) {
+    self.total_payable_received =
+      self.total_payable_received.checked_add(amount).unwrap()
+  }
+
+  pub fn add_withdrawn(&mut self, amount: Uint128) {
+    self.total_withdrawn = self.total_withdrawn.checked_add(amount).unwrap()
+  }
+
+  pub fn add_withdrawal_fees_collected(&mut self, amount: Uint128) {
+    self.total_withdrawal_fees_collected = self
+      .total_withdrawal_fees_collected
+      .checked_add(amount)
+      .unwrap()
+  }
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
@@ -141,6 +206,8 @@ pub struct Payable {
   pub payments_count: u64,
   /// The total number of withdrawals made from this payable.
   pub withdrawals_count: u64,
+  /// The total number of activities made on this payable.
+  pub activities_count: u64,
   /// Whether this payable is currently accepting payments.
   pub is_closed: bool,
 }
@@ -152,6 +219,10 @@ impl Payable {
 
   pub fn next_withdrawal(&self) -> u64 {
     self.withdrawals_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_activity(&self) -> u64 {
+    self.activities_count.checked_add(1).unwrap()
   }
 }
 
@@ -171,9 +242,6 @@ pub struct UserPayment {
   /// The nth count of payments that the payer has made
   /// at the point of making this payment.
   pub payer_count: u64,
-  /// The nth count of payments that the payable has received
-  /// at the point when this payment was made.
-  pub payable_count: u64,
   /// When this payment was made.
   pub timestamp: u64,
   /// The amount and token that the payer paid
@@ -190,6 +258,9 @@ pub struct PayablePayment {
   /// If the payer is on CosmWasm, then will be the bytes of their wallet
   /// address.
   pub payer: [u8; 32],
+  /// The nth count of payable payments on this chain at the point this payment
+  /// was received.
+  pub chain_count: u64,
   /// The Wormhole Chain ID of the chain from which the payment was made.
   pub payer_chain_id: u16,
   /// The nth count of payments to this payable from the payment source
@@ -198,9 +269,6 @@ pub struct PayablePayment {
   /// The nth count of payments that the payable has received
   /// at the point when this payment was made.
   pub payable_count: u64,
-  /// The nth count of payments that the payer has made
-  /// at the point of making this payment.
-  pub payer_count: u64,
   /// When this payment was made.
   pub timestamp: u64,
   /// The amount and token that the payer paid
@@ -227,4 +295,46 @@ pub struct Withdrawal {
   pub timestamp: u64,
   /// The amount and token that the host withdrew
   pub details: TokenAndAmount,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+/// Variants of activities.
+pub enum ActivityType {
+  /// A user was initialized.
+  InitializedUser,
+  /// A payable was created.
+  CreatedPayable,
+  /// A payment was made by a user.
+  UserPaid,
+  /// A payment was made to the payable.
+  PayableReceived,
+  /// A withdrawal was made by a payable.
+  Withdrew,
+  /// The payable was closed and is no longer accepting payments.
+  ClosedPayable,
+  /// The payable was reopened and is now accepting payments.
+  ReopenedPayable,
+  /// The payable's allowed tokens and amounts were updated.
+  UpdatedPayableAllowedTokensAndAmounts,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+/// A record of an activity.
+pub struct ActivityRecord {
+  /// The nth count of activities on this chain at the point this activity
+  /// was recorded.
+  pub chain_count: u64,
+  /// The nth count of activities that the user has made at the point
+  /// of this activity.
+  pub user_count: u64,
+  /// The nth count of activities on the related payable at the point
+  /// of this activity.
+  pub payable_count: u64,
+  /// The timestamp of when this activity was recorded.
+  pub timestamp: u64,
+  /// The ID of the entity (Payable, Payment, or Withdrawal) that is relevant
+  /// to this activity.
+  pub entity: String,
+  /// The type of activity.
+  pub activity_type: ActivityType,
 }

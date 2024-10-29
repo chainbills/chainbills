@@ -1,8 +1,9 @@
 use crate::contract::sv::mt::CodeId;
 use crate::error::ChainbillsError;
-use crate::interfaces::max_withdrawal_fees::sv::mt::MaxWithdrawalFeesProxy;
-use crate::messages::{FetchMaxFeeMessage, InstantiateMessage};
-use crate::state::MaxWithdrawalFeeDetails;
+use crate::interfaces::token_details::sv::mt::TokenDetailsInterfaceProxy;
+use crate::messages::{
+  IdMessage, InstantiateMessage, UpdateMaxWithdrawalFeesMessage,
+};
 use sylvia::cw_multi_test::IntoAddr;
 use sylvia::cw_std::Uint128;
 use sylvia::multitest::App;
@@ -24,9 +25,9 @@ fn max_withdrawal_fees() {
   let token = "token".into_addr().to_string();
   let amount = Uint128::new(100);
   let resp = contract
-    .update_max_withdrawal_fee(MaxWithdrawalFeeDetails {
+    .update_max_withdrawal_fees(UpdateMaxWithdrawalFeesMessage {
       token,
-      max_fee: amount,
+      max_withdrawal_fees: amount,
       is_native_token: false,
     })
     .call(&owner)
@@ -42,32 +43,32 @@ fn max_withdrawal_fees() {
       .find(|attr| attr.key == "action")
       .unwrap()
       .value,
-    "update_max_withdrawal_fee"
+    "updated_max_withdrawal_fees"
   );
   assert_eq!(
     wasm
       .attributes
       .iter()
-      .find(|attr| attr.key == "max_fee")
+      .find(|attr| attr.key == "max_withdrawal_fees")
       .unwrap()
       .value,
     amount.to_string()
   );
 
-  let max_fee_resp = contract
-    .max_fee(FetchMaxFeeMessage {
-      token: "token".into_addr().to_string(),
+  let supported_token_resp = contract
+    .token_details(IdMessage {
+      id: "token".into_addr().to_string(),
     })
     .unwrap();
-  assert_eq!(max_fee_resp.max_fee, amount);
+  assert_eq!(supported_token_resp.max_withdrawal_fees, amount);
 
   // Unauthorized
   let token = "token".into_addr().to_string();
   let other = "other".into_addr();
   let err = contract
-    .update_max_withdrawal_fee(MaxWithdrawalFeeDetails {
+    .update_max_withdrawal_fees(UpdateMaxWithdrawalFeesMessage {
       token,
-      max_fee: amount,
+      max_withdrawal_fees: amount,
       is_native_token: false,
     })
     .call(&other)
@@ -76,8 +77,8 @@ fn max_withdrawal_fees() {
 
   // Nonexistent token
   let err = contract
-    .max_fee(FetchMaxFeeMessage {
-      token: "no_exists".into_addr().to_string(),
+    .token_details(IdMessage {
+      id: "no_exists".into_addr().to_string(),
     })
     .unwrap_err();
   // Testing the error message because a Querrier error is returned

@@ -9,6 +9,7 @@ use anchor_spl::token::{self, Transfer as SplTransfer};
 ///
 /// ### args
 /// * amount<u64>: The amount to be withdrawn
+#[inline(never)]
 pub fn owner_withdraw_handler(
   ctx: Context<OwnerWithdraw>,
   amount: u64,
@@ -35,7 +36,7 @@ pub fn owner_withdraw_handler(
   )?;
 
   msg!("Owner made a withdrawal.");
-  emit!(OwnerWithdrawalEvent {
+  emit!(OwnerWithdrew {
     token: ctx.accounts.mint.key(),
     amount
   });

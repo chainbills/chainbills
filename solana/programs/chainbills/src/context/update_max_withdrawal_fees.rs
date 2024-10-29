@@ -5,15 +5,14 @@ use anchor_spl::{
   token::{Mint, Token, TokenAccount},
 };
 
-
 #[derive(Accounts)]
 #[instruction(token: Pubkey)]
-/// Context used to update the max withdrawal fee. Houses required accounts for
-/// updating the max withdrawal fee.
-pub struct UpdateMaxWithdrawalFee<'info> {
-  #[account(init_if_needed, payer = owner, seeds = [MaxFeeDetails::SEED_PREFIX, &token.key().as_ref()], bump, space = MaxFeeDetails::SPACE)]
-  /// Account that stores the max withdrawal fee details.
-  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
+/// Context used to update the max withdrawal fees. Houses required accounts for
+/// updating the max withdrawal fees.
+pub struct UpdateMaxWithdrawalFees<'info> {
+  #[account(init_if_needed, payer = owner, seeds = [TokenDetails::SEED_PREFIX, &token.key().as_ref()], bump, space = TokenDetails::SPACE)]
+  /// Account that stores the max withdrawal fees details.
+  pub token_details: Box<Account<'info, TokenDetails>>,
 
   #[account(
         init_if_needed,
@@ -41,13 +40,13 @@ pub struct UpdateMaxWithdrawalFee<'info> {
   pub fees_token_account: Box<Account<'info, TokenAccount>>,
 
   #[account(seeds = [Config::SEED_PREFIX], bump)]
-  /// Config Account that stores important constant addresses that are used 
+  /// Config Account that stores important constant addresses that are used
   /// across program instructions.
   pub config: AccountLoader<'info, Config>,
 
   #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   /// Keeps track of entities on this chain. Would be used for initializing
-  /// the chain_token_account for the token whose max_withdrawl_fee is being
+  /// the chain_token_account for the token whose max_withdrawal_fees is being
   /// set/updated.
   pub chain_stats: Box<Account<'info, ChainStats>>,
 

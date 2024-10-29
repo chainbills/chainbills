@@ -25,10 +25,6 @@ pub struct UserPayment {
   /// at the point of making this payment.
   pub payer_count: u64, // 8 bytes
 
-  /// The nth count of payments that the payable has received
-  /// at the point when this payment was made.
-  pub payable_count: u64, // 8 bytes
-
   /// When this payment was made.
   pub timestamp: u64, // 8 bytes
 
@@ -38,7 +34,7 @@ pub struct UserPayment {
 
 impl UserPayment {
   // discriminator (8) included
-  pub const SPACE: usize = 2 + (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
+  pub const SPACE: usize = 2 + (4 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
   /// AKA `b"payment"`.
   #[constant]

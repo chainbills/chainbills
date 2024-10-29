@@ -19,8 +19,8 @@ fn instantiate() {
   let chain_stats = contract.chain_stats().unwrap();
   let config = contract.config().unwrap();
 
-  assert_eq!(chain_stats.chain_id, 1);
   assert_eq!(chain_stats.users_count, 0);
+  assert_eq!(config.chain_id, 1);
   assert_eq!(config.owner, owner);
   assert_eq!(config.chainbills_fee_collector, fee_collector);
 }

@@ -7,11 +7,17 @@ ast = true
 via_ir = true
 build_info = true
 extra_output = ["storageLayout"]
+evm_version = "paris" # prevent use of PUSH0 opcode until it is widely supported
 
 [rpc_endpoints]
 sepolia = "${SEPOLIA_RPC_URL}"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
+
+[fmt]
+line_length = 80
+quote_style = "single"
+tab_width = 2
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

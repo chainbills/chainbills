@@ -11,9 +11,12 @@ fn check_withdraw_inputs(
   // Ensure that amount is greater than zero
   require!(amount > 0, ChainbillsError::ZeroAmountSpecified);
 
-  // - Ensure that this payable has enough of the provided amount in its balance.
+  // - Ensure that this payable has enough of the amount in its balance.
   // - Ensure that the specified token (mint) for withdrawal exists in the
   //   payable's balances.
+  if payable.balances.is_empty() {
+    return err!(ChainbillsError::NoBalanceForWithdrawalToken);
+  }
   let mut bals_it = payable.balances.iter().peekable();
   while let Some(balance) = bals_it.next() {
     if balance.token == mint {
@@ -31,23 +34,53 @@ fn check_withdraw_inputs(
   Ok(())
 }
 
+struct WithdrawalAmounts {
+  amount_due: u64,
+  fees: u64,
+}
+
+fn compute_amounts(
+  amount: u64,
+  token_details: &TokenDetails,
+  config: &Config,
+) -> WithdrawalAmounts {
+  let percent = amount
+    .checked_mul(config.withdrawal_fee_percentage.into())
+    .unwrap()
+    .checked_div(10000) // 10000 is 100%
+    .unwrap();
+  let fees = min(percent, token_details.max_withdrawal_fees);
+  let amount_due = amount.checked_sub(fees).unwrap();
+  WithdrawalAmounts { amount_due, fees }
+}
+
 fn update_state_for_withdrawal(
   amount: u64,
+  fees: u64,
   mint: Pubkey,
+  signer: Pubkey,
   chain_stats: &mut Account<ChainStats>,
   payable: &mut Account<Payable>,
   host: &mut Account<User>,
+  token_details: &mut Account<TokenDetails>,
   withdrawal: &mut Account<Withdrawal>,
-  payable_withdrawal_counter: &mut Account<PayableWithdrawalCounter>,
+  payable_withdrawal_info: &mut Account<PayableWithdrawalInfo>,
+  activity: &mut Account<ActivityRecord>,
+  user_activity_info: &mut Account<UserActivityInfo>,
+  payable_activity_info: &mut Account<PayableActivityInfo>,
 ) -> Result<()> {
-  // Increment the chain stats for payables_count.
+  // Increment the chain stats for payables_count and activities_count.
   chain_stats.withdrawals_count = chain_stats.next_withdrawal();
+  chain_stats.activities_count = chain_stats.next_activity();
 
-  // Increment withdrawals_count in the host that just withdrew.
+  // Increment withdrawals_count and activities_count in the host that just
+  // withdrew.
   host.withdrawals_count = host.next_withdrawal();
+  host.activities_count = host.next_activity();
 
-  // Increment withdrawals_count on the involved payable.
+  // Increment withdrawals_count and activities_count on the involved payable.
   payable.withdrawals_count = payable.next_withdrawal();
+  payable.activities_count = payable.next_activity();
 
   // Deduct the balances on the involved payable.
   for balance in payable.balances.iter_mut() {
@@ -57,13 +90,19 @@ fn update_state_for_withdrawal(
     }
   }
 
+  // Increase the supported token's totals from this withdrawal.
+  token_details.add_withdrawn(amount);
+  token_details.add_withdrawal_fees_collected(fees);
+
+  let timestamp = clock::Clock::get()?.unix_timestamp as u64;
+
   // Initialize the withdrawal.
-  withdrawal.chain_count = chain_stats.payables_count;
+  withdrawal.chain_count = chain_stats.withdrawals_count;
   withdrawal.payable_id = payable.key();
   withdrawal.payable_count = payable.withdrawals_count;
-  withdrawal.host = host.wallet_address;
+  withdrawal.host = signer;
   withdrawal.host_count = host.withdrawals_count;
-  withdrawal.timestamp = clock::Clock::get()?.unix_timestamp as u64;
+  withdrawal.timestamp = timestamp;
   withdrawal.details = TokenAndAmount {
     token: mint,
     amount,
@@ -72,22 +111,36 @@ fn update_state_for_withdrawal(
   // Initialize the payable withdrawal counter. Record the host_count in it
   // for the caller to use to get the main withdrawal account when retrieving
   // withdrawals in context of payables.
-  payable_withdrawal_counter.host_count = host.withdrawals_count;
+  payable_withdrawal_info.host_count = host.withdrawals_count;
+
+  // Initialize the activity.
+  activity.chain_count = chain_stats.activities_count;
+  activity.user_count = host.activities_count;
+  activity.payable_count = payable.activities_count;
+  activity.timestamp = timestamp;
+  activity.entity = withdrawal.key();
+  activity.activity_type = ActivityType::Withdrew;
+
+  // Initialize the user activity info.
+  user_activity_info.chain_count = chain_stats.activities_count;
+
+  // Initialize the payable activity info.
+  payable_activity_info.chain_count = chain_stats.activities_count;
 
   // Emit log and event.
   msg!(
-    "Withdrawal was made with chain_count: {}, payable_count: {}, and host_count: {}.",
+    "Withdrawal was made with chain_count: {}, host_count: {}, and payable_count: {}.",
     withdrawal.chain_count,
-    withdrawal.payable_count,
-    withdrawal.host_count
+    withdrawal.host_count,
+    withdrawal.payable_count
   );
-  emit!(WithdrawalEvent {
+  emit!(Withdrew {
     payable_id: payable.key(),
-    host_wallet: host.wallet_address,
+    host_wallet: signer,
     withdrawal_id: withdrawal.key(),
     chain_count: withdrawal.chain_count,
-    payable_count: withdrawal.payable_count,
     host_count: withdrawal.host_count,
+    payable_count: withdrawal.payable_count,
   });
   Ok(())
 }
@@ -96,6 +149,7 @@ fn update_state_for_withdrawal(
 ///
 /// ### args
 /// * amount<u64>: The amount to be withdrawn
+#[inline(never)]
 pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   /* CHECKS */
   let payable = ctx.accounts.payable.as_mut();
@@ -104,11 +158,10 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 
   /* TRANSFERS */
   // Prepare withdraw amounts and fees
-  let max_withdrawal_fee_details =
-    ctx.accounts.max_withdrawal_fee_details.as_ref();
-  let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
-  let fees = min(two_percent, max_withdrawal_fee_details.amount);
-  let amount_minus_fees = amount.checked_sub(fees).unwrap();
+  let config = ctx.accounts.config.load()?;
+  let token_details = ctx.accounts.token_details.as_mut();
+  let WithdrawalAmounts { amount_due, fees } =
+    compute_amounts(amount, token_details, &config);
 
   // Extract Accounts needed for transferring
   let host_ta = &ctx.accounts.host_token_account;
@@ -136,7 +189,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
       cpi_accounts_host,
       &[&[ChainStats::SEED_PREFIX, &[ctx.bumps.chain_stats]]],
     ),
-    amount_minus_fees,
+    amount_due,
   )?;
 
   // Transfer the fees to the fees collector.
@@ -150,18 +203,20 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
   )?;
 
   /* STATE CHANGES */
-  let chain_stats = ctx.accounts.chain_stats.as_mut();
-  let host = ctx.accounts.host.as_mut();
-  let withdrawal = ctx.accounts.withdrawal.as_mut();
-  let payable_withdrawal_counter = ctx.accounts.payable_withdrawal_counter.as_mut();
   update_state_for_withdrawal(
     amount,
+    fees,
     mint.key(),
-    chain_stats,
+    ctx.accounts.signer.key(),
+    ctx.accounts.chain_stats.as_mut(),
     payable,
-    host,
-    withdrawal,
-    payable_withdrawal_counter,
+    ctx.accounts.host.as_mut(),
+    token_details,
+    ctx.accounts.withdrawal.as_mut(),
+    ctx.accounts.payable_withdrawal_info.as_mut(),
+    ctx.accounts.activity.as_mut(),
+    ctx.accounts.user_activity_info.as_mut(),
+    ctx.accounts.payable_activity_info.as_mut(),
   )
 }
 
@@ -169,6 +224,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
 ///
 /// ### args
 /// * amount<u64>: The amount to be withdrawn
+#[inline(never)]
 pub fn withdraw_native(
   ctx: Context<WithdrawNative>,
   amount: u64,
@@ -179,11 +235,10 @@ pub fn withdraw_native(
 
   /* TRANSFERS */
   // Prepare withdraw amounts and fees
-  let max_withdrawal_fee_details =
-    ctx.accounts.max_withdrawal_fee_details.as_ref();
-  let two_percent = amount.checked_mul(2).unwrap().checked_div(100).unwrap();
-  let fees = min(two_percent, max_withdrawal_fee_details.amount);
-  let amount_minus_fees = amount.checked_sub(fees).unwrap();
+  let config = ctx.accounts.config.load()?;
+  let token_details = ctx.accounts.token_details.as_mut();
+  let WithdrawalAmounts { amount_due, fees } =
+    compute_amounts(amount, token_details, &config);
 
   // Extract Accounts needed for transferring
   let chain_stats = ctx.accounts.chain_stats.to_account_info();
@@ -193,11 +248,11 @@ pub fn withdraw_native(
   // Transfer the amount minus fees to the host.
   chain_stats
     .try_borrow_mut_lamports()?
-    .checked_sub(amount_minus_fees)
+    .checked_sub(amount_due)
     .unwrap();
   signer
     .try_borrow_mut_lamports()?
-    .checked_add(amount_minus_fees)
+    .checked_add(amount_due)
     .unwrap();
 
   // Transfer the fees to the fees collector.
@@ -211,17 +266,19 @@ pub fn withdraw_native(
     .unwrap();
 
   /* STATE CHANGES */
-  let chain_stats = ctx.accounts.chain_stats.as_mut();
-  let host = ctx.accounts.host.as_mut();
-  let withdrawal = ctx.accounts.withdrawal.as_mut();
-  let payable_withdrawal_counter = ctx.accounts.payable_withdrawal_counter.as_mut();
   update_state_for_withdrawal(
     amount,
+    fees,
     crate::ID,
-    chain_stats,
+    ctx.accounts.signer.key(),
+    ctx.accounts.chain_stats.as_mut(),
     payable,
-    host,
-    withdrawal,
-    payable_withdrawal_counter,
+    ctx.accounts.host.as_mut(),
+    token_details,
+    ctx.accounts.withdrawal.as_mut(),
+    ctx.accounts.payable_withdrawal_info.as_mut(),
+    ctx.accounts.activity.as_mut(),
+    ctx.accounts.user_activity_info.as_mut(),
+    ctx.accounts.payable_activity_info.as_mut(),
   )
 }

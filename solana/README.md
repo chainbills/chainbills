@@ -8,6 +8,8 @@ The Chainbills program is built with the Anchor framework. It is built around 6 
 
 ### TokenAndAmount
 
+Holds details of a transaction. Contains the Pubkey mint of the token involved in the transaction alongside the amount (with decimals) that is involved. This struct is used in Payments and Withdrawals. It is also used in Payables to specify the allowed tokens and amounts that can be used to make payments. When a native token is used in a transaction, the mint is the program ID (or contract address).
+
 ### Payable
 
 Where payments can be made. Created by a host and holds balances of its payments. Is Closeable. Specifies its accepted TokensAndAmounts. If the TokensAndAmounts array/vector is empty, then the given payable allows free payments.

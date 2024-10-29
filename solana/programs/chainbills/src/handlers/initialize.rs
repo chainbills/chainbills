@@ -6,9 +6,12 @@ use wormhole_anchor_sdk::wormhole;
 ///
 /// Should be run once by the deployer of the program
 /// before other instructions in this program should be invoked.
+#[inline(never)]
 pub fn initialize_handler(ctx: Context<Initialize>) -> Result<()> {
   // Initialize config account.
   let config = &mut ctx.accounts.config.load_init()?;
+  config.chain_id = wormhole::CHAIN_ID_SOLANA;
+  config.withdrawal_fee_percentage = 200u16; // 2.00%
   config.owner = *ctx.accounts.owner.to_account_info().key;
   config.chainbills_fee_collector =
     *ctx.accounts.chainbills_fee_collector.to_account_info().key;
@@ -19,7 +22,7 @@ pub fn initialize_handler(ctx: Context<Initialize>) -> Result<()> {
 
   // Initialize Solana's chain_stats account.
   let chain_stats = ctx.accounts.chain_stats.as_mut();
-  chain_stats.initialize(wormhole::CHAIN_ID_SOLANA);
+  chain_stats.initialize();
 
   // Send a message to Wormhole to initialize the sequence counter for this
   // program.
@@ -68,6 +71,6 @@ pub fn initialize_handler(ctx: Context<Initialize>) -> Result<()> {
 
   // Emit log and event.
   msg!("Initialized Config and Solana's ChainStats.");
-  emit!(InitializedEvent {});
+  emit!(Initialized {});
   Ok(())
 }

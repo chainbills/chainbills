@@ -10,11 +10,17 @@ pub enum ChainbillsError {
   #[error("Payment error: {0}")]
   NativePayment(#[from] PaymentError),
 
+  #[error("Invalid User Address Count: {count}")]
+  InvalidUserAddressCount { count: u64 },
+
   #[error("OwnerUnauthorized")]
   OwnerUnauthorized {},
 
   #[error("Invalid Token: {token}")]
   InvalidToken { token: String },
+
+  #[error("Unsupported Token: {token}")]
+  UnsupportedToken { token: String },
 
   #[error("Zero Amount Specified")]
   ZeroAmountSpecified {},
@@ -72,4 +78,16 @@ pub enum ChainbillsError {
 
   #[error("Insufficient Withdraw Amount")]
   InsufficientWithdrawAmount {},
+
+  #[error("Invalid Activity Count: {count}")]
+  InvalidChainActivityCount { count: u64 },
+
+  #[error("Invalid User Activity Count: {count}")]
+  InvalidUserActivityCount { count: u64 },
+
+  #[error("Invalid Payable Activity Count: {count}")]
+  InvalidPayableActivityCount { count: u64 },
+
+  #[error("Invalid Activity ID: {id}")]
+  InvalidActivityId { id: String },
 }

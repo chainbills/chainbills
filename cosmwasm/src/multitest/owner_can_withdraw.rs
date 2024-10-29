@@ -1,11 +1,11 @@
 use crate::contract::sv::mt::{ChainbillsProxy, CodeId};
-use crate::messages::InstantiateMessage;
-use crate::state::MaxWithdrawalFeeDetails;
+use crate::interfaces::token_details::sv::mt::TokenDetailsInterfaceProxy;
+use crate::messages::{InstantiateMessage, UpdateMaxWithdrawalFeesMessage};
+use crate::state::TokenAndAmount;
 use cw20::{BalanceResponse, Cw20Coin};
 use cw20_base::msg::InstantiateMsg;
 use sylvia::cw_multi_test::{Contract, ContractWrapper, Executor, IntoAddr};
 use sylvia::cw_std::{coins, BankMsg, CosmosMsg, Empty, StdResult, Uint128};
-
 use sylvia::multitest::App;
 
 fn contract_cw20() -> Box<dyn Contract<Empty>> {
@@ -107,6 +107,26 @@ fn owner_can_withdraw() {
   );
   println!();
 
+  // Set MaxWithdrawalFee for Native Token and Cw20 Token
+  // Necessary for the contract to know if token is native or cw20
+  // when making owner withdrawals
+  contract
+    .update_max_withdrawal_fees(UpdateMaxWithdrawalFeesMessage {
+      token: "native".to_string(),
+      max_withdrawal_fees: Uint128::new(100),
+      is_native_token: true,
+    })
+    .call(&owner)
+    .unwrap();
+  contract
+    .update_max_withdrawal_fees(UpdateMaxWithdrawalFeesMessage {
+      token: usdc_addr.clone().to_string(),
+      max_withdrawal_fees: Uint128::new(100),
+      is_native_token: false,
+    })
+    .call(&owner)
+    .unwrap();
+
   // send funds to contract
   let respo = app
     .app_mut()
@@ -122,10 +142,9 @@ fn owner_can_withdraw() {
 
   // Owner Withdraw for Native Token
   let respo1 = contract
-    .owner_withdraw(MaxWithdrawalFeeDetails {
+    .owner_withdraw(TokenAndAmount {
       token: "native".to_string(),
-      max_fee: Uint128::new(100),
-      is_native_token: true,
+      amount: Uint128::new(100),
     })
     .call(&owner)
     .unwrap();
@@ -133,10 +152,9 @@ fn owner_can_withdraw() {
 
   // Owner Withdraw for Cw20 Token
   let respo2 = contract
-    .owner_withdraw(MaxWithdrawalFeeDetails {
+    .owner_withdraw(TokenAndAmount {
       token: usdc_addr.clone().to_string(),
-      max_fee: Uint128::new(100),
-      is_native_token: false,
+      amount: Uint128::new(100),
     })
     .call(&owner)
     .unwrap();

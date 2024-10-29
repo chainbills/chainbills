@@ -1,7 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 
-
 #[derive(Accounts)]
 pub struct PayNative<'info> {
   #[account(
@@ -31,16 +30,72 @@ pub struct PayNative<'info> {
   pub payable_payment: Box<Account<'info, PayablePayment>>,
 
   #[account(
+        init,
+        seeds = [
+            payable.key().as_ref(),
+            &config.load()?.chain_id.to_le_bytes()[..],
+            &payable_per_chain_payments_counter.next_payment().to_le_bytes()[..]
+        ],
+        bump,
+        payer = signer,
+        space = PayablePerChainPaymentInfo::SPACE
+    )]
+  pub payable_per_chain_payment_info:
+    Box<Account<'info, PayablePerChainPaymentInfo>>,
+
+  #[account(
         mut,
         seeds = [
             payable.key().as_ref(),
-            &chain_stats.chain_id.to_le_bytes()[..],
+            &config.load()?.chain_id.to_le_bytes()[..],
         ],
         bump
     )]
-  pub payable_chain_counter: Box<Account<'info, PayableChainCounter>>,
+  pub payable_per_chain_payments_counter:
+    Box<Account<'info, PayablePerChainPaymentsCounter>>,
 
-  #[account(mut)]
+  #[account(
+    init,
+    seeds = [ActivityRecord::SEED_PREFIX, &chain_stats.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = ActivityRecord::SPACE
+  )]
+  /// Houses Details of this activity as one of UserPaid.
+  pub user_activity: Box<Account<'info, ActivityRecord>>,
+
+  #[account(
+    init,
+    seeds = [signer.key().as_ref(), ActivityRecord::SEED_PREFIX, &payer.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = UserActivityInfo::SPACE
+  )]
+  /// Houses Chain Count of activities for this activity.
+  pub user_activity_info: Box<Account<'info, UserActivityInfo>>,
+
+  #[account(
+    init,
+    // added 1 to chain_stats.next_activity() because the previous addition in this same transaction is for the user activity
+    seeds = [ActivityRecord::SEED_PREFIX, &(chain_stats.next_activity().checked_add(1).unwrap()).to_le_bytes()[..]], 
+    bump,
+    payer = signer,
+    space = ActivityRecord::SPACE
+  )]
+  /// Houses Details of this activity as one of PayableReceived.
+  pub payable_activity: Box<Account<'info, ActivityRecord>>,
+
+  #[account(
+    init,
+    seeds = [payable.key().as_ref(), ActivityRecord::SEED_PREFIX, &payable.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = PayableActivityInfo::SPACE
+  )]
+  /// Houses Chain Count of activities for this activity.
+  pub payable_activity_info: Box<Account<'info, PayableActivityInfo>>,
+
+  #[account(mut, realloc = payable.space_update_balance(crate::ID), realloc::payer = signer, realloc::zero = false)]
   pub payable: Box<Account<'info, Payable>>,
 
   #[account(mut, seeds = [signer.key().as_ref()], bump)]
@@ -49,8 +104,11 @@ pub struct PayNative<'info> {
   #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
-  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, crate::ID.as_ref()], bump)]
-  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
+  #[account(seeds = [Config::SEED_PREFIX], bump)]
+  pub config: AccountLoader<'info, Config>,
+
+  #[account(seeds = [TokenDetails::SEED_PREFIX, crate::ID.as_ref()], bump)]
+  pub token_details: Box<Account<'info, TokenDetails>>,
 
   #[account(mut)]
   pub signer: Signer<'info>,

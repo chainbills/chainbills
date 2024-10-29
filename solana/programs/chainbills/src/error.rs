@@ -2,9 +2,22 @@ use anchor_lang::prelude::error_code;
 
 #[error_code]
 pub enum ChainbillsError {
-  #[msg("MaxPayableTokensCapacityReached")]
-  /// The maximum capacity of payable tokens has been reached.
-  MaxPayableTokensCapacityReached,
+  #[msg("InvalidRemainingAccountsLength")]
+  /// The length of remaining accounts in the context does not match the length
+  /// of the allowed tokens and amounts vector.
+  InvalidRemainingAccountsLength,
+
+  #[msg("NonTokenDetailsAccountProvided")]
+  /// A non-token details account was provided in the remaining accounts.
+  NonTokenDetailsAccountProvided,
+
+  #[msg("InvalidTokenDetailsAccount")]
+  /// The token details account is invalid.
+  InvalidTokenDetailsAccount,
+
+  #[msg("UnsupportedToken")]
+  /// The token is not supported.
+  UnsupportedToken,
 
   #[msg("ZeroAmountSpecified")]
   /// The amount specified is zero.

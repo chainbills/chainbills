@@ -30,9 +30,9 @@ impl AnchorSerialize for CompletePaymentPayload {
     self.payable_id.serialize(writer)?;
     self.wallet.serialize(writer)?;
     self.token.serialize(writer)?;
-    self.amount.to_be_bytes().serialize(writer)?;
-    self.payable_count.to_be_bytes().serialize(writer)?;
-    self.timestamp.to_be_bytes().serialize(writer)?;
+    self.amount.to_le_bytes().serialize(writer)?;
+    self.payable_count.to_le_bytes().serialize(writer)?;
+    self.timestamp.to_le_bytes().serialize(writer)?;
     Ok(())
   }
 }
@@ -52,21 +52,21 @@ impl AnchorDeserialize for CompletePaymentPayload {
     let amount = {
       let mut out = [0u8; 8];
       out.copy_from_slice(&buf[index..(index + 8)]);
-      u64::from_be_bytes(out) as u64
+      u64::from_le_bytes(out) as u64
     };
     index += 8;
 
     let payable_count = {
       let mut out = [0u8; 8];
       out.copy_from_slice(&buf[index..(index + 8)]);
-      u64::from_be_bytes(out) as u64
+      u64::from_le_bytes(out) as u64
     };
     index += 8;
 
     let timestamp = {
       let mut out = [0u8; 8];
       out.copy_from_slice(&buf[index..(index + 8)]);
-      u64::from_be_bytes(out) as u64
+      u64::from_le_bytes(out) as u64
     };
     index += 8;
 

@@ -1,6 +1,6 @@
-use sylvia::cw_schema::cw_serde;
-use sylvia::cw_std::Uint128;
 use crate::state::TokenAndAmount;
+use sylvia::cw_schema::cw_serde;
+use sylvia::cw_std::{Addr, Uint128};
 
 #[cw_serde(crate = "sylvia::cw_schema")]
 pub struct InstantiateMessage {
@@ -9,8 +9,15 @@ pub struct InstantiateMessage {
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
-pub struct FetchMaxFeeMessage {
+pub struct AddressMessage {
+  pub address: Addr,
+}
+
+#[cw_serde(crate = "sylvia::cw_schema")]
+pub struct UpdateMaxWithdrawalFeesMessage {
   pub token: String,
+  pub is_native_token: bool,
+  pub max_withdrawal_fees: Uint128,
 }
 
 #[cw_serde(crate = "sylvia::cw_schema")]
@@ -45,7 +52,6 @@ pub struct PerChainPayablePaymentsCountMessage {
 pub struct CountMessage {
   pub count: u64,
 }
-
 
 #[cw_serde(crate = "sylvia::cw_schema")]
 pub struct PerChainPayablePaymentIdMessage {

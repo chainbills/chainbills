@@ -18,13 +18,43 @@ pub struct Withdraw<'info> {
   #[account(
         init,
         seeds = [payable.key().as_ref(),
-            PayableWithdrawalCounter::SEED_PREFIX,
+            PayableWithdrawalInfo::SEED_PREFIX,
             &payable.next_withdrawal().to_le_bytes()[..]],
         bump,
         payer = signer,
-        space = PayableWithdrawalCounter::SPACE
+        space = PayableWithdrawalInfo::SPACE
     )]
-  pub payable_withdrawal_counter: Box<Account<'info, PayableWithdrawalCounter>>,
+  pub payable_withdrawal_info: Box<Account<'info, PayableWithdrawalInfo>>,
+
+  #[account(
+    init,
+    seeds = [ActivityRecord::SEED_PREFIX, &chain_stats.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = ActivityRecord::SPACE
+  )]
+  /// Houses Details of this activity as Withdrew.
+  pub activity: Box<Account<'info, ActivityRecord>>,
+
+  #[account(
+    init,
+    seeds = [signer.key().as_ref(), ActivityRecord::SEED_PREFIX, &host.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = UserActivityInfo::SPACE
+  )]
+  /// Houses Chain Count of activities for this activity.
+  pub user_activity_info: Box<Account<'info, UserActivityInfo>>,
+
+  #[account(
+    init,
+    seeds = [payable.key().as_ref(), ActivityRecord::SEED_PREFIX, &payable.next_activity().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = PayableActivityInfo::SPACE
+  )]
+  /// Houses Chain Count of activities for this activity.
+  pub payable_activity_info: Box<Account<'info, PayableActivityInfo>>,
 
   #[account(mut, constraint = payable.host == *signer.key @ ChainbillsError::NotYourPayable)]
   pub payable: Box<Account<'info, Payable>>,
@@ -40,8 +70,8 @@ pub struct Withdraw<'info> {
 
   pub mint: Box<Account<'info, Mint>>,
 
-  #[account(seeds = [MaxFeeDetails::SEED_PREFIX, mint.key().as_ref()], bump)]
-  pub max_withdrawal_fee_details: Box<Account<'info, MaxFeeDetails>>,
+  #[account(seeds = [TokenDetails::SEED_PREFIX, mint.key().as_ref()], bump)]
+  pub token_details: Box<Account<'info, TokenDetails>>,
 
   #[account(
         mut,

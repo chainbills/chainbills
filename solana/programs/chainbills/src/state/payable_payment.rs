@@ -12,6 +12,10 @@ pub struct PayablePayment {
   /// If the payer is on Solana, then will be the bytes of their wallet address.
   pub payer: [u8; 32], // 32 bytes
 
+  /// The nth count of payable payments on this chain at the point this payment
+  /// was received.
+  pub chain_count: u64, // 8 bytes
+
   /// The Wormhole Chain ID of the chain from which the payment was made.
   pub payer_chain_id: u16, // 2 bytes
 
@@ -22,10 +26,6 @@ pub struct PayablePayment {
   /// The nth count of payments that the payable has received
   /// at the point when this payment was made.
   pub payable_count: u64, // 8 bytes
-
-  /// The nth count of payments that the payer has made
-  /// at the point of making this payment.
-  pub payer_count: u64, // 8 bytes
 
   /// When this payment was made.
   pub timestamp: u64, // 8 bytes

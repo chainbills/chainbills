@@ -32,7 +32,7 @@ const route = useRoute();
 const payable = ref<Payable | null>(null);
 const payables = usePayableStore();
 const aTAAs = computed(() => payable.value?.allowedTokensAndAmounts ?? []);
-const allowsFreePayments = aTAAs.value.length == 0;
+const allowsFreePayments = computed(() => aTAAs.value.length == 0);
 const router = useRouter();
 const selectedConfig = ref<TokenAndAmount | null>(null);
 const selectedToken = ref<Token | null>(null);
@@ -63,7 +63,7 @@ const validateAmount = () => {
   if (Number.isNaN(v) || +v == 0) amountError.value = 'Required';
   else if (v <= 0) amountError.value = 'Should be positive';
   else amountError.value = '';
-  if (allowsFreePayments && selectedConfig.value) {
+  if (allowsFreePayments.value && selectedConfig.value) {
     const chain = auth.currentUser?.chain ?? payable.value.chain;
     selectedConfig.value.amount =
       v * 10 ** (selectedConfig.value.details[chain]?.decimals ?? 0);
@@ -75,7 +75,7 @@ const updateBalances = async () => {
   if (!auth.currentUser) {
     balances.value = [];
   } else {
-    if (allowsFreePayments) {
+    if (allowsFreePayments.value) {
       balances.value = [
         selectedToken.value ? await auth.balance(selectedToken.value) : null,
       ];
@@ -99,7 +99,7 @@ const validateBalance = async () => {
 
 const validateConfig = () => {
   if (!selectedConfig.value) {
-    if (allowsFreePayments) configError.value = 'Please select a token';
+    if (allowsFreePayments.value) configError.value = 'Please select a token';
     else if (aTAAs.value.length > 1) {
       configError.value = 'Please make a choice';
     } else configError.value = '';
@@ -113,7 +113,7 @@ const pay = async () => {
   await validateBalance();
   validateConfig();
   if (
-    (allowsFreePayments && amountError.value) ||
+    (allowsFreePayments.value && amountError.value) ||
     balanceError.value ||
     configError.value
   ) {
@@ -154,11 +154,11 @@ onMounted(async () => {
     }
   );
 
-  if (!allowsFreePayments && aTAAs.value.length == 1) {
+  if (!allowsFreePayments.value && aTAAs.value.length == 1) {
     selectedConfig.value = aTAAs.value[0];
   }
 
-  if (allowsFreePayments) {
+  if (allowsFreePayments.value) {
     setTimeout(() => {
       (
         document.querySelector('input.amount[type=number]') as HTMLInputElement

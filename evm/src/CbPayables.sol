@@ -65,7 +65,7 @@ contract CbPayables is CbPayloadMessages, CbGovernance {
       EntityType.Payable,
       users[msg.sender].payablesCount
     );
-    payableIds.push(payableId);
+    chainPayableIds.push(payableId);
     userPayableIds[msg.sender].push(payableId);
     payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
     Payable storage _payable = payables[payableId];

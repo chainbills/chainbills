@@ -53,7 +53,7 @@ contract CbUtils is CbState {
       chainStats.activitiesCount++;
 
       // Initialize the user.
-      userAddresses.push(wallet);
+      chainUserAddresses.push(wallet);
       users[wallet].chainCount = chainStats.usersCount;
       users[wallet].activitiesCount = 1;
 

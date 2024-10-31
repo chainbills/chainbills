@@ -59,7 +59,7 @@ contract CbTransactions is CbPayloadMessages, CbGovernance {
       EntityType.Payment,
       users[msg.sender].paymentsCount
     );
-    allUserPaymentIds.push(userPaymentId);
+    chainUserPaymentIds.push(userPaymentId);
     userPaymentIds[msg.sender].push(userPaymentId);
     userPaymentDetails[userPaymentId] = TokenAndAmount(token, amount);
     userPayments[userPaymentId] = UserPayment({
@@ -144,7 +144,7 @@ contract CbTransactions is CbPayloadMessages, CbGovernance {
     // Record payment details of payable.
     payablePaymentId =
       createId(payableId, EntityType.Payment, _payable.paymentsCount);
-    allPayablePaymentIds.push(payablePaymentId);
+    chainPayablePaymentIds.push(payablePaymentId);
     payablePaymentIds[payableId].push(payablePaymentId);
     payableChainPaymentIds[payableId][payerChainId].push(payablePaymentId);
     payablePaymentDetails[payablePaymentId] = TokenAndAmount(token, amount);
@@ -513,7 +513,7 @@ contract CbTransactions is CbPayloadMessages, CbGovernance {
       EntityType.Withdrawal,
       users[msg.sender].withdrawalsCount
     );
-    withdrawalIds.push(withdrawalId);
+    chainWithdrawalIds.push(withdrawalId);
     userWithdrawalIds[msg.sender].push(withdrawalId);
     payableWithdrawalIds[payableId].push(withdrawalId);
     withdrawalDetails[withdrawalId] = TokenAndAmount(token, amount);

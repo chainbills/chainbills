@@ -14,17 +14,17 @@ contract CbState {
   /// Counter for activities on this chain.
   ChainStats public chainStats;
   /// Array of Wallet Addresses of Users on this chain.
-  address[] public userAddresses;
+  address[] public chainUserAddresses;
   /// Array of Payable IDs on this chain.
-  bytes32[] public payableIds;
+  bytes32[] public chainPayableIds;
   /// Array of foreign Payable IDs on this chain.
-  bytes32[] public foreignPayableIds;
+  bytes32[] public chainForeignPayableIds;
   /// Array of User Payment IDs on this chain.
-  bytes32[] public allUserPaymentIds;
+  bytes32[] public chainUserPaymentIds;
   /// Array of Payable Payment IDs on this chain.
-  bytes32[] public allPayablePaymentIds;
+  bytes32[] public chainPayablePaymentIds;
   /// Array of Withdrawal IDs on this chain.
-  bytes32[] public withdrawalIds;
+  bytes32[] public chainWithdrawalIds;
   /// Array of IDs of Activities on this chain.
   bytes32[] public chainActivityIds;
   /// Array of Consumed Wormhole messages.

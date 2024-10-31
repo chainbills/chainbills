@@ -10,8 +10,8 @@ pub enum ChainbillsError {
   #[error("Payment error: {0}")]
   NativePayment(#[from] PaymentError),
 
-  #[error("Invalid User Address Count: {count}")]
-  InvalidUserAddressCount { count: u64 },
+  #[error("Invalid Chain User Address Count: {count}")]
+  InvalidChainUserAddressCount { count: u64 },
 
   #[error("OwnerUnauthorized")]
   OwnerUnauthorized {},
@@ -24,6 +24,9 @@ pub enum ChainbillsError {
 
   #[error("Zero Amount Specified")]
   ZeroAmountSpecified {},
+
+  #[error("Invalid Chain Payable Count: {count}")]
+  InvalidChainPayableCount { count: u64 },
 
   #[error("Invalid User Payable Count: {count}")]
   InvalidUserPayableCount { count: u64 },
@@ -46,6 +49,12 @@ pub enum ChainbillsError {
   #[error("Invalid Native Token Payment")]
   InvalidNativeTokenPayment {},
 
+  #[error("Invalid Chain User Payment Count: {count}")]
+  InvalidChainUserPaymentCount { count: u64 },
+
+  #[error("Invalid Chain Payable Payment Count: {count}")]
+  InvalidChainPayablePaymentCount { count: u64 },
+
   #[error("Invalid User Payment Count: {count}")]
   InvalidUserPaymentCount { count: u64 },
 
@@ -60,6 +69,9 @@ pub enum ChainbillsError {
 
   #[error("Invalid Per Chain Payable Payment Count: {count}")]
   InvalidPerChainPayablePaymentCount { count: u64 },
+
+  #[error("Invalid Chain Withdrawal Count: {count}")]
+  InvalidChainWithdrawalCount { count: u64 },
 
   #[error("Invalid User Withdrawal Count: {count}")]
   InvalidUserWithdrawalCount { count: u64 },

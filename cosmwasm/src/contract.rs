@@ -26,10 +26,14 @@ pub struct Chainbills {
   pub config: Item<Config>,
   pub chain_stats: Item<ChainStats>,
   pub token_details: Map<String, TokenDetails>,
-  pub activities: Map<[u8; 32], ActivityRecord>,
+  pub chain_user_addresses: Item<Vec<Addr>>,
+  pub chain_payable_ids: Item<Vec<[u8; 32]>>,
+  pub chain_user_payment_ids: Item<Vec<[u8; 32]>>,
+  pub chain_payable_payment_ids: Item<Vec<[u8; 32]>>,
+  pub chain_withdrawal_ids: Item<Vec<[u8; 32]>>,
   pub chain_activity_ids: Item<Vec<[u8; 32]>>,
+  pub activities: Map<[u8; 32], ActivityRecord>,
   pub users: Map<&'static Addr, User>,
-  pub user_addresses: Item<Vec<Addr>>,
   pub user_payable_ids: Map<&'static Addr, Vec<[u8; 32]>>,
   pub user_payments: Map<[u8; 32], UserPayment>,
   pub user_payment_ids: Map<&'static Addr, Vec<[u8; 32]>>,
@@ -59,10 +63,14 @@ impl Chainbills {
       config: Item::new("config"),
       chain_stats: Item::new("chain_stats"),
       token_details: Map::new("token_details"),
-      activities: Map::new("activities"),
+      chain_user_addresses: Item::new("chain_user_addresses"),
+      chain_payable_ids: Item::new("chain_payable_ids"),
+      chain_user_payment_ids: Item::new("chain_user_payment_ids"),
+      chain_payable_payment_ids: Item::new("chain_payable_payment_ids"),
+      chain_withdrawal_ids: Item::new("chain_withdrawal_ids"),
       chain_activity_ids: Item::new("chain_activity_ids"),
+      activities: Map::new("activities"),
       users: Map::new("users"),
-      user_addresses: Item::new("user_addresses"),
       user_payable_ids: Map::new("user_payable_ids"),
       user_payments: Map::new("user_payments"),
       user_payment_ids: Map::new("user_payment_ids"),
@@ -107,9 +115,17 @@ impl Chainbills {
       },
     )?;
 
-    // Initialize Activity IDs and User Addresses
+    // Initialize Chain-Level Arrays
+    self.chain_user_addresses.save(ctx.deps.storage, &vec![])?;
+    self.chain_payable_ids.save(ctx.deps.storage, &vec![])?;
+    self
+      .chain_user_payment_ids
+      .save(ctx.deps.storage, &vec![])?;
+    self
+      .chain_payable_payment_ids
+      .save(ctx.deps.storage, &vec![])?;
+    self.chain_withdrawal_ids.save(ctx.deps.storage, &vec![])?;
     self.chain_activity_ids.save(ctx.deps.storage, &vec![])?;
-    self.user_addresses.save(ctx.deps.storage, &vec![])?;
 
     // Emit an event and return a response.
     Ok(Response::new().add_attributes([
@@ -139,7 +155,7 @@ impl Chainbills {
   }
 
   #[sv::msg(query)]
-  fn user_address(
+  fn chain_user_address(
     &self,
     ctx: QueryCtx,
     msg: CountMessage,
@@ -148,11 +164,11 @@ impl Chainbills {
     let count = msg.count;
     let chain_stats = self.chain_stats.load(ctx.deps.storage)?;
     if count == 0 || count > chain_stats.users_count {
-      return Err(ChainbillsError::InvalidUserAddressCount { count });
+      return Err(ChainbillsError::InvalidChainUserAddressCount { count });
     }
 
     // Get and return the User Address.
-    let addresses = self.user_addresses.load(ctx.deps.storage)?;
+    let addresses = self.chain_user_addresses.load(ctx.deps.storage)?;
     Ok(AddressMessage {
       address: addresses[(count - 1) as usize].clone(),
     })
@@ -251,9 +267,11 @@ impl Chainbills {
       )?;
 
       // Save the user address to user_addresses.
-      let mut user_addresses = self.user_addresses.load(storage)?;
-      user_addresses.push(wallet.clone());
-      self.user_addresses.save(storage, &user_addresses)?;
+      let mut chain_user_addresses = self.chain_user_addresses.load(storage)?;
+      chain_user_addresses.push(wallet.clone());
+      self
+        .chain_user_addresses
+        .save(storage, &chain_user_addresses)?;
 
       // Get a new ActivityRecord ID.
       let activity_id =

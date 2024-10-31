@@ -1,6 +1,8 @@
 use crate::contract::Chainbills;
 use crate::error::ChainbillsError;
-use crate::messages::{FetchIdMessage, IdMessage, TransactionInfoMessage};
+use crate::messages::{
+  CountMessage, FetchIdMessage, IdMessage, TransactionInfoMessage,
+};
 use crate::state::{
   ActivityRecord, ActivityType, TokenAndAmount, TokenDetails, User, Withdrawal,
 };
@@ -16,6 +18,12 @@ use sylvia::types::{ExecCtx, QueryCtx};
 #[interface]
 pub trait Withdrawals {
   type Error: From<StdError>;
+
+  fn chain_withdrawal_id(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<IdMessage, Self::Error>;
 
   #[sv::msg(query)]
   fn user_withdrawal_id(
@@ -48,6 +56,24 @@ pub trait Withdrawals {
 
 impl Withdrawals for Chainbills {
   type Error = ChainbillsError;
+
+  fn chain_withdrawal_id(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<IdMessage, Self::Error> {
+    // Ensure the requested count is valid.
+    let count = msg.count;
+    let chain_stats = self.chain_stats.load(ctx.deps.storage)?;
+    if count == 0 || count > chain_stats.withdrawals_count {
+      return Err(ChainbillsError::InvalidChainWithdrawalCount { count });
+    }
+
+    // Get and return the Withdrawal ID.
+    let ids = self.chain_withdrawal_ids.load(ctx.deps.storage)?;
+    let id = HexBinary::from(ids[(count - 1) as usize]).to_hex();
+    Ok(IdMessage { id })
+  }
 
   fn user_withdrawal_id(
     &self,
@@ -265,6 +291,14 @@ impl Withdrawals for Chainbills {
       "withdrawal",
       user.withdrawals_count,
     )?;
+
+    // Add the Payment ID to the chain_withdrawal_ids.
+    let mut chain_withdrawal_ids =
+      self.chain_withdrawal_ids.load(ctx.deps.storage)?;
+    chain_withdrawal_ids.push(withdrawal_id);
+    self
+      .chain_withdrawal_ids
+      .save(ctx.deps.storage, &chain_withdrawal_ids)?;
 
     // Save the Withdrawal ID to the users_withdrawal_ids.
     let mut user_withdrawal_ids = self

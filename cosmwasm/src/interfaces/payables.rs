@@ -1,7 +1,7 @@
 use crate::contract::Chainbills;
 use crate::error::ChainbillsError;
 use crate::messages::{
-  CreatePayableMessage, FetchIdMessage, IdMessage,
+  CountMessage, CreatePayableMessage, FetchIdMessage, IdMessage,
   UpdatePayableTokensAndAmountsMessage,
 };
 use crate::state::{ActivityRecord, ActivityType, Payable, TokenDetails, User};
@@ -12,6 +12,12 @@ use sylvia::types::{ExecCtx, QueryCtx};
 #[interface]
 pub trait Payables {
   type Error: From<StdError>;
+
+  fn chain_payable_id(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<IdMessage, Self::Error>;
 
   #[sv::msg(query)]
   fn user_payable_id(
@@ -58,6 +64,24 @@ pub trait Payables {
 
 impl Payables for Chainbills {
   type Error = ChainbillsError;
+
+  fn chain_payable_id(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<IdMessage, Self::Error> {
+    // Ensure the requested count is valid.
+    let count = msg.count;
+    let chain_stats = self.chain_stats.load(ctx.deps.storage)?;
+    if count == 0 || count > chain_stats.payables_count {
+      return Err(ChainbillsError::InvalidChainPayableCount { count });
+    }
+
+    // Get and return the Payable ID.
+    let ids = self.chain_payable_ids.load(ctx.deps.storage)?;
+    let id = HexBinary::from(ids[(count - 1) as usize]).to_hex();
+    Ok(IdMessage { id })
+  }
 
   fn user_payable_id(
     &self,
@@ -155,6 +179,14 @@ impl Payables for Chainbills {
       "payable",
       user.payables_count,
     )?;
+
+    // Save the Payable ID to the chain_payable_ids.
+    let mut chain_payable_ids =
+      self.chain_payable_ids.load(ctx.deps.storage)?;
+    chain_payable_ids.push(payable_id);
+    self
+      .chain_payable_ids
+      .save(ctx.deps.storage, &chain_payable_ids)?;
 
     // Save the Payable ID to the users_payable_ids.
     let mut user_payable_ids = self

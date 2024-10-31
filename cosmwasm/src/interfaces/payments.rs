@@ -19,6 +19,18 @@ use sylvia::types::{ExecCtx, QueryCtx};
 pub trait Payments {
   type Error: From<StdError>;
 
+  fn chain_user_payment_id(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<IdMessage, Self::Error>;
+
+  fn chain_payable_payment_id(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<IdMessage, Self::Error>;
+
   #[sv::msg(query)]
   fn user_payment_id(
     &self,
@@ -71,6 +83,42 @@ pub trait Payments {
 
 impl Payments for Chainbills {
   type Error = ChainbillsError;
+
+  fn chain_user_payment_id(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<IdMessage, Self::Error> {
+    // Ensure the requested count is valid.
+    let count = msg.count;
+    let chain_stats = self.chain_stats.load(ctx.deps.storage)?;
+    if count == 0 || count > chain_stats.user_payments_count {
+      return Err(ChainbillsError::InvalidChainUserPaymentCount { count });
+    }
+
+    // Get and return the User Payment ID.
+    let ids = self.chain_user_payment_ids.load(ctx.deps.storage)?;
+    let id = HexBinary::from(ids[(count - 1) as usize]).to_hex();
+    Ok(IdMessage { id })
+  }
+
+  fn chain_payable_payment_id(
+    &self,
+    ctx: QueryCtx,
+    msg: CountMessage,
+  ) -> Result<IdMessage, Self::Error> {
+    // Ensure the requested count is valid.
+    let count = msg.count;
+    let chain_stats = self.chain_stats.load(ctx.deps.storage)?;
+    if count == 0 || count > chain_stats.payable_payments_count {
+      return Err(ChainbillsError::InvalidChainPayablePaymentCount { count });
+    }
+
+    // Get and return the Payable Payment ID.
+    let ids = self.chain_payable_payment_ids.load(ctx.deps.storage)?;
+    let id = HexBinary::from(ids[(count - 1) as usize]).to_hex();
+    Ok(IdMessage { id })
+  }
 
   fn user_payment_id(
     &self,
@@ -383,6 +431,14 @@ impl Payments for Chainbills {
       user.payments_count,
     )?;
 
+    // Add the Payment ID to the chain_user_payment_ids.
+    let mut chain_user_payment_ids =
+      self.chain_user_payment_ids.load(ctx.deps.storage)?;
+    chain_user_payment_ids.push(user_payment_id);
+    self
+      .chain_user_payment_ids
+      .save(ctx.deps.storage, &chain_user_payment_ids)?;
+
     // Save the Payment ID to the users_payment_ids.
     let mut user_payment_ids = self
       .user_payment_ids
@@ -425,6 +481,14 @@ impl Payments for Chainbills {
       "payment",
       payable.payments_count,
     )?;
+
+    // Add the Payment ID to the chain_payable_payment_ids.
+    let mut chain_payable_payment_ids =
+      self.chain_payable_payment_ids.load(ctx.deps.storage)?;
+    chain_payable_payment_ids.push(payable_payment_id);
+    self
+      .chain_payable_payment_ids
+      .save(ctx.deps.storage, &chain_payable_payment_ids)?;
 
     // Save the Payment ID to the payables_payment_ids.
     let mut payable_payment_ids = self

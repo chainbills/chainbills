@@ -3,8 +3,11 @@ pragma solidity ^0.8.20;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
+import 'wormhole/interfaces/IWormhole.sol';
 import 'src/CbState.sol';
 import 'src/Chainbills.sol';
+import 'src/circle/ICircleBridge.sol';
+import 'src/circle/IMessageTransmitter.sol';
 import 'forge-std/Test.sol';
 
 contract USDC is ERC20 {
@@ -19,6 +22,8 @@ contract CbUsersTest is Test {
   Chainbills chainbills;
   USDC usdc;
 
+  address circleBridge = makeAddr('circle-bridge');
+  address circleTransmitter = makeAddr('transmitter');
   address feeCollector = makeAddr('fee-collector');
   address wormhole = makeAddr('wormhole');
   address user = makeAddr('user');
@@ -34,8 +39,38 @@ contract CbUsersTest is Test {
     chainbills = Chainbills(
       payable(address(new ERC1967Proxy(address(new Chainbills()), '')))
     );
-    chainbills.initialize(feeCollector, wormhole, chainId, wormholeFinality);
+
+    vm.mockCall(
+      circleBridge,
+      abi.encodeWithSelector(ICircleBridge.localMessageTransmitter.selector),
+      abi.encode(circleTransmitter)
+    );
+    vm.mockCall(
+      circleTransmitter,
+      abi.encodeWithSelector(IMessageTransmitter.localDomain.selector),
+      abi.encode(1)
+    );
+    vm.mockCall(
+      circleBridge,
+      abi.encodeWithSelector(ICircleBridge.localMinter.selector),
+      abi.encode(makeAddr('token-minter'))
+    );
+
+    chainbills.initialize(
+      feeCollector, wormhole, circleBridge, chainId, wormholeFinality
+    );
     usdc = new USDC();
+
+    vm.mockCall(
+      wormhole,
+      abi.encodeWithSelector(IWormhole.messageFee.selector),
+      abi.encode(0)
+    );
+    vm.mockCall(
+      wormhole,
+      abi.encodeWithSelector(IWormhole.publishMessage.selector),
+      abi.encode(0)
+    );
 
     // calling updateMaxWithdrawalFees with contract address and USDC
     // is to allow native token (ETH) and ERC20 to be used for payments
@@ -45,7 +80,7 @@ contract CbUsersTest is Test {
 
   function testUserInitOnCreatePayable() public {
     vm.startPrank(user);
-    (uint256 prevUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 prevUsersCount,,,,,,,,) = chainbills.chainStats();
     (uint256 prevUserChainCount,,,,) = chainbills.users(user);
 
     vm.expectEmit(true, false, false, true);
@@ -53,7 +88,7 @@ contract CbUsersTest is Test {
 
     chainbills.createPayable(new TokenAndAmount[](0));
 
-    (uint256 newUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 newUsersCount,,,,,,,,) = chainbills.chainStats();
     (uint256 newUserChainCount,,,,) = chainbills.users(user);
     vm.stopPrank();
 
@@ -64,10 +99,10 @@ contract CbUsersTest is Test {
 
   function testUserInitOnMakePayment() public {
     // create a payable to make payment to. use this test contract as the host.
-    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
 
     vm.startPrank(user);
-    (uint256 prevUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 prevUsersCount,,,,,,,,) = chainbills.chainStats();
     (uint256 prevUserChainCount,,,,) = chainbills.users(user);
 
     vm.expectEmit(true, false, false, true);
@@ -76,7 +111,7 @@ contract CbUsersTest is Test {
     deal(user, ethAmt);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
-    (uint256 newUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 newUsersCount,,,,,,,,) = chainbills.chainStats();
     (uint256 newUserChainCount,,,,) = chainbills.users(user);
     vm.stopPrank();
 
@@ -87,14 +122,14 @@ contract CbUsersTest is Test {
 
   function testUserInitOnlyOnce() public {
     vm.startPrank(user);
-    (uint256 prevUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 prevUsersCount,,,,,,,,) = chainbills.chainStats();
     (uint256 prevUserChainCount,,,,) = chainbills.users(user);
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevUsersCount + 1);
     chainbills.createPayable(new TokenAndAmount[](0));
 
-    (uint256 newUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 newUsersCount,,,,,,,,) = chainbills.chainStats();
     (uint256 newUserChainCount,,,,) = chainbills.users(user);
 
     // creating multiple payables should not trigger
@@ -102,7 +137,7 @@ contract CbUsersTest is Test {
     chainbills.createPayable(new TokenAndAmount[](0));
     chainbills.createPayable(new TokenAndAmount[](0));
 
-    (uint256 newerUsersCount,,,,,) = chainbills.chainStats();
+    (uint256 newerUsersCount,,,,,,,,) = chainbills.chainStats();
     (uint256 newerUserChainCount,,,,) = chainbills.users(user);
     vm.stopPrank();
 
@@ -115,14 +150,14 @@ contract CbUsersTest is Test {
 
   function testUserPayableCreation() public {
     vm.startPrank(user);
-    (, uint256 prevPayablesCount,,,,) = chainbills.chainStats();
+    (, uint256 prevPayablesCount,,,,,,,) = chainbills.chainStats();
     (, uint256 prevUserPayableCount,,,) = chainbills.users(user);
 
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(
       bytes32(0), user, prevPayablesCount + 1, prevUserPayableCount + 1
     );
-    bytes32 payableId1 = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId1,) = chainbills.createPayable(new TokenAndAmount[](0));
     bytes32 fetchedP1Id = chainbills.userPayableIds(user, 0);
     (
       address p1Host,
@@ -141,7 +176,7 @@ contract CbUsersTest is Test {
     emit CreatedPayable(
       bytes32(0), user, prevPayablesCount + 2, prevUserPayableCount + 2
     );
-    bytes32 payableId2 = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId2,) = chainbills.createPayable(new TokenAndAmount[](0));
     bytes32 fetchedP2Id = chainbills.userPayableIds(user, 1);
     (
       address p2Host,
@@ -155,7 +190,7 @@ contract CbUsersTest is Test {
       ,
     ) = chainbills.payables(payableId2);
 
-    (, uint256 newPayablesCount,,,,) = chainbills.chainStats();
+    (, uint256 newPayablesCount,,,,,,,) = chainbills.chainStats();
     (, uint256 newUserPayableCount,,,) = chainbills.users(user);
     vm.stopPrank();
 
@@ -186,7 +221,7 @@ contract CbUsersTest is Test {
 
   function testUserMakingFailedPayments() public {
     // create a payable to make payment to. use this test contract as the host.
-    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
 
     vm.startPrank(user);
 
@@ -231,10 +266,10 @@ contract CbUsersTest is Test {
 
   function testUserMakingSuccessfulPayments() public {
     // create a payable to make payment to. use this test contract as the host.
-    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
 
     vm.startPrank(user);
-    (,, uint256 prevUserPaymentsCount,,,) = chainbills.chainStats();
+    (,,, uint256 prevUserPaymentsCount,,,,,) = chainbills.chainStats();
     (,, uint256 prevUserPaymentCount,,) = chainbills.users(user);
     (,, uint256 prevTotalUserPaidEth, uint256 prevTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
@@ -255,7 +290,7 @@ contract CbUsersTest is Test {
       prevUserPaymentsCount + 1,
       prevUserPaymentCount + 1
     );
-    bytes32 paymentId1 =
+    (bytes32 paymentId1,) =
       chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
     uint256 newCbEthBal = address(chainbills).balance;
@@ -286,7 +321,7 @@ contract CbUsersTest is Test {
       prevUserPaymentsCount + 2,
       prevUserPaymentCount + 2
     );
-    bytes32 paymentId2 = chainbills.pay(payableId, address(usdc), usdcAmt);
+    (bytes32 paymentId2,) = chainbills.pay(payableId, address(usdc), usdcAmt);
 
     uint256 newCbUsdcBal = usdc.balanceOf(address(chainbills));
     uint256 newUserUsdcBal = usdc.balanceOf(user);
@@ -301,7 +336,7 @@ contract CbUsersTest is Test {
       uint256 p2Timestamp
     ) = chainbills.userPayments(paymentId2);
 
-    (,, uint256 newUserPaymentsCount,,,) = chainbills.chainStats();
+    (,,, uint256 newUserPaymentsCount,,,,,) = chainbills.chainStats();
     (,, uint256 newUserPaymentCount,,) = chainbills.users(user);
     (,, uint256 newTotalUserPaidEth, uint256 newTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
@@ -362,7 +397,7 @@ contract CbUsersTest is Test {
     chainbills.withdraw(bytes32(0), address(chainbills), 1);
 
     // create payable to be used for testing failed withdrawals
-    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
 
     // withdrawal should revert if caller is not the payable's host.
     vm.prank(user);
@@ -381,9 +416,9 @@ contract CbUsersTest is Test {
   function testUserMakingSuccessfulWithdrawals() public {
     // create a payable as the user
     vm.prank(user);
-    bytes32 payableId = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
 
-    (,,,, uint256 prevWithdrawalsCount,) = chainbills.chainStats();
+    (,,,,, uint256 prevWithdrawalsCount,,,) = chainbills.chainStats();
     (,,, uint256 prevUserWithdrawalCount,) = chainbills.users(user);
     (,,,,, uint256 prevPayableWithdrawalCount,,,,) =
       chainbills.payables(payableId);
@@ -483,7 +518,7 @@ contract CbUsersTest is Test {
     uint256 newFeeCollectorUsdcBal = usdc.balanceOf(feeCollector);
     uint256 newUserUsdcBal = usdc.balanceOf(user);
 
-    (,,,, uint256 newWithdrawalsCount,) = chainbills.chainStats();
+    (,,,,, uint256 newWithdrawalsCount,,,) = chainbills.chainStats();
     (,,, uint256 newUserWithdrawalCount,) = chainbills.users(user);
     (,,,,, uint256 newPayableWithdrawalCount,,,,) =
       chainbills.payables(payableId);
@@ -495,7 +530,7 @@ contract CbUsersTest is Test {
     vm.stopPrank();
 
     // obtain fees and amount due
-    (,, uint16 withdrawalFeePercentage,,) = chainbills.config();
+    (,, uint16 withdrawalFeePercentage,,,,,,) = chainbills.config();
     uint256 ethPercent = (ethAmt * withdrawalFeePercentage) / 10000;
     uint256 ethFee = ethPercent > ethMaxFee ? ethMaxFee : ethPercent;
     uint256 ethAmtDue = ethAmt - ethFee;

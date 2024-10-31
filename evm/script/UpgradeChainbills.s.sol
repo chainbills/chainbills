@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.20;
 
 import 'openzeppelin-foundry-upgrades/Upgrades.sol';

@@ -7,17 +7,12 @@ import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import
   '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
-
+import './CbErrors.sol';
 import './CbEvents.sol';
-import './CbState.sol';
-
-error InvalidWormholeChainId();
-error InvalidWormholeEmitterAddress();
-error InvalidTokenAddress();
-error ZeroAmountSpecified();
+import './CbUtils.sol';
 
 contract CbGovernance is
-  CbState,
+  CbUtils,
   Initializable,
   OwnableUpgradeable,
   ReentrancyGuardUpgradeable,
@@ -77,5 +72,39 @@ contract CbGovernance is
     // update the registeredEmitters state variable
     registeredEmitters[emitterChainId] = emitterAddress;
     emit RegisteredForeignContract(emitterChainId, emitterAddress);
+  }
+
+  /// Registers a matching token address for a foreign token.
+  /// @dev Only the deployer (owner) can invoke this method
+  /// @param chainId The chainId of the foreign chain.
+  /// @param foreignToken The address of the token in the foreign chain.
+  /// @param token The address of corresponding token in this chain.
+  function registerMatchingTokenForForeignChain(
+    uint16 chainId,
+    bytes32 foreignToken,
+    address token
+  ) public onlyOwner {
+    if (chainId == 0 || chainId == config.chainId) {
+      revert InvalidWormholeChainId();
+    } else if (token == address(0) || foreignToken == bytes32(0)) {
+      revert InvalidTokenAddress();
+    }
+    forForeignChainMatchingTokenAddresses[chainId][foreignToken] = token;
+    forTokenAddressMatchingForeignChainTokens[token][chainId] = foreignToken;
+    emit RegisteredMatchingTokenForForeignChain(chainId, foreignToken, token);
+  }
+
+  /// Registers a Circle Chain Domain and its matching Wormhole Chain ID.
+  /// @dev Only the deployer (owner) can invoke this method
+  /// @param circleDomain The Circle Chain Domain.
+  /// @param chainId The Wormhole Chain ID.
+  function registerCircleDomainToWormholeChainId(
+    uint32 circleDomain,
+    uint16 chainId
+  ) public onlyOwner {
+    if (circleDomain == 0 || chainId == 0) revert InvalidChainId();
+    chainIdToCircleDomain[chainId] = circleDomain;
+    circleDomainToChainId[circleDomain] = chainId;
+    emit RegisteredCircleDomainToWormholeChainId(circleDomain, chainId);
   }
 }

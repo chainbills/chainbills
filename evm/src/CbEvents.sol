@@ -56,6 +56,16 @@ event UpdatedPayableAllowedTokensAndAmounts(
   bytes32 indexed payableId, address indexed hostWallet
 );
 
+/// Emitted when a Wormhole Message for Payables is consumed.
+event PayableMessageConsumed(
+  bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed messageHash
+);
+
+// Emitted when a Wormhole Message for Payments is consumed.
+event PaymentMessageConsumed(
+  bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed messageHash
+);
+
 /// Emitted when owner (deployer) updates the `maxWithdrawalFees` of `token`.
 event UpdatedMaxWithdrawalFees(address token, uint256 maxWithdrawalFees);
 
@@ -64,3 +74,14 @@ event OwnerWithdrew(address token, uint256 amount);
 
 /// Emitted when owner (deployer) registers/updates an emitter contract.
 event RegisteredForeignContract(uint16 chainId, bytes32 emitterAddress);
+
+/// Emitted when owner (deployer) registers/updates a foreign token.
+event RegisteredMatchingTokenForForeignChain(
+  uint16 chainId, bytes32 foreignToken, address token
+);
+
+/// Emitted when owner (deployer) registers/updates a Circle Domain to Wormhole
+/// Chain ID.
+event RegisteredCircleDomainToWormholeChainId(
+  uint32 circleDomain, uint16 chainId
+);

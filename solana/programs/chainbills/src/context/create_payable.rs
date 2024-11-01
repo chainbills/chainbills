@@ -20,6 +20,17 @@ pub struct CreatePayable<'info> {
   pub payable: Box<Account<'info, Payable>>,
 
   #[account(
+    init,
+    seeds = [ChainPayableId::SEED_PREFIX, &chain_stats.next_payable().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = ChainPayableId::SPACE
+  )]
+  /// Keeps the payable_id at chain level. Useful for getting all payables on
+  /// this chain.
+  pub chain_payable_id: Box<Account<'info, ChainPayableId>>,
+
+  #[account(
         init,
         seeds = [
             payable.key().as_ref(),

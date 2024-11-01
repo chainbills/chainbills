@@ -64,6 +64,7 @@ fn update_state_for_withdrawal(
   host: &mut Account<User>,
   token_details: &mut Account<TokenDetails>,
   withdrawal: &mut Account<Withdrawal>,
+  chain_withdrawal_id: &mut Account<ChainWithdrawalId>,
   payable_withdrawal_info: &mut Account<PayableWithdrawalInfo>,
   activity: &mut Account<ActivityRecord>,
   user_activity_info: &mut Account<UserActivityInfo>,
@@ -107,6 +108,9 @@ fn update_state_for_withdrawal(
     token: mint,
     amount,
   };
+
+  // Initialize the chain_withdrawal_id.
+  chain_withdrawal_id.withdrawal_id = withdrawal.key();
 
   // Initialize the payable withdrawal counter. Record the host_count in it
   // for the caller to use to get the main withdrawal account when retrieving
@@ -213,6 +217,7 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
     ctx.accounts.host.as_mut(),
     token_details,
     ctx.accounts.withdrawal.as_mut(),
+    ctx.accounts.chain_withdrawal_id.as_mut(),
     ctx.accounts.payable_withdrawal_info.as_mut(),
     ctx.accounts.activity.as_mut(),
     ctx.accounts.user_activity_info.as_mut(),
@@ -276,6 +281,7 @@ pub fn withdraw_native(
     ctx.accounts.host.as_mut(),
     token_details,
     ctx.accounts.withdrawal.as_mut(),
+    ctx.accounts.chain_withdrawal_id.as_mut(),
     ctx.accounts.payable_withdrawal_info.as_mut(),
     ctx.accounts.activity.as_mut(),
     ctx.accounts.user_activity_info.as_mut(),

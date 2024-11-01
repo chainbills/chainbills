@@ -68,6 +68,10 @@ pub fn create_payable_handler<'info>(
   payable.activities_count = 1; // Start at 1 to record the initialization.
   payable.is_closed = false;
 
+  // Initialize the chain_payable_id. 
+  let chain_payable_id = ctx.accounts.chain_payable_id.as_mut();
+  chain_payable_id.payable_id = payable.key();
+
   // Initialize the payable_per_chain_payments_counter for Solana.
   let ppcpc = ctx.accounts.payable_per_chain_payments_counter.as_mut();
   ppcpc.payments_count = 0;

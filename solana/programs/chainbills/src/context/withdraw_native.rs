@@ -15,6 +15,17 @@ pub struct WithdrawNative<'info> {
   pub withdrawal: Box<Account<'info, Withdrawal>>,
 
   #[account(
+    init,
+    seeds = [ChainWithdrawalId::SEED_PREFIX, &chain_stats.next_withdrawal().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = ChainWithdrawalId::SPACE
+  )]
+  /// Keeps the withdrawal_id at chain level. Useful for getting all  on
+  /// on this chain.
+  pub chain_withdrawal_id: Box<Account<'info, ChainWithdrawalId>>,
+
+  #[account(
         init,
         seeds = [payable.key().as_ref(),
             PayableWithdrawalInfo::SEED_PREFIX,

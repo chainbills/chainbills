@@ -17,13 +17,13 @@ pub struct InitializeUser<'info> {
 
   #[account(
     init,
-    seeds = [UserAddress::SEED_PREFIX, &chain_stats.next_user().to_le_bytes()[..]],
+    seeds = [ChainUserAddress::SEED_PREFIX, &chain_stats.next_user().to_le_bytes()[..]],
     bump,
     payer = signer,
-    space = User::SPACE
+    space = ChainUserAddress::SPACE
   )]
   /// Keeps the wallet address of the user.
-  pub user_address: Box<Account<'info, UserAddress>>,
+  pub chain_user_address: Box<Account<'info, ChainUserAddress>>,
 
   #[account(
     init,

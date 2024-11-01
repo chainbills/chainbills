@@ -31,6 +31,28 @@ pub struct Pay<'info> {
   pub payable_payment: Box<Account<'info, PayablePayment>>,
 
   #[account(
+    init,
+    seeds = [ChainUserPaymentId::SEED_PREFIX, &chain_stats.next_user_payment().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = ChainUserPaymentId::SPACE
+  )]
+  /// Keeps the user_payment_id at chain level. Useful for getting all 
+  /// user payments on this chain.
+  pub chain_user_payment_id: Box<Account<'info, ChainUserPaymentId>>,
+
+  #[account(
+    init,
+    seeds = [ChainPayablePaymentId::SEED_PREFIX, &chain_stats.next_payable_payment().to_le_bytes()[..]],
+    bump,
+    payer = signer,
+    space = ChainPayablePaymentId::SPACE
+  )]
+  /// Keeps the payable_payment_id at chain level. Useful for getting all 
+  /// payable payments on this chain.
+  pub chain_payable_payment_id: Box<Account<'info, ChainPayablePaymentId>>,
+
+  #[account(
         init,
         seeds = [
             payable.key().as_ref(),

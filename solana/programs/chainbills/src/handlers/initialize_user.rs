@@ -20,9 +20,9 @@ pub fn initialize_user_handler(ctx: Context<InitializeUser>) -> Result<()> {
   user.withdrawals_count = 0;
   user.activities_count = 1; // Start at 1 to record the initialization.
 
-  // Initialize the user address.
-  let user_address = ctx.accounts.user_address.as_mut();
-  user_address.address = ctx.accounts.signer.key();
+  // Initialize the chain user address account.
+  let chain_user_address = ctx.accounts.chain_user_address.as_mut();
+  chain_user_address.user_address = ctx.accounts.signer.key();
 
   // Initialize the activity.
   let activity = ctx.accounts.activity.as_mut();

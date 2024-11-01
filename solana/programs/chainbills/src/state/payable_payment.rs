@@ -38,7 +38,7 @@ impl PayablePayment {
   // discriminator (8) included
   pub const SPACE: usize = 2 + (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
-  /// AKA `b"payment"`.
+  /// AKA `b"payable_payment"`.
   #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"payable_payment";
 }

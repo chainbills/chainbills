@@ -9,7 +9,10 @@ import './CbGovernance.sol';
 import './CbPayloadMessages.sol';
 import './CbStructs.sol';
 
-contract CbPayables is CbPayloadMessages, CbGovernance {
+contract CbPayables is CbGovernance {
+  using CbDecodePayload for bytes;
+  using CbEncodePayablePayload for PayablePayload;
+
   /// Create a Payable.
   /// @param allowedTokensAndAmounts The accepted tokens (and their amounts) on
   /// the payable. If empty, then the payable will accept payments in any token.
@@ -102,15 +105,13 @@ contract CbPayables is CbPayloadMessages, CbGovernance {
 
     // Publish Message through Wormhole.
     wormholeMessageSequence = publishPayloadMessage(
-      encodePayablePayload(
-        PayablePayload({
-          version: 1,
-          actionType: 1, // Create
-          payableId: payableId,
-          isClosed: false,
-          allowedTokensAndAmounts: foreignAtaa
-        })
-      )
+      PayablePayload({
+        version: 1,
+        actionType: 1,
+        payableId: payableId,
+        isClosed: false,
+        allowedTokensAndAmounts: foreignAtaa
+      }) /* actionType 1 for Create */ .encode()
     );
   }
 
@@ -183,15 +184,13 @@ contract CbPayables is CbPayloadMessages, CbGovernance {
 
     // Publish Message through Wormhole.
     wormholeMessageSequence = publishPayloadMessage(
-      encodePayablePayload(
-        PayablePayload({
-          version: 1,
-          actionType: 2, // Close
-          payableId: payableId,
-          isClosed: true,
-          allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-        })
-      )
+      PayablePayload({
+        version: 1,
+        actionType: 2,
+        payableId: payableId,
+        isClosed: true,
+        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+      }) /* actionType 2 for Close */ .encode()
     );
   }
 
@@ -229,15 +228,13 @@ contract CbPayables is CbPayloadMessages, CbGovernance {
 
     // Publish Message through Wormhole.
     wormholeMessageSequence = publishPayloadMessage(
-      encodePayablePayload(
-        PayablePayload({
-          version: 1,
-          actionType: 3, // Reopen
-          payableId: payableId,
-          isClosed: false,
-          allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-        })
-      )
+      PayablePayload({
+        version: 1,
+        actionType: 3,
+        payableId: payableId,
+        isClosed: false,
+        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+      }) /* actionType 3 for Reopen */ .encode()
     );
   }
 
@@ -296,15 +293,13 @@ contract CbPayables is CbPayloadMessages, CbGovernance {
 
     // Publish Message through Wormhole.
     wormholeMessageSequence = publishPayloadMessage(
-      encodePayablePayload(
-        PayablePayload({
-          version: 1,
-          actionType: 4, // UpdateAllowedTokensAndAmounts
-          payableId: payableId,
-          isClosed: false,
-          allowedTokensAndAmounts: foreignAtaa
-        })
-      )
+      PayablePayload({
+        version: 1,
+        actionType: 4,
+        payableId: payableId,
+        isClosed: false,
+        allowedTokensAndAmounts: foreignAtaa
+      }) /* actionType 4 for UpdataATAA */ .encode()
     );
   }
 
@@ -312,18 +307,19 @@ contract CbPayables is CbPayloadMessages, CbGovernance {
   /// @param wormholeEncoded The encoded message from Wormhole.
   function recordForeignPayableUpdate(bytes memory wormholeEncoded) public {
     // Carry out necessary verifications on the encoded Wormhole and parse it.
-    IWormhole.VM memory wormholeMessage = parseAndCheckWormholeMessage(wormholeEncoded);
+    IWormhole.VM memory wormholeMessage =
+      parseAndCheckWormholeMessage(wormholeEncoded);
 
     // Decode the payload
     PayablePayload memory payload =
-      decodePayablePayload(wormholeMessage.payload);
+      wormholeMessage.payload.decodePayablePayload();
 
     // Record the foreign payable.
     bytes32 payableId = payload.payableId;
     uint16 chainId = wormholeMessage.emitterChainId;
     if (foreignPayables[payableId].chainId == 0) {
       chainStats.foreignPayablesCount++;
-      foreignPayableIds.push(payableId);
+      chainForeignPayableIds.push(payableId);
       foreignPayables[payableId].chainId = chainId;
     }
     if (payload.actionType == 1 || payload.actionType == 4) {

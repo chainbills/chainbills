@@ -5,13 +5,13 @@ import 'wormhole/libraries/BytesParsing.sol';
 import './CbErrors.sol';
 import './CbStructs.sol';
 
-contract CbPayloadMessages {
+library CbEncodePayablePayload {
   using BytesParsing for bytes;
 
   /// Encodes the PayablePayload struct into bytes.
   /// @param payload PayablePayload struct
   /// @return encoded bytes
-  function encodePayablePayload(PayablePayload memory payload)
+  function encode(PayablePayload memory payload)
     public
     pure
     returns (bytes memory encoded)
@@ -34,6 +34,35 @@ contract CbPayloadMessages {
       revert InvalidPayablePayloadActionType();
     }
   }
+}
+
+library CbEncodePaymentPayload {
+  using BytesParsing for bytes;
+
+  /// Encodes the PaymentPayload struct into bytes.
+  /// @param payload PaymentPayload struct
+  /// @return encoded bytes
+  function encode(PaymentPayload memory payload)
+    public
+    pure
+    returns (bytes memory encoded)
+  {
+    encoded = abi.encodePacked(
+      payload.version,
+      payload.payableId,
+      payload.payableChainToken,
+      payload.payableChainId,
+      payload.payer,
+      payload.payerChainToken,
+      payload.payerChainId,
+      payload.amount,
+      payload.circleNonce
+    );
+  }
+}
+
+library CbDecodePayload {
+  using BytesParsing for bytes;
 
   /// Decodes the encoded bytes into a PayablePayload struct.
   /// @param encoded bytes
@@ -63,27 +92,6 @@ contract CbPayloadMessages {
       revert InvalidPayablePayloadActionType();
     }
     if (index != encoded.length) revert InvalidPayload();
-  }
-
-  /// Encodes the PaymentPayload struct into bytes.
-  /// @param payload PaymentPayload struct
-  /// @return encoded bytes
-  function encodePaymentPayload(PaymentPayload memory payload)
-    public
-    pure
-    returns (bytes memory encoded)
-  {
-    encoded = abi.encodePacked(
-      payload.version,
-      payload.payableId,
-      payload.payableChainToken,
-      payload.payableChainId,
-      payload.payer,
-      payload.payerChainToken,
-      payload.payerChainId,
-      payload.amount,
-      payload.circleNonce
-    );
   }
 
   /// Decodes the encoded bytes into a PaymentPayload struct.

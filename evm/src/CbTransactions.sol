@@ -12,8 +12,10 @@ import './CbGovernance.sol';
 import './CbPayloadMessages.sol';
 import './CbStructs.sol';
 
-contract CbTransactions is CbPayloadMessages, CbGovernance {
+contract CbTransactions is CbGovernance {
   using BytesParsing for bytes;
+  using CbDecodePayload for bytes;
+  using CbEncodePaymentPayload for PaymentPayload;
 
   /// Carries out necessary checks on the token and amount to be paid.
   /// @param token The address of the token to be paid.
@@ -305,19 +307,17 @@ contract CbTransactions is CbPayloadMessages, CbGovernance {
     bytes32 foreignTokenAddr =
       forTokenAddressMatchingForeignChainTokens[token][_payable.chainId];
     wormholeMessageSequence = publishPayloadMessage(
-      encodePaymentPayload(
-        PaymentPayload({
-          version: 1,
-          payableId: payableId,
-          payableChainToken: toWormholeFormat(token),
-          payableChainId: _payable.chainId,
-          payer: toWormholeFormat(msg.sender),
-          payerChainToken: foreignTokenAddr,
-          payerChainId: config.chainId,
-          amount: uint64(amount),
-          circleNonce: circleNonce
-        })
-      )
+      PaymentPayload({
+        version: 1,
+        payableId: payableId,
+        payableChainToken: toWormholeFormat(token),
+        payableChainId: _payable.chainId,
+        payer: toWormholeFormat(msg.sender),
+        payerChainToken: foreignTokenAddr,
+        payerChainId: config.chainId,
+        amount: uint64(amount),
+        circleNonce: circleNonce
+      }).encode()
     );
   }
 
@@ -338,7 +338,7 @@ contract CbTransactions is CbPayloadMessages, CbGovernance {
 
     // Decode the Payload from the Wormhole message.
     PaymentPayload memory payload =
-      decodePaymentPayload(wormholeMessage.payload);
+      wormholeMessage.payload.decodePaymentPayload();
 
     // Ensure that the payable exists.
     if (payables[payload.payableId].host == address(0)) {

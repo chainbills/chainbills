@@ -6,26 +6,23 @@ import 'wormhole/Utils.sol';
 import 'src/CbPayloadMessages.sol';
 
 contract CbPayloadMessagesTest is Test {
-  CbPayloadMessages public cbpm;
-
-  function setUp() public {
-    cbpm = new CbPayloadMessages();
-  }
+  using CbDecodePayload for bytes;
+  using CbDecodePayload for bytes;
+  using CbEncodePayablePayload for PayablePayload;
+  using CbEncodePaymentPayload for PaymentPayload;
 
   function testEncodeDecodePayablePayload() public view {
     TokenAndAmountForeign[] memory ataa = new TokenAndAmountForeign[](2);
     ataa[0] = TokenAndAmountForeign({token: bytes32(0), amount: 100});
     ataa[1] = TokenAndAmountForeign({token: bytes32(0), amount: 200});
-    bytes memory encoded = cbpm.encodePayablePayload(
-      PayablePayload({
-        version: 1,
-        actionType: 1,
-        payableId: bytes32(0),
-        isClosed: false,
-        allowedTokensAndAmounts: ataa
-      })
-    );
-    PayablePayload memory parsed = cbpm.decodePayablePayload(encoded);
+    bytes memory encoded = PayablePayload({
+      version: 1,
+      actionType: 1,
+      payableId: bytes32(0),
+      isClosed: false,
+      allowedTokensAndAmounts: ataa
+    }).encode();
+    PayablePayload memory parsed = encoded.decodePayablePayload();
     assert(parsed.version == 1);
     assert(parsed.actionType == 1);
     assert(parsed.payableId == bytes32(0));
@@ -34,20 +31,18 @@ contract CbPayloadMessagesTest is Test {
   }
 
   function testEncodeDecodePaymentPayload() public view {
-    bytes memory encoded = cbpm.encodePaymentPayload(
-      PaymentPayload({
-        version: 1,
-        payableId: bytes32(0),
-        payableChainToken: bytes32(0),
-        payableChainId: 2,
-        payer: bytes32(0),
-        payerChainToken: bytes32(0),
-        payerChainId: 4,
-        amount: 100,
-        circleNonce: 2
-      })
-    );
-    PaymentPayload memory parsed = cbpm.decodePaymentPayload(encoded);
+    bytes memory encoded = PaymentPayload({
+      version: 1,
+      payableId: bytes32(0),
+      payableChainToken: bytes32(0),
+      payableChainId: 2,
+      payer: bytes32(0),
+      payerChainToken: bytes32(0),
+      payerChainId: 4,
+      amount: 100,
+      circleNonce: 2
+    }).encode();
+    PaymentPayload memory parsed = encoded.decodePaymentPayload();
     assert(parsed.version == 1);
     assert(parsed.payableId == bytes32(0));
     assert(parsed.payableChainToken == bytes32(0));

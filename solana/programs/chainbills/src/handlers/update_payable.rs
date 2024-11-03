@@ -1,13 +1,6 @@
-use crate::{
-  context::*,
-  error::ChainbillsError,
-  events::*,
-  state::{
-    ActivityRecord, ActivityType, ChainStats, Payable, PayableActivityInfo,
-    TokenAndAmount, TokenDetails, User, UserActivityInfo,
-  },
-};
+use crate::{context::*, error::*, events::*, payload::*, state::*};
 use anchor_lang::prelude::*;
+use wormhole_anchor_sdk::wormhole;
 
 fn record_update_payable_activity(
   chain_stats: &mut Account<ChainStats>,
@@ -18,8 +11,11 @@ fn record_update_payable_activity(
   payable_activity_info: &mut Account<PayableActivityInfo>,
   activity_type: ActivityType,
 ) -> Result<()> {
-  // Increment the chain stats for activities count.
+  // Increment the chain stats for activities count and 
+  // published_wormhole_messages_count.
   chain_stats.activities_count = chain_stats.next_activity();
+  chain_stats.published_wormhole_messages_count =
+    chain_stats.next_published_wormhole_message();
 
   // Increment the host's activities count.
   host.activities_count = host.next_activity();
@@ -72,6 +68,56 @@ pub fn close_payable(ctx: Context<UpdatePayable>) -> Result<()> {
     payable_id: payable.key(),
     host_wallet: ctx.accounts.signer.key()
   });
+
+  // If there is a fee for message sending, transfer it.
+  let fee = ctx.accounts.wormhole_bridge.fee();
+  if fee > 0 {
+    solana_program::program::invoke(
+      &solana_program::system_instruction::transfer(
+        &ctx.accounts.signer.key(),
+        &ctx.accounts.wormhole_fee_collector.key(),
+        fee,
+      ),
+      &ctx.accounts.to_account_infos(),
+    )?;
+  }
+
+  // Publish Message through Wormhole.
+  wormhole::post_message(
+    CpiContext::new_with_signer(
+      ctx.accounts.wormhole_program.to_account_info(),
+      wormhole::PostMessage {
+        config: ctx.accounts.wormhole_bridge.to_account_info(),
+        message: ctx.accounts.wormhole_message.to_account_info(),
+        emitter: ctx.accounts.wormhole_emitter.to_account_info(),
+        sequence: ctx.accounts.wormhole_sequence.to_account_info(),
+        payer: ctx.accounts.signer.to_account_info(),
+        fee_collector: ctx.accounts.wormhole_fee_collector.to_account_info(),
+        clock: ctx.accounts.clock.to_account_info(),
+        rent: ctx.accounts.rent.to_account_info(),
+        system_program: ctx.accounts.system_program.to_account_info(),
+      },
+      &[
+        &[
+          SEED_PREFIX_SENT,
+          &ctx.accounts.wormhole_sequence.next_value().to_le_bytes()[..],
+          &[ctx.bumps.wormhole_message],
+        ],
+        &[wormhole::SEED_PREFIX_EMITTER, &[ctx.bumps.wormhole_emitter]],
+      ],
+    ),
+    0, // Zero means no batching.
+    PayablePayload {
+      version: 1,
+      action_type: 2, // Close Payable
+      payable_id: ctx.accounts.payable.key().to_bytes(),
+      is_closed: true,
+      allowed_tokens_and_amounts: vec![],
+    }
+    .try_to_vec()?,
+    wormhole::Finality::Confirmed,
+  )?;
+
   Ok(())
 }
 
@@ -103,6 +149,56 @@ pub fn reopen_payable(ctx: Context<UpdatePayable>) -> Result<()> {
     payable_id: payable.key(),
     host_wallet: ctx.accounts.signer.key()
   });
+
+  // If there is a fee for message sending, transfer it.
+  let fee = ctx.accounts.wormhole_bridge.fee();
+  if fee > 0 {
+    solana_program::program::invoke(
+      &solana_program::system_instruction::transfer(
+        &ctx.accounts.signer.key(),
+        &ctx.accounts.wormhole_fee_collector.key(),
+        fee,
+      ),
+      &ctx.accounts.to_account_infos(),
+    )?;
+  }
+
+  // Publish Message through Wormhole.
+  wormhole::post_message(
+    CpiContext::new_with_signer(
+      ctx.accounts.wormhole_program.to_account_info(),
+      wormhole::PostMessage {
+        config: ctx.accounts.wormhole_bridge.to_account_info(),
+        message: ctx.accounts.wormhole_message.to_account_info(),
+        emitter: ctx.accounts.wormhole_emitter.to_account_info(),
+        sequence: ctx.accounts.wormhole_sequence.to_account_info(),
+        payer: ctx.accounts.signer.to_account_info(),
+        fee_collector: ctx.accounts.wormhole_fee_collector.to_account_info(),
+        clock: ctx.accounts.clock.to_account_info(),
+        rent: ctx.accounts.rent.to_account_info(),
+        system_program: ctx.accounts.system_program.to_account_info(),
+      },
+      &[
+        &[
+          SEED_PREFIX_SENT,
+          &ctx.accounts.wormhole_sequence.next_value().to_le_bytes()[..],
+          &[ctx.bumps.wormhole_message],
+        ],
+        &[wormhole::SEED_PREFIX_EMITTER, &[ctx.bumps.wormhole_emitter]],
+      ],
+    ),
+    0, // Zero means no batching.
+    PayablePayload {
+      version: 1,
+      action_type: 3, // Reopen Payable
+      payable_id: ctx.accounts.payable.key().to_bytes(),
+      is_closed: false,
+      allowed_tokens_and_amounts: vec![],
+    }
+    .try_to_vec()?,
+    wormhole::Finality::Confirmed,
+  )?;
+
   Ok(())
 }
 
@@ -125,6 +221,7 @@ pub fn update_payable_allowed_tokens_and_amounts<'info>(
     ChainbillsError::InvalidRemainingAccountsLength
   );
 
+  let mut ataa_foreign: Vec<TokenAndAmountForeign> = vec![];
   for (i, taa) in allowed_tokens_and_amounts.iter().enumerate() {
     // Get the token details for the specified token.
     let token_details =
@@ -143,6 +240,12 @@ pub fn update_payable_allowed_tokens_and_amounts<'info>(
 
     // Ensure that all specified acceptable amounts are greater than zero.
     require!(taa.amount > 0, ChainbillsError::ZeroAmountSpecified);
+
+    // Set the foreign ATAA in the same loop
+    ataa_foreign.push(TokenAndAmountForeign {
+      token: taa.token.to_bytes(),
+      amount: taa.amount,
+    });
   }
 
   /* STATE CHANGES */
@@ -167,5 +270,55 @@ pub fn update_payable_allowed_tokens_and_amounts<'info>(
     payable_id: payable.key(),
     host_wallet: ctx.accounts.signer.key()
   });
+
+  // If there is a fee for message sending, transfer it.
+  let fee = ctx.accounts.wormhole_bridge.fee();
+  if fee > 0 {
+    solana_program::program::invoke(
+      &solana_program::system_instruction::transfer(
+        &ctx.accounts.signer.key(),
+        &ctx.accounts.wormhole_fee_collector.key(),
+        fee,
+      ),
+      &ctx.accounts.to_account_infos(),
+    )?;
+  }
+
+  // Publish Message through Wormhole.
+  wormhole::post_message(
+    CpiContext::new_with_signer(
+      ctx.accounts.wormhole_program.to_account_info(),
+      wormhole::PostMessage {
+        config: ctx.accounts.wormhole_bridge.to_account_info(),
+        message: ctx.accounts.wormhole_message.to_account_info(),
+        emitter: ctx.accounts.wormhole_emitter.to_account_info(),
+        sequence: ctx.accounts.wormhole_sequence.to_account_info(),
+        payer: ctx.accounts.signer.to_account_info(),
+        fee_collector: ctx.accounts.wormhole_fee_collector.to_account_info(),
+        clock: ctx.accounts.clock.to_account_info(),
+        rent: ctx.accounts.rent.to_account_info(),
+        system_program: ctx.accounts.system_program.to_account_info(),
+      },
+      &[
+        &[
+          SEED_PREFIX_SENT,
+          &ctx.accounts.wormhole_sequence.next_value().to_le_bytes()[..],
+          &[ctx.bumps.wormhole_message],
+        ],
+        &[wormhole::SEED_PREFIX_EMITTER, &[ctx.bumps.wormhole_emitter]],
+      ],
+    ),
+    0, // Zero means no batching.
+    PayablePayload {
+      version: 1,
+      action_type: 4, // Update Payable Allowed Tokens And Amounts
+      payable_id: ctx.accounts.payable.key().to_bytes(),
+      is_closed: false,
+      allowed_tokens_and_amounts: ataa_foreign,
+    }
+    .try_to_vec()?,
+    wormhole::Finality::Confirmed,
+  )?;
+
   Ok(())
 }

@@ -66,4 +66,20 @@ pub enum ChainbillsError {
   #[msg("WrongFeeCollectorAddress")]
   /// The provided fee collector address is wrong.
   WrongFeeCollectorAddress,
+
+  #[msg("InvalidWormholeConfig")]
+  /// Specified Wormhole bridge data PDA is wrong.
+  InvalidWormholeConfig,
+
+  #[msg("InvalidWormholeFeeCollector")]
+  /// Specified Wormhole fee collector PDA is wrong.
+  InvalidWormholeFeeCollector,
+
+  #[msg("InvalidWormholeEmitter")]
+  /// Specified program's emitter PDA is wrong.
+  InvalidWormholeEmitter,
+
+  #[msg("InvalidWormholeSequence")]
+  /// Specified emitter's sequence PDA is wrong.
+  InvalidWormholeSequence,
 }

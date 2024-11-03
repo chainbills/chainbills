@@ -20,11 +20,15 @@ pub struct ChainStats {
 
   /// Total number of activities that have ever been made on this chain.
   pub activities_count: u64, // 8 bytes
+
+  /// Total number of published Wormhole messages on this chain.
+  pub published_wormhole_messages_count: u64, // 8 bytes
+
 }
 
 impl ChainStats {
   // discriminator included
-  pub const SPACE: usize = 7 * 8;
+  pub const SPACE: usize = 8 * 8;
 
   /// AKA `b"chain"`.
   #[constant]
@@ -60,5 +64,12 @@ impl ChainStats {
 
   pub fn next_activity(&self) -> u64 {
     self.activities_count.checked_add(1).unwrap()
+  }
+
+  pub fn next_published_wormhole_message(&self) -> u64 {
+    self
+      .published_wormhole_messages_count
+      .checked_add(1)
+      .unwrap()
   }
 }

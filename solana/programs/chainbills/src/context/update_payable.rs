@@ -1,11 +1,6 @@
-use crate::{
-  error::ChainbillsError,
-  state::{
-    ActivityRecord, ChainStats, Payable, PayableActivityInfo, TokenAndAmount,
-    User, UserActivityInfo,
-  },
-};
+use crate::{error::ChainbillsError, state::*};
 use anchor_lang::prelude::*;
+use wormhole_anchor_sdk::wormhole::{self, program::Wormhole};
 
 #[derive(Accounts)]
 pub struct UpdatePayable<'info> {
@@ -48,8 +43,63 @@ pub struct UpdatePayable<'info> {
   #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
+  #[account(seeds = [Config::SEED_PREFIX], bump)]
+  pub config: AccountLoader<'info, Config>,
+
+  /// Wormhole program.
+  pub wormhole_program: Program<'info, Wormhole>,
+
+  #[account(
+        mut,
+        address = config.load()?.wormhole_bridge @ ChainbillsError::InvalidWormholeConfig
+    )]
+  /// Wormhole bridge data. [`wormhole::post_message`] requires this account
+  /// be mutable.
+  pub wormhole_bridge: Account<'info, wormhole::BridgeData>,
+
+  #[account(
+        mut,
+        address = config.load()?.wormhole_fee_collector @ ChainbillsError::InvalidWormholeFeeCollector
+    )]
+  /// Wormhole fee collector. [`wormhole::post_message`] requires this
+  /// account be mutable.
+  pub wormhole_fee_collector: Account<'info, wormhole::FeeCollector>,
+
+  #[account(
+        seeds = [wormhole::SEED_PREFIX_EMITTER],
+        bump,
+    )]
+  /// Program's emitter account. Read-only.
+  pub wormhole_emitter: Account<'info, Empty>,
+
+  #[account(
+        mut,
+        address = config.load()?.wormhole_sequence @ ChainbillsError::InvalidWormholeSequence
+    )]
+  /// Emitter's sequence account. [`wormhole::post_message`] requires this
+  /// account be mutable.
+  pub wormhole_sequence: Account<'info, wormhole::SequenceTracker>,
+
+  #[account(
+        mut,
+        seeds = [
+            SEED_PREFIX_SENT,
+            &wormhole_sequence.next_value().to_le_bytes()[..]
+        ],
+        bump,
+    )]
+  /// CHECK: Wormhole Message. [`wormhole::post_message`] requires this
+  /// account be mutable.
+  pub wormhole_message: UncheckedAccount<'info>,
+
   #[account(mut)]
   pub signer: Signer<'info>,
+
+  /// Clock sysvar.
+  pub clock: Sysvar<'info, Clock>,
+
+  /// Rent sysvar.
+  pub rent: Sysvar<'info, Rent>,
 
   pub system_program: Program<'info, System>,
 }
@@ -99,8 +149,63 @@ pub struct UpdatePayableAllowedTokensAndAmounts<'info> {
   #[account(mut, seeds = [ChainStats::SEED_PREFIX], bump)]
   pub chain_stats: Box<Account<'info, ChainStats>>,
 
+  #[account(seeds = [Config::SEED_PREFIX], bump)]
+  pub config: AccountLoader<'info, Config>,
+
+  /// Wormhole program.
+  pub wormhole_program: Program<'info, Wormhole>,
+
+  #[account(
+        mut,
+        address = config.load()?.wormhole_bridge @ ChainbillsError::InvalidWormholeConfig
+    )]
+  /// Wormhole bridge data. [`wormhole::post_message`] requires this account
+  /// be mutable.
+  pub wormhole_bridge: Account<'info, wormhole::BridgeData>,
+
+  #[account(
+        mut,
+        address = config.load()?.wormhole_fee_collector @ ChainbillsError::InvalidWormholeFeeCollector
+    )]
+  /// Wormhole fee collector. [`wormhole::post_message`] requires this
+  /// account be mutable.
+  pub wormhole_fee_collector: Account<'info, wormhole::FeeCollector>,
+
+  #[account(
+        seeds = [wormhole::SEED_PREFIX_EMITTER],
+        bump,
+    )]
+  /// Program's emitter account. Read-only.
+  pub wormhole_emitter: Account<'info, Empty>,
+
+  #[account(
+        mut,
+        address = config.load()?.wormhole_sequence @ ChainbillsError::InvalidWormholeSequence
+    )]
+  /// Emitter's sequence account. [`wormhole::post_message`] requires this
+  /// account be mutable.
+  pub wormhole_sequence: Account<'info, wormhole::SequenceTracker>,
+
+  #[account(
+        mut,
+        seeds = [
+            SEED_PREFIX_SENT,
+            &wormhole_sequence.next_value().to_le_bytes()[..]
+        ],
+        bump,
+    )]
+  /// CHECK: Wormhole Message. [`wormhole::post_message`] requires this
+  /// account be mutable.
+  pub wormhole_message: UncheckedAccount<'info>,
+
   #[account(mut)]
   pub signer: Signer<'info>,
+
+  /// Clock sysvar.
+  pub clock: Sysvar<'info, Clock>,
+
+  /// Rent sysvar.
+  pub rent: Sysvar<'info, Rent>,
 
   pub system_program: Program<'info, System>,
 }

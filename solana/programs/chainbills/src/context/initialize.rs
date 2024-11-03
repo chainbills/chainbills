@@ -2,12 +2,6 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 use wormhole_anchor_sdk::wormhole;
 
-/// AKA `b"sent"`.
-pub const SEED_PREFIX_SENT: &[u8; 4] = b"sent";
-
-#[account]
-pub struct Empty {}
-
 #[derive(Accounts)]
 /// Context used to Initialize core program data (Config and Solana's
 /// ChainStats).
@@ -53,7 +47,7 @@ pub struct Initialize<'info> {
         mut,
         seeds = [wormhole::BridgeData::SEED_PREFIX],
         bump,
-        seeds::program = wormhole_program,
+        seeds::program = wormhole_program.key,
     )]
   /// Wormhole bridge data account (a.k.a. its config).
   /// [`wormhole::post_message`] requires this account be mutable.
@@ -75,7 +69,7 @@ pub struct Initialize<'info> {
         mut,
         seeds = [wormhole::FeeCollector::SEED_PREFIX],
         bump,
-        seeds::program = wormhole_program
+        seeds::program = wormhole_program.key
     )]
   /// Wormhole fee collector account, which requires lamports before the
   /// program can post a message (if there is a fee).
@@ -89,7 +83,7 @@ pub struct Initialize<'info> {
             wormhole_emitter.key().as_ref()
         ],
         bump,
-        seeds::program = wormhole_program
+        seeds::program = wormhole_program.key
     )]
   /// CHECK: Emitter's sequence account. This is not created until the first
   /// message is posted, so it needs to be an [UncheckedAccount] for the

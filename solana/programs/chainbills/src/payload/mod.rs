@@ -1,5 +1,5 @@
-pub mod complete_payment_payload;
-pub mod start_payment_payload;
+pub mod payable_payload;
+pub mod payment_payload;
 
-pub use complete_payment_payload::*;
-pub use start_payment_payload::*;
+pub use payable_payload::*;
+pub use payment_payload::*;

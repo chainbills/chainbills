@@ -31,7 +31,7 @@ contract CbState {
   bytes32[] public consumedWormholeMessages;
   /// Wormhole Chain IDs against their corresponding Emitter
   /// Contract Addresses on those chains, that is, trusted caller contracts.
-  mapping(uint16 => bytes32) public registeredEmitters;
+  mapping(uint16 => bytes32) public registeredForeignContracts;
   /// Details of Supported Tokens on this chain.
   mapping(address => TokenDetails) public tokenDetails;
   /// Activities on this chain.

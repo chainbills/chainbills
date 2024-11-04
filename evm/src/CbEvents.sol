@@ -56,14 +56,14 @@ event UpdatedPayableAllowedTokensAndAmounts(
   bytes32 indexed payableId, address indexed hostWallet
 );
 
-/// Emitted when a Wormhole Message for Payables is consumed.
-event PayableMessageConsumed(
-  bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed messageHash
+/// Emitted when a Wormhole Message is consumed for payable update.
+event ConsumedWormholePayableMessage(
+  bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash
 );
 
-// Emitted when a Wormhole Message for Payments is consumed.
-event PaymentMessageConsumed(
-  bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed messageHash
+/// Emitted when a Wormhole Message is consumed for receiving payments.
+event ConsumedWormholePaymentMessage(
+  bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash
 );
 
 /// Emitted when owner (deployer) updates the `maxWithdrawalFees` of `token`.

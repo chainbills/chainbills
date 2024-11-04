@@ -7,6 +7,7 @@ import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import
   '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
+import 'wormhole/Utils.sol';
 import './CbErrors.sol';
 import './CbEvents.sol';
 import './CbUtils.sol';
@@ -66,11 +67,14 @@ contract CbGovernance is
   ) public onlyOwner {
     if (emitterChainId == 0 || emitterChainId == config.chainId) {
       revert InvalidWormholeChainId();
-    } else if (emitterAddress == bytes32(0)) {
+    } else if (
+      emitterAddress == bytes32(0)
+        || emitterAddress == toWormholeFormat(address(this))
+    ) {
       revert InvalidWormholeEmitterAddress();
     }
-    // update the registeredEmitters state variable
-    registeredEmitters[emitterChainId] = emitterAddress;
+    // update the registeredForeignContracts state variable
+    registeredForeignContracts[emitterChainId] = emitterAddress;
     emit RegisteredForeignContract(emitterChainId, emitterAddress);
   }
 

@@ -1,6 +1,4 @@
-use crate::{
-  context::RegisterForeignContract, error::ChainbillsError, events::*,
-};
+use crate::{context::*, error::*, events::*};
 use anchor_lang::prelude::*;
 
 /// This instruction registers a new foreign contract (from another network)
@@ -23,16 +21,17 @@ pub fn register_foreign_contract_handler(
   require!(
     chain > 0
       && chain != ctx.accounts.config.load()?.chain_id
-      && !address.iter().all(|&x| x == 0),
+      && !address.iter().all(|&x| x == 0)
+      && address != crate::ID.to_bytes(),
     ChainbillsError::InvalidForeignContract,
   );
 
   // Save the contract info into the ForeignContract account.
-  let contract = &mut ctx.accounts.foreign_contract;
+  let contract = &mut ctx.accounts.registered_foreign_contract;
   contract.address = address;
 
   // Emit log and event.
-  msg!("Registered Foreign Contract and its ChainStats");
+  msg!("Registered Foreign Contract.");
   emit!(RegisteredForeignContract {
     chain_id: chain,
     emitter: address

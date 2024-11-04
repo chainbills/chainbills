@@ -294,7 +294,7 @@ contract CbTransactions is CbGovernance {
     uint64 circleNonce = circleBridge().depositForBurn(
       amount,
       chainIdToCircleDomain[_payable.chainId],
-      registeredEmitters[_payable.chainId],
+      registeredForeignContracts[_payable.chainId],
       token
     );
 
@@ -370,7 +370,7 @@ contract CbTransactions is CbGovernance {
       revert CircleTargetDomainMismatch();
     }
     if (circleNonce != payload.circleNonce) revert CircleNonceMismatch();
-    if (circleSender != registeredEmitters[payload.payerChainId]) {
+    if (circleSender != registeredForeignContracts[payload.payerChainId]) {
       revert CircleSenderMismatch();
     }
     if (circleRecipient != toWormholeFormat(address(this))) {
@@ -414,7 +414,7 @@ contract CbTransactions is CbGovernance {
     consumeWormholeMessage(wormholeMessage);
 
     // Emit Event.
-    emit PaymentMessageConsumed(
+    emit ConsumedWormholePaymentMessage(
       payload.payableId, payload.payerChainId, wormholeMessage.hash
     );
   }

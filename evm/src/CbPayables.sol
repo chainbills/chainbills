@@ -337,6 +337,8 @@ contract CbPayables is CbGovernance {
     consumeWormholeMessage(wormholeMessage);
 
     // Emit Event.
-    emit PayableMessageConsumed(payableId, chainId, wormholeMessage.hash);
+    emit ConsumedWormholePayableMessage(
+      payableId, chainId, wormholeMessage.hash
+    );
   }
 }

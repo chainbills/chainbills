@@ -128,6 +128,24 @@ pub mod chainbills {
     )
   }
 
+  /// Record a foreign payable update.
+  ///
+  /// ### args
+  /// * payable_id<[u8; 32]>: The payable ID to update.
+  /// * ataa_len<u8>: The length of the allowed tokens and amounts.
+  /// * vaa_hash<[u8; 32]>: The hash of the VAA.
+  #[inline(never)]
+  pub fn record_foreign_payable_update(
+    ctx: Context<RecordForeignPayableUpdate>,
+    payable_id: [u8; 32],
+    ataa_len: u8,
+    vaa_hash: [u8; 32],
+  ) -> Result<()> {
+    handlers::record_foreign_payable_update_handler(
+      ctx, payable_id, ataa_len, vaa_hash,
+    )
+  }
+
   /// Updates the maximum withdrawal fees of the given token.
   ///
   /// ### Args

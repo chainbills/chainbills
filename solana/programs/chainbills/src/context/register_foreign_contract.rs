@@ -1,4 +1,4 @@
-use crate::{error::ChainbillsError, state::*};
+use crate::{error::*, state::*};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -10,16 +10,16 @@ pub struct RegisterForeignContract<'info> {
         init_if_needed,
         payer = owner,
         seeds = [
-            ForeignContract::SEED_PREFIX,
+            RegisteredForeignContract::SEED_PREFIX,
             &chain.to_le_bytes()[..]
         ],
         bump,
-        space = ForeignContract::SPACE
+        space = RegisteredForeignContract::SPACE
     )]
   /// Foreign Contract account. This account will be created if a contract has
   /// not been registered yet for this Wormhole Chain ID. If there already is a
   /// contract address saved in this account, its contents will be overwritted.
-  pub foreign_contract: Account<'info, ForeignContract>,
+  pub registered_foreign_contract: Account<'info, RegisteredForeignContract>,
 
   #[account(seeds = [ChainStats::SEED_PREFIX], bump)]
   /// Necessary for obtaining this chain's chain_id in the handler.

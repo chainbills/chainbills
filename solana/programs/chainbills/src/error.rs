@@ -82,4 +82,16 @@ pub enum ChainbillsError {
   #[msg("InvalidWormholeSequence")]
   /// Specified emitter's sequence PDA is wrong.
   InvalidWormholeSequence,
+
+  #[msg("InvalidPayloadPayableId")]
+  /// Specified Payable ID doesn't match what's in the payload.
+  InvalidPayloadPayableId,
+
+  #[msg("InvalidPayloadAtaaLen")]
+  /// Specified ATAA length doesn't match what's in the payload.
+  InvalidPayloadAtaaLen,
+
+  #[msg("InvalidPayloadActionType")]
+  /// Specified action type in the payload is invalid.
+  InvalidPayloadActionType,
 }

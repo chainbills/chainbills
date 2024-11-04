@@ -94,7 +94,7 @@ contract CbUtils is CbState {
 
     // Verify that this message was emitted by a registered emitter
     if (
-      registeredEmitters[wormholeMessage.emitterChainId]
+      registeredForeignContracts[wormholeMessage.emitterChainId]
         != wormholeMessage.emitterAddress
     ) {
       revert EmitterNotRegistered();

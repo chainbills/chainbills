@@ -70,6 +70,13 @@ pub struct UpdatedPayableAllowedTokensAndAmounts {
 }
 
 #[event]
+pub struct ConsumedWormholePayableMessage {
+  pub payable_id: [u8; 32],
+  pub chain_id: u16,
+  pub vaa_hash: [u8; 32],
+}
+
+#[event]
 pub struct UpdatedMaxWithdrawalFees {
   pub token: Pubkey,
   pub max_withdrawal_fees: u64,

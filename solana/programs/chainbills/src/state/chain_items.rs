@@ -34,6 +34,22 @@ impl ChainPayableId {
 }
 
 #[account]
+/// Holds reference to the nth foreign payable in the chain.
+pub struct ChainForeignPayableId {
+  /// The ID of the nth foreign payable created when this PDA was initialized.
+  pub payable_id: [u8; 32], // 32 bytes
+}
+
+impl ChainForeignPayableId {
+  // discriminator (8) included
+  pub const SPACE: usize = 8 + 32;
+
+  /// AKA `b"chain_foreign_payable_id"`.
+  #[constant]
+  pub const SEED_PREFIX: &'static [u8] = b"chain_foreign_payable_id";
+}
+
+#[account]
 /// Holds reference to the nth user payment in the chain.
 pub struct ChainUserPaymentId {
   /// The Pubkey of the nth user payment ID created when this PDA was
@@ -81,4 +97,26 @@ impl ChainWithdrawalId {
   /// AKA `b"chain_withdrawal_id`.
   #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain_withdrawal_id";
+}
+
+#[account]
+/// Holds reference to the matching chain_id and message_sequence of the
+/// nth consumed wormhole message in this chain. The stored id and count
+/// can now be used to retrieve the PDA that has the consumed message hash.
+pub struct ChainConsumedWormholeMessageId {
+  /// The chain_id of the consumed wormhole message.
+  pub chain_id: u16, // 2 bytes
+
+  /// The Wormhole Message Sequence as of the time the VAA was consumed.
+  /// It also matches the local chain count of the VAA.
+  pub message_sequence: u64, // 8 bytes
+}
+
+impl ChainConsumedWormholeMessageId {
+  // discriminator (8) included
+  pub const SPACE: usize = 8 + 2 + 8;
+
+  /// AKA `b"chain_consumed_wormhole_message_id"`.
+  #[constant]
+  pub const SEED_PREFIX: &'static [u8] = b"chain_consumed_wormhole_message_id";
 }

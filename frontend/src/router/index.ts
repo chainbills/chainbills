@@ -73,6 +73,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/wpxv1',
+      name: 'wpxv1',
+      redirect: (to) => {
+        window.location.replace(
+          'https://docs.google.com/document/d/1PHvsQwllwQDuzWGUDFVQpHbzWCD5JByAlpeoVozywUY/edit?usp=drivesdk'
+        );
+        return to;
+      },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue'),

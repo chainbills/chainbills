@@ -83,6 +83,16 @@ const router = createRouter({
       },
     },
     {
+      path: '/ptchdck',
+      name: 'ptchdck',
+      redirect: (to) => {
+        window.location.replace(
+          'https://drive.google.com/file/d/1aD4MmylCYxy75GjZA0bNg1TYg0ljBYsj/view?usp=sharing'
+        );
+        return to;
+      },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue'),

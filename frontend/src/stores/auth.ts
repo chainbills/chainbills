@@ -130,24 +130,25 @@ export const useAuthStore = defineStore('auth', () => {
   const getWithdrawalId = async (count: number): Promise<string | null> =>
     getEntityId('withdrawal', count);
 
-  const lsKey = (user: User) =>
+  const storageKey = (user: User) =>
     `chainbills::chainId=>${getChainId(user.chain)}` +
     `::signature=>${user.walletAddress}`;
 
-  const getSavedSig = (user: User) => localStorage.getItem(lsKey(user));
-  const ensureSigned = async (user: User): Promise<void> => {
-    if (getSavedSig(user)) {
-      signature.value = getSavedSig(user);
-    } else {
-      if (user.chain == 'Burnt Xion') {
-        // TODO: Implement signing for Burnt Xion
-        signature.value = null;
-        return;
-      }
+  const getSavedSig = (user: User): string | null => {
+    const storage = user.chain == 'Burnt Xion' ? sessionStorage : localStorage;
+    return storage.getItem(storageKey(user));
+  };
 
+  const ensureSigned = async (user: User): Promise<void> => {
+    let signed = getSavedSig(user);
+    if (signed) {
+      signature.value = signed
+    } else {
       try {
-        const signed = await getChainStore(user.chain)['sign'](AUTH_MESSAGE);
-        if (signed) localStorage.setItem(lsKey(user), signed);
+        signed = await getChainStore(user.chain)['sign'](AUTH_MESSAGE);
+        const storage =
+          user.chain == 'Burnt Xion' ? sessionStorage : localStorage;
+        if (signed) storage.setItem(storageKey(user), signed);
         else await disconnect(user.chain);
         signature.value = signed ?? null;
       } catch (e) {
@@ -196,8 +197,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     await ensureSigned(newUser);
-    // TODO: Remove signing exemption for Burnt Xion
-    if (signature.value || newChain == 'Burnt Xion') {
+    if (signature.value) {
       currentUser.value = newUser;
     } else {
       currentUser.value = null;

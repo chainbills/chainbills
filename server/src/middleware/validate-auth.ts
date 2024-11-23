@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import {
+  cosmwasmVerify,
   evmVerify,
   solanaVerify,
   WH_CHAIN_ID_BURNT_XION,
@@ -22,26 +23,35 @@ export const validateAuth = async (
       throw 'Provide wallet-address in headers';
     }
 
-    // TODO: Remove this after Burnt Xion sign and verify
-    if (chainId == WH_CHAIN_ID_BURNT_XION) {
-      res.locals.walletAddress = walletAddress.toLowerCase();
-      next();
-    } else {
-      if (!signature || typeof signature != 'string') {
-        throw 'Provide signature in headers';
-      }
-
-      const verify = chainId == WH_CHAIN_ID_SOLANA ? solanaVerify : evmVerify;
-      const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
-      if (!isVerified)
-        throw 'Unauthorized. Signature and Address Not Matching.';
-
-      res.locals.walletAddress =
-        chainId == WH_CHAIN_ID_ETH_SEPOLIA
-          ? walletAddress.toLowerCase()
-          : walletAddress;
-      next();
+    if (!signature || typeof signature != 'string') {
+      throw 'Provide signature in headers';
     }
+
+    let verify: Function = () => {
+      throw 'Invalid Chain ID';
+    };
+    if (chainId == WH_CHAIN_ID_SOLANA) verify = solanaVerify;
+    if (chainId == WH_CHAIN_ID_ETH_SEPOLIA) verify = evmVerify;
+    if (chainId == WH_CHAIN_ID_BURNT_XION) {
+      verify = async (message: string, signature: any, address: any) => {
+        return await cosmwasmVerify(
+          message,
+          signature,
+          address,
+          headers['xion-grantee'],
+          headers['xion-pubkey']
+        );
+      };
+    }
+
+    const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
+    if (!isVerified) throw 'Unauthorized. Signature and Address Not Matching.';
+
+    res.locals.walletAddress =
+      chainId == WH_CHAIN_ID_ETH_SEPOLIA
+        ? walletAddress.toLowerCase()
+        : walletAddress;
+    next();
   } catch (e: any) {
     console.error('Error at validating auth ... ');
     console.error(e);

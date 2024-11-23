@@ -1,9 +1,15 @@
-import { getChainId, useAuthStore, type Chain } from '@/stores';
+import {
+  getChainId,
+  useAuthStore,
+  useCosmwasmStore,
+  type Chain,
+} from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const useServerStore = defineStore('server', () => {
   const auth = useAuthStore();
+  const cosmwasm = useCosmwasmStore();
   const toast = useToast();
 
   const call = async (
@@ -19,6 +25,14 @@ export const useServerStore = defineStore('server', () => {
         headers['wallet-address'] = auth.currentUser.walletAddress;
       }
       if (auth.signature) headers['signature'] = auth.signature;
+      if (auth.currentUser?.chain == 'Burnt Xion' && cosmwasm.client) {
+        headers['xion-grantee'] = cosmwasm.client.granteeAddress;
+        const granteeData = await cosmwasm.client.getGranteeAccountData();
+        if (granteeData) {
+          const pubkey = Buffer.from(granteeData.pubkey).toString('base64');
+          headers['xion-pubkey'] = pubkey;
+        }
+      }
 
       try {
         const result = await (

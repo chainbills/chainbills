@@ -261,9 +261,17 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     );
   };
 
-  const sign = (_: string): string => {
-    // TODO: Implement signing for Burnt Xion
-    throw 'Burnt Xion Signing Not Yet Implemented';
+  const sign = async (message: string): Promise<string | null> => {
+    if (!client.value || !address.value) {
+      toastError('Connect with Xion First!');
+      return null;
+    }
+    const wallet = await abstraxion.getLocalKeypair();
+    if (!wallet) {
+      toastError('No Wallet Found');
+      return null;
+    }
+    return await wallet.signArb(client.value.granteeAddress, message);
   };
 
   const toastError = (detail: string) =>
@@ -319,6 +327,7 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     address,
     balance,
     chainStats,
+    client,
     createPayable,
     fetchEntity,
     getCurrentUser,

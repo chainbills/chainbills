@@ -151,6 +151,10 @@ onMounted(async () => {
       configError.value = '';
       balanceError.value = '';
       updateBalances();
+
+      if (!allowsFreePayments.value && aTAAs.value.length == 1) {
+        selectedConfig.value = aTAAs.value[0];
+      }
     }
   );
 

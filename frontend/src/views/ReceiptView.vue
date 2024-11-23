@@ -36,14 +36,16 @@ const activityType = receipt.value instanceof Withdrawal ? 'Withdrew' : 'Paid';
 const payableIntro =
   receipt.value instanceof Withdrawal ? 'Withdrew From' : 'Paid To';
 
-const userChain =
+const userChain = computed(() =>
   receipt.value instanceof PayablePayment
     ? (receipt.value as PayablePayment).payerChain
-    : receipt.value?.chain;
-const payableChain =
+    : receipt.value?.chain
+);
+const payableChain = computed(() =>
   receipt.value instanceof UserPayment
     ? (receipt.value as UserPayment).payableChain
-    : receipt.value?.chain;
+    : receipt.value?.chain
+);
 
 const payableRoute = computed(() => {
   const isMine = auth.currentUser?.walletAddress == receipt.value?.user();

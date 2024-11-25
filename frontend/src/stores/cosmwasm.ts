@@ -114,7 +114,9 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
           granter: XION_TREASURY_ADDRESS,
           amount: funds ?? [],
           gas: '500000',
-        }
+        },
+        '',
+        funds ?? []
       );
     } catch (e) {
       console.error(e);

@@ -4,6 +4,7 @@ import {
   TokenAndAmount,
   User,
   XION_CONTRACT_ADDRESS,
+  XION_TREASURY_ADDRESS,
   XION_USDC_ADDRESS,
   type Token,
 } from '@/schemas';
@@ -25,20 +26,11 @@ export const initXion = async () => {
   abstraxion.configureAbstraxionInstance(
     XION_RPC_URL,
     undefined,
-    [
-      {
-        address: XION_CONTRACT_ADDRESS,
-        amounts: [
-          { denom: XION_USDC_ADDRESS, amount: '1000000000000000000' },
-          { denom: 'uxion', amount: '1000000000000000000' },
-        ],
-      },
-    ],
-    false,
-    [
-      { denom: XION_USDC_ADDRESS, amount: '1000000000000000000' },
-      { denom: 'uxion', amount: '1000000000000000000' },
-    ]
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    XION_TREASURY_ADDRESS
   );
   await abstraxion.authenticate();
   const searchParams = new URLSearchParams(window.location.search);
@@ -114,20 +106,15 @@ export const useCosmwasmStore = defineStore('cosmwasm', () => {
     }
 
     try {
-      return await client.value.signAndBroadcast(
+      return await client.value.execute(
         address.value,
-        [
-          {
-            typeUrl: '/cosmwasm.wasm.v1.MsgExecuteContract',
-            value: {
-              sender: address.value,
-              contract: XION_CONTRACT_ADDRESS,
-              msg: new TextEncoder().encode(JSON.stringify(msg)),
-              funds: funds ?? [],
-            },
-          },
-        ],
-        'auto'
+        XION_CONTRACT_ADDRESS,
+        msg,
+        {
+          granter: XION_TREASURY_ADDRESS,
+          amount: funds ?? [],
+          gas: '500000',
+        }
       );
     } catch (e) {
       console.error(e);

@@ -5,6 +5,7 @@ import {
   getVolumes,
   payablePaid,
   saveNotificationToken,
+  saveXionSagaEmail,
   userPaid,
   withdrew
 } from './handlers';
@@ -93,6 +94,14 @@ router.post(
 
 router.get('/volumes', async (_: Request, res: Response) => {
   await wrapper(getVolumes, 'getting volumes', res);
+});
+
+router.post('/xion-saga-email', async (req: Request, res: Response) => {
+  await wrapper(
+    async () => await saveXionSagaEmail(req.body),
+    'saving xion saga email',
+    res
+  );
 });
 
 router.use('**', (_, res) =>

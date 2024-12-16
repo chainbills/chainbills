@@ -101,6 +101,10 @@ export const useServerStore = defineStore('server', () => {
     return await call('/notifications', { fcmToken });
   };
 
+  const saveXionSagaEmail = async (email: string): Promise<boolean> => {
+    return await call('/xion-saga-email', { email });
+  };
+
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
@@ -121,6 +125,7 @@ export const useServerStore = defineStore('server', () => {
     getPayable,
     payablePaid,
     saveNotificationToken,
+    saveXionSagaEmail,
     userPaid,
     volumes,
     withdrew,

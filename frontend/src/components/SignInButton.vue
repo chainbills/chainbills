@@ -21,6 +21,7 @@ import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet, WalletMultiButton } from 'solana-wallets-vue';
 import { onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 const anchorWallet = useAnchorWallet();
 const auth = useAuthStore();
@@ -28,6 +29,7 @@ const cosmwasm = useCosmwasmStore();
 const walletMenu = ref();
 const isModalVisible = ref(false);
 const isLoggingInXion = ref(false);
+const router = useRouter();
 const sidebar = useSidebarStore();
 const toast = useToast();
 const theme = useThemeStore();
@@ -40,9 +42,13 @@ const onClickEvm = () => {
 };
 
 const onClickXion = () => {
-  if (isLoggingInXion.value) return;
-  isLoggingInXion.value = true;
-  cosmwasm.login();
+  router.push('/start/xion');
+  sidebar.close();
+  isModalVisible.value = false;
+
+  // if (isLoggingInXion.value) return;
+  // isLoggingInXion.value = true;
+  // cosmwasm.login();
 };
 
 const shortenAddress = (v: string) =>
@@ -185,7 +191,7 @@ onMounted(() => {
     </div>
 
     <div
-      class="flex max-sm:flex-col max-sm:gap-2 gap-4 max-sm:items-start sm:items-center sm:justify-between mb-8 sm:mb-10"
+      class="flex max-sm:flex-col max-sm:gap-2 gap-4 max-sm:items-start sm:items-center sm:justify-between mb-4"
     >
       <h2 class="text-lg flex items-center">
         <IconSolana class="w-5.5 h-5.5 mr-1.5" />
@@ -197,7 +203,7 @@ onMounted(() => {
       <wallet-multi-button :dark="theme.isDisplayDark" v-else />
     </div>
 
-    <div
+    <!-- <div
       class="flex max-sm:flex-col max-sm:gap-2 gap-4 max-sm:items-start sm:items-center sm:justify-between mb-4"
     >
       <h2 class="text-lg flex items-center">
@@ -207,6 +213,6 @@ onMounted(() => {
       <Button class="px-4 py-2" @click="onClickEvm" :disabled="isLoggingInXion">
         Select Wallet
       </Button>
-    </div>
+    </div> -->
   </Dialog>
 </template>

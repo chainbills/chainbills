@@ -37,6 +37,12 @@ const router = createRouter({
       meta: { title: `Stats | ${baseTitle}` },
     },
     {
+      path: '/start/xion',
+      name: 'start-xion',
+      component: () => import('../views/XionPrometheanSaga.vue'),
+      meta: { title: `XION Promethean Saga | ${baseTitle}` },
+    },
+    {
       path: '/payable/:id',
       name: 'payable',
       component: () => import('../views/PayableDetailView.vue'),

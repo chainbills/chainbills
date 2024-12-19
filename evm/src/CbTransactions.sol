@@ -175,7 +175,7 @@ contract CbTransactions is CbGovernance {
     });
 
     // Emit Event.
-    emit PayablePaid(
+    emit PayableReceived(
       payableId,
       payer,
       payablePaymentId,

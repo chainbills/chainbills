@@ -24,7 +24,7 @@ event UserPaid(
 
 /// Emitted when a {Payable} with `payableId` records a new payment by
 /// `payerWallet`.
-event PayablePaid(
+event PayableReceived(
   bytes32 indexed payableId,
   bytes32 indexed payerWallet,
   bytes32 indexed paymentId,

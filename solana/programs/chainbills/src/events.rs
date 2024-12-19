@@ -93,3 +93,10 @@ pub struct RegisteredForeignContract {
   pub chain_id: u16,
   pub emitter: [u8; 32],
 }
+
+#[event]
+pub struct RegisteredMatchingTokenForForeignChain {
+  pub chain_id: u16,
+  pub foreign_token: [u8; 32],
+  pub token: Pubkey,
+}

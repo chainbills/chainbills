@@ -7,6 +7,7 @@ pub mod record_foreign_payable_update;
 pub mod register_foreign_contract;
 pub mod update_max_withdrawal_fees;
 pub mod update_payable;
+pub mod update_token_foreign_chain;
 pub mod withdraw;
 
 pub use initialize::*;
@@ -18,4 +19,5 @@ pub use record_foreign_payable_update::*;
 pub use register_foreign_contract::*;
 pub use update_max_withdrawal_fees::*;
 pub use update_payable::*;
+pub use update_token_foreign_chain::*;
 pub use withdraw::*;

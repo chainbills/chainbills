@@ -9,6 +9,7 @@ pub mod record_foreign_payable_update;
 pub mod update_max_withdrawal_fees;
 pub mod update_max_withdrawal_fees_native;
 pub mod update_payable;
+pub mod update_token_foreign_chain;
 pub mod withdraw;
 pub mod withdraw_native;
 
@@ -23,5 +24,6 @@ pub use record_foreign_payable_update::*;
 pub use update_max_withdrawal_fees::*;
 pub use update_max_withdrawal_fees_native::*;
 pub use update_payable::*;
+pub use update_token_foreign_chain::*;
 pub use withdraw::*;
 pub use withdraw_native::*;

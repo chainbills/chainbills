@@ -34,6 +34,5 @@ impl Withdrawal {
   pub const SPACE: usize = (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
   /// AKA `b"withdrawal"`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"withdrawal";
 }

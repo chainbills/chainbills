@@ -36,7 +36,6 @@ impl ChainStats {
   pub const SPACE: usize = 10 * 8;
 
   /// AKA `b"chain"`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain";
 
   pub fn initialize(&mut self) {

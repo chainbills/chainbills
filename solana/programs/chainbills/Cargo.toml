@@ -14,13 +14,14 @@ no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
 default = ["testnet"]
-mainnet = ["wormhole-anchor-sdk/mainnet"]
-testnet = ["wormhole-anchor-sdk/solana-devnet"]
-devnet = ["wormhole-anchor-sdk/tilt-devnet"]
+mainnet = ["wormhole-anchor-sdk/mainnet", "wormhole-cctp-solana/mainnet"]
+testnet = ["wormhole-anchor-sdk/solana-devnet", "wormhole-cctp-solana/testnet"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build", "wormhole-anchor-sdk/idl-build"]
 
 [dependencies]
-anchor-lang = {version = "0.29.0", features = ["init-if-needed"]}
-solana-program = "=1.17.0"
-anchor-spl = "0.29.0"
-wormhole-anchor-sdk = {version = "0.29.0-alpha.1", default-features = false}
+anchor-lang = {version = "0.30.1", features = ["init-if-needed"]}
+solana-program = "=1.18.20"
+anchor-spl = "0.30.1"
+wormhole-anchor-sdk = {version = "0.30.1-alpha.3", default-features = false}
 bytemuck = "1"
+wormhole-cctp-solana = { version = "0.3.0-alpha.0", features = ["cpi", "testnet"] }

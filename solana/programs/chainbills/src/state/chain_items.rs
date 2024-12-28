@@ -13,7 +13,6 @@ impl ChainUserAddress {
   pub const SPACE: usize = 8 + 32;
 
   /// AKA `b"chain_user_address`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain_user_address";
 }
 
@@ -29,7 +28,6 @@ impl ChainPayableId {
   pub const SPACE: usize = 8 + 32;
 
   /// AKA `b"chain_payable_id`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain_payable_id";
 }
 
@@ -45,7 +43,6 @@ impl ChainForeignPayableId {
   pub const SPACE: usize = 8 + 32;
 
   /// AKA `b"chain_foreign_payable_id"`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain_foreign_payable_id";
 }
 
@@ -62,7 +59,6 @@ impl ChainUserPaymentId {
   pub const SPACE: usize = 8 + 32;
 
   /// AKA `b"chain_user_payment_id`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain_user_payment_id";
 }
 
@@ -79,7 +75,6 @@ impl ChainPayablePaymentId {
   pub const SPACE: usize = 8 + 32;
 
   /// AKA `b"chain_payable_payment_id`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain_payable_payment_id";
 }
 
@@ -95,7 +90,6 @@ impl ChainWithdrawalId {
   pub const SPACE: usize = 8 + 32;
 
   /// AKA `b"chain_withdrawal_id`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain_withdrawal_id";
 }
 
@@ -117,6 +111,5 @@ impl ChainConsumedWormholeMessageId {
   pub const SPACE: usize = 8 + 2 + 8;
 
   /// AKA `b"chain_consumed_wormhole_message_id"`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"chain_consumed_wormhole_message_id";
 }

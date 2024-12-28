@@ -41,7 +41,6 @@ pub struct Payable {
 
 impl Payable {
   /// AKA `b"payable"`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"payable";
 
   pub fn next_payment(&self) -> u64 {

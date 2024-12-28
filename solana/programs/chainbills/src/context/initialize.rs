@@ -1,6 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
-use wormhole_anchor_sdk::wormhole;
+use wormhole_anchor_sdk::{wormhole, wormhole::program::Wormhole};
 
 #[derive(Accounts)]
 /// Context used to Initialize core program data (Config and Solana's
@@ -41,7 +41,7 @@ pub struct Initialize<'info> {
   pub chainbills_fee_collector: SystemAccount<'info>,
 
   /// Wormhole program.
-  pub wormhole_program: Program<'info, wormhole::program::Wormhole>,
+  pub wormhole_program: Program<'info, Wormhole>,
 
   #[account(
         mut,

@@ -59,6 +59,5 @@ impl ActivityRecord {
   pub const SPACE: usize = 1 + (5 * 8) + 32;
 
   /// AKA `b"activity"`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"activity";
 }

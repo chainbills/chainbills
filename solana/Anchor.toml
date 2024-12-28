@@ -1,17 +1,17 @@
 [toolchain]
 
 [features]
-seeds = false
+resolution = true
 skip-lint = false
 
 [programs.devnet]
-chainbills = "25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND"
+chainbills = "GazbpBKrionSvJbeqqqbfqCvK8m7prd8eq5P1SK5EZUD"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "Devnet"
 wallet = "~/.config/solana/chainbills.json"
 
 [scripts]
@@ -19,17 +19,19 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [test]
 startup_wait = 10000
-
-[test.validator]
-url = "https://api.devnet.solana.com"  
+shutdown_wait = 2000
+upgradeable = false
 
 [[test.genesis]]
 address = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"
 program = "tests/wormhole.so"
 upgradeable = true
 
-[[test.validator.clone]]
-address = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"
+[test.validator]
+bind_address = "0.0.0.0"
+url = "https://api.devnet.solana.com"
+ledger = ".anchor/test-ledger"
+rpc_port = 8899
 
 [[test.validator.account]]
 address = "6bi4JGDoRwUs9TYBuvoA7dUVyikTJDrJsJU1ew6KVLiu"
@@ -38,3 +40,6 @@ filename = "tests/wormhole-bridge.json"
 [[test.validator.account]]
 address = "7s3a1ycs16d6SNDumaRtjcoyMaTDZPavzgsmS3uUZYWX"
 filename = "tests/wormhole-fee-collector.json"
+
+[[test.validator.clone]]
+address = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5"

@@ -6,8 +6,8 @@ use anchor_lang::prelude::*;
 /// blockchain network (this-chain inclusive).
 pub struct UserPayment {
   /// The ID of the Payable to which this Payment was made.
-  /// If the payable was created in Solana, then this will be the bytes that 
-  /// payable's Pubkey. Otherwise, it will be a valid 32-byte hash ID 
+  /// If the payable was created in Solana, then this will be the bytes that
+  /// payable's Pubkey. Otherwise, it will be a valid 32-byte hash ID
   /// from another chain.
   pub payable_id: [u8; 32], // 32 bytes
 
@@ -37,6 +37,5 @@ impl UserPayment {
   pub const SPACE: usize = 2 + (4 * 8) + (2 * 32) + TokenAndAmount::SPACE;
 
   /// AKA `b"user_payment"`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"user_payment";
 }

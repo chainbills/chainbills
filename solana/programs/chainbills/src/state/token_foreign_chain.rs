@@ -15,6 +15,5 @@ impl TokenForeignChain {
   pub const SPACE: usize = 8 + 32 + 32;
 
   /// AKA `b"token_foreign_chain`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"token_foreign_chain";
 }

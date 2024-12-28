@@ -31,7 +31,6 @@ impl TokenDetails {
   pub const SPACE: usize = 1 + 6 * 8 + 32;
 
   /// AKA `b"token_details`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"token_details";
 
   pub fn add_user_paid(&mut self, amount: u64) {

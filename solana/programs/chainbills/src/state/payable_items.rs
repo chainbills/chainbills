@@ -59,6 +59,5 @@ impl PayableWithdrawalInfo {
   pub const SPACE: usize = 8 + 8;
 
   /// AKA `b"payment"`.
-  #[constant]
   pub const SEED_PREFIX: &'static [u8] = b"payable_withdrawal_info";
 }

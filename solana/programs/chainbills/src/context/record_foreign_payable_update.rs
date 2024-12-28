@@ -32,7 +32,7 @@ pub struct RecordForeignPayableUpdate<'info> {
             &posted_vaa.emitter_chain().to_le_bytes()[..]
         ],
         bump,
-        constraint = &registered_foreign_contract.address == posted_vaa.emitter_address() @ ChainbillsError::InvalidForeignContract
+        constraint = &registered_foreign_contract.emitter_address == posted_vaa.emitter_address() @ ChainbillsError::InvalidForeignContract
     )]
   /// Foreign Contract account. It's address should be the emitter of the VAA
   pub registered_foreign_contract: Account<'info, RegisteredForeignContract>,

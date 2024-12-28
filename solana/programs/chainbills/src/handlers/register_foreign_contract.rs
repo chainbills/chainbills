@@ -8,33 +8,34 @@ use anchor_lang::prelude::*;
 ///
 /// ### Arguments
 /// * `ctx`     - `RegisterForeignContract` context
-/// * `chain`   - Wormhole Chain ID
-/// * `address` - Wormhole Emitter Address
+/// * `chain_id`   - Wormhole Chain ID
+/// * `emitter_address` - Wormhole Emitter Address
 #[inline(never)]
 pub fn register_foreign_contract_handler(
   ctx: Context<RegisterForeignContract>,
-  chain: u16,
-  address: [u8; 32],
+  chain_id: u16,
+  emitter_address: [u8; 32],
 ) -> Result<()> {
   // Foreign contract cannot share the same Wormhole Chain ID as the
   // Solana Wormhole program's. And cannot register a zero address.
   require!(
-    chain > 0
-      && chain != ctx.accounts.config.load()?.chain_id
-      && !address.iter().all(|&x| x == 0)
-      && address != crate::ID.to_bytes(),
+    chain_id > 0
+      && chain_id != ctx.accounts.config.load()?.chain_id
+      && !emitter_address.iter().all(|&x| x == 0)
+      && emitter_address != crate::ID.to_bytes(),
     ChainbillsError::InvalidForeignContract,
   );
 
   // Save the contract info into the ForeignContract account.
   let contract = &mut ctx.accounts.registered_foreign_contract;
-  contract.address = address;
+  contract.chain_id = chain_id;
+  contract.emitter_address = emitter_address;
 
   // Emit log and event.
   msg!("Registered Foreign Contract.");
-  emit!(RegisteredForeignContract {
-    chain_id: chain,
-    emitter: address
+  emit!(RegisteredForeignContractEvent {
+    chain_id,
+    emitter_address
   });
   Ok(())
 }

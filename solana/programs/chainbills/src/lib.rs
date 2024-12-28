@@ -213,14 +213,14 @@ pub mod chainbills {
   ///
   /// ### Arguments
   /// * `ctx`     - `RegisterForeignEmitter` context
-  /// * `chain`   - Wormhole Chain ID
-  /// * `address` - Wormhole Emitter Address
+  /// * `chain_id`   - Wormhole Chain ID
+  /// * `emitter_address` - Wormhole Emitter Address
   #[inline(never)]
   pub fn register_foreign_contract(
     ctx: Context<RegisterForeignContract>,
-    chain: u16,
-    address: [u8; 32],
+    chain_id: u16,
+    emitter_address: [u8; 32],
   ) -> Result<()> {
-    handlers::register_foreign_contract_handler(ctx, chain, address)
+    handlers::register_foreign_contract_handler(ctx, chain_id, emitter_address)
   }
 }

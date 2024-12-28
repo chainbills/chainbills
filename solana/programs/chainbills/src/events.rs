@@ -89,9 +89,10 @@ pub struct OwnerWithdrew {
 }
 
 #[event]
-pub struct RegisteredForeignContract {
+// Append Event to differentiate it from the corresponding state struct
+pub struct RegisteredForeignContractEvent {
   pub chain_id: u16,
-  pub emitter: [u8; 32],
+  pub emitter_address: [u8; 32],
 }
 
 #[event]

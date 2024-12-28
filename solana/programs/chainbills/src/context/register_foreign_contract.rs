@@ -2,7 +2,7 @@ use crate::{error::*, state::*};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
-#[instruction(chain: u16)]
+#[instruction(chain_id: u16)]
 /// Context used to register a foreign contract that will be emitting Wormhole
 /// messages to this program from other chains.
 pub struct RegisterForeignContract<'info> {
@@ -11,7 +11,7 @@ pub struct RegisterForeignContract<'info> {
         payer = owner,
         seeds = [
             RegisteredForeignContract::SEED_PREFIX,
-            &chain.to_le_bytes()[..]
+            &chain_id.to_le_bytes()[..]
         ],
         bump,
         space = RegisteredForeignContract::SPACE

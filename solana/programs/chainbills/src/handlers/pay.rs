@@ -41,42 +41,98 @@ fn check_pay_inputs(
   Ok(())
 }
 
-fn update_state_for_payment(
-  chain_id: u16,
+fn update_state_for_user_payment(
   amount: u64,
   mint: Pubkey,
   signer: Pubkey,
-  chain_stats: &mut Account<ChainStats>,
-  payable: &mut Account<Payable>,
   payer: &mut Account<User>,
-  payable_per_chain_payments_counter: &mut Account<
-    PayablePerChainPaymentsCounter,
-  >,
+  chain_stats: &mut Account<ChainStats>,
+  payable_id: [u8; 32],
+  payable_chain_id: u16,
   token_details: &mut Account<TokenDetails>,
   user_payment: &mut Account<UserPayment>,
-  payable_payment: &mut Account<PayablePayment>,
   chain_user_payment_id: &mut Account<ChainUserPaymentId>,
-  chain_payable_payment_id: &mut Account<ChainPayablePaymentId>,
-  payable_per_chain_payment_info: &mut Account<PayablePerChainPaymentInfo>,
   user_activity: &mut Account<ActivityRecord>,
   user_activity_info: &mut Account<UserActivityInfo>,
-  payable_activity: &mut Account<ActivityRecord>,
-  payable_activity_info: &mut Account<PayableActivityInfo>,
 ) -> Result<()> {
-  // Increment the chain stats for payments counts.
+  // Increment user_payments_count and activities_count in chain_stats.
   chain_stats.user_payments_count = chain_stats.next_user_payment();
-  chain_stats.payable_payments_count = chain_stats.next_payable_payment();
-
-  // Increment the chain stats for activities_count.
-  //
-  // Incrementing twice to account for recording two activities: one for the
-  // user and one for the payable.
-  chain_stats.activities_count = chain_stats.next_activity();
   chain_stats.activities_count = chain_stats.next_activity();
 
   // Increment payments_count and activities_count in the payer that just paid.
   payer.payments_count = payer.next_payment();
   payer.activities_count = payer.next_activity();
+
+  // Increase the supported token's totals from this payment.
+  token_details.add_user_paid(amount);
+
+  let timestamp = clock::Clock::get()?.unix_timestamp as u64;
+  let payment_details = TokenAndAmount {
+    token: mint,
+    amount,
+  };
+
+  // Initialize the User Payment.
+  user_payment.chain_count = chain_stats.payables_count;
+  user_payment.payable_id = payable_id;
+  user_payment.payable_chain_id = payable_chain_id;
+  user_payment.payer = signer;
+  user_payment.payer_count = payer.payments_count;
+  user_payment.timestamp = timestamp;
+  user_payment.details = payment_details;
+
+  // Initialize the Chain User Payment ID.
+  chain_user_payment_id.user_payment_id = user_payment.key();
+
+  // Initialize the User Activity.
+  user_activity.chain_count = chain_stats.activities_count;
+  user_activity.user_count = payer.activities_count;
+  // Setting 0 because it's not a payable activity.
+  user_activity.payable_count = 0;
+  user_activity.timestamp = timestamp;
+  user_activity.entity = user_payment.key();
+  user_activity.activity_type = ActivityType::UserPaid;
+
+  // Initialize the User Activity Info.
+  user_activity_info.chain_count = chain_stats.activities_count;
+
+  // Emit logs and events.
+  msg!(
+    "User Payment was made with chain_count: {} and payer_count: {}.",
+    user_payment.chain_count,
+    user_payment.payer_count
+  );
+  emit!(UserPaid {
+    payable_id,
+    payer_wallet: signer,
+    payment_id: user_payment.key(),
+    payable_chain_id: user_payment.payable_chain_id,
+    chain_count: user_payment.chain_count,
+    payer_count: user_payment.payer_count,
+  });
+  Ok(())
+}
+
+fn update_state_for_payable_payment(
+  amount: u64,
+  mint: Pubkey,
+  payable: &mut Account<Payable>,
+  payable_per_chain_payments_counter: &mut Account<
+    PayablePerChainPaymentsCounter,
+  >,
+  chain_stats: &mut Account<ChainStats>,
+  payer_wallet: [u8; 32],
+  payer_chain_id: u16,
+  token_details: &mut Account<TokenDetails>,
+  payable_payment: &mut Account<PayablePayment>,
+  chain_payable_payment_id: &mut Account<ChainPayablePaymentId>,
+  payable_per_chain_payment_info: &mut Account<PayablePerChainPaymentInfo>,
+  payable_activity: &mut Account<ActivityRecord>,
+  payable_activity_info: &mut Account<PayableActivityInfo>,
+) -> Result<()> {
+  // Increment payable_payments_count and activities_count in chain_stats.
+  chain_stats.payable_payments_count = chain_stats.next_payable_payment();
+  chain_stats.activities_count = chain_stats.next_activity();
 
   // Increment payments_count and activities_count on involved payable.
   payable.payments_count = payable.next_payment();
@@ -110,7 +166,6 @@ fn update_state_for_payment(
     payable_per_chain_payments_counter.next_payment();
 
   // Increase the supported token's totals from this payment.
-  token_details.add_user_paid(amount);
   token_details.add_payable_received(amount);
 
   let timestamp = clock::Clock::get()?.unix_timestamp as u64;
@@ -119,28 +174,16 @@ fn update_state_for_payment(
     amount,
   };
 
-  // Initialize the User Payment.
-  user_payment.chain_count = chain_stats.payables_count;
-  user_payment.payable_id = payable.key().to_bytes();
-  user_payment.payable_chain_id = chain_id;
-  user_payment.payer = signer;
-  user_payment.payer_count = payer.payments_count;
-  user_payment.timestamp = timestamp;
-  user_payment.details = payment_details;
-
   // Initialize the Payable Payment.
   payable_payment.payable_id = payable.key();
-  payable_payment.payer = signer.to_bytes();
+  payable_payment.payer = payer_wallet;
   payable_payment.chain_count = chain_stats.payable_payments_count;
-  payable_payment.payer_chain_id = chain_id;
+  payable_payment.payer_chain_id = payer_chain_id;
   payable_payment.local_chain_count =
     payable_per_chain_payments_counter.payments_count;
   payable_payment.payable_count = payable.payments_count;
   payable_payment.timestamp = timestamp;
   payable_payment.details = payment_details;
-
-  // Initialize the Chain User Payment ID.
-  chain_user_payment_id.user_payment_id = user_payment.key();
 
   // Initialize the Chain Payable Payment ID.
   chain_payable_payment_id.payable_payment_id = payable_payment.key();
@@ -149,20 +192,6 @@ fn update_state_for_payment(
   // payments per chain. The stored payable_count can then be used to get the
   // main payable_payment.
   payable_per_chain_payment_info.payable_count = payable.payments_count;
-
-  // Initialize the User Activity.
-  // subtracting 1 because we incremented the activities_count twice.
-  user_activity.chain_count =
-    chain_stats.activities_count.checked_sub(1).unwrap();
-  user_activity.user_count = payer.activities_count;
-  // Setting 0 because it's not a payable activity.
-  user_activity.payable_count = 0;
-  user_activity.timestamp = timestamp;
-  user_activity.entity = user_payment.key();
-  user_activity.activity_type = ActivityType::UserPaid;
-
-  // Initialize the User Activity Info.
-  user_activity_info.chain_count = chain_stats.activities_count;
 
   // Initialize the Payable Activity.
   payable_activity.chain_count = chain_stats.activities_count;
@@ -178,26 +207,13 @@ fn update_state_for_payment(
 
   // Emit logs and events.
   msg!(
-    "User Payment was made with chain_count: {} and payer_count: {}.",
-    user_payment.chain_count,
-    user_payment.payer_count
-  );
-  msg!(
     "Payable Payment was received with chain_count: {}, and payable_count: {}.",
     payable_payment.chain_count,
     payable_payment.payable_count
   );
-  emit!(UserPaid {
-    payable_id: payable.key().to_bytes(),
-    payer_wallet: signer,
-    payment_id: user_payment.key(),
-    payable_chain_id: user_payment.payable_chain_id,
-    chain_count: user_payment.chain_count,
-    payer_count: user_payment.payer_count,
-  });
   emit!(PayableReceived {
     payable_id: payable.key(),
-    payer_wallet: signer.to_bytes(),
+    payer_wallet,
     payment_id: payable_payment.key(),
     payer_chain_id: payable_payment.payer_chain_id,
     chain_count: payable_payment.chain_count,
@@ -232,23 +248,38 @@ pub fn pay(ctx: Context<Pay>, amount: u64) -> Result<()> {
   )?;
 
   /* STATE CHANGES */
-  update_state_for_payment(
-    ctx.accounts.config.load()?.chain_id,
+  let chain_id = ctx.accounts.config.load()?.chain_id;
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
+
+  // Update State for User
+  update_state_for_user_payment(
     amount,
     mint.key(),
     ctx.accounts.signer.key(),
-    ctx.accounts.chain_stats.as_mut(),
-    payable,
     ctx.accounts.payer.as_mut(),
-    ctx.accounts.payable_per_chain_payments_counter.as_mut(),
+    chain_stats,
+    payable.key().to_bytes(),
+    chain_id,
     token_details,
     ctx.accounts.user_payment.as_mut(),
-    ctx.accounts.payable_payment.as_mut(),
     ctx.accounts.chain_user_payment_id.as_mut(),
-    ctx.accounts.chain_payable_payment_id.as_mut(),
-    ctx.accounts.payable_per_chain_payment_info.as_mut(),
     ctx.accounts.user_activity.as_mut(),
     ctx.accounts.user_activity_info.as_mut(),
+  )?;
+
+  // Update State for Payable
+  update_state_for_payable_payment(
+    amount,
+    mint.key(),
+    payable,
+    ctx.accounts.payable_per_chain_payments_counter.as_mut(),
+    chain_stats,
+    ctx.accounts.signer.key().to_bytes(),
+    chain_id,
+    token_details,
+    ctx.accounts.payable_payment.as_mut(),
+    ctx.accounts.chain_payable_payment_id.as_mut(),
+    ctx.accounts.payable_per_chain_payment_info.as_mut(),
     ctx.accounts.payable_activity.as_mut(),
     ctx.accounts.payable_activity_info.as_mut(),
   )
@@ -278,23 +309,38 @@ pub fn pay_native(ctx: Context<PayNative>, amount: u64) -> Result<()> {
   )?;
 
   /* STATE CHANGES */
-  update_state_for_payment(
-    ctx.accounts.config.load()?.chain_id,
+  let chain_id = ctx.accounts.config.load()?.chain_id;
+  let chain_stats = ctx.accounts.chain_stats.as_mut();
+
+  // Update State for User
+  update_state_for_user_payment(
     amount,
     crate::ID,
     ctx.accounts.signer.key(),
-    ctx.accounts.chain_stats.as_mut(),
-    payable,
     ctx.accounts.payer.as_mut(),
-    ctx.accounts.payable_per_chain_payments_counter.as_mut(),
+    chain_stats,
+    payable.key().to_bytes(),
+    chain_id,
     token_details,
     ctx.accounts.user_payment.as_mut(),
-    ctx.accounts.payable_payment.as_mut(),
     ctx.accounts.chain_user_payment_id.as_mut(),
-    ctx.accounts.chain_payable_payment_id.as_mut(),
-    ctx.accounts.payable_per_chain_payment_info.as_mut(),
     ctx.accounts.user_activity.as_mut(),
     ctx.accounts.user_activity_info.as_mut(),
+  )?;
+
+  // Update State for Payable
+  update_state_for_payable_payment(
+    amount,
+    crate::ID,
+    payable,
+    ctx.accounts.payable_per_chain_payments_counter.as_mut(),
+    chain_stats,
+    ctx.accounts.signer.key().to_bytes(),
+    chain_id,
+    token_details,
+    ctx.accounts.payable_payment.as_mut(),
+    ctx.accounts.chain_payable_payment_id.as_mut(),
+    ctx.accounts.payable_per_chain_payment_info.as_mut(),
     ctx.accounts.payable_activity.as_mut(),
     ctx.accounts.payable_activity_info.as_mut(),
   )

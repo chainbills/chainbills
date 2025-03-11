@@ -5,11 +5,11 @@ import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
 import './CbErrors.sol';
 import './CbEvents.sol';
-import './CbGovernance.sol';
+import './CbUtils.sol';
 import './CbPayloadMessages.sol';
 import './CbStructs.sol';
 
-contract CbPayables is CbGovernance {
+contract CbPayables is CbUtils {
   using CbDecodePayload for bytes;
   using CbEncodePayablePayload for PayablePayload;
 
@@ -22,7 +22,6 @@ contract CbPayables is CbGovernance {
   function createPayable(TokenAndAmount[] calldata allowedTokensAndAmounts)
     public
     payable
-    nonReentrant
     returns (bytes32 payableId, uint64 wormholeMessageSequence)
   {
     /* CHECKS */
@@ -158,7 +157,6 @@ contract CbPayables is CbGovernance {
   function closePayable(bytes32 payableId)
     public
     payable
-    nonReentrant
     returns (uint64 wormholeMessageSequence)
   {
     /* CHECKS */
@@ -202,7 +200,6 @@ contract CbPayables is CbGovernance {
   function reopenPayable(bytes32 payableId)
     public
     payable
-    nonReentrant
     returns (uint64 wormholeMessageSequence)
   {
     /* CHECKS */
@@ -246,7 +243,7 @@ contract CbPayables is CbGovernance {
   function updatePayableAllowedTokensAndAmounts(
     bytes32 payableId,
     TokenAndAmount[] calldata allowedTokensAndAmounts
-  ) public payable nonReentrant returns (uint64 wormholeMessageSequence) {
+  ) public payable returns (uint64 wormholeMessageSequence) {
     /* CHECKS */
     // Ensure that the caller owns the payable.
     Payable storage _payable = payables[payableId];

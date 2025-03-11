@@ -85,3 +85,9 @@ event RegisteredMatchingTokenForForeignChain(
 event RegisteredCircleDomainToWormholeChainId(
   uint32 circleDomain, uint16 chainId
 );
+
+/// Emitted when owner (deployer) updates the `payablesLogicContract` address.
+event SetPayablesLogic(address payablesLogicContract);
+
+/// Emitted when owner (deployer) updates the `transactionsLogicContract` address.
+event SetTransactionsLogic(address transactionsLogicContract);

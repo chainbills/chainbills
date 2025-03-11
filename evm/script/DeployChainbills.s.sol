@@ -32,6 +32,14 @@ contract DeployChainbills is Script {
     );
 
     console.log('Deployed Chainbills at: ', proxy);
+
+    Chainbills cb = Chainbills(payable(proxy));
+    cb.setPayablesLogic(address(new CbPayables()));
+    console.log('Added Payables Logic to Chainbills');
+
+    cb.setTransactionsLogic(address(new CbTransactions()));
+    console.log('Added Transactions Logic to Chainbills');
+
     vm.stopBroadcast();
   }
 }

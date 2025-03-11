@@ -11,7 +11,7 @@ contract CbPayloadMessagesTest is Test {
   using CbEncodePayablePayload for PayablePayload;
   using CbEncodePaymentPayload for PaymentPayload;
 
-  function testEncodeDecodePayablePayload() public view {
+  function testEncodeDecodePayablePayload() public pure {
     TokenAndAmountForeign[] memory ataa = new TokenAndAmountForeign[](2);
     ataa[0] = TokenAndAmountForeign({token: bytes32(0), amount: 100});
     ataa[1] = TokenAndAmountForeign({token: bytes32(0), amount: 200});
@@ -30,7 +30,7 @@ contract CbPayloadMessagesTest is Test {
     assert(parsed.allowedTokensAndAmounts.length == 2);
   }
 
-  function testEncodeDecodePaymentPayload() public view {
+  function testEncodeDecodePaymentPayload() public pure {
     bytes memory encoded = PaymentPayload({
       version: 1,
       payableId: bytes32(0),

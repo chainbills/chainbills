@@ -8,11 +8,11 @@ import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
 import './CbErrors.sol';
 import './CbEvents.sol';
-import './CbGovernance.sol';
+import './CbUtils.sol';
 import './CbPayloadMessages.sol';
 import './CbStructs.sol';
 
-contract CbTransactions is CbGovernance {
+contract CbTransactions is CbUtils {
   using BytesParsing for bytes;
   using CbDecodePayload for bytes;
   using CbEncodePaymentPayload for PaymentPayload;
@@ -194,7 +194,6 @@ contract CbTransactions is CbGovernance {
   function pay(bytes32 payableId, address token, uint256 amount)
     public
     payable
-    nonReentrant
     returns (bytes32 userPaymentId, bytes32 payablePaymentId)
   {
     /* CHECKS */
@@ -252,7 +251,6 @@ contract CbTransactions is CbGovernance {
   )
     public
     payable
-    nonReentrant
     returns (bytes32 userPaymentId, uint64 wormholeMessageSequence)
   {
     /* CHECKS */
@@ -330,7 +328,7 @@ contract CbTransactions is CbGovernance {
   /// @return payablePaymentId The ID of the recorded payment from the payable.
   function receiveForeignPaymentWithCircle(
     RedeemCirclePaymentParameters memory params
-  ) public nonReentrant returns (bytes32 payablePaymentId) {
+  ) public returns (bytes32 payablePaymentId) {
     /* CHECKS */
     // Carry out necessary verifications on the encoded Wormhole and parse it.
     IWormhole.VM memory wormholeMessage =
@@ -426,8 +424,7 @@ contract CbTransactions is CbGovernance {
   /// token.
   /// @return withdrawalId The ID of the withdrawal.
   function withdraw(bytes32 payableId, address token, uint256 amount)
-    public
-    nonReentrant
+    public 
     returns (bytes32 withdrawalId)
   {
     /* CHECKS */

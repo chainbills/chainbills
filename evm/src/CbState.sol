@@ -100,6 +100,10 @@ contract CbState {
   mapping(uint16 => bytes32[]) public perChainConsumedWormholeMessages;
   /// Counts for consumed Wormhole messages by their Chain IDs.
   mapping(uint16 => uint256) public perChainConsumedWormholeMessagesCount;
+  /// Address of Payables Logic Contract
+  address public payablesLogic;
+  /// Address of Transactions Logic Contract
+  address public transactionsLogic;
   /// storage gap for additional state variables in future versions
   uint256[50] __gap;
 
@@ -117,6 +121,12 @@ contract CbState {
 
   function circleTokenMinter() public view returns (ITokenMinter) {
     return ITokenMinter(config.circleTokenMinter);
+  }
+
+  function getPayable(bytes32 payableId) external view returns (Payable memory) {
+    if (payableId == bytes32(0)) revert InvalidPayableId();
+    if (payables[payableId].host == address(0)) revert InvalidPayableId();
+    return payables[payableId];
   }
 
   function getAllowedTokensAndAmounts(bytes32 payableId)

@@ -76,6 +76,9 @@ contract CbUsersTest is Test {
     // is to allow native token (ETH) and ERC20 to be used for payments
     chainbills.updateMaxWithdrawalFees(address(chainbills), ethMaxFee);
     chainbills.updateMaxWithdrawalFees(address(usdc), usdcMaxFee);
+
+    chainbills.setPayablesLogic(address(new CbPayables()));
+    chainbills.setTransactionsLogic(address(new CbTransactions()));
   }
 
   function testUserInitOnCreatePayable() public {

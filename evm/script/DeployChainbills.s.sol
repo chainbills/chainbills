@@ -24,16 +24,15 @@ contract DeployChainbills is Script {
     vm.startBroadcast(ownerPrivateKey);
 
     address proxy = Upgrades.deployUUPSProxy(
-      'Chainbills.sol',
-      abi.encodeCall(
-        Chainbills.initialize,
-        (feeCollector, wormhole, circleBridge, chainId, wormholeFinality)
-      )
+      'Chainbills.sol', abi.encodeCall(Chainbills.initialize, (feeCollector))
     );
 
     console.log('Deployed Chainbills at: ', proxy);
 
     Chainbills cb = Chainbills(payable(proxy));
+    cb.setupWormholeAndCircle(wormhole, circleBridge, chainId, wormholeFinality);
+    console.log('Setup Wormhole and circle');
+
     cb.setPayablesLogic(address(new CbPayables()));
     console.log('Added Payables Logic to Chainbills');
 

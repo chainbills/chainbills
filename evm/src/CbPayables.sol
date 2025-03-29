@@ -300,6 +300,52 @@ contract CbPayables is CbUtils {
     );
   }
 
+  /// Publishes a payable's details to Wormhole. Useful when Wormhole is setup
+  /// in this chain after the payable was created and wasn't published through
+  /// Wormhole.
+  /// @param payableId The ID of the payable to publish.
+  /// @return wormholeMessageSequence The sequence of the published Wormhole
+  /// message.
+  function publishPayableDetails(bytes32 payableId)
+    public
+    payable
+    returns (uint64 wormholeMessageSequence)
+  {
+    /* CHECKS */
+    // Ensure that the caller owns the payable.
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+
+    // Prepare the foreign allowedTokensAndAmounts.
+    uint8 ataaLength = _payable.allowedTokensAndAmountsCount;
+    TokenAndAmountForeign[] memory foreignAtaa =
+      new TokenAndAmountForeign[](ataaLength);
+    for (uint8 i = 0; i < ataaLength; i++) {
+      // Set the foreign allowedTokensAndAmounts.
+      foreignAtaa[i] = TokenAndAmountForeign({
+        token: toWormholeFormat(
+          payableAllowedTokensAndAmounts[payableId][i].token
+        ),
+        amount: uint64(payableAllowedTokensAndAmounts[payableId][i].amount)
+      });
+    }
+
+    // Ensure that the required Wormhole Fees were paid.
+    ensureWormholeFees();
+
+    /* STATE CHANGES */
+    // Publish Message through Wormhole.
+    wormholeMessageSequence = publishPayloadMessage(
+      PayablePayload({
+        version: 1,
+        actionType: 1,
+        payableId: payableId,
+        isClosed: _payable.isClosed,
+        allowedTokensAndAmounts: foreignAtaa
+      }) /* actionType 1 for Create, just re-using it */ .encode()
+    );
+  }
+
   /// Records Payable Changes (Creation/Updates) from another chain.
   /// @param wormholeEncoded The encoded message from Wormhole.
   function recordForeignPayableUpdate(bytes memory wormholeEncoded) public {

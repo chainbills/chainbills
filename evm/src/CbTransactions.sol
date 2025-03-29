@@ -229,11 +229,15 @@ contract CbTransactions is CbUtils {
 
     /* STATE CHANGES */
     // Record successful payment and activity from the payer.
-    userPaymentId = recordUserPayment(payableId, config.chainId, token, amount);
+    // Use 0 (zero) as the chain ID for this chain. Using zero instead of
+    // config.chainId to account for chains that don't yet have Wormhole.
+    userPaymentId = recordUserPayment(payableId, 0, token, amount);
 
     // Record successful payment and activity to the payable.
+    // Use 0 (zero) as the chain ID for this chain. Using zero instead of
+    // config.chainId to account for chains that don't yet have Wormhole.
     payablePaymentId = recordPayablePayment(
-      payableId, toWormholeFormat(msg.sender), config.chainId, token, amount
+      payableId, toWormholeFormat(msg.sender), 0, token, amount
     );
   }
 

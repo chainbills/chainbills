@@ -32,19 +32,33 @@ contract Chainbills is
 
   /// Sets up this smart contract when it is deployed.
   /// @param feeCollector The address that will collect withdrawal fees.
+  function initialize(address feeCollector) public initializer {
+    if (feeCollector == address(0)) revert InvalidFeeCollector();
+    config.feeCollector = feeCollector;
+
+    // 200 means 2% withdrawal fee (with 2 decimal places)
+    config.withdrawalFeePercentage = 200;
+
+    __Ownable_init(msg.sender);
+    __ReentrancyGuard_init();
+    __UUPSUpgradeable_init();
+  }
+
+  function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
+
+  /// Sets up Wormhole and Circle Bridge contracts.
   /// @param wormhole The address of the Wormhole contract.
   /// @param circleBridge The address of the Circle Bridge contract.
   /// @param chainId The Wormhole Chain ID of the chain.
   /// @param wormholeFinality Confirmed/Finalized for Wormhole messages.
-  function initialize(
-    address feeCollector,
+  /// @dev Only the deployer (owner) can invoke this method
+  function setupWormholeAndCircle(
     address wormhole,
     address circleBridge,
     uint16 chainId,
     uint8 wormholeFinality
-  ) public initializer {
-    if (feeCollector == address(0)) revert InvalidFeeCollector();
-    else if (wormhole == address(0)) revert InvalidWormholeAddress();
+  ) public onlyOwner {
+    if (wormhole == address(0)) revert InvalidWormholeAddress();
     else if (chainId == 0) revert InvalidWormholeChainId();
     else if (wormholeFinality == 0) revert InvalidWormholeFinality();
     else if (circleBridge == address(0)) revert InvalidCircleBridge();
@@ -57,25 +71,14 @@ contract Chainbills is
     // Set necessary config variables like feeCollector, wormhole, chainId, and
     // wormholeFinality, circleDomain, circleBridge, circleTransmitter, and
     // circleTokenMinter.
-    config = Config(
-      wormholeFinality,
-      chainId,
-      200, /* 200 means 2% withdrawal fee (with 2 decimal places) */
-      circleDomain,
-      feeCollector,
-      wormhole,
-      circleBridge,
-      address(circleTransmitter),
-      address(circleTokenMinter)
-    );
-    chainStats = ChainStats(0, 0, 0, 0, 0, 0, 0, 0, 0);
-
-    __Ownable_init(msg.sender);
-    __ReentrancyGuard_init();
-    __UUPSUpgradeable_init();
+    config.wormholeFinality = wormholeFinality;
+    config.chainId = chainId;
+    config.circleDomain = circleDomain;
+    config.wormhole = wormhole;
+    config.circleBridge = circleBridge;
+    config.circleTransmitter = address(circleTransmitter);
+    config.circleTokenMinter = address(circleTokenMinter);
   }
-
-  function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
 
   /// Withdraws the specified `amount` of `token` to the {owner}.
   /// If token is the same as this deployed contract's address, the
@@ -239,6 +242,22 @@ contract Chainbills is
     bytes32, /* payableId */
     TokenAndAmount[] calldata /* allowedTokensAndAmounts */
   ) public payable nonReentrant returns (uint64 wormholeMessageSequence) {
+    (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
+    if (!success) {
+      assembly {
+        revert(add(result, 32), mload(result))
+      }
+    } else {
+      return abi.decode(result, (uint64));
+    }
+  }
+
+  function publishPayableDetails(bytes32 /* payableId */ )
+    public
+    payable
+    nonReentrant
+    returns (uint64 wormholeMessageSequence)
+  {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {

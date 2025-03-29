@@ -107,6 +107,10 @@ contract CbState {
   /// storage gap for additional state variables in future versions
   uint256[50] __gap;
 
+  function hasWormhole() public view returns (bool) {
+    return config.wormhole != address(0);
+  }
+
   function wormhole() public view returns (IWormhole) {
     return IWormhole(config.wormhole);
   }

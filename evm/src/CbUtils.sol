@@ -25,9 +25,7 @@ contract CbUtils is CbState {
     returns (bytes32)
   {
     return keccak256(
-      abi.encodePacked(
-        block.chainid, config.chainId, block.timestamp, entity, salt, count
-      )
+      abi.encodePacked(block.chainid, block.timestamp, entity, salt, count)
     );
   }
 
@@ -38,8 +36,9 @@ contract CbUtils is CbState {
     if (msg.value > wormholeFees) revert IncorrectWormholeFees();
   }
 
-  /// Returns the cost of sending a message throught Wormhole.
+  /// Returns the cost of sending a message through Wormhole.
   function getWormholeMessageFee() public view returns (uint256) {
+    if (!hasWormhole()) return 0; // No fees if Wormhole is not set.
     return wormhole().messageFee();
   }
 
@@ -114,6 +113,9 @@ contract CbUtils is CbState {
     internal
     returns (uint64 sequence)
   {
+    // If Wormhole is not set in this chain, simply return.
+    if (!hasWormhole()) return 0;
+
     // Publish the message to Wormhole.
     sequence = wormhole().publishMessage{value: getWormholeMessageFee()}(
       /* No Batching */

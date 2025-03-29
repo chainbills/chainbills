@@ -56,9 +56,8 @@ contract CbUsersTest is Test {
       abi.encode(makeAddr('token-minter'))
     );
 
-    chainbills.initialize(
-      feeCollector, wormhole, circleBridge, chainId, wormholeFinality
-    );
+    chainbills.initialize(feeCollector);
+    chainbills.setupWormholeAndCircle(wormhole, circleBridge, chainId, wormholeFinality);
     usdc = new USDC();
 
     vm.mockCall(
@@ -289,7 +288,7 @@ contract CbUsersTest is Test {
       payableId,
       user,
       bytes32(0),
-      chainId,
+      0,
       prevUserPaymentsCount + 1,
       prevUserPaymentCount + 1
     );
@@ -320,7 +319,7 @@ contract CbUsersTest is Test {
       payableId,
       user,
       bytes32(0),
-      chainId,
+      0,
       prevUserPaymentsCount + 2,
       prevUserPaymentCount + 2
     );
@@ -374,7 +373,7 @@ contract CbUsersTest is Test {
     // check payment 1's details
     assertEq(p1PayableId, payableId);
     assertEq(p1Payer, user);
-    assertEq(p1PayableChainId, chainId);
+    assertEq(p1PayableChainId, 0);
     assertEq(p1ChainCount, prevUserPaymentsCount + 1);
     assertEq(p1PayerCount, prevUserPaymentCount + 1);
     assertGt(p1Timestamp, 0);
@@ -385,7 +384,7 @@ contract CbUsersTest is Test {
     // check payment 2's details
     assertEq(p2PayableId, payableId);
     assertEq(p2Payer, user);
-    assertEq(p2PayableChainId, chainId);
+    assertEq(p2PayableChainId, 0);
     assertEq(p2ChainCount, prevUserPaymentsCount + 2);
     assertEq(p2PayerCount, prevUserPaymentCount + 2);
     assertGt(p2Timestamp, 0);

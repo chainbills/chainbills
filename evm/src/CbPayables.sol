@@ -27,7 +27,8 @@ contract CbPayables is CbUtils {
   ) public payable returns (bytes32 payableId, uint64 wormholeMessageSequence) {
     /* CHECKS */
     // Ensure that the allowedTokensAndAmounts are valid.
-    // Also prepare the foreign allowedTokensAndAmounts in the same loop.
+    // Also store them locally and prepare the foreign equivalents
+    // in the same loop.
     TokenAndAmountForeign[] memory foreignAtaa =
       new TokenAndAmountForeign[](allowedTokensAndAmounts.length);
     for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
@@ -39,12 +40,18 @@ contract CbPayables is CbUtils {
       if (!tokenDetails[token].isSupported) revert UnsupportedToken();
 
       // Ensure that the specified amount is greater than zero.
-      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
+      uint256 amount = allowedTokensAndAmounts[i].amount;
+      if (amount == 0) revert ZeroAmountSpecified();
+
+      // Set the local allowedTokenAndAmount directly
+      payableAllowedTokensAndAmounts[payableId].push(
+        TokenAndAmount(token, amount)
+      );
 
       // Set the foreign allowedTokensAndAmounts.
       foreignAtaa[i] = TokenAndAmountForeign({
         token: toWormholeFormat(token),
-        amount: uint64(allowedTokensAndAmounts[i].amount)
+        amount: uint64(amount)
       });
     }
 
@@ -70,7 +77,6 @@ contract CbPayables is CbUtils {
     );
     chainPayableIds.push(payableId);
     userPayableIds[msg.sender].push(payableId);
-    payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
     Payable storage _payable = payables[payableId];
     _payable.chainCount = chainStats.payablesCount;
     _payable.host = msg.sender;
@@ -251,8 +257,15 @@ contract CbPayables is CbUtils {
     Payable storage _payable = payables[payableId];
     if (_payable.host != msg.sender) revert NotYourPayable();
 
+    // Clear the currently stored allowedTokensAndAmounts for the payable
+    for (uint8 i = _payable.allowedTokensAndAmountsCount; i > 0; i--) {
+      // Remove all previously set ATAAs in storage by popping
+      payableAllowedTokensAndAmounts[payableId].pop();
+    }
+
     // Ensure that the allowedTokensAndAmounts are valid.
-    // Also prepare the foreign allowedTokensAndAmounts in the same loop.
+    // Also store them locally and prepare the foreign allowedTokensAndAmounts
+    // in the same loop.
     TokenAndAmountForeign[] memory foreignAtaa =
       new TokenAndAmountForeign[](allowedTokensAndAmounts.length);
     for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
@@ -264,12 +277,18 @@ contract CbPayables is CbUtils {
       if (!tokenDetails[token].isSupported) revert UnsupportedToken();
 
       // Ensure that the specified amount is greater than zero.
-      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
+      uint256 amount = allowedTokensAndAmounts[i].amount;
+      if (amount == 0) revert ZeroAmountSpecified();
+
+      // Set the local allowedTokenAndAmount directly
+      payableAllowedTokensAndAmounts[payableId].push(
+        TokenAndAmount(token, amount)
+      );
 
       // Set the foreign allowedTokensAndAmounts.
       foreignAtaa[i] = TokenAndAmountForeign({
         token: toWormholeFormat(token),
-        amount: uint64(allowedTokensAndAmounts[i].amount)
+        amount: uint64(amount)
       });
     }
 
@@ -277,8 +296,7 @@ contract CbPayables is CbUtils {
     ensureWormholeFees();
 
     /* STATE CHANGES */
-    // Update the payable's allowedTokensAndAmounts
-    payableAllowedTokensAndAmounts[payableId] = allowedTokensAndAmounts;
+    // Update the payable's allowedTokensAndAmounts count
     _payable.allowedTokensAndAmountsCount =
       uint8(allowedTokensAndAmounts.length);
 
@@ -390,19 +408,49 @@ contract CbPayables is CbUtils {
     // Record the foreign payable.
     bytes32 payableId = payload.payableId;
     uint16 chainId = wormholeMessage.emitterChainId;
+
+    // Record an increment in count if this is the first time this foreign
+    // payable is being recorded.
     if (foreignPayables[payableId].chainId == 0) {
       chainStats.foreignPayablesCount++;
       chainForeignPayableIds.push(payableId);
       foreignPayables[payableId].chainId = chainId;
     }
+
+    // Update parts of the payable depending on the incoming action type
+    PayableForeign storage foreignPayable = foreignPayables[payableId];
     if (payload.actionType == 1 || payload.actionType == 4) {
-      foreignPayables[payableId].allowedTokensAndAmountsCount =
-        uint8(payload.allowedTokensAndAmounts.length);
-      foreignPayableAllowedTokensAndAmounts[payableId] =
-        payload.allowedTokensAndAmounts;
+      // If payable was created or its ATAA updated, we should set ATAA.
+
+      if (payload.actionType == 4) {
+        // This is a modification and not a newly created payable, so
+        // first clear the current contents of the foreign ATAA.
+        for (uint8 i = foreignPayable.allowedTokensAndAmountsCount; i > 0; i--)
+        {
+          // Remove all previously set ATAAs in storage by popping
+          foreignPayableAllowedTokensAndAmounts[payableId].pop();
+        }
+      }
+
+      // Loop through and set the foreign payable ATAA in storage as
+      // Solidity can't copy arrays from memory into storage
+      uint8 ataaLength = uint8(payload.allowedTokensAndAmounts.length);
+      for (uint8 i = 0; i < ataaLength; i++) {
+        foreignPayableAllowedTokensAndAmounts[payableId].push(
+          TokenAndAmountForeign(
+            payload.allowedTokensAndAmounts[i].token,
+            payload.allowedTokensAndAmounts[i].amount
+          )
+        );
+      }
+
+      // Set the count/length of the foreign ATAA
+      foreignPayable.allowedTokensAndAmountsCount = ataaLength;
     } else if (payload.actionType == 2 || payload.actionType == 3) {
+      // Set the isClosed status
       foreignPayables[payableId].isClosed = payload.isClosed;
     } else {
+      // We don't know how to handle the provided action.
       revert InvalidPayablePayloadActionType();
     }
 

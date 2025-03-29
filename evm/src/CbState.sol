@@ -44,8 +44,6 @@ contract CbState {
   mapping(address => bytes32[]) public userPaymentIds;
   /// Payments on this chain by their IDs by users.
   mapping(bytes32 => UserPayment) public userPayments;
-  /// The amount and token that the payers paid
-  mapping(bytes32 => TokenAndAmount) public userPaymentDetails;
   /// Array of IDs of Activities made by users.
   mapping(address => bytes32[]) public userActivityIds;
   /// Payables on this chain by their IDs
@@ -63,16 +61,14 @@ contract CbState {
   /// will be the same as the IDs of userPayments if the payment was made
   /// by a User on this chain. Otherwise, the payment ID will be different.
   mapping(bytes32 => PayablePayment) public payablePayments;
-  /// The amount and token that payers paid to Payables
-  mapping(bytes32 => TokenAndAmount) public payablePaymentDetails;
   /// IDs of Payments to Payables, from all chains.
   mapping(bytes32 => bytes32[]) public payablePaymentIds;
   /// Total Number of payments made to this payable, from each chain by
-  /// their Wormhole Chain IDs.
+  /// their Wormhole Chain IDs, indexed by 0 (zero) if in this chain.
   mapping(bytes32 => mapping(uint16 => uint256)) public
     payableChainPaymentsCount;
   /// Payment IDs of payments made to this payable, from each chain by
-  /// their Wormhole Chain IDs.
+  /// their Wormhole Chain IDs, indexed by 0 (zero) if in this chain.
   mapping(bytes32 => mapping(uint16 => bytes32[])) public payableChainPaymentIds;
   /// Array of IDs of Activities of payables.
   mapping(bytes32 => bytes32[]) public payableActivityIds;
@@ -82,8 +78,6 @@ contract CbState {
   mapping(address => bytes32[]) public userWithdrawalIds;
   /// Array of IDs of Withdrawals made in a payable.
   mapping(bytes32 => bytes32[]) public payableWithdrawalIds;
-  /// The amount and token that a host withdrew
-  mapping(bytes32 => TokenAndAmount) public withdrawalDetails;
   /// Tells the token address to be used for a foreign payable's payment.
   mapping(uint16 => mapping(bytes32 => address)) public
     forForeignChainMatchingTokenAddresses;
@@ -222,16 +216,6 @@ contract CbState {
     return userPayments[paymentId];
   }
 
-  function getUserPaymentDetails(bytes32 paymentId)
-    external
-    view
-    returns (TokenAndAmount memory)
-  {
-    if (paymentId == bytes32(0)) revert InvalidPaymentId();
-    if (userPayments[paymentId].payer == address(0)) revert InvalidPaymentId();
-    return userPaymentDetails[paymentId];
-  }
-
   function getPayablePayment(bytes32 paymentId)
     external
     view
@@ -244,18 +228,6 @@ contract CbState {
     return payablePayments[paymentId];
   }
 
-  function getPayablePaymentDetails(bytes32 paymentId)
-    external
-    view
-    returns (TokenAndAmount memory)
-  {
-    if (paymentId == bytes32(0)) revert InvalidPaymentId();
-    if (payablePayments[paymentId].payableId == bytes32(0)) {
-      revert InvalidPaymentId();
-    }
-    return payablePaymentDetails[paymentId];
-  }
-
   function getWithdrawal(bytes32 withdrawalId)
     external
     view
@@ -266,18 +238,6 @@ contract CbState {
       revert InvalidWithdrawalId();
     }
     return withdrawals[withdrawalId];
-  }
-
-  function getWithdrawalDetails(bytes32 withdrawalId)
-    external
-    view
-    returns (TokenAndAmount memory)
-  {
-    if (withdrawalId == bytes32(0)) revert InvalidWithdrawalId();
-    if (withdrawals[withdrawalId].host == address(0)) {
-      revert InvalidWithdrawalId();
-    }
-    return withdrawalDetails[withdrawalId];
   }
 
   function getPayableChainPaymentsCount(bytes32 payableId, uint16 chainId_)

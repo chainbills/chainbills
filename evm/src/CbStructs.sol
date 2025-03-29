@@ -127,6 +127,8 @@ struct PayablePayment {
   /// If the payer is on this chain, this will be their address with
   /// front-padded zeros.
   bytes32 payer;
+  /// The address of the associated token that was received.
+  address token;
   /// The nth count of payable payments on this chain at the point this payment
   /// was received.
   uint256 chainCount;
@@ -140,6 +142,8 @@ struct PayablePayment {
   uint256 payableCount;
   /// When this payment was made.
   uint256 timestamp;
+  /// The amount of the token that was received.
+  uint256 amount;
 }
 
 /// A user's receipt of a payment made in this chain to a Payable on any
@@ -149,6 +153,8 @@ struct UserPayment {
   bytes32 payableId;
   /// The address of the User account that made this Payment.
   address payer;
+  /// The address of the associated token that was paid.
+  address token;
   /// The Wormhole Chain ID of the chain into which the payment was made.
   uint16 payableChainId;
   /// The nth count of payments on this chain at the point this payment
@@ -159,6 +165,8 @@ struct UserPayment {
   uint256 payerCount;
   /// When this payment was made.
   uint256 timestamp;
+  /// The amount of the token that was paid.
+  uint256 amount;
 }
 
 /// A receipt of a withdrawal made by a Host from a Payable.
@@ -168,6 +176,8 @@ struct Withdrawal {
   /// The address of the User account (payable's owner)
   /// that made this Withdrawal.
   address host;
+  /// The address of the associated token that was withdrawn.
+  address token;
   /// The nth count of withdrawals on this chain at the point
   /// this withdrawal was made.
   uint256 chainCount;
@@ -179,6 +189,8 @@ struct Withdrawal {
   uint256 payableCount;
   /// When this withdrawal was made.
   uint256 timestamp;
+  /// The amount of the token that was withdrawn.
+  uint256 amount;
 }
 
 /// A record of an activity.

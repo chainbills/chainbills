@@ -63,14 +63,15 @@ contract CbTransactions is CbUtils {
     );
     chainUserPaymentIds.push(userPaymentId);
     userPaymentIds[msg.sender].push(userPaymentId);
-    userPaymentDetails[userPaymentId] = TokenAndAmount(token, amount);
     userPayments[userPaymentId] = UserPayment({
       payableId: payableId,
       payer: msg.sender,
+      token: token,
       payableChainId: payableChainId,
       chainCount: chainStats.userPaymentsCount,
       payerCount: users[msg.sender].paymentsCount,
-      timestamp: block.timestamp
+      timestamp: block.timestamp,
+      amount: amount
     });
 
     // Record User Activity.
@@ -149,15 +150,16 @@ contract CbTransactions is CbUtils {
     chainPayablePaymentIds.push(payablePaymentId);
     payablePaymentIds[payableId].push(payablePaymentId);
     payableChainPaymentIds[payableId][payerChainId].push(payablePaymentId);
-    payablePaymentDetails[payablePaymentId] = TokenAndAmount(token, amount);
     payablePayments[payablePaymentId] = PayablePayment({
       payableId: payableId,
       payer: payer,
+      token: token,
       chainCount: chainStats.payablePaymentsCount,
       payerChainId: payerChainId,
       localChainCount: payableChainPaymentsCount[payableId][payerChainId],
       payableCount: _payable.paymentsCount,
-      timestamp: block.timestamp
+      timestamp: block.timestamp,
+      amount: amount
     });
 
     // Record Payable Activity.
@@ -428,7 +430,7 @@ contract CbTransactions is CbUtils {
   /// token.
   /// @return withdrawalId The ID of the withdrawal.
   function withdraw(bytes32 payableId, address token, uint256 amount)
-    public 
+    public
     returns (bytes32 withdrawalId)
   {
     /* CHECKS */
@@ -517,14 +519,15 @@ contract CbTransactions is CbUtils {
     chainWithdrawalIds.push(withdrawalId);
     userWithdrawalIds[msg.sender].push(withdrawalId);
     payableWithdrawalIds[payableId].push(withdrawalId);
-    withdrawalDetails[withdrawalId] = TokenAndAmount(token, amount);
     withdrawals[withdrawalId] = Withdrawal({
       payableId: payableId,
       host: msg.sender,
+      token: token,
       chainCount: chainStats.withdrawalsCount,
       hostCount: users[msg.sender].withdrawalsCount,
       payableCount: _payable.withdrawalsCount,
-      timestamp: block.timestamp
+      timestamp: block.timestamp,
+      amount: amount
     });
 
     // Record the Activity.

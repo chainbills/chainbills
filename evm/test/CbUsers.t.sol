@@ -266,8 +266,6 @@ contract CbUsersTest is Test {
     uint256 newUserEthBal = user.balance;
     bytes32 fetchedP1Id = chainbills.userPaymentIds(user, 0);
     UserPayment memory p1 = chainbills.getUserPayment(paymentId1);
-    TokenAndAmount memory p1Details =
-      chainbills.getUserPaymentDetails(paymentId1);
     ChainStats memory newChainStats = chainbills.getChainStats();
 
     // testing successful second payment with ERC20 token (USDC)
@@ -286,8 +284,6 @@ contract CbUsersTest is Test {
     uint256 newUserUsdcBal = usdc.balanceOf(user);
     bytes32 fetchedP2Id = chainbills.userPaymentIds(user, 1);
     UserPayment memory p2 = chainbills.getUserPayment(paymentId2);
-    TokenAndAmount memory p2Details =
-      chainbills.getUserPaymentDetails(paymentId2);
 
     ChainStats memory newerChainStats = chainbills.getChainStats();
     User memory userDetails = chainbills.getUser(user);
@@ -331,22 +327,22 @@ contract CbUsersTest is Test {
     // check payment 1's details
     assertEq(p1.payableId, payableId);
     assertEq(p1.payer, user);
+    assertEq(p1.token, address(chainbills));
     assertEq(p1.chainCount, newChainStats.userPaymentsCount);
     assertEq(p1.payerCount, 1);
     assertGt(p1.timestamp, 0);
     assertGe(p1.timestamp, block.timestamp);
-    assertEq(p1Details.token, address(chainbills));
-    assertEq(p1Details.amount, ethAmt);
+    assertEq(p1.amount, ethAmt);
 
     // check payment 2's details
     assertEq(p2.payableId, payableId);
     assertEq(p2.payer, user);
+    assertEq(p2.token, address(usdc));
     assertEq(p2.chainCount, newerChainStats.userPaymentsCount);
     assertEq(p2.payerCount, userDetails.paymentsCount);
     assertGt(p2.timestamp, 0);
     assertGe(p2.timestamp, block.timestamp);
-    assertEq(p2Details.token, address(usdc));
-    assertEq(p2Details.amount, usdcAmt);
+    assertEq(p2.amount, usdcAmt);
   }
 
   function testUserMakingFailedWithdrawals() public {
@@ -437,7 +433,6 @@ contract CbUsersTest is Test {
     bytes32 wId1 = chainbills.withdraw(payableId, address(chainbills), ethAmt);
     bytes32 fetchedW1Id = chainbills.userWithdrawalIds(user, 0);
     Withdrawal memory w1 = chainbills.getWithdrawal(wId1);
-    TokenAndAmount memory w1Details = chainbills.getWithdrawalDetails(wId1);
     ChainStats memory newChainStats = chainbills.getChainStats();
     User memory newUser = chainbills.getUser(user);
     Payable memory newPayable = chainbills.getPayable(payableId);
@@ -455,7 +450,6 @@ contract CbUsersTest is Test {
     bytes32 wId2 = chainbills.withdraw(payableId, address(usdc), usdcAmt);
     bytes32 fetchedW2Id = chainbills.userWithdrawalIds(user, 1);
     Withdrawal memory w2 = chainbills.getWithdrawal(wId2);
-    TokenAndAmount memory w2Details = chainbills.getWithdrawalDetails(wId2);
 
     uint256 newCbEthBal = address(chainbills).balance;
     uint256 newFeeCollectorEthBal = feeCollector.balance;
@@ -538,23 +532,23 @@ contract CbUsersTest is Test {
     // check withdrawal 1's details
     assertEq(w1.payableId, payableId);
     assertEq(w1.host, user);
+    assertEq(w1.token, address(chainbills));
     assertEq(w1.chainCount, newChainStats.withdrawalsCount);
     assertEq(w1.hostCount, newUser.withdrawalsCount);
     assertEq(w1.payableCount, newPayable.withdrawalsCount);
     assertGt(w1.timestamp, 0);
     assertGe(w1.timestamp, block.timestamp);
-    assertEq(w1Details.token, address(chainbills));
-    assertEq(w1Details.amount, ethAmt);
+    assertEq(w1.amount, ethAmt);
 
     // check withdrawal 2's details
     assertEq(w2.payableId, payableId);
     assertEq(w2.host, user);
+    assertEq(w2.token, address(usdc));
     assertEq(w2.chainCount, newerChainStats.withdrawalsCount);
     assertEq(w2.hostCount, newerUser.withdrawalsCount);
     assertEq(w2.payableCount, newerPayable.withdrawalsCount);
     assertGt(w2.timestamp, 0);
     assertGe(w2.timestamp, block.timestamp);
-    assertEq(w2Details.token, address(usdc));
-    assertEq(w2Details.amount, usdcAmt);
+    assertEq(w2.amount, usdcAmt);
   }
 }

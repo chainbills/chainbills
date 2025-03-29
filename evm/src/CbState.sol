@@ -127,6 +127,43 @@ contract CbState {
     return ITokenMinter(config.circleTokenMinter);
   }
 
+  function getConfig() external view returns (Config memory) {
+    return config;
+  }
+
+  function getChainStats() external view returns (ChainStats memory) {
+    return chainStats;
+  }
+
+  function getTokenDetails(address token)
+    external
+    view
+    returns (TokenDetails memory)
+  {
+    if (token == address(0) || tokenDetails[token].token != token) {
+      revert InvalidTokenAddress();
+    }
+    return tokenDetails[token];
+  }
+
+  function getActivityRecord(bytes32 activityId)
+    external
+    view
+    returns (ActivityRecord memory)
+  {
+    if (activityId == bytes32(0) || activities[activityId].timestamp == 0) {
+      revert InvalidActivityId();
+    }
+    return activities[activityId];
+  }
+
+  function getUser(address wallet) external view returns (User memory) {
+    if (wallet == address(0) || users[wallet].chainCount == 0) {
+      revert InvalidWalletAddress();
+    }
+    return users[wallet];
+  }
+
   function getPayable(bytes32 payableId) external view returns (Payable memory) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
@@ -153,16 +190,36 @@ contract CbState {
     return payableBalances[payableId];
   }
 
+  function getForeignPayable(bytes32 payableId)
+    external
+    view
+    returns (PayableForeign memory)
+  {
+    if (payableId == bytes32(0) || foreignPayables[payableId].chainId == 0) {
+      revert InvalidPayableId();
+    }
+    return foreignPayables[payableId];
+  }
+
   function getForeignPayableAllowedTokensAndAmounts(bytes32 payableId)
     external
     view
     returns (TokenAndAmountForeign[] memory)
   {
-    if (payableId == bytes32(0)) revert InvalidPayableId();
-    if (foreignPayables[payableId].chainId == 0) {
+    if (payableId == bytes32(0) || foreignPayables[payableId].chainId == 0) {
       revert InvalidPayableId();
     }
     return foreignPayableAllowedTokensAndAmounts[payableId];
+  }
+
+  function getUserPayment(bytes32 paymentId)
+    external
+    view
+    returns (UserPayment memory)
+  {
+    if (paymentId == bytes32(0)) revert InvalidPaymentId();
+    if (userPayments[paymentId].payer == address(0)) revert InvalidPaymentId();
+    return userPayments[paymentId];
   }
 
   function getUserPaymentDetails(bytes32 paymentId)
@@ -175,6 +232,18 @@ contract CbState {
     return userPaymentDetails[paymentId];
   }
 
+  function getPayablePayment(bytes32 paymentId)
+    external
+    view
+    returns (PayablePayment memory)
+  {
+    if (paymentId == bytes32(0)) revert InvalidPaymentId();
+    if (payablePayments[paymentId].payableId == bytes32(0)) {
+      revert InvalidPaymentId();
+    }
+    return payablePayments[paymentId];
+  }
+
   function getPayablePaymentDetails(bytes32 paymentId)
     external
     view
@@ -185,6 +254,18 @@ contract CbState {
       revert InvalidPaymentId();
     }
     return payablePaymentDetails[paymentId];
+  }
+
+  function getWithdrawal(bytes32 withdrawalId)
+    external
+    view
+    returns (Withdrawal memory)
+  {
+    if (withdrawalId == bytes32(0)) revert InvalidWithdrawalId();
+    if (withdrawals[withdrawalId].host == address(0)) {
+      revert InvalidWithdrawalId();
+    }
+    return withdrawals[withdrawalId];
   }
 
   function getWithdrawalDetails(bytes32 withdrawalId)

@@ -32,12 +32,18 @@ contract Chainbills is
 
   /// Sets up this smart contract when it is deployed.
   /// @param feeCollector The address that will collect withdrawal fees.
-  function initialize(address feeCollector) public initializer {
+  /// @param feePercent The percentage of withdrawals to collect as fees.
+  /// The percentage should account for 2 decimal places. That is, 200 means 2%.
+  function initialize(address feeCollector, uint16 feePercent)
+    public
+    initializer
+  {
     if (feeCollector == address(0)) revert InvalidFeeCollector();
     config.feeCollector = feeCollector;
+    config.withdrawalFeePercentage = feePercent;
 
-    // 200 means 2% withdrawal fee (with 2 decimal places)
-    config.withdrawalFeePercentage = 200;
+    emit SetFeeCollectorAddress(feeCollector);
+    emit SetWithdrawalFeePercentage(feePercent);
 
     __Ownable_init(msg.sender);
     __ReentrancyGuard_init();
@@ -78,6 +84,9 @@ contract Chainbills is
     config.circleBridge = circleBridge;
     config.circleTransmitter = address(circleTransmitter);
     config.circleTokenMinter = address(circleTokenMinter);
+
+    // Emit event.
+    emit SetupWormholeAndCircle();
   }
 
   /// Withdraws the specified `amount` of `token` to the {owner}.
@@ -183,10 +192,18 @@ contract Chainbills is
     onlyOwner
   {
     if (token == address(0)) revert InvalidTokenAddress();
-    tokenDetails[token].isSupported = true;
     tokenDetails[token].token = token;
     tokenDetails[token].maxWithdrawalFees = maxWithdrawalFees;
     emit UpdatedMaxWithdrawalFees(token, maxWithdrawalFees);
+  }
+
+  /// Allows payments in a given token.
+  /// @dev Only the deployer (owner) can invoke this method
+  /// @param token The address of the token to support for payments
+  function allowPaymentsForToken(address token) public onlyOwner {
+    if (token == address(0)) revert InvalidTokenAddress();
+    tokenDetails[token].isSupported = true;
+    emit AllowedPaymentsForToken(token);
   }
 
   /// Stops payments in a given token.
@@ -196,6 +213,22 @@ contract Chainbills is
     if (token == address(0)) revert InvalidTokenAddress();
     tokenDetails[token].isSupported = false;
     emit StoppedPaymentsForToken(token);
+  }
+
+  /// Sets the withdrawal fee percentage to the provided input.
+  /// @param feePercent The percentage with 2 decimals. 200 means 2%.
+  /// @dev Only the deployer (owner) can invoke this method.
+  function setWithdrawalFeePercentage(uint16 feePercent) public onlyOwner {
+    config.withdrawalFeePercentage = feePercent;
+    emit SetWithdrawalFeePercentage(feePercent);
+  }
+
+  /// Sets the wallet address for collecting fees.
+  /// @param feeCollector The wallet address to collect fees.
+  /// @dev Only the deployer (owner) can invoke this method.
+  function setFeeCollectorAddress(address feeCollector) public onlyOwner {
+    config.feeCollector = feeCollector;
+    emit SetFeeCollectorAddress(feeCollector);
   }
 
   function createPayable(

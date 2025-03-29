@@ -11,6 +11,8 @@ contract DeployChainbills is Script {
 
     // The wallet address into which withdrawal fees are paid.
     address feeCollector = vm.envAddress('FEE_COLLECTOR');
+    // Percentage to use for fees with 2 decimal places. 200 means 2%.
+    uint16 feePercent = 200;
     // The address of the Wormhole Core Contract on Sepolia
     address wormhole = 0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78;
     // The address of the Circle Bridge Contract on Sepolia
@@ -24,7 +26,8 @@ contract DeployChainbills is Script {
     vm.startBroadcast(ownerPrivateKey);
 
     address proxy = Upgrades.deployUUPSProxy(
-      'Chainbills.sol', abi.encodeCall(Chainbills.initialize, (feeCollector))
+      'Chainbills.sol',
+      abi.encodeCall(Chainbills.initialize, (feeCollector, feePercent))
     );
 
     console.log('Deployed Chainbills at: ', proxy);

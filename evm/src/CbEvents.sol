@@ -98,5 +98,17 @@ event SetPayablesLogic(address payablesLogicContract);
 /// Emitted when owner (deployer) updates the `transactionsLogicContract` address.
 event SetTransactionsLogic(address transactionsLogicContract);
 
+/// Emitted when owner (deployer) marks a `token` as supported for payments.
+event AllowedPaymentsForToken(address token);
+
 /// Emitted when owner (deployer) stops payments from happening in the given `token`.
 event StoppedPaymentsForToken(address token);
+
+/// Emitted when owner (deployer) sets the percentage for withdrawal fees
+event SetWithdrawalFeePercentage(uint16 feePercent);
+
+/// Emitted when owner (deployer) sets the fee collector address
+event SetFeeCollectorAddress(address feeCollector);
+
+/// Emitted when owner (deployer) sets Wormhole and Circle related config
+event SetupWormholeAndCircle();

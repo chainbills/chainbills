@@ -273,9 +273,9 @@ contract CbUsersTest is Test {
     vm.startPrank(user);
     (,,, uint256 prevUserPaymentsCount,,,,,) = chainbills.chainStats();
     (,, uint256 prevUserPaymentCount,,) = chainbills.users(user);
-    (,, uint256 prevTotalUserPaidEth, uint256 prevTotalPayableReceivedEth,,) =
+    (,,, uint256 prevTotalUserPaidEth, uint256 prevTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
-    (,, uint256 prevTotalUserPaidUsdc, uint256 prevTotalPayableReceivedUsdc,,) =
+    (,,, uint256 prevTotalUserPaidUsdc, uint256 prevTotalPayableReceivedUsdc,,) =
       chainbills.tokenDetails(address(usdc));
 
     // testing successful first payment with native token (ETH)
@@ -340,9 +340,9 @@ contract CbUsersTest is Test {
 
     (,,, uint256 newUserPaymentsCount,,,,,) = chainbills.chainStats();
     (,, uint256 newUserPaymentCount,,) = chainbills.users(user);
-    (,, uint256 newTotalUserPaidEth, uint256 newTotalPayableReceivedEth,,) =
+    (,,, uint256 newTotalUserPaidEth, uint256 newTotalPayableReceivedEth,,) =
       chainbills.tokenDetails(address(chainbills));
-    (,, uint256 newTotalUserPaidUsdc, uint256 newTotalPayableReceivedUsdc,,) =
+    (,,, uint256 newTotalUserPaidUsdc, uint256 newTotalPayableReceivedUsdc,,) =
       chainbills.tokenDetails(address(usdc));
     vm.stopPrank();
 
@@ -424,9 +424,9 @@ contract CbUsersTest is Test {
     (,,, uint256 prevUserWithdrawalCount,) = chainbills.users(user);
     (,,,,, uint256 prevPayableWithdrawalCount,,,,) =
       chainbills.payables(payableId);
-    (,,,, uint256 prevTotalWithdrawnEth, uint256 prevTotalWthFeesClctdEth) =
+    (,,,,, uint256 prevTotalWithdrawnEth, uint256 prevTotalWthFeesClctdEth) =
       chainbills.tokenDetails(address(chainbills));
-    (,,,, uint256 prevTotalWithdrawnUsdc, uint256 prevTotalWthFeesClctdUsdc) =
+    (,,,,, uint256 prevTotalWithdrawnUsdc, uint256 prevTotalWthFeesClctdUsdc) =
       chainbills.tokenDetails(address(usdc));
 
     // make payments as the test contract to the user's payable.
@@ -524,9 +524,9 @@ contract CbUsersTest is Test {
     (,,, uint256 newUserWithdrawalCount,) = chainbills.users(user);
     (,,,,, uint256 newPayableWithdrawalCount,,,,) =
       chainbills.payables(payableId);
-    (,,,, uint256 newTotalWithdrawnEth, uint256 newTotalWthFeesClctdEth) =
+    (,,,,, uint256 newTotalWithdrawnEth, uint256 newTotalWthFeesClctdEth) =
       chainbills.tokenDetails(address(chainbills));
-    (,,,, uint256 newTotalWithdrawnUsdc, uint256 newTotalWthFeesClctdUsdc) =
+    (,,,,, uint256 newTotalWithdrawnUsdc, uint256 newTotalWthFeesClctdUsdc) =
       chainbills.tokenDetails(address(usdc));
 
     vm.stopPrank();

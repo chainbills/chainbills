@@ -66,6 +66,8 @@ struct User {
 struct TokenDetails {
   /// Tells whether payments are currently accepted in this token.
   bool isSupported;
+  /// Tells that this token was at least ever supported on this chain.
+  address token;
   /// The maximum fees for withdrawal (with its decimals).
   uint256 maxWithdrawalFees;
   /// The total amount of user payments in this token.

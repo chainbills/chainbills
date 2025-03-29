@@ -184,8 +184,18 @@ contract Chainbills is
   {
     if (token == address(0)) revert InvalidTokenAddress();
     tokenDetails[token].isSupported = true;
+    tokenDetails[token].token = token;
     tokenDetails[token].maxWithdrawalFees = maxWithdrawalFees;
     emit UpdatedMaxWithdrawalFees(token, maxWithdrawalFees);
+  }
+
+  /// Stops payments in a given token.
+  /// @dev Only the deployer (owner) can invoke this method
+  /// @param token The address of the token to stop supporting
+  function stopPaymentsForToken(address token) public onlyOwner {
+    if (token == address(0)) revert InvalidTokenAddress();
+    tokenDetails[token].isSupported = false;
+    emit StoppedPaymentsForToken(token);
   }
 
   function createPayable(

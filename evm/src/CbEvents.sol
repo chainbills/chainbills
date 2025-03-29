@@ -91,3 +91,6 @@ event SetPayablesLogic(address payablesLogicContract);
 
 /// Emitted when owner (deployer) updates the `transactionsLogicContract` address.
 event SetTransactionsLogic(address transactionsLogicContract);
+
+/// Emitted when owner (deployer) stops payments from happening in the given `token`.
+event StoppedPaymentsForToken(address token);

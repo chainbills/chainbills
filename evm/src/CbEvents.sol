@@ -56,6 +56,12 @@ event UpdatedPayableAllowedTokensAndAmounts(
   bytes32 indexed payableId, address indexed hostWallet
 );
 
+/// Emitted when a `hostWallet` updates the `isAutoWithdraw` status on their
+/// {Payable} with `payableId`.
+event UpdatedPayableAutoWithdrawStatus(
+  bytes32 indexed payableId, address indexed hostWallet, bool isAutoWithdraw
+);
+
 /// Emitted when a Wormhole Message is consumed for payable update.
 event ConsumedWormholePayableMessage(
   bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash

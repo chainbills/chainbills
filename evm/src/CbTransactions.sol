@@ -187,6 +187,118 @@ contract CbTransactions is CbUtils {
     );
   }
 
+  /// Transfers out and records a withdrawal to a payable's owner.
+  /// @param payableId The ID of the Payable to withdraw from.
+  /// @param token The address of the token been withdrawn.
+  /// @param amount The amount of the token.
+  /// @return withdrawalId The ID of the withdrawal.
+  function actualizeWithdrawal(bytes32 payableId, address token, uint256 amount)
+    internal
+    returns (bytes32 withdrawalId)
+  {
+    /* TRANSFER */
+    // Prepare withdraw amounts and fees
+    // 10000 is 100%, that is accounting for 2 decimal places.
+    uint256 percent = (amount * config.withdrawalFeePercentage) / 10000;
+    uint256 maxFees = tokenDetails[token].maxWithdrawalFees;
+    uint256 fees = percent > maxFees ? maxFees : percent;
+    uint256 amtDue = amount - fees;
+
+    // Transfer the amount minus fees to the owner.
+    Payable storage _payable = payables[payableId];
+    bool isWtdlSuccess = false;
+    if (token == address(this)) {
+      (isWtdlSuccess,) = payable(_payable.host).call{value: amtDue}('');
+    } else {
+      isWtdlSuccess = IERC20(token).transfer(_payable.host, amtDue);
+    }
+    if (!isWtdlSuccess) revert UnsuccessfulWithdrawal();
+
+    // Transfer the fees to the fees collector.
+    bool isFeesSuccess = false;
+    if (token == address(this)) {
+      (isFeesSuccess,) = payable(config.feeCollector).call{value: fees}('');
+    } else {
+      isFeesSuccess = IERC20(token).transfer(config.feeCollector, fees);
+    }
+    if (!isFeesSuccess) revert UnsuccessfulFeesWithdrawal();
+
+    /* STATE CHANGES */
+    // Increment the chainStats for withdrawalsCount and activitiesCount.
+    chainStats.withdrawalsCount++;
+    chainStats.activitiesCount++;
+
+    // Increment withdrawalsCount and activitiesCount in the host (address)
+    // that just withdrew.
+    users[_payable.host].withdrawalsCount++;
+    users[_payable.host].activitiesCount++;
+
+    // Increment withdrawalsCount and activitiesCount on involved payable.
+    _payable.withdrawalsCount++;
+    _payable.activitiesCount++;
+
+    // Deduct the balances on the involved payable.
+
+    for (uint8 i = 0; i < _payable.balancesCount; i++) {
+      if (payableBalances[payableId][i].token == token) {
+        payableBalances[payableId][i].amount -= amount;
+        break;
+      }
+    }
+
+    // Increase the supported token's totals from this withdrawal.
+    tokenDetails[token].totalWithdrawn += amount;
+    tokenDetails[token].totalWithdrawalFeesCollected += fees;
+
+    // Initialize the withdrawal.
+    withdrawalId = createId(
+      toWormholeFormat(_payable.host),
+      EntityType.Withdrawal,
+      users[_payable.host].withdrawalsCount
+    );
+    chainWithdrawalIds.push(withdrawalId);
+    userWithdrawalIds[_payable.host].push(withdrawalId);
+    payableWithdrawalIds[payableId].push(withdrawalId);
+    withdrawals[withdrawalId] = Withdrawal({
+      payableId: payableId,
+      host: _payable.host,
+      token: token,
+      chainCount: chainStats.withdrawalsCount,
+      hostCount: users[_payable.host].withdrawalsCount,
+      payableCount: _payable.withdrawalsCount,
+      timestamp: block.timestamp,
+      amount: amount
+    });
+
+    // Record the Activity.
+    bytes32 activityId = createId(
+      toWormholeFormat(_payable.host),
+      EntityType.Activity,
+      users[_payable.host].activitiesCount
+    );
+    chainActivityIds.push(activityId);
+    userActivityIds[_payable.host].push(activityId);
+    payableActivityIds[payableId].push(activityId);
+    activities[activityId] = ActivityRecord({
+      chainCount: chainStats.activitiesCount,
+      userCount: users[_payable.host].activitiesCount,
+      payableCount: _payable.activitiesCount,
+      timestamp: block.timestamp,
+      entity: withdrawalId,
+      activityType: ActivityType.Withdrew
+    });
+
+    // Emit Event.
+    emit Withdrew(
+      payableId,
+      _payable.host,
+      withdrawalId,
+      chainStats.withdrawalsCount,
+      users[_payable.host].withdrawalsCount,
+      _payable.withdrawalsCount
+    );
+  }
+
   /// Transfers the amount of tokens from a payer to a payable.
   /// @param payableId The ID of the payable to pay into.
   /// @param token The address of the token been paid.
@@ -220,6 +332,8 @@ contract CbTransactions is CbUtils {
     }
 
     /* TRANSFER */
+    // If paid amount is native token, confirm that the balance matches.
+    // Otherwise, use ERC20 and ensure it went through.
     if (token == address(this)) {
       if (msg.value < amount) revert InsufficientPaymentValue();
       if (msg.value > amount) revert IncorrectPaymentValue();
@@ -241,6 +355,11 @@ contract CbTransactions is CbUtils {
     payablePaymentId = recordPayablePayment(
       payableId, toWormholeFormat(msg.sender), 0, token, amount
     );
+
+    // If the Payable is an auto-withdraw, then make transfer of just-paid
+    // amount to the payable's owner and update state immediately by calling
+    // helper function.
+    if (_payable.isAutoWithdraw) actualizeWithdrawal(payableId, token, amount);
   }
 
   /// Transfers the amount of tokens from a payer to a foreign payable.
@@ -345,9 +464,9 @@ contract CbTransactions is CbUtils {
       wormholeMessage.payload.decodePaymentPayload();
 
     // Ensure that the payable exists.
-    if (payables[payload.payableId].host == address(0)) {
-      revert InvalidPayableId();
-    }
+    bytes32 payableId = payload.payableId;
+    Payable storage _payable = payables[payableId];
+    if (_payable.host == address(0)) revert InvalidPayableId();
 
     // Verify Circle Message for Matching Domains, Nonce, and our Contract
     /// Addresses.
@@ -406,12 +525,10 @@ contract CbTransactions is CbUtils {
 
     /* STATE CHANGES */
     // Record successful payment and activity to the payable.
+    address token = fromWormholeFormat(payload.payableChainToken);
+    uint256 amount = uint256(payload.amount);
     payablePaymentId = recordPayablePayment(
-      payload.payableId,
-      payload.payer,
-      payload.payerChainId,
-      fromWormholeFormat(payload.payableChainToken),
-      payload.amount
+      payableId, payload.payer, payload.payerChainId, token, amount
     );
 
     /// Store and consume the Wormhole message.
@@ -419,15 +536,19 @@ contract CbTransactions is CbUtils {
 
     // Emit Event.
     emit ConsumedWormholePaymentMessage(
-      payload.payableId, payload.payerChainId, wormholeMessage.hash
+      payableId, payload.payerChainId, wormholeMessage.hash
     );
+
+    // If the Payable is an auto-withdraw, then make transfer of just-redeemed
+    // amount to the payable's owner and update state immediately by calling
+    // helper function.
+    if (_payable.isAutoWithdraw) actualizeWithdrawal(payableId, token, amount);
   }
 
   /// Transfers the amount of tokens from a payable to the owner host.
   /// @param payableId The ID of the Payable to withdraw from.
-  /// @param token The Wormhole-normalized address of the token been withdrawn.
-  /// @param amount The Wormhole-normalized (with 8 decimals) amount of the
-  /// token.
+  /// @param token The address of the token been withdrawn.
+  /// @param amount The amount of the token.
   /// @return withdrawalId The ID of the withdrawal.
   function withdraw(bytes32 payableId, address token, uint256 amount)
     public
@@ -459,103 +580,8 @@ contract CbTransactions is CbUtils {
       }
     }
 
-    /* TRANSFER */
-    // Prepare withdraw amounts and fees
-    uint256 percent = (amount * config.withdrawalFeePercentage) / 10000; // 10000 is 100%
-    uint256 maxFees = tokenDetails[token].maxWithdrawalFees;
-    uint256 fees = percent > maxFees ? maxFees : percent;
-    uint256 amtDue = amount - fees;
-
-    // Transfer the amount minus fees to the owner.
-    bool isWtdlSuccess = false;
-    if (token == address(this)) {
-      (isWtdlSuccess,) = payable(msg.sender).call{value: amtDue}('');
-    } else {
-      isWtdlSuccess = IERC20(token).transfer(msg.sender, amtDue);
-    }
-    if (!isWtdlSuccess) revert UnsuccessfulWithdrawal();
-
-    // Transfer the fees to the fees collector.
-    bool isFeesSuccess = false;
-    if (token == address(this)) {
-      (isFeesSuccess,) = payable(config.feeCollector).call{value: fees}('');
-    } else {
-      isFeesSuccess = IERC20(token).transfer(config.feeCollector, fees);
-    }
-    if (!isFeesSuccess) revert UnsuccessfulFeesWithdrawal();
-
-    /* STATE CHANGES */
-    // Increment the chainStats for withdrawalsCount and activitiesCount.
-    chainStats.withdrawalsCount++;
-    chainStats.activitiesCount++;
-
-    // Increment withdrawalsCount and activitiesCount in the host (address)
-    // that just withdrew.
-    users[msg.sender].withdrawalsCount++;
-    users[msg.sender].activitiesCount++;
-
-    // Increment withdrawalsCount and activitiesCount on involved payable.
-    _payable.withdrawalsCount++;
-    _payable.activitiesCount++;
-
-    // Deduct the balances on the involved payable.
-    for (uint8 i = 0; i < _payable.balancesCount; i++) {
-      if (payableBalances[payableId][i].token == token) {
-        payableBalances[payableId][i].amount -= amount;
-        break;
-      }
-    }
-
-    // Increase the supported token's totals from this withdrawal.
-    tokenDetails[token].totalWithdrawn += amount;
-    tokenDetails[token].totalWithdrawalFeesCollected += fees;
-
-    // Initialize the withdrawal.
-    withdrawalId = createId(
-      toWormholeFormat(msg.sender),
-      EntityType.Withdrawal,
-      users[msg.sender].withdrawalsCount
-    );
-    chainWithdrawalIds.push(withdrawalId);
-    userWithdrawalIds[msg.sender].push(withdrawalId);
-    payableWithdrawalIds[payableId].push(withdrawalId);
-    withdrawals[withdrawalId] = Withdrawal({
-      payableId: payableId,
-      host: msg.sender,
-      token: token,
-      chainCount: chainStats.withdrawalsCount,
-      hostCount: users[msg.sender].withdrawalsCount,
-      payableCount: _payable.withdrawalsCount,
-      timestamp: block.timestamp,
-      amount: amount
-    });
-
-    // Record the Activity.
-    bytes32 activityId = createId(
-      toWormholeFormat(msg.sender),
-      EntityType.Activity,
-      users[msg.sender].activitiesCount
-    );
-    chainActivityIds.push(activityId);
-    userActivityIds[msg.sender].push(activityId);
-    payableActivityIds[payableId].push(activityId);
-    activities[activityId] = ActivityRecord({
-      chainCount: chainStats.activitiesCount,
-      userCount: users[msg.sender].activitiesCount,
-      payableCount: _payable.activitiesCount,
-      timestamp: block.timestamp,
-      entity: withdrawalId,
-      activityType: ActivityType.Withdrew
-    });
-
-    // Emit Event.
-    emit Withdrew(
-      payableId,
-      msg.sender,
-      withdrawalId,
-      chainStats.withdrawalsCount,
-      users[msg.sender].withdrawalsCount,
-      _payable.withdrawalsCount
-    );
+    /* ACTION */
+    // Make transfer and update state by calling helper function.
+    withdrawalId = actualizeWithdrawal(payableId, token, amount);
   }
 }

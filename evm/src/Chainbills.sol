@@ -199,7 +199,8 @@ contract Chainbills is
   }
 
   function createPayable(
-    TokenAndAmount[] calldata /* allowedTokensAndAmounts */
+    TokenAndAmount[] calldata, /* allowedTokensAndAmounts */
+    bool /* isAutoWithdraw */
   )
     public
     payable
@@ -259,6 +260,18 @@ contract Chainbills is
       }
     } else {
       return abi.decode(result, (uint64));
+    }
+  }
+
+  function updatePayableAutoWithdraw(
+    bytes32, /* payableId */
+    bool /* isAutoWithdraw */
+  ) public nonReentrant {
+    (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
+    if (!success) {
+      assembly {
+        revert(add(result, 32), mload(result))
+      }
     }
   }
 

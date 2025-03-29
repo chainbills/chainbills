@@ -16,14 +16,15 @@ contract CbPayables is CbUtils {
   /// Create a Payable.
   /// @param allowedTokensAndAmounts The accepted tokens (and their amounts) on
   /// the payable. If empty, then the payable will accept payments in any token.
+  /// @param isAutoWithdraw Whether payments to this payable get auto-withdrawn
+  /// to the host.
   /// @return payableId The ID of the newly created payable.
   /// @return wormholeMessageSequence The sequence of the published Wormhole
   /// message.
-  function createPayable(TokenAndAmount[] calldata allowedTokensAndAmounts)
-    public
-    payable
-    returns (bytes32 payableId, uint64 wormholeMessageSequence)
-  {
+  function createPayable(
+    TokenAndAmount[] calldata allowedTokensAndAmounts,
+    bool isAutoWithdraw
+  ) public payable returns (bytes32 payableId, uint64 wormholeMessageSequence) {
     /* CHECKS */
     // Ensure that the allowedTokensAndAmounts are valid.
     // Also prepare the foreign allowedTokensAndAmounts in the same loop.
@@ -78,6 +79,7 @@ contract CbPayables is CbUtils {
       uint8(allowedTokensAndAmounts.length);
     _payable.createdAt = block.timestamp;
     _payable.activitiesCount = 1; // for creation
+    _payable.isAutoWithdraw = isAutoWithdraw;
 
     // Record the Activity.
     bytes32 activityId = createId(
@@ -298,6 +300,34 @@ contract CbPayables is CbUtils {
         allowedTokensAndAmounts: foreignAtaa
       }) /* actionType 4 for UpdataATAA */ .encode()
     );
+  }
+
+  /// Allows a payable's host to update the payable's autoWithdraw setting.
+  /// @param payableId The ID of the payable to update.
+  /// @param isAutoWithdraw Whether payments to this payable get auto-withdrawn
+  /// to the host.
+  function updatePayableAutoWithdraw(bytes32 payableId, bool isAutoWithdraw)
+    public
+  {
+    /* CHECKS */
+    // Ensure that the caller owns the payable.
+    Payable storage _payable = payables[payableId];
+    if (_payable.host != msg.sender) revert NotYourPayable();
+
+    /* STATE CHANGES */
+    // Set the autoWithdraw status
+    _payable.isAutoWithdraw = isAutoWithdraw;
+
+    // Record the Activity.
+    recordUpdatePayableActivity(
+      payableId, ActivityType.UpdatedPayableAutoWithdrawStatus
+    );
+
+    // Emit Event.
+    emit UpdatedPayableAutoWithdrawStatus(payableId, msg.sender, isAutoWithdraw);
+
+    // Not Publishing to Wormhole because this setting is not relevant to
+    // foreign chain payments.
   }
 
   /// Publishes a payable's details to Wormhole. Useful when Wormhole is setup

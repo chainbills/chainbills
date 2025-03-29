@@ -89,7 +89,7 @@ contract CbUsersTest is Test {
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevChainStats.usersCount + 1);
 
-    chainbills.createPayable(new TokenAndAmount[](0));
+    chainbills.createPayable(new TokenAndAmount[](0), false);
 
     ChainStats memory newChainStats = chainbills.getChainStats();
     User memory newUser = chainbills.getUser(user);
@@ -101,7 +101,7 @@ contract CbUsersTest is Test {
 
   function testUserInitOnMakePayment() public {
     // create a payable to make payment to. use this test contract as the host.
-    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
     ChainStats memory prevChainStats = chainbills.getChainStats();
@@ -126,15 +126,15 @@ contract CbUsersTest is Test {
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevChainStats.usersCount + 1);
-    chainbills.createPayable(new TokenAndAmount[](0));
+    chainbills.createPayable(new TokenAndAmount[](0), false);
 
     ChainStats memory newChainStats = chainbills.getChainStats();
     User memory newUser = chainbills.getUser(user);
 
     // creating multiple payables should not trigger
     // multiple user initializations
-    chainbills.createPayable(new TokenAndAmount[](0));
-    chainbills.createPayable(new TokenAndAmount[](0));
+    chainbills.createPayable(new TokenAndAmount[](0), false);
+    chainbills.createPayable(new TokenAndAmount[](0), false);
 
     ChainStats memory newerChainStats = chainbills.getChainStats();
     User memory newerUser = chainbills.getUser(user);
@@ -152,7 +152,7 @@ contract CbUsersTest is Test {
 
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(bytes32(0), user, prevChainStats.payablesCount + 1, 1);
-    (bytes32 payableId1,) = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId1,) = chainbills.createPayable(new TokenAndAmount[](0), false);
     bytes32 fetchedP1Id = chainbills.userPayableIds(user, 0);
     Payable memory p1 = chainbills.getPayable(payableId1);
 
@@ -161,7 +161,7 @@ contract CbUsersTest is Test {
     // testing twice to further confirm expected behavior
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(bytes32(0), user, prevChainStats.payablesCount + 2, 2);
-    (bytes32 payableId2,) = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId2,) = chainbills.createPayable(new TokenAndAmount[](0), false);
     bytes32 fetchedP2Id = chainbills.userPayableIds(user, 1);
     Payable memory p2 = chainbills.getPayable(payableId2);
 
@@ -196,7 +196,7 @@ contract CbUsersTest is Test {
 
   function testUserMakingFailedPayments() public {
     // create a payable to make payment to. use this test contract as the host.
-    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
 
@@ -241,7 +241,7 @@ contract CbUsersTest is Test {
 
   function testUserMakingSuccessfulPayments() public {
     // create a payable to make payment to. use this test contract as the host.
-    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
     ChainStats memory prevChainStats = chainbills.getChainStats();
@@ -351,7 +351,7 @@ contract CbUsersTest is Test {
     chainbills.withdraw(bytes32(0), address(chainbills), 1);
 
     // create payable to be used for testing failed withdrawals
-    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     // withdrawal should revert if caller is not the payable's host.
     vm.prank(user);
@@ -370,7 +370,7 @@ contract CbUsersTest is Test {
   function testUserMakingSuccessfulWithdrawals() public {
     // create a payable as the user
     vm.prank(user);
-    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0));
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     ChainStats memory prevChainStats = chainbills.getChainStats();
     User memory prevUser = chainbills.getUser(user);

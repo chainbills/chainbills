@@ -5,12 +5,7 @@ pragma solidity ^0.8.20;
 event InitializedUser(address indexed wallet, uint256 chainCount);
 
 /// Emitted when a {Payable} with `payableId` is created by `hostWallet` address.
-event CreatedPayable(
-  bytes32 indexed payableId,
-  address indexed hostWallet,
-  uint256 chainCount,
-  uint256 hostCount
-);
+event CreatedPayable(bytes32 indexed payableId, address indexed hostWallet, uint256 chainCount, uint256 hostCount);
 
 /// Emitted when a `payerWallet` pays a {Payable} with `payableId`.
 event UserPaid(
@@ -52,25 +47,17 @@ event ReopenedPayable(bytes32 indexed payableId, address indexed hostWallet);
 
 /// Emitted when a `hostWallet` updates the allowedTokensAndAmounts on their
 /// {Payable} with `payableId`.
-event UpdatedPayableAllowedTokensAndAmounts(
-  bytes32 indexed payableId, address indexed hostWallet
-);
+event UpdatedPayableAllowedTokensAndAmounts(bytes32 indexed payableId, address indexed hostWallet);
 
 /// Emitted when a `hostWallet` updates the `isAutoWithdraw` status on their
 /// {Payable} with `payableId`.
-event UpdatedPayableAutoWithdrawStatus(
-  bytes32 indexed payableId, address indexed hostWallet, bool isAutoWithdraw
-);
+event UpdatedPayableAutoWithdrawStatus(bytes32 indexed payableId, address indexed hostWallet, bool isAutoWithdraw);
 
 /// Emitted when a Wormhole Message is consumed for payable update.
-event ConsumedWormholePayableMessage(
-  bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash
-);
+event ConsumedWormholePayableMessage(bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash);
 
 /// Emitted when a Wormhole Message is consumed for receiving payments.
-event ConsumedWormholePaymentMessage(
-  bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash
-);
+event ConsumedWormholePaymentMessage(bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash);
 
 /// Emitted when owner (deployer) updates the `maxWithdrawalFees` of `token`.
 event UpdatedMaxWithdrawalFees(address token, uint256 maxWithdrawalFees);
@@ -82,15 +69,11 @@ event OwnerWithdrew(address token, uint256 amount);
 event RegisteredForeignContract(uint16 chainId, bytes32 emitterAddress);
 
 /// Emitted when owner (deployer) registers/updates a foreign token.
-event RegisteredMatchingTokenForForeignChain(
-  uint16 chainId, bytes32 foreignToken, address token
-);
+event RegisteredMatchingTokenForForeignChain(uint16 chainId, bytes32 foreignToken, address token);
 
 /// Emitted when owner (deployer) registers/updates a Circle Domain to Wormhole
 /// Chain ID.
-event RegisteredCircleDomainToWormholeChainId(
-  uint32 circleDomain, uint16 chainId
-);
+event RegisteredCircleDomainToWormholeChainId(uint32 circleDomain, uint16 chainId);
 
 /// Emitted when owner (deployer) updates the `payablesLogicContract` address.
 event SetPayablesLogic(address payablesLogicContract);

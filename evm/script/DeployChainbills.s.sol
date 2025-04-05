@@ -25,10 +25,8 @@ contract DeployChainbills is Script {
     uint256 ownerPrivateKey = vm.envUint('PRIVATE_KEY');
     vm.startBroadcast(ownerPrivateKey);
 
-    address proxy = Upgrades.deployUUPSProxy(
-      'Chainbills.sol',
-      abi.encodeCall(Chainbills.initialize, (feeCollector, feePercent))
-    );
+    address proxy =
+      Upgrades.deployUUPSProxy('Chainbills.sol', abi.encodeCall(Chainbills.initialize, (feeCollector, feePercent)));
 
     console.log('Deployed Chainbills at: ', proxy);
 

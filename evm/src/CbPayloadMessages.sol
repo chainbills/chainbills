@@ -11,22 +11,14 @@ library CbEncodePayablePayload {
   /// Encodes the PayablePayload struct into bytes.
   /// @param payload PayablePayload struct
   /// @return encoded bytes
-  function encode(PayablePayload memory payload)
-    public
-    pure
-    returns (bytes memory encoded)
-  {
-    encoded =
-      abi.encodePacked(payload.version, payload.actionType, payload.payableId);
+  function encode(PayablePayload memory payload) public pure returns (bytes memory encoded) {
+    encoded = abi.encodePacked(payload.version, payload.actionType, payload.payableId);
     if (payload.actionType == 1 || payload.actionType == 4) {
       uint8 ataaLength = uint8(payload.allowedTokensAndAmounts.length);
       encoded = abi.encodePacked(encoded, ataaLength);
       for (uint8 i = 0; i < ataaLength; i++) {
-        encoded = abi.encodePacked(
-          encoded,
-          payload.allowedTokensAndAmounts[i].token,
-          payload.allowedTokensAndAmounts[i].amount
-        );
+        encoded =
+          abi.encodePacked(encoded, payload.allowedTokensAndAmounts[i].token, payload.allowedTokensAndAmounts[i].amount);
       }
     } else if (payload.actionType == 2 || payload.actionType == 3) {
       encoded = abi.encodePacked(encoded, payload.isClosed);
@@ -42,11 +34,7 @@ library CbEncodePaymentPayload {
   /// Encodes the PaymentPayload struct into bytes.
   /// @param payload PaymentPayload struct
   /// @return encoded bytes
-  function encode(PaymentPayload memory payload)
-    public
-    pure
-    returns (bytes memory encoded)
-  {
+  function encode(PaymentPayload memory payload) public pure returns (bytes memory encoded) {
     encoded = abi.encodePacked(
       payload.version,
       payload.payableId,
@@ -67,11 +55,7 @@ library CbDecodePayload {
   /// Decodes the encoded bytes into a PayablePayload struct.
   /// @param encoded bytes
   /// @return parsed PayablePayload struct
-  function decodePayablePayload(bytes memory encoded)
-    public
-    pure
-    returns (PayablePayload memory parsed)
-  {
+  function decodePayablePayload(bytes memory encoded) public pure returns (PayablePayload memory parsed) {
     uint256 index;
     (parsed.version, index) = encoded.asUint8(0);
     (parsed.actionType, index) = encoded.asUint8(index);
@@ -97,11 +81,7 @@ library CbDecodePayload {
   /// Decodes the encoded bytes into a PaymentPayload struct.
   /// @param encoded bytes
   /// @return parsed PaymentPayload struct
-  function decodePaymentPayload(bytes memory encoded)
-    public
-    pure
-    returns (PaymentPayload memory parsed)
-  {
+  function decodePaymentPayload(bytes memory encoded) public pure returns (PaymentPayload memory parsed) {
     uint256 index;
     (parsed.version, index) = encoded.asUint8(0);
     (parsed.payableId, index) = encoded.asBytes32(index);

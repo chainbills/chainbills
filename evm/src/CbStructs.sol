@@ -116,7 +116,7 @@ struct Payable {
   uint8 balancesCount;
   /// Whether this payable is currently accepting payments.
   bool isClosed;
-  /// Whether payments to this payable get auto-withdrawn to the host at 
+  /// Whether payments to this payable get auto-withdrawn to the host at
   /// payment time. That is, the host of this payable just uses Chainbills
   /// for recording transactions and don't need to come in and pro-actively
   /// withdraw their funds.

@@ -19,14 +19,8 @@ contract CbUtils is CbState {
   }
 
   /// Returns a hash that should be used for entity IDs.
-  function createId(bytes32 entity, EntityType salt, uint256 count)
-    internal
-    view
-    returns (bytes32)
-  {
-    return keccak256(
-      abi.encodePacked(block.chainid, block.timestamp, entity, salt, count)
-    );
+  function createId(bytes32 entity, EntityType salt, uint256 count) internal view returns (bytes32) {
+    return keccak256(abi.encodePacked(block.chainid, block.timestamp, entity, salt, count));
   }
 
   /// Ensures that the enough Wormhole fees was provided for the call.
@@ -57,8 +51,7 @@ contract CbUtils is CbState {
       users[wallet].activitiesCount = 1;
 
       // Record the Activity.
-      bytes32 activityId =
-        createId(toWormholeFormat(wallet), EntityType.Activity, 1);
+      bytes32 activityId = createId(toWormholeFormat(wallet), EntityType.Activity, 1);
       chainActivityIds.push(activityId);
       userActivityIds[wallet].push(activityId);
       activities[activityId] = ActivityRecord({
@@ -92,10 +85,7 @@ contract CbUtils is CbState {
     require(valid, reason);
 
     // Verify that this message was emitted by a registered emitter
-    if (
-      registeredForeignContracts[wormholeMessage.emitterChainId]
-        != wormholeMessage.emitterAddress
-    ) {
+    if (registeredForeignContracts[wormholeMessage.emitterChainId] != wormholeMessage.emitterAddress) {
       revert EmitterNotRegistered();
     }
 
@@ -109,10 +99,7 @@ contract CbUtils is CbState {
   }
 
   /// Publishes a message to Wormhole and returns the message sequence.
-  function publishPayloadMessage(bytes memory payload)
-    internal
-    returns (uint64 sequence)
-  {
+  function publishPayloadMessage(bytes memory payload) internal returns (uint64 sequence) {
     // If Wormhole is not set in this chain, simply return.
     if (!hasWormhole()) return 0;
 

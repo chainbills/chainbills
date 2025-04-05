@@ -21,16 +21,16 @@ contract CbPayables is CbUtils {
   /// @return payableId The ID of the newly created payable.
   /// @return wormholeMessageSequence The sequence of the published Wormhole
   /// message.
-  function createPayable(
-    TokenAndAmount[] calldata allowedTokensAndAmounts,
-    bool isAutoWithdraw
-  ) public payable returns (bytes32 payableId, uint64 wormholeMessageSequence) {
+  function createPayable(TokenAndAmount[] calldata allowedTokensAndAmounts, bool isAutoWithdraw)
+    public
+    payable
+    returns (bytes32 payableId, uint64 wormholeMessageSequence)
+  {
     /* CHECKS */
     // Ensure that the allowedTokensAndAmounts are valid.
     // Also store them locally and prepare the foreign equivalents
     // in the same loop.
-    TokenAndAmountForeign[] memory foreignAtaa =
-      new TokenAndAmountForeign[](allowedTokensAndAmounts.length);
+    TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](allowedTokensAndAmounts.length);
     for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
       // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
@@ -44,15 +44,10 @@ contract CbPayables is CbUtils {
       if (amount == 0) revert ZeroAmountSpecified();
 
       // Set the local allowedTokenAndAmount directly
-      payableAllowedTokensAndAmounts[payableId].push(
-        TokenAndAmount(token, amount)
-      );
+      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount(token, amount));
 
       // Set the foreign allowedTokensAndAmounts.
-      foreignAtaa[i] = TokenAndAmountForeign({
-        token: toWormholeFormat(token),
-        amount: uint64(amount)
-      });
+      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: uint64(amount)});
     }
 
     // Ensure that the required Wormhole Fees were paid.
@@ -70,29 +65,20 @@ contract CbPayables is CbUtils {
     chainStats.activitiesCount++;
 
     // Create the payable.
-    payableId = createId(
-      toWormholeFormat(msg.sender),
-      EntityType.Payable,
-      users[msg.sender].payablesCount
-    );
+    payableId = createId(toWormholeFormat(msg.sender), EntityType.Payable, users[msg.sender].payablesCount);
     chainPayableIds.push(payableId);
     userPayableIds[msg.sender].push(payableId);
     Payable storage _payable = payables[payableId];
     _payable.chainCount = chainStats.payablesCount;
     _payable.host = msg.sender;
     _payable.hostCount = users[msg.sender].payablesCount;
-    _payable.allowedTokensAndAmountsCount =
-      uint8(allowedTokensAndAmounts.length);
+    _payable.allowedTokensAndAmountsCount = uint8(allowedTokensAndAmounts.length);
     _payable.createdAt = block.timestamp;
     _payable.activitiesCount = 1; // for creation
     _payable.isAutoWithdraw = isAutoWithdraw;
 
     // Record the Activity.
-    bytes32 activityId = createId(
-      toWormholeFormat(msg.sender),
-      EntityType.Activity,
-      users[msg.sender].activitiesCount
-    );
+    bytes32 activityId = createId(toWormholeFormat(msg.sender), EntityType.Activity, users[msg.sender].activitiesCount);
     chainActivityIds.push(activityId);
     userActivityIds[msg.sender].push(activityId);
     payableActivityIds[payableId].push(activityId);
@@ -106,9 +92,7 @@ contract CbPayables is CbUtils {
     });
 
     // Emit Event.
-    emit CreatedPayable(
-      payableId, msg.sender, _payable.chainCount, _payable.hostCount
-    );
+    emit CreatedPayable(payableId, msg.sender, _payable.chainCount, _payable.hostCount);
 
     // Publish Message through Wormhole.
     wormholeMessageSequence = publishPayloadMessage(
@@ -125,10 +109,7 @@ contract CbPayables is CbUtils {
   /// Records an activity for updating a Payable.
   /// @param payableId The ID of the payable being updated.
   /// @param activityType The type of activity being recorded.
-  function recordUpdatePayableActivity(
-    bytes32 payableId,
-    ActivityType activityType
-  ) internal {
+  function recordUpdatePayableActivity(bytes32 payableId, ActivityType activityType) internal {
     // Increment the chainStats for activitiesCount.
     chainStats.activitiesCount++;
 
@@ -139,11 +120,7 @@ contract CbPayables is CbUtils {
     payables[payableId].activitiesCount++;
 
     // Record the Activity.
-    bytes32 activityId = createId(
-      toWormholeFormat(msg.sender),
-      EntityType.Activity,
-      users[msg.sender].activitiesCount
-    );
+    bytes32 activityId = createId(toWormholeFormat(msg.sender), EntityType.Activity, users[msg.sender].activitiesCount);
     chainActivityIds.push(activityId);
     userActivityIds[msg.sender].push(activityId);
     payableActivityIds[payableId].push(activityId);
@@ -162,11 +139,7 @@ contract CbPayables is CbUtils {
   /// @param payableId The ID of the payable to close.
   /// @return wormholeMessageSequence The sequence of the published Wormhole
   /// message.
-  function closePayable(bytes32 payableId)
-    public
-    payable
-    returns (uint64 wormholeMessageSequence)
-  {
+  function closePayable(bytes32 payableId) public payable returns (uint64 wormholeMessageSequence) {
     /* CHECKS */
     // Ensure that the caller owns the payable.
     Payable storage _payable = payables[payableId];
@@ -205,11 +178,7 @@ contract CbPayables is CbUtils {
   /// @param payableId The ID of the payable to re-open.
   /// @return wormholeMessageSequence The sequence of the published Wormhole
   /// message.
-  function reopenPayable(bytes32 payableId)
-    public
-    payable
-    returns (uint64 wormholeMessageSequence)
-  {
+  function reopenPayable(bytes32 payableId) public payable returns (uint64 wormholeMessageSequence) {
     /* CHECKS */
     // Ensure that the caller owns the payable.
     Payable storage _payable = payables[payableId];
@@ -248,10 +217,11 @@ contract CbPayables is CbUtils {
   /// @param allowedTokensAndAmounts The new tokens and amounts array.
   /// @return wormholeMessageSequence The sequence of the published Wormhole
   /// message.
-  function updatePayableAllowedTokensAndAmounts(
-    bytes32 payableId,
-    TokenAndAmount[] calldata allowedTokensAndAmounts
-  ) public payable returns (uint64 wormholeMessageSequence) {
+  function updatePayableAllowedTokensAndAmounts(bytes32 payableId, TokenAndAmount[] calldata allowedTokensAndAmounts)
+    public
+    payable
+    returns (uint64 wormholeMessageSequence)
+  {
     /* CHECKS */
     // Ensure that the caller owns the payable.
     Payable storage _payable = payables[payableId];
@@ -266,8 +236,7 @@ contract CbPayables is CbUtils {
     // Ensure that the allowedTokensAndAmounts are valid.
     // Also store them locally and prepare the foreign allowedTokensAndAmounts
     // in the same loop.
-    TokenAndAmountForeign[] memory foreignAtaa =
-      new TokenAndAmountForeign[](allowedTokensAndAmounts.length);
+    TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](allowedTokensAndAmounts.length);
     for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
       // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
@@ -281,15 +250,10 @@ contract CbPayables is CbUtils {
       if (amount == 0) revert ZeroAmountSpecified();
 
       // Set the local allowedTokenAndAmount directly
-      payableAllowedTokensAndAmounts[payableId].push(
-        TokenAndAmount(token, amount)
-      );
+      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount(token, amount));
 
       // Set the foreign allowedTokensAndAmounts.
-      foreignAtaa[i] = TokenAndAmountForeign({
-        token: toWormholeFormat(token),
-        amount: uint64(amount)
-      });
+      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: uint64(amount)});
     }
 
     // Ensure that the required Wormhole Fees were paid.
@@ -297,13 +261,10 @@ contract CbPayables is CbUtils {
 
     /* STATE CHANGES */
     // Update the payable's allowedTokensAndAmounts count
-    _payable.allowedTokensAndAmountsCount =
-      uint8(allowedTokensAndAmounts.length);
+    _payable.allowedTokensAndAmountsCount = uint8(allowedTokensAndAmounts.length);
 
     // Record the Activity.
-    recordUpdatePayableActivity(
-      payableId, ActivityType.UpdatedPayableAllowedTokensAndAmounts
-    );
+    recordUpdatePayableActivity(payableId, ActivityType.UpdatedPayableAllowedTokensAndAmounts);
 
     // Emit Event.
     emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);
@@ -324,9 +285,7 @@ contract CbPayables is CbUtils {
   /// @param payableId The ID of the payable to update.
   /// @param isAutoWithdraw Whether payments to this payable get auto-withdrawn
   /// to the host.
-  function updatePayableAutoWithdraw(bytes32 payableId, bool isAutoWithdraw)
-    public
-  {
+  function updatePayableAutoWithdraw(bytes32 payableId, bool isAutoWithdraw) public {
     /* CHECKS */
     // Ensure that the caller owns the payable.
     Payable storage _payable = payables[payableId];
@@ -337,9 +296,7 @@ contract CbPayables is CbUtils {
     _payable.isAutoWithdraw = isAutoWithdraw;
 
     // Record the Activity.
-    recordUpdatePayableActivity(
-      payableId, ActivityType.UpdatedPayableAutoWithdrawStatus
-    );
+    recordUpdatePayableActivity(payableId, ActivityType.UpdatedPayableAutoWithdrawStatus);
 
     // Emit Event.
     emit UpdatedPayableAutoWithdrawStatus(payableId, msg.sender, isAutoWithdraw);
@@ -354,11 +311,7 @@ contract CbPayables is CbUtils {
   /// @param payableId The ID of the payable to publish.
   /// @return wormholeMessageSequence The sequence of the published Wormhole
   /// message.
-  function publishPayableDetails(bytes32 payableId)
-    public
-    payable
-    returns (uint64 wormholeMessageSequence)
-  {
+  function publishPayableDetails(bytes32 payableId) public payable returns (uint64 wormholeMessageSequence) {
     /* CHECKS */
     // Ensure that the caller owns the payable.
     Payable storage _payable = payables[payableId];
@@ -366,14 +319,11 @@ contract CbPayables is CbUtils {
 
     // Prepare the foreign allowedTokensAndAmounts.
     uint8 ataaLength = _payable.allowedTokensAndAmountsCount;
-    TokenAndAmountForeign[] memory foreignAtaa =
-      new TokenAndAmountForeign[](ataaLength);
+    TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](ataaLength);
     for (uint8 i = 0; i < ataaLength; i++) {
       // Set the foreign allowedTokensAndAmounts.
       foreignAtaa[i] = TokenAndAmountForeign({
-        token: toWormholeFormat(
-          payableAllowedTokensAndAmounts[payableId][i].token
-        ),
+        token: toWormholeFormat(payableAllowedTokensAndAmounts[payableId][i].token),
         amount: uint64(payableAllowedTokensAndAmounts[payableId][i].amount)
       });
     }
@@ -398,12 +348,10 @@ contract CbPayables is CbUtils {
   /// @param wormholeEncoded The encoded message from Wormhole.
   function recordForeignPayableUpdate(bytes memory wormholeEncoded) public {
     // Carry out necessary verifications on the encoded Wormhole and parse it.
-    IWormhole.VM memory wormholeMessage =
-      parseAndCheckWormholeMessage(wormholeEncoded);
+    IWormhole.VM memory wormholeMessage = parseAndCheckWormholeMessage(wormholeEncoded);
 
     // Decode the payload
-    PayablePayload memory payload =
-      wormholeMessage.payload.decodePayablePayload();
+    PayablePayload memory payload = wormholeMessage.payload.decodePayablePayload();
 
     // Record the foreign payable.
     bytes32 payableId = payload.payableId;
@@ -425,8 +373,7 @@ contract CbPayables is CbUtils {
       if (payload.actionType == 4) {
         // This is a modification and not a newly created payable, so
         // first clear the current contents of the foreign ATAA.
-        for (uint8 i = foreignPayable.allowedTokensAndAmountsCount; i > 0; i--)
-        {
+        for (uint8 i = foreignPayable.allowedTokensAndAmountsCount; i > 0; i--) {
           // Remove all previously set ATAAs in storage by popping
           foreignPayableAllowedTokensAndAmounts[payableId].pop();
         }
@@ -437,10 +384,7 @@ contract CbPayables is CbUtils {
       uint8 ataaLength = uint8(payload.allowedTokensAndAmounts.length);
       for (uint8 i = 0; i < ataaLength; i++) {
         foreignPayableAllowedTokensAndAmounts[payableId].push(
-          TokenAndAmountForeign(
-            payload.allowedTokensAndAmounts[i].token,
-            payload.allowedTokensAndAmounts[i].amount
-          )
+          TokenAndAmountForeign(payload.allowedTokensAndAmounts[i].token, payload.allowedTokensAndAmounts[i].amount)
         );
       }
 
@@ -458,8 +402,6 @@ contract CbPayables is CbUtils {
     consumeWormholeMessage(wormholeMessage);
 
     // Emit Event.
-    emit ConsumedWormholePayableMessage(
-      payableId, chainId, wormholeMessage.hash
-    );
+    emit ConsumedWormholePayableMessage(payableId, chainId, wormholeMessage.hash);
   }
 }

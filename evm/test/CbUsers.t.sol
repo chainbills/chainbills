@@ -37,42 +37,24 @@ contract CbUsersTest is Test {
   uint8 wormholeFinality = 200;
 
   function setUp() public {
-    chainbills = Chainbills(
-      payable(address(new ERC1967Proxy(address(new Chainbills()), '')))
-    );
+    chainbills = Chainbills(payable(address(new ERC1967Proxy(address(new Chainbills()), ''))));
 
     vm.mockCall(
       circleBridge,
       abi.encodeWithSelector(ICircleBridge.localMessageTransmitter.selector),
       abi.encode(circleTransmitter)
     );
+    vm.mockCall(circleTransmitter, abi.encodeWithSelector(IMessageTransmitter.localDomain.selector), abi.encode(1));
     vm.mockCall(
-      circleTransmitter,
-      abi.encodeWithSelector(IMessageTransmitter.localDomain.selector),
-      abi.encode(1)
-    );
-    vm.mockCall(
-      circleBridge,
-      abi.encodeWithSelector(ICircleBridge.localMinter.selector),
-      abi.encode(makeAddr('token-minter'))
+      circleBridge, abi.encodeWithSelector(ICircleBridge.localMinter.selector), abi.encode(makeAddr('token-minter'))
     );
 
     chainbills.initialize(feeCollector, feePercent);
-    chainbills.setupWormholeAndCircle(
-      wormhole, circleBridge, chainId, wormholeFinality
-    );
+    chainbills.setupWormholeAndCircle(wormhole, circleBridge, chainId, wormholeFinality);
     usdc = new USDC();
 
-    vm.mockCall(
-      wormhole,
-      abi.encodeWithSelector(IWormhole.messageFee.selector),
-      abi.encode(0)
-    );
-    vm.mockCall(
-      wormhole,
-      abi.encodeWithSelector(IWormhole.publishMessage.selector),
-      abi.encode(0)
-    );
+    vm.mockCall(wormhole, abi.encodeWithSelector(IWormhole.messageFee.selector), abi.encode(0));
+    vm.mockCall(wormhole, abi.encodeWithSelector(IWormhole.publishMessage.selector), abi.encode(0));
 
     chainbills.allowPaymentsForToken(address(chainbills));
     chainbills.updateMaxWithdrawalFees(address(chainbills), ethMaxFee);
@@ -103,8 +85,7 @@ contract CbUsersTest is Test {
 
   function testUserInitOnMakePayment() public {
     // create a payable to make payment to. use this test contract as the host.
-    (bytes32 payableId,) =
-      chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
     ChainStats memory prevChainStats = chainbills.getChainStats();
@@ -155,8 +136,7 @@ contract CbUsersTest is Test {
 
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(bytes32(0), user, prevChainStats.payablesCount + 1, 1);
-    (bytes32 payableId1,) =
-      chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 payableId1,) = chainbills.createPayable(new TokenAndAmount[](0), false);
     bytes32 fetchedP1Id = chainbills.userPayableIds(user, 0);
     Payable memory p1 = chainbills.getPayable(payableId1);
 
@@ -165,8 +145,7 @@ contract CbUsersTest is Test {
     // testing twice to further confirm expected behavior
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(bytes32(0), user, prevChainStats.payablesCount + 2, 2);
-    (bytes32 payableId2,) =
-      chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 payableId2,) = chainbills.createPayable(new TokenAndAmount[](0), false);
     bytes32 fetchedP2Id = chainbills.userPayableIds(user, 1);
     Payable memory p2 = chainbills.getPayable(payableId2);
 
@@ -201,8 +180,7 @@ contract CbUsersTest is Test {
 
   function testUserMakingFailedPayments() public {
     // create a payable to make payment to. use this test contract as the host.
-    (bytes32 payableId,) =
-      chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
 
@@ -247,15 +225,12 @@ contract CbUsersTest is Test {
 
   function testUserMakingSuccessfulPayments() public {
     // create a payable to make payment to. use this test contract as the host.
-    (bytes32 payableId,) =
-      chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
     ChainStats memory prevChainStats = chainbills.getChainStats();
-    TokenDetails memory prevEthDetails =
-      chainbills.getTokenDetails(address(chainbills));
-    TokenDetails memory prevUsdcDetails =
-      chainbills.getTokenDetails(address(usdc));
+    TokenDetails memory prevEthDetails = chainbills.getTokenDetails(address(chainbills));
+    TokenDetails memory prevUsdcDetails = chainbills.getTokenDetails(address(usdc));
 
     // testing successful first payment with native token (ETH)
     deal(user, ethAmt);
@@ -263,11 +238,8 @@ contract CbUsersTest is Test {
     uint256 prevUserEthBal = user.balance;
 
     vm.expectEmit(true, true, false, true);
-    emit UserPaid(
-      payableId, user, bytes32(0), 0, prevChainStats.userPaymentsCount + 1, 1
-    );
-    (bytes32 paymentId1,) =
-      chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
+    emit UserPaid(payableId, user, bytes32(0), 0, prevChainStats.userPaymentsCount + 1, 1);
+    (bytes32 paymentId1,) = chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
     uint256 newCbEthBal = address(chainbills).balance;
     uint256 newUserEthBal = user.balance;
@@ -282,9 +254,7 @@ contract CbUsersTest is Test {
     uint256 prevUserUsdcBal = usdc.balanceOf(user);
 
     vm.expectEmit(true, true, false, true);
-    emit UserPaid(
-      payableId, user, bytes32(0), 0, newChainStats.userPaymentsCount + 1, 2
-    );
+    emit UserPaid(payableId, user, bytes32(0), 0, newChainStats.userPaymentsCount + 1, 2);
     (bytes32 paymentId2,) = chainbills.pay(payableId, address(usdc), usdcAmt);
 
     uint256 newCbUsdcBal = usdc.balanceOf(address(chainbills));
@@ -294,10 +264,8 @@ contract CbUsersTest is Test {
 
     ChainStats memory newerChainStats = chainbills.getChainStats();
     User memory userDetails = chainbills.getUser(user);
-    TokenDetails memory newEthDetails =
-      chainbills.getTokenDetails(address(chainbills));
-    TokenDetails memory newUsdcDetails =
-      chainbills.getTokenDetails(address(usdc));
+    TokenDetails memory newEthDetails = chainbills.getTokenDetails(address(chainbills));
+    TokenDetails memory newUsdcDetails = chainbills.getTokenDetails(address(usdc));
     vm.stopPrank();
 
     // check balances
@@ -319,17 +287,9 @@ contract CbUsersTest is Test {
 
     // check token totals
     assertEq(prevEthDetails.totalUserPaid + ethAmt, newEthDetails.totalUserPaid);
-    assertEq(
-      prevEthDetails.totalPayableReceived + ethAmt,
-      newEthDetails.totalPayableReceived
-    );
-    assertEq(
-      prevUsdcDetails.totalUserPaid + usdcAmt, newUsdcDetails.totalUserPaid
-    );
-    assertEq(
-      prevUsdcDetails.totalPayableReceived + usdcAmt,
-      newUsdcDetails.totalPayableReceived
-    );
+    assertEq(prevEthDetails.totalPayableReceived + ethAmt, newEthDetails.totalPayableReceived);
+    assertEq(prevUsdcDetails.totalUserPaid + usdcAmt, newUsdcDetails.totalUserPaid);
+    assertEq(prevUsdcDetails.totalPayableReceived + usdcAmt, newUsdcDetails.totalPayableReceived);
 
     // check payment 1's details
     assertEq(p1.payableId, payableId);
@@ -358,8 +318,7 @@ contract CbUsersTest is Test {
     chainbills.withdraw(bytes32(0), address(chainbills), 1);
 
     // create payable to be used for testing failed withdrawals
-    (bytes32 payableId,) =
-      chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     // withdrawal should revert if caller is not the payable's host.
     vm.prank(user);
@@ -378,16 +337,13 @@ contract CbUsersTest is Test {
   function testUserMakingSuccessfulWithdrawals() public {
     // create a payable as the user
     vm.prank(user);
-    (bytes32 payableId,) =
-      chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     ChainStats memory prevChainStats = chainbills.getChainStats();
     User memory prevUser = chainbills.getUser(user);
     Payable memory prevPayable = chainbills.getPayable(payableId);
-    TokenDetails memory prevEthDetails =
-      chainbills.getTokenDetails(address(chainbills));
-    TokenDetails memory prevUsdcDetails =
-      chainbills.getTokenDetails(address(usdc));
+    TokenDetails memory prevEthDetails = chainbills.getTokenDetails(address(chainbills));
+    TokenDetails memory prevUsdcDetails = chainbills.getTokenDetails(address(usdc));
 
     // make payments as the test contract to the user's payable.
     deal(address(this), ethAmt);
@@ -470,10 +426,8 @@ contract CbUsersTest is Test {
     ChainStats memory newerChainStats = chainbills.getChainStats();
     User memory newerUser = chainbills.getUser(user);
     Payable memory newerPayable = chainbills.getPayable(payableId);
-    TokenDetails memory newEthDetails =
-      chainbills.getTokenDetails(address(chainbills));
-    TokenDetails memory newUsdcDetails =
-      chainbills.getTokenDetails(address(usdc));
+    TokenDetails memory newEthDetails = chainbills.getTokenDetails(address(chainbills));
+    TokenDetails memory newUsdcDetails = chainbills.getTokenDetails(address(usdc));
 
     vm.stopPrank();
 
@@ -523,20 +477,10 @@ contract CbUsersTest is Test {
     );
 
     // check token totals
-    assertEq(
-      prevEthDetails.totalWithdrawn + ethAmt, newEthDetails.totalWithdrawn
-    );
-    assertEq(
-      prevEthDetails.totalWithdrawalFeesCollected + ethFee,
-      newEthDetails.totalWithdrawalFeesCollected
-    );
-    assertEq(
-      prevUsdcDetails.totalWithdrawn + usdcAmt, newUsdcDetails.totalWithdrawn
-    );
-    assertEq(
-      prevUsdcDetails.totalWithdrawalFeesCollected + usdcFee,
-      newUsdcDetails.totalWithdrawalFeesCollected
-    );
+    assertEq(prevEthDetails.totalWithdrawn + ethAmt, newEthDetails.totalWithdrawn);
+    assertEq(prevEthDetails.totalWithdrawalFeesCollected + ethFee, newEthDetails.totalWithdrawalFeesCollected);
+    assertEq(prevUsdcDetails.totalWithdrawn + usdcAmt, newUsdcDetails.totalWithdrawn);
+    assertEq(prevUsdcDetails.totalWithdrawalFeesCollected + usdcFee, newUsdcDetails.totalWithdrawalFeesCollected);
 
     // check withdrawal 1's details
     assertEq(w1.payableId, payableId);

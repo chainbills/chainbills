@@ -138,9 +138,133 @@ contract CbGovernanceTest is Test {
     assertEq(chainbills.transactionsLogic(), address(transactionsLogic2));
   }
 
-  function testAllowAndStopPaymentsForToken() public {}
+  function testAllowAndStopPaymentsForToken() public {
+    // Try to allow payments for token with non-owner and confirm revert
+    vm.startPrank(nonOwner);
+    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
+    chainbills.allowPaymentsForToken(address(usdc));
+    vm.stopPrank();
 
-  function testSetFeeCollectorAddress() public {}
+    // Try to stop payments for token with non-owner and confirm revert
+    vm.startPrank(nonOwner);
+    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
+    chainbills.stopPaymentsForToken(address(usdc));
+    vm.stopPrank();
+
+    
+    // Create a payable
+    vm.startPrank(user);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+    vm.stopPrank();
+
+    // Try to make payment before token is supported and confirm revert
+    vm.startPrank(user);
+    deal(address(usdc), user, usdcAmt);
+    usdc.approve(address(chainbills), usdcAmt);
+    vm.expectRevert(UnsupportedToken.selector);
+    chainbills.pay(payableId, address(usdc), usdcAmt);
+    vm.stopPrank();
+
+    // Allow payments for token
+    vm.startPrank(owner);
+    vm.expectEmit(true, true, true, true);
+    emit AllowedPaymentsForToken(address(usdc));
+    chainbills.allowPaymentsForToken(address(usdc));
+    vm.stopPrank();
+
+    // Verify token is supported
+    assertTrue(chainbills.getTokenDetails(address(usdc)).isSupported);
+
+    // Make successful payment
+    vm.startPrank(user);
+    vm.expectEmit(true, true, false, true);
+    emit UserPaid(payableId, user, bytes32(0), 0, 1, 1);
+    chainbills.pay(payableId, address(usdc), usdcAmt);
+    vm.stopPrank();
+
+    // Stop payments for token
+    vm.startPrank(owner);
+    vm.expectEmit(true, true, true, true);
+    emit StoppedPaymentsForToken(address(usdc));
+    chainbills.stopPaymentsForToken(address(usdc));
+    vm.stopPrank();
+
+    // Verify token is no longer supported
+    assertFalse(chainbills.getTokenDetails(address(usdc)).isSupported);
+
+    // Try to make payment after token is no longer supported and confirm revert
+    vm.startPrank(user);
+    deal(address(usdc), user, usdcAmt);
+    usdc.approve(address(chainbills), usdcAmt);
+    vm.expectRevert(UnsupportedToken.selector);
+    chainbills.pay(payableId, address(usdc), usdcAmt);
+    vm.stopPrank();
+  }
+
+  function testSetFeeCollectorAddress() public {
+    // Try to set fee collector with non-owner and confirm revert
+    vm.startPrank(nonOwner);
+    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
+    chainbills.setFeeCollectorAddress(feeCollectorA);
+    vm.stopPrank();
+
+    // Prepare contract for payments
+    vm.startPrank(owner);
+    chainbills.allowPaymentsForToken(address(usdc));
+    chainbills.updateMaxWithdrawalFees(address(usdc), 10e15);
+    vm.stopPrank();
+
+    // Create payable and make payment
+    vm.startPrank(user);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+    deal(address(usdc), user, usdcAmt);
+    usdc.approve(address(chainbills), usdcAmt);
+    chainbills.pay(payableId, address(usdc), usdcAmt);
+    vm.stopPrank();
+
+    // Set fee collector A as owner
+    vm.startPrank(owner);
+    vm.expectEmit(true, true, true, true);
+    emit SetFeeCollectorAddress(feeCollectorA);
+    chainbills.setFeeCollectorAddress(feeCollectorA);
+    vm.stopPrank();
+
+    // Verify fee collector is set
+    assertEq(chainbills.getConfig().feeCollector, feeCollectorA);
+
+    // Make withdrawal and verify fee collector A balance
+    uint256 withdrawalAmt = usdcAmt / 2;
+    uint256 expectedFee = (withdrawalAmt * 200) / 10000; // 2% of withdrawal amount
+
+    vm.startPrank(user);
+    chainbills.withdraw(payableId, address(usdc), withdrawalAmt);
+    vm.stopPrank();
+
+    assertEq(usdc.balanceOf(feeCollectorA), expectedFee);
+    uint256 prevFeeCollectorABalance = usdc.balanceOf(feeCollectorA);
+
+    // Set new fee collector B as owner
+    vm.startPrank(owner);
+    vm.expectEmit(true, true, true, true);
+    emit SetFeeCollectorAddress(feeCollectorB);
+    chainbills.setFeeCollectorAddress(feeCollectorB);
+    vm.stopPrank();
+
+    // Verify fee collector is updated
+    assertEq(chainbills.getConfig().feeCollector, feeCollectorB);
+
+    // Make withdrawal and verify fee collector B balance
+    // Re-use the same withdrawal amount as it was half of the payment
+    vm.startPrank(user);
+    chainbills.withdraw(payableId, address(usdc), withdrawalAmt);
+    vm.stopPrank();
+
+    // Verify fee collector B balance is updated
+    assertEq(usdc.balanceOf(feeCollectorB), expectedFee);
+
+    // Verify fee collector A balance is unchanged
+    assertEq(usdc.balanceOf(feeCollectorA), prevFeeCollectorABalance);
+  }
 
   function testSetWithdrawalFeePercentage() public {}
 

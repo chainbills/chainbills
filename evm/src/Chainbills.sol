@@ -166,6 +166,7 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
   /// @param token The address of the token to support for payments
   function allowPaymentsForToken(address token) public onlyOwner {
     if (token == address(0)) revert InvalidTokenAddress();
+    tokenDetails[token].token = token;
     tokenDetails[token].isSupported = true;
     emit AllowedPaymentsForToken(token);
   }

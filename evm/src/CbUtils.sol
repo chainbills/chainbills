@@ -19,12 +19,12 @@ contract CbUtils is CbState {
   }
 
   /// Returns a hash that should be used for entity IDs.
-  function createId(bytes32 entity, EntityType salt, uint256 count) internal view returns (bytes32) {
+  function _createId(bytes32 entity, EntityType salt, uint256 count) internal view returns (bytes32) {
     return keccak256(abi.encodePacked(block.chainid, block.timestamp, entity, salt, count));
   }
 
   /// Ensures that the enough Wormhole fees was provided for the call.
-  function ensureWormholeFees() internal {
+  function _ensureWormholeFees() internal {
     uint256 wormholeFees = getWormholeMessageFee();
     if (msg.value < wormholeFees) revert InsufficientWormholeFees();
     if (msg.value > wormholeFees) revert IncorrectWormholeFees();
@@ -38,7 +38,7 @@ contract CbUtils is CbState {
 
   /// Initializes a User if need be.
   /// @param wallet The address of the user.
-  function initializeUserIfNeedBe(address wallet) internal {
+  function _initializeUserIfNeedBe(address wallet) internal {
     // Check if the user has not yet been initialized, if yes, initialize.
     if (users[wallet].chainCount == 0) {
       // Increment chain count for users and activities.
@@ -51,7 +51,7 @@ contract CbUtils is CbState {
       users[wallet].activitiesCount = 1;
 
       // Record the Activity.
-      bytes32 activityId = createId(toWormholeFormat(wallet), EntityType.Activity, 1);
+      bytes32 activityId = _createId(toWormholeFormat(wallet), EntityType.Activity, 1);
       chainActivityIds.push(activityId);
       userActivityIds[wallet].push(activityId);
       activities[activityId] = ActivityRecord({
@@ -72,7 +72,7 @@ contract CbUtils is CbState {
   /// the necessary checks.
   /// @param wormholeEncoded Encoded Wormhole message.
   /// @return parsedAndChecked The parsed Wormhole message.
-  function parseAndCheckWormholeMessage(bytes memory wormholeEncoded)
+  function _parseAndCheckWormholeMessage(bytes memory wormholeEncoded)
     internal
     view
     returns (IWormhole.VM memory parsedAndChecked)
@@ -99,7 +99,7 @@ contract CbUtils is CbState {
   }
 
   /// Publishes a message to Wormhole and returns the message sequence.
-  function publishPayloadMessage(bytes memory payload) internal returns (uint64 sequence) {
+  function _publishPayloadMessage(bytes memory payload) internal returns (uint64 sequence) {
     // If Wormhole is not set in this chain, simply return.
     if (!hasWormhole()) return 0;
 

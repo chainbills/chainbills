@@ -51,12 +51,12 @@ contract CbPayables is CbUtils {
     }
 
     // Ensure that the required Wormhole Fees were paid.
-    ensureWormholeFees();
+    _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Increment payables and activities counts on the host (address) creating
     // this payable.
-    initializeUserIfNeedBe(msg.sender);
+    _initializeUserIfNeedBe(msg.sender);
     users[msg.sender].payablesCount++;
     users[msg.sender].activitiesCount++;
 
@@ -65,7 +65,7 @@ contract CbPayables is CbUtils {
     chainStats.activitiesCount++;
 
     // Create the payable.
-    payableId = createId(toWormholeFormat(msg.sender), EntityType.Payable, users[msg.sender].payablesCount);
+    payableId = _createId(toWormholeFormat(msg.sender), EntityType.Payable, users[msg.sender].payablesCount);
     chainPayableIds.push(payableId);
     userPayableIds[msg.sender].push(payableId);
     Payable storage _payable = payables[payableId];
@@ -78,7 +78,7 @@ contract CbPayables is CbUtils {
     _payable.isAutoWithdraw = isAutoWithdraw;
 
     // Record the Activity.
-    bytes32 activityId = createId(toWormholeFormat(msg.sender), EntityType.Activity, users[msg.sender].activitiesCount);
+    bytes32 activityId = _createId(toWormholeFormat(msg.sender), EntityType.Activity, users[msg.sender].activitiesCount);
     chainActivityIds.push(activityId);
     userActivityIds[msg.sender].push(activityId);
     payableActivityIds[payableId].push(activityId);
@@ -95,7 +95,7 @@ contract CbPayables is CbUtils {
     emit CreatedPayable(payableId, msg.sender, _payable.chainCount, _payable.hostCount);
 
     // Publish Message through Wormhole.
-    wormholeMessageSequence = publishPayloadMessage(
+    wormholeMessageSequence = _publishPayloadMessage(
       PayablePayload({
         version: 1,
         actionType: 1,
@@ -109,7 +109,7 @@ contract CbPayables is CbUtils {
   /// Records an activity for updating a Payable.
   /// @param payableId The ID of the payable being updated.
   /// @param activityType The type of activity being recorded.
-  function recordUpdatePayableActivity(bytes32 payableId, ActivityType activityType) internal {
+  function _recordUpdatePayableActivity(bytes32 payableId, ActivityType activityType) internal {
     // Increment the chainStats for activitiesCount.
     chainStats.activitiesCount++;
 
@@ -120,7 +120,7 @@ contract CbPayables is CbUtils {
     payables[payableId].activitiesCount++;
 
     // Record the Activity.
-    bytes32 activityId = createId(toWormholeFormat(msg.sender), EntityType.Activity, users[msg.sender].activitiesCount);
+    bytes32 activityId = _createId(toWormholeFormat(msg.sender), EntityType.Activity, users[msg.sender].activitiesCount);
     chainActivityIds.push(activityId);
     userActivityIds[msg.sender].push(activityId);
     payableActivityIds[payableId].push(activityId);
@@ -149,20 +149,20 @@ contract CbPayables is CbUtils {
     if (_payable.isClosed) revert PayableIsAlreadyClosed();
 
     // Ensure that the required Wormhole Fees were paid.
-    ensureWormholeFees();
+    _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Close the payable.
     _payable.isClosed = true;
 
     // Record the Activity.
-    recordUpdatePayableActivity(payableId, ActivityType.ClosedPayable);
+    _recordUpdatePayableActivity(payableId, ActivityType.ClosedPayable);
 
     // Emit Event.
     emit ClosedPayable(payableId, msg.sender);
 
     // Publish Message through Wormhole.
-    wormholeMessageSequence = publishPayloadMessage(
+    wormholeMessageSequence = _publishPayloadMessage(
       PayablePayload({
         version: 1,
         actionType: 2,
@@ -188,20 +188,20 @@ contract CbPayables is CbUtils {
     if (!_payable.isClosed) revert PayableIsNotClosed();
 
     // Ensure that the required Wormhole Fees were paid.
-    ensureWormholeFees();
+    _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Close the payable.
     _payable.isClosed = false;
 
     // Record the Activity.
-    recordUpdatePayableActivity(payableId, ActivityType.ReopenedPayable);
+    _recordUpdatePayableActivity(payableId, ActivityType.ReopenedPayable);
 
     // Emit Event.
     emit ReopenedPayable(payableId, msg.sender);
 
     // Publish Message through Wormhole.
-    wormholeMessageSequence = publishPayloadMessage(
+    wormholeMessageSequence = _publishPayloadMessage(
       PayablePayload({
         version: 1,
         actionType: 3,
@@ -257,20 +257,20 @@ contract CbPayables is CbUtils {
     }
 
     // Ensure that the required Wormhole Fees were paid.
-    ensureWormholeFees();
+    _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Update the payable's allowedTokensAndAmounts count
     _payable.allowedTokensAndAmountsCount = uint8(allowedTokensAndAmounts.length);
 
     // Record the Activity.
-    recordUpdatePayableActivity(payableId, ActivityType.UpdatedPayableAllowedTokensAndAmounts);
+    _recordUpdatePayableActivity(payableId, ActivityType.UpdatedPayableAllowedTokensAndAmounts);
 
     // Emit Event.
     emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);
 
     // Publish Message through Wormhole.
-    wormholeMessageSequence = publishPayloadMessage(
+    wormholeMessageSequence = _publishPayloadMessage(
       PayablePayload({
         version: 1,
         actionType: 4,
@@ -296,7 +296,7 @@ contract CbPayables is CbUtils {
     _payable.isAutoWithdraw = isAutoWithdraw;
 
     // Record the Activity.
-    recordUpdatePayableActivity(payableId, ActivityType.UpdatedPayableAutoWithdrawStatus);
+    _recordUpdatePayableActivity(payableId, ActivityType.UpdatedPayableAutoWithdrawStatus);
 
     // Emit Event.
     emit UpdatedPayableAutoWithdrawStatus(payableId, msg.sender, isAutoWithdraw);
@@ -329,11 +329,11 @@ contract CbPayables is CbUtils {
     }
 
     // Ensure that the required Wormhole Fees were paid.
-    ensureWormholeFees();
+    _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Publish Message through Wormhole.
-    wormholeMessageSequence = publishPayloadMessage(
+    wormholeMessageSequence = _publishPayloadMessage(
       PayablePayload({
         version: 1,
         actionType: 1,
@@ -348,7 +348,7 @@ contract CbPayables is CbUtils {
   /// @param wormholeEncoded The encoded message from Wormhole.
   function recordForeignPayableUpdate(bytes memory wormholeEncoded) public {
     // Carry out necessary verifications on the encoded Wormhole and parse it.
-    IWormhole.VM memory wormholeMessage = parseAndCheckWormholeMessage(wormholeEncoded);
+    IWormhole.VM memory wormholeMessage = _parseAndCheckWormholeMessage(wormholeEncoded);
 
     // Decode the payload
     PayablePayload memory payload = wormholeMessage.payload.decodePayablePayload();

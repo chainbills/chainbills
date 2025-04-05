@@ -11,9 +11,9 @@ The core of Chainbills is about facilitating movement of money. We make it easy 
   - [PayablePayments](#payablepayments)
 - [Withdrawals](#withdrawals)
 - [Activities](#activities)
-- [Governance](#governance)
-- [ChainStats](#chainstats)
 - [Users](#users)
+- [ChainStats](#chainstats)
+- [Governance](#governance)
 - [Cross-Chain](#cross-chain)
 
 ## Synchronized Data Structures
@@ -155,14 +155,88 @@ Note that the recorded amount is the original amount that the user requested. If
 
 ## Activities
 
+Every user action is recorded as an activity across the contracts. In Chainbills' contracts, activities are data structures that hold info about things that happen when they do. Keeping track of activities is to have a chronological means (through the counters) of obtaining when things happening in the contract, in context of a user, or a payable. It serves for statistics.
+
+Any time a new data structure (payable, payment, or withdrawal) is created, the contracts also creates an activity. Also, for the first time when a user interacts with Chainbills (either creating a payable or making a payment), we emit an `InitializedUser` event and create a matching activity. An activity has the following properties:
+
+| Field          | Type         | Description                                                                               |
+| -------------- | ------------ | ----------------------------------------------------------------------------------------- |
+| `chainCount`   | number       | The nth count of activities on this chain at the point this activity was recorded.        |
+| `userCount`    | number       | The nth count of activities that the user has made at the point of this activity.         |
+| `payableCount` | number       | The nth count of activities on the related payable at the point of this activity.         |
+| `timestamp`    | number       | The timestamp of when this activity was recorded.                                         |
+| `entity`       | 32 bytes     | The ID of the entity (Payable, Payment, or Withdrawal) that is relevant to this activity. |
+| `activityType` | ActivityType | The type of activity.                                                                     |
+
+The counters in activity are contextual. If it is a user initialized activity, then the `userCount` will be 1 (one) and the `payableCount` will be 0 (zero) as no payable is involved. Otherwise, for most activities, the payable counter is relative to the involved payable and the user counter is relative to the involved user. The `entity` holds the ID of the created data structure. In case of initializing a user, `entity` will be their wallet address. `ActivityType` is an enum that indicates the type of activity. It can be one of the following:
+
+| ActivityType                            | Description                                                 |
+| --------------------------------------- | ----------------------------------------------------------- |
+| `InitializedUser`                       | A user was initialized.                                     |
+| `CreatedPayable`                        | A payable was created.                                      |
+| `UserPaid`                              | A payment was made by a user.                               |
+| `PayableReceived`                       | A payment was made to the payable.                          |
+| `Withdrew`                              | A withdrawal was made by a payable.                         |
+| `ClosedPayable`                         | The payable was closed and is no longer accepting payments. |
+| `ReopenedPayable`                       | The payable was reopened and is now accepting payments.     |
+| `UpdatedPayableAllowedTokensAndAmounts` | The payable's allowed tokens and amounts were updated.      |
+| `UpdatedPayableAutoWithdrawStatus`      | The payable's auto withdraw setting was updated.            |
+
+The relevance of activities become evident when you want to query history for a given user, payable, or at the chain (contract level). If a user has had 25 activities, you can iterate and get the activity ID (and hence the activity). From the activity, you can know what happened, when it happened, the entity involved, and the type of activity. This was the only way to get the contracts to store events chronologically.
+
+Also, activities are a one-time struct. Their counters are in sync with the respective user, payable, or chain-level recording. So the same activity is referenced in all three contexts.
+
+## Users
+
+The `User` data structure keeps activity counters for every user. It is created when a user first interacts with Chainbills. It contains the following properties:
+
+| Field              | Type   | Description                                                                  |
+| ------------------ | ------ | ---------------------------------------------------------------------------- |
+| `chainCount`       | number | The nth count of users on this chain at the point this user was initialized. |
+| `payablesCount`    | number | Total number of payables that this user has ever created.                    |
+| `paymentsCount`    | number | Total number of payments that this user has ever made.                       |
+| `withdrawalsCount` | number | Total number of withdrawals that this user has ever made.                    |
+| `activitiesCount`  | number | Total number of activities that this user has ever made.                     |
+
+When you need to fetch the payables a user created, the payments they made, the withdrawals they made, or their activities, you loop through the counter and fetch the ID of the entity based on the blockchain network. The counters get incremented based on the respective activity. During user initialization, `chainCount` is set and `activitiesCount` is set to 1 (one). `chainCount` never changes, it is permanent. The other counters keep increasing continuously.
+
+To fetch a `User` object, you provide a wallet address and the involved struct with counters is returned. You provide this based on the involved blockchain network.
+
+| Blockchain Network | Method to Fetch User                        |
+| ------------------ | ------------------------------------------- |
+| EVM                | `getUser` function                          |
+| Solana             | Pubkey of PDA whose seeds is wallet address |
+| CosmWasm           | `user` query                                |
+
+## ChainStats
+
+The `ChainStats` data structure keeps track of the statistics of the contract on a given chain. It is like the `User` struct but this time, its counters are in sync across the contract for each methods, like a global statistics keeper. Interestingly, it keeps other counters for cross-chain purposes. It contains the following properties:
+
+| Field                            | Type   | Description                                                              |
+| -------------------------------- | ------ | ------------------------------------------------------------------------ |
+| `usersCount`                     | number | Total number of users that have ever interacted on this chain.           |
+| `payablesCount`                  | number | Total number of payables that have ever been created on this chain.      |
+| `foreignPayablesCount`           | number | Total number of foreign payables that have ever been recorded.           |
+| `userPaymentsCount`              | number | Total number of payments that users have ever made on this chain.        |
+| `payablePaymentsCount`           | number | Total number of payments that payables have ever received on this chain. |
+| `withdrawalsCount`               | number | Total number of withdrawals that have ever been made on this chain.      |
+| `activitiesCount`                | number | Total number of activities that have ever been made on this chain.       |
+| `publishedWormholeMessagesCount` | number | Total number of published Wormhole messages on this chain.               |
+| `consumedWormholeMessagesCount`  | number | Total number of consumed Wormhole messages on this chain.                |
+
+ChainStats is available as a global getter on each blockchain network. It is initialized when the contract is deployed or initialized. With its counters, you can chronologically retrieve all data structures in Chainbills. Furthermore, its counters are naturally incremented when the involved action takes place.
+
+In Solana, it is stored in the PDA whose seeds is just "chain". Additionally, this PDA in Solana serves as the authority for the token account holding tokens for the Chainbills contract in Solana.
+
 ## Governance
 
+- Config
 - Token Details
   - isSupported
   - maxWithdrawalFees
 
-## ChainStats
-
-## Users
-
 ## Cross-Chain
+
+- Wormhole Messages
+- Foreign Payables
+- USDC in payments

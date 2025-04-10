@@ -27,12 +27,12 @@ contract CbGovernanceTest is Test {
   address nonOwner = makeAddr('non-owner');
   address user = makeAddr('user');
 
-  uint16 feePercentA = 200; // 2%
-  uint16 feePercentB = 300; // 3%
-  uint256 maxWithdrawalFeeA = 5e15;
-  uint256 maxWithdrawalFeeB = 10e15;
-  uint256 ethAmt = 1e16;
-  uint256 usdcAmt = 1e8;
+  uint16 feePercentA = 200; // 2% (with 2 decimals)
+  uint16 feePercentB = 300; // 3% (with 2 decimals)
+  uint256 maxWtdlFeesUsdcA = 2e8; // 200 USDC
+  uint256 maxWtdlFeesUsdcB = 25e7; // 250 USDC
+  uint256 ethAmt = 1e16; // 0.01 ETH
+  uint256 usdcAmt = 1e8; // 100 USDC
 
   function setUp() public {
     vm.startPrank(owner);
@@ -211,7 +211,7 @@ contract CbGovernanceTest is Test {
     // Prepare contract for payments
     vm.startPrank(owner);
     chainbills.allowPaymentsForToken(address(usdc));
-    chainbills.updateMaxWithdrawalFees(address(usdc), 10e15);
+    chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdcA);
     vm.stopPrank();
 
     // Create payable and make payment
@@ -234,7 +234,7 @@ contract CbGovernanceTest is Test {
 
     // Make withdrawal and verify fee collector A balance
     uint256 withdrawalAmt = usdcAmt / 2;
-    uint256 expectedFee = (withdrawalAmt * 200) / 10000; // 2% of withdrawal amount
+    uint256 expectedFee = (withdrawalAmt * feePercentA) / 10000; // includes 2 decimals
 
     vm.startPrank(user);
     chainbills.withdraw(payableId, address(usdc), withdrawalAmt);
@@ -266,7 +266,136 @@ contract CbGovernanceTest is Test {
     assertEq(usdc.balanceOf(feeCollectorA), prevFeeCollectorABalance);
   }
 
-  function testSetWithdrawalFeePercentage() public {}
+  function testSetWithdrawalFeePercentage() public {
+    // Try to set withdrawal fee percentage as non-owner
+    vm.startPrank(nonOwner);
+    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
+    chainbills.setWithdrawalFeePercentage(100);
+    vm.stopPrank();
 
-  function testUpdateMaxWithdrawalFees() public {}
+    // Prepare contract for payments
+    vm.startPrank(owner);
+    chainbills.allowPaymentsForToken(address(usdc));
+    chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdcA);
+
+
+    // Set withdrawal fee percentage A as owner
+    vm.expectEmit(true, true, true, true);
+    emit SetWithdrawalFeePercentage(feePercentA);
+    chainbills.setWithdrawalFeePercentage(feePercentA);
+    vm.stopPrank();
+
+    // Verify fee percentage is set
+    assertEq(chainbills.getConfig().withdrawalFeePercentage, feePercentA);
+
+    // Create payable and make payment
+    vm.startPrank(user);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+    deal(address(usdc), user, usdcAmt);
+    usdc.approve(address(chainbills), usdcAmt);
+    chainbills.pay(payableId, address(usdc), usdcAmt);
+
+    // Make withdrawal and verify fee with percentage A
+    uint256 withdrawalAmt = usdcAmt;
+    uint256 expectedFeeA = (withdrawalAmt * feePercentA) / 10000; // includes 2 decimals
+    uint256 prevBalance = usdc.balanceOf(feeCollectorA);
+
+    vm.expectEmit(true, true, false, true);
+    emit Withdrew(payableId, user, bytes32(0), 1, 1, 1);
+    chainbills.withdraw(payableId, address(usdc), withdrawalAmt);
+    vm.stopPrank();
+
+    assertEq(usdc.balanceOf(feeCollectorA), prevBalance + expectedFeeA);
+
+    // Set new withdrawal fee percentage B as owner
+    vm.startPrank(owner);
+    vm.expectEmit(true, true, true, true);
+    emit SetWithdrawalFeePercentage(feePercentB);
+    chainbills.setWithdrawalFeePercentage(feePercentB);
+    vm.stopPrank();
+
+    // Verify fee percentage is updated
+    assertEq(chainbills.getConfig().withdrawalFeePercentage, feePercentB);
+
+    // make another payment
+    vm.startPrank(user);
+    deal(address(usdc), user, usdcAmt);
+    usdc.approve(address(chainbills), usdcAmt);
+    chainbills.pay(payableId, address(usdc), usdcAmt);
+
+    // Make withdrawal and verify fee with percentage B
+    prevBalance = usdc.balanceOf(feeCollectorA);
+    uint256 expectedFeeB = (withdrawalAmt * feePercentB) / 10000; // includes 2 decimals
+
+    vm.expectEmit(true, true, false, true);
+    emit Withdrew(payableId, user, bytes32(0), 2, 2, 2);
+    chainbills.withdraw(payableId, address(usdc), withdrawalAmt);
+    vm.stopPrank();
+
+    assertEq(usdc.balanceOf(feeCollectorA), prevBalance + expectedFeeB);
+  }
+
+  function testUpdateMaxWithdrawalFees() public {
+    uint256 hugeAmount = 15e9; // 15,000 USDC
+
+    // Try updating max withdrawal fees as non-owner
+    vm.startPrank(nonOwner);
+    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
+    chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdcA);
+    vm.stopPrank();
+
+    // Update max withdrawal fees as owner to maxFeesA
+    vm.startPrank(owner);
+    chainbills.allowPaymentsForToken(address(usdc)); // Prepare contract for payments
+    vm.expectEmit(true, true, true, true);
+    emit UpdatedMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdcA);
+    chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdcA);
+    vm.stopPrank();
+
+    // Verify max withdrawal fees is updated
+    assertEq(chainbills.getTokenDetails(address(usdc)).maxWithdrawalFees, maxWtdlFeesUsdcA);
+
+    // Create payable and make huge payment
+    vm.startPrank(user);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+    deal(address(usdc), user, hugeAmount);
+    usdc.approve(address(chainbills), hugeAmount);
+    chainbills.pay(payableId, address(usdc), hugeAmount);
+
+    // Make withdrawal and verify fee is capped at maximum A
+    uint256 prevBalance = usdc.balanceOf(feeCollectorA);
+
+    vm.expectEmit(true, true, false, true);
+    emit Withdrew(payableId, user, bytes32(0), 1, 1, 1);
+    chainbills.withdraw(payableId, address(usdc), hugeAmount);
+    vm.stopPrank();
+
+    assertEq(usdc.balanceOf(feeCollectorA), prevBalance + maxWtdlFeesUsdcA);
+
+    // Update max withdrawal fees as owner to amount B
+    vm.startPrank(owner);
+    vm.expectEmit(true, true, true, true);
+    emit UpdatedMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdcB);
+    chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdcB);
+    vm.stopPrank();
+
+    // Verify max withdrawal fees is updated
+    assertEq(chainbills.getTokenDetails(address(usdc)).maxWithdrawalFees, maxWtdlFeesUsdcB);
+
+    // Make another huge payment
+    vm.startPrank(user);
+    deal(address(usdc), user, hugeAmount);
+    usdc.approve(address(chainbills), hugeAmount);
+    chainbills.pay(payableId, address(usdc), hugeAmount);
+
+    // Make withdrawal and verify fee is capped at maximum B
+    prevBalance = usdc.balanceOf(feeCollectorA);
+
+    vm.expectEmit(true, true, false, true);
+    emit Withdrew(payableId, user, bytes32(0), 2, 2, 2);
+    chainbills.withdraw(payableId, address(usdc), hugeAmount);
+    vm.stopPrank();
+
+    assertEq(usdc.balanceOf(feeCollectorA), prevBalance + maxWtdlFeesUsdcB);
+  }
 }

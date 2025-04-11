@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import '@openzeppelin/contracts/interfaces/draft-IERC6093.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import 'wormhole/interfaces/IWormhole.sol';
 import 'src/CbState.sol';
@@ -22,48 +23,37 @@ contract CbUsersTest is Test {
   Chainbills chainbills;
   USDC usdc;
 
-  address circleBridge = makeAddr('circle-bridge');
-  address circleTransmitter = makeAddr('transmitter');
   address feeCollector = makeAddr('fee-collector');
-  address wormhole = makeAddr('wormhole');
+  address host = makeAddr('host');
+  address owner = makeAddr('owner');
   address user = makeAddr('user');
 
-  uint16 chainId = 10002;
   uint16 feePercent = 200; // 2%, the extra zeros are for decimals.
-  uint256 ethAmt = 1e16;
-  uint256 ethMaxFee = 5e15;
-  uint256 usdcAmt = 1e8;
-  uint256 usdcMaxFee = 50e6;
-  uint8 wormholeFinality = 200;
+  uint256 maxWtdlFeesEth = 5e17; // 0.5 ETH
+  uint256 maxWtdlFeesUsdc = 2e8; // 200 USDC
+  uint256 ethAmt = 1e16; // 0.01 ETH
+  uint256 usdcAmt = 1e8; // 100 USDC
 
   function setUp() public {
+    vm.startPrank(owner);
     chainbills = Chainbills(payable(address(new ERC1967Proxy(address(new Chainbills()), ''))));
-
-    vm.mockCall(
-      circleBridge,
-      abi.encodeWithSelector(ICircleBridge.localMessageTransmitter.selector),
-      abi.encode(circleTransmitter)
-    );
-    vm.mockCall(circleTransmitter, abi.encodeWithSelector(IMessageTransmitter.localDomain.selector), abi.encode(1));
-    vm.mockCall(
-      circleBridge, abi.encodeWithSelector(ICircleBridge.localMinter.selector), abi.encode(makeAddr('token-minter'))
-    );
-
-    chainbills.initialize(feeCollector, feePercent);
-    chainbills.setupWormholeAndCircle(wormhole, circleBridge, chainId, wormholeFinality);
     usdc = new USDC();
 
-    vm.mockCall(wormhole, abi.encodeWithSelector(IWormhole.messageFee.selector), abi.encode(0));
-    vm.mockCall(wormhole, abi.encodeWithSelector(IWormhole.publishMessage.selector), abi.encode(0));
-
-    chainbills.allowPaymentsForToken(address(chainbills));
-    chainbills.updateMaxWithdrawalFees(address(chainbills), ethMaxFee);
-
-    chainbills.allowPaymentsForToken(address(usdc));
-    chainbills.updateMaxWithdrawalFees(address(usdc), usdcMaxFee);
-
+    chainbills.initialize(feeCollector, feePercent);
     chainbills.setPayablesLogic(address(new CbPayables()));
     chainbills.setTransactionsLogic(address(new CbTransactions()));
+
+    chainbills.allowPaymentsForToken(address(chainbills));
+    chainbills.updateMaxWithdrawalFees(address(chainbills), maxWtdlFeesEth);
+
+    chainbills.allowPaymentsForToken(address(usdc));
+    chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdc);
+    vm.stopPrank();
+
+    deal(user, ethAmt * 2);
+    deal(address(usdc), user, usdcAmt * 2);
+    vm.prank(user);
+    usdc.approve(address(chainbills), usdcAmt * 2);
   }
 
   function testUserInitOnCreatePayable() public {
@@ -84,21 +74,16 @@ contract CbUsersTest is Test {
   }
 
   function testUserInitOnMakePayment() public {
-    // create a payable to make payment to. use this test contract as the host.
+    vm.prank(host);
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    vm.startPrank(user);
     ChainStats memory prevChainStats = chainbills.getChainStats();
-
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevChainStats.usersCount + 1);
-
-    deal(user, ethAmt);
+    vm.prank(user);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
-
     ChainStats memory newChainStats = chainbills.getChainStats();
     User memory newUser = chainbills.getUser(user);
-    vm.stopPrank();
 
     assertEq(newUser.chainCount, newChainStats.usersCount);
     assertEq(prevChainStats.usersCount + 1, newChainStats.usersCount);
@@ -179,13 +164,13 @@ contract CbUsersTest is Test {
   }
 
   function testUserMakingFailedPayments() public {
-    // create a payable to make payment to. use this test contract as the host.
+    vm.prank(host);
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
 
     // payment should revert if given token is address zero, or if token is
-    // not supported (doesn't have its maxWithdrawalFees updated at least once).
+    // not supported (allowPayments wasn't called for it by the owner).
     // NOTE: ETH and USDC are allowed in the top-level setUp function for this
     // test contract.
     vm.expectRevert(InvalidTokenAddress.selector);
@@ -201,30 +186,25 @@ contract CbUsersTest is Test {
     vm.expectRevert(InvalidPayableId.selector);
     chainbills.pay(bytes32(0), address(chainbills), 1);
 
-    // payment should revert if token is native (ETH) and not enough amount
-    // is provided in value.
+    // payment should revert if token is native (ETH) and not enough amount is provided in value.
     vm.expectRevert(InsufficientPaymentValue.selector);
-    chainbills.pay(payableId, address(chainbills), 1);
-    deal(user, 1);
+    chainbills.pay(payableId, address(chainbills), ethAmt); // not providing value in this call
     vm.expectRevert(InsufficientPaymentValue.selector);
-    chainbills.pay{value: 1}(payableId, address(chainbills), 2);
+    chainbills.pay{value: ethAmt / 2}(payableId, address(chainbills), ethAmt); // not providing enough
 
-    // payment should revert if token is native (ETH) and more than enough
-    // amount is provided in value.
-    deal(user, 2);
+    // payment should revert if token is native (ETH) and more than enough amount is provided in value.
     vm.expectRevert(IncorrectPaymentValue.selector);
-    chainbills.pay{value: 2}(payableId, address(chainbills), 1);
+    chainbills.pay{value: ethAmt * 2}(payableId, address(chainbills), ethAmt);
 
-    // payment should revert if token is ERC20 and amount is not approved.
-    deal(address(usdc), user, 1);
-    vm.expectRevert();
-    chainbills.pay(payableId, address(usdc), 1);
+    // payment should revert if token is ERC20 and approved amount is not enough
+    vm.expectPartialRevert(IERC20Errors.ERC20InsufficientAllowance.selector);
+    chainbills.pay(payableId, address(usdc), usdcAmt * 3);
 
     vm.stopPrank();
   }
 
   function testUserMakingSuccessfulPayments() public {
-    // create a payable to make payment to. use this test contract as the host.
+    vm.prank(host);
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
@@ -233,7 +213,6 @@ contract CbUsersTest is Test {
     TokenDetails memory prevUsdcDetails = chainbills.getTokenDetails(address(usdc));
 
     // testing successful first payment with native token (ETH)
-    deal(user, ethAmt);
     uint256 prevCbEthBal = address(chainbills).balance;
     uint256 prevUserEthBal = user.balance;
 
@@ -248,8 +227,6 @@ contract CbUsersTest is Test {
     ChainStats memory newChainStats = chainbills.getChainStats();
 
     // testing successful second payment with ERC20 token (USDC)
-    deal(address(usdc), user, usdcAmt);
-    usdc.approve(address(chainbills), usdcAmt);
     uint256 prevCbUsdcBal = usdc.balanceOf(address(chainbills));
     uint256 prevUserUsdcBal = usdc.balanceOf(user);
 
@@ -318,6 +295,7 @@ contract CbUsersTest is Test {
     chainbills.withdraw(bytes32(0), address(chainbills), 1);
 
     // create payable to be used for testing failed withdrawals
+    vm.prank(host);
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     // withdrawal should revert if caller is not the payable's host.
@@ -326,17 +304,19 @@ contract CbUsersTest is Test {
     chainbills.withdraw(payableId, address(chainbills), 1);
 
     // withdrawal should revert if zero amount was requested.
+    vm.prank(host);
     vm.expectRevert(ZeroAmountSpecified.selector);
     chainbills.withdraw(payableId, address(chainbills), 0);
 
     // withdrawal should revert if payable hasn't received any payments yet.
+    vm.prank(host);
     vm.expectRevert(NoBalanceForWithdrawalToken.selector);
     chainbills.withdraw(payableId, address(chainbills), 1);
   }
 
   function testUserMakingSuccessfulWithdrawals() public {
-    // create a payable as the user
-    vm.prank(user);
+    // Create payable
+    vm.startPrank(user);
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     ChainStats memory prevChainStats = chainbills.getChainStats();
@@ -345,25 +325,17 @@ contract CbUsersTest is Test {
     TokenDetails memory prevEthDetails = chainbills.getTokenDetails(address(chainbills));
     TokenDetails memory prevUsdcDetails = chainbills.getTokenDetails(address(usdc));
 
-    // make payments as the test contract to the user's payable.
-    deal(address(this), ethAmt);
+    // make a payment in native token to payable
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
-    // withdrawal should revert if payable hasn't received payments in
-    // the requested token.
-    vm.prank(user);
+    // withdrawal should revert if payable hasn't received payments in the requested token.
     vm.expectRevert(NoBalanceForWithdrawalToken.selector);
     chainbills.withdraw(payableId, address(usdc), 1);
 
-    // make payments as the test contract to the user's payable.
-    deal(address(usdc), address(this), usdcAmt * 2);
-    usdc.approve(address(chainbills), usdcAmt * 2);
+    // make a payment in erc20 token to payable
     chainbills.pay(payableId, address(usdc), usdcAmt); // paying USDC twice
     chainbills.pay(payableId, address(usdc), usdcAmt); // is intentional
     // to simulate more payments and check balances later.
-
-    // start prank to test withdrawals as user
-    vm.startPrank(user);
 
     // withdrawal should revert if more than available amount was requested.
     vm.expectRevert(InsufficientWithdrawAmount.selector);
@@ -371,8 +343,7 @@ contract CbUsersTest is Test {
 
     // withdrawal should revert if payable doesn't have balance in given token.
     // well specifically for this case, withdrawal should revert if the token
-    // is not supported (doesn't have its maxWithdrawalFees updated at least
-    // once). Though this is redundant, it is worth having.
+    // is not supported. Though this is redundant, it is worth having.
     // NOTE: ETH and USDC are allowed in the top-level setUp function for this
     // test contract.
     vm.expectRevert(NoBalanceForWithdrawalToken.selector);
@@ -433,11 +404,12 @@ contract CbUsersTest is Test {
 
     // obtain fees and amount due
     Config memory config = chainbills.getConfig();
+    // 10000 means 100 but with 2 decimal places
     uint256 ethPercent = (ethAmt * config.withdrawalFeePercentage) / 10000;
-    uint256 ethFee = ethPercent > ethMaxFee ? ethMaxFee : ethPercent;
+    uint256 ethFee = ethPercent > maxWtdlFeesEth ? maxWtdlFeesEth : ethPercent;
     uint256 ethAmtDue = ethAmt - ethFee;
     uint256 usdcPercent = (usdcAmt * config.withdrawalFeePercentage) / 10000;
-    uint256 usdcFee = usdcPercent > usdcMaxFee ? usdcMaxFee : usdcPercent;
+    uint256 usdcFee = usdcPercent > maxWtdlFeesUsdc ? maxWtdlFeesUsdc : usdcPercent;
     uint256 usdcAmtDue = usdcAmt - usdcFee;
 
     // check balances

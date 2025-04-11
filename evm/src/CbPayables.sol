@@ -42,7 +42,7 @@ contract CbPayables is CbUtils {
     }
 
     // Ensure that the required Wormhole Fees were paid.
-    _ensureWormholeFees();
+    if (hasWormhole()) _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Increment payables and activities counts on the host (address) creating
@@ -70,7 +70,7 @@ contract CbPayables is CbUtils {
 
     // Store ATAA locally and prepare the foreign equivalents in the same loop.
     TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](ataaLength);
-    for (uint8 i = 0; i < ataaLength; i++) {  
+    for (uint8 i = 0; i < ataaLength; i++) {
       address token = allowedTokensAndAmounts[i].token;
       uint256 amount = allowedTokensAndAmounts[i].amount;
 
@@ -99,15 +99,17 @@ contract CbPayables is CbUtils {
     emit CreatedPayable(payableId, msg.sender, _payable.chainCount, _payable.hostCount);
 
     // Publish Message through Wormhole.
-    wormholeMessageSequence = _publishPayloadMessage(
-      PayablePayload({
-        version: 1,
-        actionType: 1,
-        payableId: payableId,
-        isClosed: false,
-        allowedTokensAndAmounts: foreignAtaa
-      }) /* actionType 1 for Create */ .encode()
-    );
+    if (hasWormhole()) {
+      wormholeMessageSequence = _publishPayloadMessage(
+        PayablePayload({
+          version: 1,
+          actionType: 1,
+          payableId: payableId,
+          isClosed: false,
+          allowedTokensAndAmounts: foreignAtaa
+        }) /* actionType 1 for Create */ .encode()
+      );
+    }
   }
 
   /// Records an activity for updating a Payable.
@@ -153,7 +155,7 @@ contract CbPayables is CbUtils {
     if (_payable.isClosed) revert PayableIsAlreadyClosed();
 
     // Ensure that the required Wormhole Fees were paid.
-    _ensureWormholeFees();
+    if (hasWormhole()) _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Close the payable.
@@ -166,15 +168,17 @@ contract CbPayables is CbUtils {
     emit ClosedPayable(payableId, msg.sender);
 
     // Publish Message through Wormhole.
-    wormholeMessageSequence = _publishPayloadMessage(
-      PayablePayload({
-        version: 1,
-        actionType: 2,
-        payableId: payableId,
-        isClosed: true,
-        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-      }) /* actionType 2 for Close */ .encode()
-    );
+    if (hasWormhole()) {
+      wormholeMessageSequence = _publishPayloadMessage(
+        PayablePayload({
+          version: 1,
+          actionType: 2,
+          payableId: payableId,
+          isClosed: true,
+          allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+        }) /* actionType 2 for Close */ .encode()
+      );
+    }
   }
 
   /// Allow a closed payable to continue accepting payments. Should be called
@@ -192,7 +196,7 @@ contract CbPayables is CbUtils {
     if (!_payable.isClosed) revert PayableIsNotClosed();
 
     // Ensure that the required Wormhole Fees were paid.
-    _ensureWormholeFees();
+    if (hasWormhole()) _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Close the payable.
@@ -205,15 +209,17 @@ contract CbPayables is CbUtils {
     emit ReopenedPayable(payableId, msg.sender);
 
     // Publish Message through Wormhole.
-    wormholeMessageSequence = _publishPayloadMessage(
-      PayablePayload({
-        version: 1,
-        actionType: 3,
-        payableId: payableId,
-        isClosed: false,
-        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-      }) /* actionType 3 for Reopen */ .encode()
-    );
+    if (hasWormhole()) {
+      wormholeMessageSequence = _publishPayloadMessage(
+        PayablePayload({
+          version: 1,
+          actionType: 3,
+          payableId: payableId,
+          isClosed: false,
+          allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+        }) /* actionType 3 for Reopen */ .encode()
+      );
+    }
   }
 
   /// Allows a payable's host to update the payable's allowedTokensAndAmounts.
@@ -252,7 +258,7 @@ contract CbPayables is CbUtils {
     }
 
     // Ensure that the required Wormhole Fees were paid.
-    _ensureWormholeFees();
+    if (hasWormhole()) _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Update the payable's allowedTokensAndAmounts count
@@ -260,7 +266,7 @@ contract CbPayables is CbUtils {
 
     // Store ATAA locally and prepare the foreign equivalents in the same loop.
     TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](ataaLength);
-    for (uint8 i = 0; i < ataaLength; i++) {  
+    for (uint8 i = 0; i < ataaLength; i++) {
       address token = allowedTokensAndAmounts[i].token;
       uint256 amount = allowedTokensAndAmounts[i].amount;
 
@@ -278,15 +284,17 @@ contract CbPayables is CbUtils {
     emit UpdatedPayableAllowedTokensAndAmounts(payableId, msg.sender);
 
     // Publish Message through Wormhole.
-    wormholeMessageSequence = _publishPayloadMessage(
-      PayablePayload({
-        version: 1,
-        actionType: 4,
-        payableId: payableId,
-        isClosed: false,
-        allowedTokensAndAmounts: foreignAtaa
-      }) /* actionType 4 for UpdataATAA */ .encode()
-    );
+    if (hasWormhole()) {
+      wormholeMessageSequence = _publishPayloadMessage(
+        PayablePayload({
+          version: 1,
+          actionType: 4,
+          payableId: payableId,
+          isClosed: false,
+          allowedTokensAndAmounts: foreignAtaa
+        }) /* actionType 4 for UpdataATAA */ .encode()
+      );
+    }
   }
 
   /// Allows a payable's host to update the payable's autoWithdraw setting.
@@ -337,19 +345,21 @@ contract CbPayables is CbUtils {
     }
 
     // Ensure that the required Wormhole Fees were paid.
-    _ensureWormholeFees();
+    if (hasWormhole()) _ensureWormholeFees();
 
     /* STATE CHANGES */
     // Publish Message through Wormhole.
-    wormholeMessageSequence = _publishPayloadMessage(
-      PayablePayload({
-        version: 1,
-        actionType: 1,
-        payableId: payableId,
-        isClosed: _payable.isClosed,
-        allowedTokensAndAmounts: foreignAtaa
-      }) /* actionType 1 for Create, just re-using it */ .encode()
-    );
+    if (hasWormhole()) {
+      wormholeMessageSequence = _publishPayloadMessage(
+        PayablePayload({
+          version: 1,
+          actionType: 1,
+          payableId: payableId,
+          isClosed: _payable.isClosed,
+          allowedTokensAndAmounts: foreignAtaa
+        }) /* actionType 1 for Create, just re-using it */ .encode()
+      );
+    }
   }
 
   /// Records Payable Changes (Creation/Updates) from another chain.

@@ -32,7 +32,6 @@ contract CbUtils is CbState {
 
   /// Returns the cost of sending a message through Wormhole.
   function getWormholeMessageFee() public view returns (uint256) {
-    if (!hasWormhole()) return 0; // No fees if Wormhole is not set.
     return wormhole().messageFee();
   }
 
@@ -100,9 +99,6 @@ contract CbUtils is CbState {
 
   /// Publishes a message to Wormhole and returns the message sequence.
   function _publishPayloadMessage(bytes memory payload) internal returns (uint64 sequence) {
-    // If Wormhole is not set in this chain, simply return.
-    if (!hasWormhole()) return 0;
-
     // Publish the message to Wormhole.
     sequence = wormhole().publishMessage{value: getWormholeMessageFee()}(
       /* No Batching */

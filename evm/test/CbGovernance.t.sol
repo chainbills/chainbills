@@ -151,7 +151,6 @@ contract CbGovernanceTest is Test {
     chainbills.stopPaymentsForToken(address(usdc));
     vm.stopPrank();
 
-    
     // Create a payable
     vm.startPrank(user);
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
@@ -277,7 +276,6 @@ contract CbGovernanceTest is Test {
     vm.startPrank(owner);
     chainbills.allowPaymentsForToken(address(usdc));
     chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdcA);
-
 
     // Set withdrawal fee percentage A as owner
     vm.expectEmit(true, true, true, true);

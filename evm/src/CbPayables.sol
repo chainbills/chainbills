@@ -28,10 +28,8 @@ contract CbPayables is CbUtils {
   {
     /* CHECKS */
     // Ensure that the allowedTokensAndAmounts are valid.
-    // Also store them locally and prepare the foreign equivalents
-    // in the same loop.
-    TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](allowedTokensAndAmounts.length);
-    for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
+    uint8 ataaLength = uint8(allowedTokensAndAmounts.length);
+    for (uint8 i = 0; i < ataaLength; i++) {
       // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
       if (token == address(0)) revert InvalidTokenAddress();
@@ -40,14 +38,7 @@ contract CbPayables is CbUtils {
       if (!tokenDetails[token].isSupported) revert UnsupportedToken();
 
       // Ensure that the specified amount is greater than zero.
-      uint256 amount = allowedTokensAndAmounts[i].amount;
-      if (amount == 0) revert ZeroAmountSpecified();
-
-      // Set the local allowedTokenAndAmount directly
-      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount(token, amount));
-
-      // Set the foreign allowedTokensAndAmounts.
-      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: uint64(amount)});
+      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
     }
 
     // Ensure that the required Wormhole Fees were paid.
@@ -72,10 +63,23 @@ contract CbPayables is CbUtils {
     _payable.chainCount = chainStats.payablesCount;
     _payable.host = msg.sender;
     _payable.hostCount = users[msg.sender].payablesCount;
-    _payable.allowedTokensAndAmountsCount = uint8(allowedTokensAndAmounts.length);
+    _payable.allowedTokensAndAmountsCount = ataaLength;
     _payable.createdAt = block.timestamp;
     _payable.activitiesCount = 1; // for creation
     _payable.isAutoWithdraw = isAutoWithdraw;
+
+    // Store ATAA locally and prepare the foreign equivalents in the same loop.
+    TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](ataaLength);
+    for (uint8 i = 0; i < ataaLength; i++) {  
+      address token = allowedTokensAndAmounts[i].token;
+      uint256 amount = allowedTokensAndAmounts[i].amount;
+
+      // Set the local allowedTokenAndAmount directly
+      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount(token, amount));
+
+      // Set the foreign allowedTokensAndAmounts.
+      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: uint64(amount)});
+    }
 
     // Record the Activity.
     bytes32 activityId = _createId(toWormholeFormat(msg.sender), EntityType.Activity, users[msg.sender].activitiesCount);
@@ -234,10 +238,8 @@ contract CbPayables is CbUtils {
     }
 
     // Ensure that the allowedTokensAndAmounts are valid.
-    // Also store them locally and prepare the foreign allowedTokensAndAmounts
-    // in the same loop.
-    TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](allowedTokensAndAmounts.length);
-    for (uint8 i = 0; i < allowedTokensAndAmounts.length; i++) {
+    uint8 ataaLength = uint8(allowedTokensAndAmounts.length);
+    for (uint8 i = 0; i < ataaLength; i++) {
       // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
       if (token == address(0)) revert InvalidTokenAddress();
@@ -246,14 +248,7 @@ contract CbPayables is CbUtils {
       if (!tokenDetails[token].isSupported) revert UnsupportedToken();
 
       // Ensure that the specified amount is greater than zero.
-      uint256 amount = allowedTokensAndAmounts[i].amount;
-      if (amount == 0) revert ZeroAmountSpecified();
-
-      // Set the local allowedTokenAndAmount directly
-      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount(token, amount));
-
-      // Set the foreign allowedTokensAndAmounts.
-      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: uint64(amount)});
+      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
     }
 
     // Ensure that the required Wormhole Fees were paid.
@@ -261,7 +256,20 @@ contract CbPayables is CbUtils {
 
     /* STATE CHANGES */
     // Update the payable's allowedTokensAndAmounts count
-    _payable.allowedTokensAndAmountsCount = uint8(allowedTokensAndAmounts.length);
+    _payable.allowedTokensAndAmountsCount = ataaLength;
+
+    // Store ATAA locally and prepare the foreign equivalents in the same loop.
+    TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](ataaLength);
+    for (uint8 i = 0; i < ataaLength; i++) {  
+      address token = allowedTokensAndAmounts[i].token;
+      uint256 amount = allowedTokensAndAmounts[i].amount;
+
+      // Set the local allowedTokenAndAmount directly
+      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount(token, amount));
+
+      // Set the foreign allowedTokensAndAmounts.
+      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: uint64(amount)});
+    }
 
     // Record the Activity.
     _recordUpdatePayableActivity(payableId, ActivityType.UpdatedPayableAllowedTokensAndAmounts);

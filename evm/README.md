@@ -175,6 +175,8 @@ function pay(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ 
 
 Notwithstanding, the main Chainbills contract declares its governance methods (`onlyOnwer`) by itself.
 
+Luckily, if there is an update to the internal flow of CbPayables or CbTransactions, we can redeploy new variants and set the new addresses as the logic handlers in the main Chainbills contract without upgrading Chainbills itself. Of course, only the deployer / owner wallet of Chainbills can do the upgrade.
+
 ## Tests
 
 The tests for the EVM contract are in the [`test`](./test/) directory. The tests are written in Solidity and use the [Forge](https://book.getfoundry.sh/forge/) testing framework. They are organized in an end-to-end fashion, that is in the context of a user, a payable, activities, or governance.

@@ -29,12 +29,18 @@ const time = useTimeStore();
 const toast = useToast();
 const withdrawals = useWithdrawalStore();
 
-const receiptType =
-  receipt.value instanceof Withdrawal ? 'Withdrawal' : 'Payment';
-const userType = receipt.value instanceof Withdrawal ? 'Host' : 'Payer';
-const activityType = receipt.value instanceof Withdrawal ? 'Withdrew' : 'Paid';
-const payableIntro =
-  receipt.value instanceof Withdrawal ? 'Withdrew From' : 'Paid To';
+const receiptType = computed(() =>
+  receipt.value instanceof Withdrawal ? 'Withdrawal' : 'Payment'
+);
+const userType = computed(() =>
+  receipt.value instanceof Withdrawal ? 'Host' : 'Payer'
+);
+const activityType = computed(() =>
+  receipt.value instanceof Withdrawal ? 'Withdrew' : 'Paid'
+);
+const payableIntro = computed(() =>
+  receipt.value instanceof Withdrawal ? 'Withdrew From' : 'Paid To'
+);
 
 const userChain = computed(() =>
   receipt.value instanceof PayablePayment

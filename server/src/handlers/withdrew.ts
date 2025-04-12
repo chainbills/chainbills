@@ -2,7 +2,6 @@ import { Network } from '@wormhole-foundation/sdk';
 import { Withdrawal } from '../schemas';
 import {
   Chain,
-  cosmwasmFetch,
   devDb,
   evmFetchWithdrawal,
   notifyHost,
@@ -33,9 +32,6 @@ export const withdrew = async (
     raw = await solanaFetch('withdrawal', withdrawalId, network);
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchWithdrawal(withdrawalId);
-    withdrawalId = withdrawalId.toLowerCase();
-  } else if (chain === 'Burnt Xion') {
-    raw = await cosmwasmFetch('withdrawal', withdrawalId);
     withdrawalId = withdrawalId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 

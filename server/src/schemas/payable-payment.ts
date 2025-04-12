@@ -1,9 +1,4 @@
-import {
-  ChainId,
-  encoding,
-  Network,
-  UniversalAddress
-} from '@wormhole-foundation/sdk';
+import { ChainId, Network, UniversalAddress } from '@wormhole-foundation/sdk';
 import { Timestamp } from 'firebase-admin/firestore';
 import { Chain, denormalizeBytes, getChain, getChainId } from '../utils';
 import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
@@ -11,7 +6,7 @@ import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
 export class PayablePayment {
   id: string;
   chain: Chain;
-  chainId: ChainId | 50;
+  chainId: ChainId;
   network: Network;
   payableId: string;
   payableCount: number;
@@ -28,13 +23,7 @@ export class PayablePayment {
     this.network = network;
     this.payerChain = getChain(onChainData.payerChainId);
 
-    if (chain == 'Burnt Xion') {
-      this.payableId = encoding.hex.encode(
-        Uint8Array.from(onChainData.payableId),
-        false
-      );
-      this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
-    } else if (chain == 'Ethereum Sepolia') {
+    if (chain == 'Ethereum Sepolia') {
       this.payableId = onChainData.payableId.toLowerCase();
 
       if (this.payerChain == 'Ethereum Sepolia') {

@@ -1,9 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import {
-  cosmwasmVerify,
   evmVerify,
   solanaVerify,
-  WH_CHAIN_ID_BURNT_XION,
   WH_CHAIN_ID_ETH_SEPOLIA,
   WH_CHAIN_ID_SOLANA
 } from '../utils';
@@ -32,17 +30,6 @@ export const validateAuth = async (
     };
     if (chainId == WH_CHAIN_ID_SOLANA) verify = solanaVerify;
     if (chainId == WH_CHAIN_ID_ETH_SEPOLIA) verify = evmVerify;
-    if (chainId == WH_CHAIN_ID_BURNT_XION) {
-      verify = async (message: string, signature: any, address: any) => {
-        return await cosmwasmVerify(
-          message,
-          signature,
-          address,
-          headers['xion-grantee'],
-          headers['xion-pubkey']
-        );
-      };
-    }
 
     const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
     if (!isVerified) throw 'Unauthorized. Signature and Address Not Matching.';

@@ -2,10 +2,8 @@ import { Request, Response, Router } from 'express';
 import {
   createPayable,
   getPayable,
-  getVolumes,
   payablePaid,
   saveNotificationToken,
-  saveXionSagaEmail,
   userPaid,
   withdrew
 } from './handlers';
@@ -89,18 +87,6 @@ router.post(
         res
       );
     }
-  );
-});
-
-router.get('/volumes', async (_: Request, res: Response) => {
-  await wrapper(getVolumes, 'getting volumes', res);
-});
-
-router.post('/xion-saga-email', async (req: Request, res: Response) => {
-  await wrapper(
-    async () => await saveXionSagaEmail(req.body),
-    'saving xion saga email',
-    res
   );
 });
 

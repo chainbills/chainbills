@@ -2,15 +2,12 @@ import { ChainId } from '@wormhole-foundation/sdk';
 import { NextFunction, Request, Response } from 'express';
 import {
   getChain,
-  WH_CHAIN_ID_BURNT_XION,
   WH_CHAIN_ID_ETH_SEPOLIA,
   WH_CHAIN_ID_SOLANA
 } from '../utils';
 
 const isChainId = (chainId: any): chainId is ChainId =>
-  +chainId === WH_CHAIN_ID_ETH_SEPOLIA ||
-  +chainId === WH_CHAIN_ID_SOLANA ||
-  +chainId === WH_CHAIN_ID_BURNT_XION;
+  +chainId === WH_CHAIN_ID_ETH_SEPOLIA || +chainId === WH_CHAIN_ID_SOLANA;
 
 export const validateChain = async (
   { headers }: Request,

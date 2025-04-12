@@ -1,14 +1,7 @@
 import { Network } from '@wormhole-foundation/sdk';
 import { sanitize } from 'isomorphic-dompurify';
 import { Payable } from '../schemas';
-import {
-  Chain,
-  cosmwasmFetch,
-  devDb,
-  evmFetchPayable,
-  prodDb,
-  solanaFetch
-} from '../utils';
+import { Chain, devDb, evmFetchPayable, prodDb, solanaFetch } from '../utils';
 
 export const createPayable = async (
   body: any,
@@ -45,9 +38,6 @@ export const createPayable = async (
     raw = await solanaFetch('payable', payableId, network);
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchPayable(payableId);
-    payableId = payableId.toLowerCase();
-  } else if (chain === 'Burnt Xion') {
-    raw = await cosmwasmFetch('payable', payableId);
     payableId = payableId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 

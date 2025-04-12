@@ -2,7 +2,6 @@ import { Network } from '@wormhole-foundation/sdk';
 import { UserPayment } from '../schemas';
 import {
   Chain,
-  cosmwasmFetch,
   devDb,
   evmFetchUserPayment,
   prodDb,
@@ -32,9 +31,6 @@ export const userPaid = async (
     raw = await solanaFetch('userPayment', paymentId, network);
   } else if (chain === 'Ethereum Sepolia') {
     raw = await evmFetchUserPayment(paymentId);
-    paymentId = paymentId.toLowerCase();
-  } else if (chain === 'Burnt Xion') {
-    raw = await cosmwasmFetch('user_payment', paymentId);
     paymentId = paymentId.toLowerCase();
   } else throw `Unsupported Chain ${chain}`;
 

@@ -9,22 +9,6 @@ export class User {
   walletAddress!: string;
   withdrawalsCount!: number;
 
-  static fromCosmwasm(
-    walletAddress: string,
-    explorerUrl: string,
-    onChainData: any
-  ): User {
-    return {
-      chain: 'Burnt Xion',
-      chainCount: onChainData.chain_count,
-      explorerUrl,
-      payablesCount: onChainData.payables_count,
-      paymentsCount: onChainData.payments_count,
-      walletAddress,
-      withdrawalsCount: onChainData.withdrawals_count,
-    };
-  }
-
   static fromEvm(
     walletAddress: string,
     explorerUrl: string,

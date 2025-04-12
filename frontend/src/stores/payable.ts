@@ -2,7 +2,6 @@ import { Payable, TokenAndAmount } from '@/schemas';
 import {
   useAuthStore,
   useCacheStore,
-  useCosmwasmStore,
   useEvmStore,
   useNotificationsStore,
   useServerStore,
@@ -15,7 +14,6 @@ import { useToast } from 'primevue/usetoast';
 export const usePayableStore = defineStore('payable', () => {
   const auth = useAuthStore();
   const cache = useCacheStore();
-  const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const notifications = useNotificationsStore();
   const server = useServerStore();
@@ -27,7 +25,6 @@ export const usePayableStore = defineStore('payable', () => {
 
   const getChainStore: any = () =>
     ({
-      'Burnt Xion': cosmwasm,
       'Ethereum Sepolia': evm,
       Solana: solana,
     })[auth.currentUser!.chain];
@@ -74,8 +71,7 @@ export const usePayableStore = defineStore('payable', () => {
         detail: 'You have successfully created a Payable.',
         life: 12000,
       });
-      // TODO: Remove this checker after integrating sign and verify in Burnt Xion
-      if (auth.currentUser.chain != 'Burnt Xion') notifications.ensure();
+      notifications.ensure();
       return result.created;
     } catch (e) {
       console.error(e);
@@ -97,8 +93,6 @@ export const usePayableStore = defineStore('payable', () => {
         raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
       else if (dbData.chain == 'Ethereum Sepolia')
         raw = await evm.fetchPayable(id, ignoreErrors);
-      else if (dbData.chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('payable', id, ignoreErrors);
       else throw `Unknown chain: ${dbData.chain}`;
       if (raw) return new Payable(id, dbData.chain, dbData.description, raw);
     } catch (e) {

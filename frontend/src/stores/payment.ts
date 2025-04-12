@@ -8,7 +8,6 @@ import {
 import {
   useAuthStore,
   useCacheStore,
-  useCosmwasmStore,
   useEvmStore,
   usePayableStore,
   useServerStore,
@@ -23,7 +22,6 @@ import { useToast } from 'primevue/usetoast';
 export const usePaymentStore = defineStore('payment', () => {
   const auth = useAuthStore();
   const cache = useCacheStore();
-  const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const payableStore = usePayableStore();
   const server = useServerStore();
@@ -41,7 +39,6 @@ export const usePaymentStore = defineStore('payment', () => {
 
     try {
       const result = await {
-        'Burnt Xion': cosmwasm,
         'Ethereum Sepolia': evm,
         Solana: solana,
       }[auth.currentUser.chain]['pay'](payableId, details);
@@ -90,10 +87,7 @@ export const usePaymentStore = defineStore('payment', () => {
       try {
         new PublicKey(id);
       } catch (_) {
-        if (encoding.hex.valid(id)) {
-          if (id.startsWith('0x')) chain = 'Ethereum Sepolia';
-          else chain = 'Burnt Xion';
-        }
+        if (encoding.hex.valid(id)) chain = 'Ethereum Sepolia';
         // If it's not a valid Solana public key or it is not a hex string,
         // then it's not a valid ID.
         else return null;
@@ -129,8 +123,6 @@ export const usePaymentStore = defineStore('payment', () => {
         raw = await solana.tryFetchEntity('userPayment', id, ignoreErrors);
       else if (chain == 'Ethereum Sepolia')
         raw = await evm.fetchUserPayment(id, ignoreErrors);
-      else if (chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('user_payment', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
       if (raw) {
         payment = new UserPayment(id, chain, raw);
@@ -146,8 +138,6 @@ export const usePaymentStore = defineStore('payment', () => {
           raw = await solana.tryFetchEntity('payablePayment', id, ignoreErrors);
         else if (chain == 'Ethereum Sepolia')
           raw = await evm.fetchPayablePayment(id, ignoreErrors);
-        else if (chain == 'Burnt Xion')
-          raw = await cosmwasm.fetchEntity('payable_payment', id, ignoreErrors);
         else throw `Unknown chain: ${chain}`;
         if (raw) {
           payment = new PayablePayment(id, chain, raw);
@@ -180,8 +170,6 @@ export const usePaymentStore = defineStore('payment', () => {
         raw = await solana.fetchEntity('payablePayment', id);
       else if (chain == 'Ethereum Sepolia')
         raw = await evm.fetchPayablePayment(id);
-      else if (chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('payable_payment', id);
       else throw `Unknown chain: ${chain}`;
       if (raw) {
         payment = new PayablePayment(id, chain, raw);
@@ -215,8 +203,6 @@ export const usePaymentStore = defineStore('payment', () => {
       if (chain == 'Solana') raw = await solana.fetchEntity('userPayment', id);
       else if (chain == 'Ethereum Sepolia')
         raw = await evm.fetchUserPayment(id);
-      else if (chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('user_payment', id);
       else throw `Unknown chain: ${chain}`;
       if (raw) {
         payment = new UserPayment(id, chain, raw);

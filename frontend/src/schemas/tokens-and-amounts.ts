@@ -5,12 +5,6 @@ import { PublicKey } from '@solana/web3.js';
 export const SEPOLIA_CONTRACT_ADDRESS =
   '0x77eb76be1b283145ebc49d7d40e904b70c3b06ab';
 export const PROGRAM_ID = '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND';
-export const XION_CONTRACT_ADDRESS =
-  'xion1cena9wnyd2wudh5g7zrx2wwtr46wl2g3ahaargzt3gypufqd8s5sp6xpu3';
-export const XION_TREASURY_ADDRESS =
-  'xion10thlhpreq3d938ra0yw5qjwwcp9h300rllay3kzcteqfa99ccqvsrp2xk0';
-export const XION_USDC_ADDRESS =
-  'ibc/57097251ED81A232CE3C9D899E7C8096D6D87EF84BA203E12E424AA4C9B57A64';
 
 export interface TokenChainDetails {
   address: string;
@@ -53,8 +47,6 @@ export class TokenAndAmount {
         token = (token as unknown as PublicKey).toBase58();
       }
       found = tokens.find((t) => t.details.Solana?.address == token);
-    } else if (chain == 'Burnt Xion') {
-      found = tokens.find((t) => t.details['Burnt Xion']?.address == token);
     } else throw `Unknown Chain: ${chain}`;
 
     if (!found) throw `Couldn't find token details for ${token}`;
@@ -82,7 +74,6 @@ export class TokenAndAmount {
     let amount: any = this.amount;
     if (chain == 'Solana') amount = new BN(amount);
     if (chain == 'Ethereum Sepolia') amount = BigInt(this.amount);
-    if (chain == 'Burnt Xion') amount = `${this.amount}`;
     return { token, amount };
   }
 }
@@ -97,10 +88,6 @@ export const tokens: Token[] = [
       },
       'Ethereum Sepolia': {
         address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
-        decimals: 6,
-      },
-      'Burnt Xion': {
-        address: XION_USDC_ADDRESS,
         decimals: 6,
       },
     },
@@ -120,15 +107,6 @@ export const tokens: Token[] = [
       Solana: {
         address: PROGRAM_ID,
         decimals: 9,
-      },
-    },
-  },
-  {
-    name: 'XION',
-    details: {
-      'Burnt Xion': {
-        address: 'uxion',
-        decimals: 6,
       },
     },
   },

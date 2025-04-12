@@ -1,10 +1,5 @@
 import { type Token, User } from '@/schemas';
-import {
-  useCacheStore,
-  useCosmwasmStore,
-  useEvmStore,
-  useSolanaStore,
-} from '@/stores';
+import { useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import type { Cluster } from '@solana/web3.js';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { toChainId } from '@wormhole-foundation/sdk';
@@ -21,40 +16,33 @@ export const AUTH_MESSAGE = 'Authentication';
 export const SOLANA_CLUSTER: Cluster = 'devnet';
 export const WH_CHAIN_ID_SOLANA = toChainId('Solana');
 export const WH_CHAIN_ID_ETH_SEPOLIA = toChainId('Sepolia');
-export const WH_CHAIN_ID_BURNT_XION = 50;
 
-export const chains: Chain[] = ['Solana', 'Ethereum Sepolia', 'Burnt Xion'];
-export type Chain = 'Solana' | 'Ethereum Sepolia' | 'Burnt Xion';
+export const chains: Chain[] = ['Solana', 'Ethereum Sepolia'];
+export type Chain = 'Solana' | 'Ethereum Sepolia';
 
 export const denormalizeBytes = (bytes: Uint8Array, chain: Chain): string => {
   bytes = Uint8Array.from(bytes);
   if (chain == 'Solana') return encoding.b58.encode(bytes);
   if (chain == 'Ethereum Sepolia') {
     return '0x' + encoding.hex.encode(bytes, false).replace(/^0+/, '');
-  }
-  if (chain == 'Burnt Xion') {
-    return encoding.bech32.encode('xion', encoding.bech32.toWords(bytes));
   } else throw `Unknown chain: ${chain}`;
 };
 
 export const getChain = (id: number): Chain => {
   if (id == WH_CHAIN_ID_SOLANA) return 'Solana';
   if (id == WH_CHAIN_ID_ETH_SEPOLIA) return 'Ethereum Sepolia';
-  if (id == WH_CHAIN_ID_BURNT_XION) return 'Burnt Xion';
   throw `Unknown chainId: ${id}`;
 };
 
 export const getChainId = (chain: Chain): number => {
   if (chain == 'Solana') return WH_CHAIN_ID_SOLANA;
   if (chain == 'Ethereum Sepolia') return WH_CHAIN_ID_ETH_SEPOLIA;
-  if (chain == 'Burnt Xion') return WH_CHAIN_ID_BURNT_XION;
   throw `Unknown chain: ${chain}`;
 };
 
 export const useAuthStore = defineStore('auth', () => {
   const anchorWallet = useAnchorWallet();
   const cache = useCacheStore();
-  const cosmwasm = useCosmwasmStore();
   const currentUser = ref<User | null>(null);
   const evm = useEvmStore();
   const isLoading = ref(true);
@@ -67,7 +55,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   const getChainStore: any = (chain?: Chain) =>
     ({
-      'Burnt Xion': cosmwasm,
       'Ethereum Sepolia': evm,
       Solana: solana,
     })[chain ?? currentUser.value!.chain];
@@ -92,7 +79,6 @@ export const useAuthStore = defineStore('auth', () => {
   const disconnect = async (chain?: Chain): Promise<void> => {
     if (chain || currentUser.value) {
       return await {
-        'Burnt Xion': cosmwasm.logout,
         'Ethereum Sepolia': evmDisconnect,
         Solana: solanaWallet.disconnect,
       }[chain ?? currentUser.value!.chain]();
@@ -134,21 +120,17 @@ export const useAuthStore = defineStore('auth', () => {
     `chainbills::chainId=>${getChainId(user.chain)}` +
     `::signature=>${user.walletAddress}`;
 
-  const getSavedSig = (user: User): string | null => {
-    const storage = user.chain == 'Burnt Xion' ? sessionStorage : localStorage;
-    return storage.getItem(storageKey(user));
-  };
+  const getSavedSig = (user: User): string | null =>
+    localStorage.getItem(storageKey(user));
 
   const ensureSigned = async (user: User): Promise<void> => {
     let signed = getSavedSig(user);
     if (signed) {
-      signature.value = signed
+      signature.value = signed;
     } else {
       try {
         signed = await getChainStore(user.chain)['sign'](AUTH_MESSAGE);
-        const storage =
-          user.chain == 'Burnt Xion' ? sessionStorage : localStorage;
-        if (signed) storage.setItem(storageKey(user), signed);
+        if (signed) localStorage.setItem(storageKey(user), signed);
         else await disconnect(user.chain);
         signature.value = signed ?? null;
       } catch (e) {
@@ -169,15 +151,10 @@ export const useAuthStore = defineStore('auth', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  const updateCurrentUser = async ([
-    newCosmWasmAddr,
-    newAnchorWallet,
-    newEvmAddress,
-  ]: any[]) => {
+  const updateCurrentUser = async ([newAnchorWallet, newEvmAddress]: any[]) => {
     isLoading.value = true;
     let newChain: Chain | null = null;
-    if (newCosmWasmAddr) newChain = 'Burnt Xion';
-    else if (newEvmAddress) newChain = 'Ethereum Sepolia';
+    if (newEvmAddress) newChain = 'Ethereum Sepolia';
     else if (newAnchorWallet) newChain = 'Solana';
     else newChain = null;
 
@@ -205,7 +182,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const disconnectFns = [
-      ...(newCosmWasmAddr ? [] : [cosmwasm.logout]),
       ...(newAnchorWallet ? [] : [solanaWallet.disconnect]),
       ...(newEvmAddress ? [] : [evmDisconnect]),
     ];
@@ -214,18 +190,10 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   onMounted(() => {
-    updateCurrentUser([
-      cosmwasm.address,
-      anchorWallet.value,
-      evmAccount.address.value,
-    ]);
+    updateCurrentUser([anchorWallet.value, evmAccount.address.value]);
 
     watch(
-      [
-        () => cosmwasm.address,
-        () => anchorWallet.value,
-        () => evmAccount.address.value,
-      ],
+      [() => anchorWallet.value, () => evmAccount.address.value],
       updateCurrentUser,
       { deep: true }
     );

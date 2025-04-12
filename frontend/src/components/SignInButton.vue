@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const { id } = defineProps(['id']);
-import IconBurntXion from '@/icons/IconBurntXion.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconEthereum from '@/icons/IconEthereum.vue';
 import IconLogout from '@/icons/IconLogout.vue';
@@ -8,12 +7,7 @@ import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import IconSolana from '@/icons/IconSolana.vue';
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
-import {
-  useAuthStore,
-  useCosmwasmStore,
-  useSidebarStore,
-  useThemeStore,
-} from '@/stores';
+import { useAuthStore, useSidebarStore, useThemeStore } from '@/stores';
 import { useAppKit } from '@reown/appkit/vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
@@ -21,15 +15,11 @@ import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet, WalletMultiButton } from 'solana-wallets-vue';
 import { onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
 
 const anchorWallet = useAnchorWallet();
 const auth = useAuthStore();
-const cosmwasm = useCosmwasmStore();
 const walletMenu = ref();
 const isModalVisible = ref(false);
-const isLoggingInXion = ref(false);
-const router = useRouter();
 const sidebar = useSidebarStore();
 const toast = useToast();
 const theme = useThemeStore();
@@ -39,16 +29,6 @@ const onClickEvm = () => {
   sidebar.close();
   isModalVisible.value = false;
   evmConnect();
-};
-
-const onClickXion = () => {
-  router.push('/start/xion');
-  sidebar.close();
-  isModalVisible.value = false;
-
-  // if (isLoggingInXion.value) return;
-  // isLoggingInXion.value = true;
-  // cosmwasm.login();
 };
 
 const shortenAddress = (v: string) =>
@@ -122,7 +102,7 @@ onMounted(() => {
   </Button>
 
   <Button
-    @click="isModalVisible = true"
+    @click="onClickEvm"
     v-else-if="!auth.currentUser"
     class="px-4 py-2"
   >
@@ -139,7 +119,6 @@ onMounted(() => {
     <component
       :is="
         {
-          'Burnt Xion': IconBurntXion,
           Solana: IconSolana,
           'Ethereum Sepolia': IconEthereum,
         }[auth.currentUser.chain]
@@ -153,7 +132,7 @@ onMounted(() => {
   <Menu ref="walletMenu" id="wallet-menu" :model="walletItems()" :popup="true">
     <template #item="{ item, props }">
       <p v-if="!item.command" class="px-2 py-1 text-lg text-gray-500">
-        {{ item.label == 'Burnt Xion' ? 'XION' : item.label }}
+        {{ item.label }}
       </p>
       <Button
         class="flex items-center bg-transparent border-none hover:text-current"
@@ -166,7 +145,7 @@ onMounted(() => {
     </template>
   </Menu>
 
-  <Dialog
+  <!-- <Dialog
     v-model:visible="isModalVisible"
     modal
     header="Sign In"
@@ -175,44 +154,23 @@ onMounted(() => {
     <p class="mb-4 sm:mb-6">Choose your Sign In Option from the following:</p>
 
     <div
-      class="flex max-sm:flex-col max-sm:gap-2 gap-4 max-sm:items-start sm:items-center sm:justify-between mb-8 sm:mb-10"
-    >
-      <h2 class="text-lg flex items-center">
-        <IconBurntXion class="w-5.5 h-5.5 mr-1.5" />
-        <span>XION <span class="text-sm opacity-70">(Recommended)</span></span>
-      </h2>
-      <Button class="px-4 py-2" @click="onClickXion">
-        <template v-if="isLoggingInXion">
-          <IconSpinnerBlack class="mx-4" v-if="theme.isDisplayDark" />
-          <IconSpinnerWhite class="mx-4" v-else />
-        </template>
-        <span v-else>Connect</span>
-      </Button>
-    </div>
-
-    <div
       class="flex max-sm:flex-col max-sm:gap-2 gap-4 max-sm:items-start sm:items-center sm:justify-between mb-4"
     >
       <h2 class="text-lg flex items-center">
         <IconSolana class="w-5.5 h-5.5 mr-1.5" />
         <span>Solana</span>
       </h2>
-      <Button class="px-4 py-2" v-if="isLoggingInXion" disabled>
-        Select Wallet
-      </Button>
-      <wallet-multi-button :dark="theme.isDisplayDark" v-else />
+      <wallet-multi-button :dark="theme.isDisplayDark" />
     </div>
 
-    <!-- <div
+    <div
       class="flex max-sm:flex-col max-sm:gap-2 gap-4 max-sm:items-start sm:items-center sm:justify-between mb-4"
     >
       <h2 class="text-lg flex items-center">
         <IconEthereum class="w-5.5 h-5.5 mr-1.5" />
         <span>Ethereum Sepolia</span>
       </h2>
-      <Button class="px-4 py-2" @click="onClickEvm" :disabled="isLoggingInXion">
-        Select Wallet
-      </Button>
-    </div> -->
-  </Dialog>
+      <Button class="px-4 py-2" @click="onClickEvm"> Select Wallet </Button>
+    </div>
+  </Dialog> -->
 </template>

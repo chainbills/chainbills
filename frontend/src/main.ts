@@ -25,7 +25,6 @@ import VueGtag from 'vue-gtag';
 import VueWriter from 'vue-writer';
 import App from './App.vue';
 import router from './router';
-import { initXion } from './stores';
 
 const walletOptions: WalletStoreProps = {
   wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
@@ -75,7 +74,6 @@ app.use(router);
 app.use(SolanaWallets, walletOptions);
 app.use(ToastService);
 app.use(VueWriter as any);
-initXion();
 
 const projectId = import.meta.env.VITE_WC_PROJECT_ID;
 const networks: [AppKitNetwork] = [sepolia];

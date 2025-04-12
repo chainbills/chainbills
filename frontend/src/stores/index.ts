@@ -1,7 +1,6 @@
 export * from './abi';
 export * from './auth';
 export * from './cache';
-export * from './cosmwasm';
 export * from './evm';
 export * from './firebase';
 export * from './idl';

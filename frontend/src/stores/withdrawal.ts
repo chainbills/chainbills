@@ -2,7 +2,6 @@ import { Payable, TokenAndAmount, Withdrawal } from '@/schemas';
 import {
   useAuthStore,
   useCacheStore,
-  useCosmwasmStore,
   useEvmStore,
   usePayableStore,
   useServerStore,
@@ -17,7 +16,6 @@ import { useToast } from 'primevue/usetoast';
 export const useWithdrawalStore = defineStore('withdrawal', () => {
   const auth = useAuthStore();
   const cache = useCacheStore();
-  const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const payableStore = usePayableStore();
   const server = useServerStore();
@@ -33,11 +31,9 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     if (!auth.currentUser) return null;
 
     try {
-      const result = await {
-        'Burnt Xion': cosmwasm,
-        'Ethereum Sepolia': evm,
-        Solana: solana,
-      }[auth.currentUser.chain]['withdraw'](payableId, details);
+      const result = await { 'Ethereum Sepolia': evm, Solana: solana }[
+        auth.currentUser.chain
+      ]['withdraw'](payableId, details);
       if (!result) return null;
       await auth.refreshUser();
 
@@ -72,10 +68,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       try {
         new PublicKey(id);
       } catch (_) {
-        if (encoding.hex.valid(id)) {
-          if (id.startsWith('0x')) chain = 'Ethereum Sepolia';
-          else chain = 'Burnt Xion';
-        }
+        if (encoding.hex.valid(id)) chain = 'Ethereum Sepolia';
         // If it's not a valid Solana public key or it is not a hex string,
         // then it's not a valid ID.
         else return null;
@@ -95,11 +88,10 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
     try {
       let raw: any;
-      if (chain == 'Solana') raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
+      if (chain == 'Solana')
+        raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
       else if (chain == 'Ethereum Sepolia')
         raw = await evm.fetchWithdrawal(id, ignoreErrors);
-      else if (chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('withdrawal', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
       if (raw) withdrawal = new Withdrawal(id, chain, raw);
     } catch (e) {

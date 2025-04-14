@@ -25,10 +25,10 @@ contract CbPayablesManagementTest is Test {
   address user = makeAddr('user');
   address feeCollector = makeAddr('fee-collector');
 
+  uint256 ethAmt = 1e16; // 0.01 ETH
   uint16 feePercent = 200; // 2% (with 2 decimals)
   uint256 maxWtdlFeeEth = 5e17; // 0.5 ETH
   uint256 maxWtdlFeeUsdc = 2e8; // 200 USDC
-  uint256 ethAmt = 1e16; // 0.01 ETH
   uint256 usdcAmt = 1e8; // 100 USDC
 
   function setUp() public {

@@ -28,10 +28,10 @@ contract CbUsersTest is Test {
   address owner = makeAddr('owner');
   address user = makeAddr('user');
 
+  uint256 ethAmt = 1e16; // 0.01 ETH
   uint16 feePercent = 200; // 2%, the extra zeros are for decimals.
   uint256 maxWtdlFeesEth = 5e17; // 0.5 ETH
   uint256 maxWtdlFeesUsdc = 2e8; // 200 USDC
-  uint256 ethAmt = 1e16; // 0.01 ETH
   uint256 usdcAmt = 1e8; // 100 USDC
 
   function setUp() public {

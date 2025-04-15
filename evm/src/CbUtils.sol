@@ -3,9 +3,7 @@ pragma solidity ^0.8.20;
 
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
-import './CbEvents.sol';
 import './CbState.sol';
-import './CbStructs.sol';
 
 contract CbUtils is CbState {
   /// Stores a Wormhole Message and mark it as consumed.
@@ -19,18 +17,12 @@ contract CbUtils is CbState {
   }
 
   /// Returns a hash that should be used for entity IDs.
-  function createId(bytes32 entity, EntityType salt, uint256 count)
-    internal
-    view
-    returns (bytes32)
-  {
-    return keccak256(
-      abi.encodePacked(block.chainid, block.timestamp, entity, salt, count)
-    );
+  function _createId(bytes32 entity, EntityType salt, uint256 count) internal view returns (bytes32) {
+    return keccak256(abi.encodePacked(block.chainid, block.timestamp, entity, salt, count));
   }
 
   /// Ensures that the enough Wormhole fees was provided for the call.
-  function ensureWormholeFees() internal {
+  function _ensureWormholeFees() internal {
     uint256 wormholeFees = getWormholeMessageFee();
     if (msg.value < wormholeFees) revert InsufficientWormholeFees();
     if (msg.value > wormholeFees) revert IncorrectWormholeFees();
@@ -38,13 +30,12 @@ contract CbUtils is CbState {
 
   /// Returns the cost of sending a message through Wormhole.
   function getWormholeMessageFee() public view returns (uint256) {
-    if (!hasWormhole()) return 0; // No fees if Wormhole is not set.
     return wormhole().messageFee();
   }
 
   /// Initializes a User if need be.
   /// @param wallet The address of the user.
-  function initializeUserIfNeedBe(address wallet) internal {
+  function _initializeUserIfNeedBe(address wallet) internal {
     // Check if the user has not yet been initialized, if yes, initialize.
     if (users[wallet].chainCount == 0) {
       // Increment chain count for users and activities.
@@ -57,8 +48,7 @@ contract CbUtils is CbState {
       users[wallet].activitiesCount = 1;
 
       // Record the Activity.
-      bytes32 activityId =
-        createId(toWormholeFormat(wallet), EntityType.Activity, 1);
+      bytes32 activityId = _createId(toWormholeFormat(wallet), EntityType.Activity, 1);
       chainActivityIds.push(activityId);
       userActivityIds[wallet].push(activityId);
       activities[activityId] = ActivityRecord({
@@ -79,7 +69,7 @@ contract CbUtils is CbState {
   /// the necessary checks.
   /// @param wormholeEncoded Encoded Wormhole message.
   /// @return parsedAndChecked The parsed Wormhole message.
-  function parseAndCheckWormholeMessage(bytes memory wormholeEncoded)
+  function _parseAndCheckWormholeMessage(bytes memory wormholeEncoded)
     internal
     view
     returns (IWormhole.VM memory parsedAndChecked)
@@ -92,10 +82,7 @@ contract CbUtils is CbState {
     require(valid, reason);
 
     // Verify that this message was emitted by a registered emitter
-    if (
-      registeredForeignContracts[wormholeMessage.emitterChainId]
-        != wormholeMessage.emitterAddress
-    ) {
+    if (registeredForeignContracts[wormholeMessage.emitterChainId] != wormholeMessage.emitterAddress) {
       revert EmitterNotRegistered();
     }
 
@@ -109,13 +96,7 @@ contract CbUtils is CbState {
   }
 
   /// Publishes a message to Wormhole and returns the message sequence.
-  function publishPayloadMessage(bytes memory payload)
-    internal
-    returns (uint64 sequence)
-  {
-    // If Wormhole is not set in this chain, simply return.
-    if (!hasWormhole()) return 0;
-
+  function _publishPayloadMessage(bytes memory payload) internal returns (uint64 sequence) {
     // Publish the message to Wormhole.
     sequence = wormhole().publishMessage{value: getWormholeMessageFee()}(
       /* No Batching */

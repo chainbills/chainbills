@@ -16,7 +16,7 @@ sepolia = "${SEPOLIA_RPC_URL}"
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
 
 [fmt]
-line_length = 80
+line_length = 120
 quote_style = "single"
 tab_width = 2
 

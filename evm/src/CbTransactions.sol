@@ -6,11 +6,8 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import 'wormhole/libraries/BytesParsing.sol';
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
-import './CbErrors.sol';
-import './CbEvents.sol';
 import './CbUtils.sol';
 import './CbPayloadMessages.sol';
-import './CbStructs.sol';
 
 contract CbTransactions is CbUtils {
   using BytesParsing for bytes;
@@ -20,7 +17,7 @@ contract CbTransactions is CbUtils {
   /// Carries out necessary checks on the token and amount to be paid.
   /// @param token The address of the token to be paid.
   /// @param amount The amount of the token to be paid.
-  function ensurePaymentChecks(address token, uint256 amount) internal view {
+  function _ensurePaymentChecks(address token, uint256 amount) internal view {
     // Ensure that the token is valid.
     if (token == address(0)) revert InvalidTokenAddress();
 
@@ -37,14 +34,12 @@ contract CbTransactions is CbUtils {
   /// @param token The address of the token that was paid.
   /// @param amount The amount paid.
   /// @return userPaymentId The ID of the recorded payment from the user.
-  function recordUserPayment(
-    bytes32 payableId,
-    uint16 payableChainId,
-    address token,
-    uint256 amount
-  ) internal returns (bytes32 userPaymentId) {
+  function _recordUserPayment(bytes32 payableId, uint16 payableChainId, address token, uint256 amount)
+    internal
+    returns (bytes32 userPaymentId)
+  {
     // Increment paymentsCount in the payer that just paid.
-    initializeUserIfNeedBe(msg.sender);
+    _initializeUserIfNeedBe(msg.sender);
     users[msg.sender].paymentsCount++;
     users[msg.sender].activitiesCount++;
 
@@ -56,11 +51,7 @@ contract CbTransactions is CbUtils {
     tokenDetails[token].totalUserPaid += amount;
 
     // Record payment details of user.
-    userPaymentId = createId(
-      toWormholeFormat(msg.sender),
-      EntityType.Payment,
-      users[msg.sender].paymentsCount
-    );
+    userPaymentId = _createId(toWormholeFormat(msg.sender), EntityType.Payment, users[msg.sender].paymentsCount);
     chainUserPaymentIds.push(userPaymentId);
     userPaymentIds[msg.sender].push(userPaymentId);
     userPayments[userPaymentId] = UserPayment({
@@ -75,11 +66,8 @@ contract CbTransactions is CbUtils {
     });
 
     // Record User Activity.
-    bytes32 userActivityId = createId(
-      toWormholeFormat(msg.sender),
-      EntityType.Activity,
-      users[msg.sender].activitiesCount
-    );
+    bytes32 userActivityId =
+      _createId(toWormholeFormat(msg.sender), EntityType.Activity, users[msg.sender].activitiesCount);
     chainActivityIds.push(userActivityId);
     userActivityIds[msg.sender].push(userActivityId);
     activities[userActivityId] = ActivityRecord({
@@ -109,13 +97,10 @@ contract CbTransactions is CbUtils {
   /// @param token The address of the token that was paid.
   /// @param amount The amount paid.
   /// @return payablePaymentId The ID of the recorded payment from the user.
-  function recordPayablePayment(
-    bytes32 payableId,
-    bytes32 payer,
-    uint16 payerChainId,
-    address token,
-    uint256 amount
-  ) internal returns (bytes32 payablePaymentId) {
+  function _recordPayablePayment(bytes32 payableId, bytes32 payer, uint16 payerChainId, address token, uint256 amount)
+    internal
+    returns (bytes32 payablePaymentId)
+  {
     // Increment the chainStats for payments and activities counts.
     chainStats.payablePaymentsCount++;
     chainStats.activitiesCount++;
@@ -145,8 +130,7 @@ contract CbTransactions is CbUtils {
     tokenDetails[token].totalPayableReceived += amount;
 
     // Record payment details of payable.
-    payablePaymentId =
-      createId(payableId, EntityType.Payment, _payable.paymentsCount);
+    payablePaymentId = _createId(payableId, EntityType.Payment, _payable.paymentsCount);
     chainPayablePaymentIds.push(payablePaymentId);
     payablePaymentIds[payableId].push(payablePaymentId);
     payableChainPaymentIds[payableId][payerChainId].push(payablePaymentId);
@@ -163,8 +147,7 @@ contract CbTransactions is CbUtils {
     });
 
     // Record Payable Activity.
-    bytes32 payableActivityId =
-      createId(payableId, EntityType.Activity, _payable.activitiesCount);
+    bytes32 payableActivityId = _createId(payableId, EntityType.Activity, _payable.activitiesCount);
     chainActivityIds.push(payableActivityId);
     payableActivityIds[payableId].push(payableActivityId);
     activities[payableActivityId] = ActivityRecord({
@@ -178,12 +161,7 @@ contract CbTransactions is CbUtils {
 
     // Emit Event.
     emit PayableReceived(
-      payableId,
-      payer,
-      payablePaymentId,
-      payerChainId,
-      chainStats.payablePaymentsCount,
-      _payable.paymentsCount
+      payableId, payer, payablePaymentId, payerChainId, chainStats.payablePaymentsCount, _payable.paymentsCount
     );
   }
 
@@ -192,7 +170,7 @@ contract CbTransactions is CbUtils {
   /// @param token The address of the token been withdrawn.
   /// @param amount The amount of the token.
   /// @return withdrawalId The ID of the withdrawal.
-  function actualizeWithdrawal(bytes32 payableId, address token, uint256 amount)
+  function _actualizeWithdrawal(bytes32 payableId, address token, uint256 amount)
     internal
     returns (bytes32 withdrawalId)
   {
@@ -251,11 +229,8 @@ contract CbTransactions is CbUtils {
     tokenDetails[token].totalWithdrawalFeesCollected += fees;
 
     // Initialize the withdrawal.
-    withdrawalId = createId(
-      toWormholeFormat(_payable.host),
-      EntityType.Withdrawal,
-      users[_payable.host].withdrawalsCount
-    );
+    withdrawalId =
+      _createId(toWormholeFormat(_payable.host), EntityType.Withdrawal, users[_payable.host].withdrawalsCount);
     chainWithdrawalIds.push(withdrawalId);
     userWithdrawalIds[_payable.host].push(withdrawalId);
     payableWithdrawalIds[payableId].push(withdrawalId);
@@ -271,11 +246,8 @@ contract CbTransactions is CbUtils {
     });
 
     // Record the Activity.
-    bytes32 activityId = createId(
-      toWormholeFormat(_payable.host),
-      EntityType.Activity,
-      users[_payable.host].activitiesCount
-    );
+    bytes32 activityId =
+      _createId(toWormholeFormat(_payable.host), EntityType.Activity, users[_payable.host].activitiesCount);
     chainActivityIds.push(activityId);
     userActivityIds[_payable.host].push(activityId);
     payableActivityIds[payableId].push(activityId);
@@ -312,7 +284,7 @@ contract CbTransactions is CbUtils {
   {
     /* CHECKS */
     // Basic Payment Checks
-    ensurePaymentChecks(token, amount);
+    _ensurePaymentChecks(token, amount);
 
     // Ensure that the payable exists and it is not closed
     Payable storage _payable = payables[payableId];
@@ -324,8 +296,7 @@ contract CbTransactions is CbUtils {
     uint8 aTAALength = _payable.allowedTokensAndAmountsCount;
     if (aTAALength > 0) {
       for (uint8 i = 0; i < aTAALength; i++) {
-        TokenAndAmount storage ataa =
-          payableAllowedTokensAndAmounts[payableId][i];
+        TokenAndAmount storage ataa = payableAllowedTokensAndAmounts[payableId][i];
         if (ataa.token == token && ataa.amount == amount) break;
         if (i == aTAALength - 1) revert MatchingTokenAndAmountNotFound();
       }
@@ -347,19 +318,17 @@ contract CbTransactions is CbUtils {
     // Record successful payment and activity from the payer.
     // Use 0 (zero) as the chain ID for this chain. Using zero instead of
     // config.chainId to account for chains that don't yet have Wormhole.
-    userPaymentId = recordUserPayment(payableId, 0, token, amount);
+    userPaymentId = _recordUserPayment(payableId, 0, token, amount);
 
     // Record successful payment and activity to the payable.
     // Use 0 (zero) as the chain ID for this chain. Using zero instead of
     // config.chainId to account for chains that don't yet have Wormhole.
-    payablePaymentId = recordPayablePayment(
-      payableId, toWormholeFormat(msg.sender), 0, token, amount
-    );
+    payablePaymentId = _recordPayablePayment(payableId, toWormholeFormat(msg.sender), 0, token, amount);
 
     // If the Payable is an auto-withdraw, then make transfer of just-paid
     // amount to the payable's owner and update state immediately by calling
     // helper function.
-    if (_payable.isAutoWithdraw) actualizeWithdrawal(payableId, token, amount);
+    if (_payable.isAutoWithdraw) _actualizeWithdrawal(payableId, token, amount);
   }
 
   /// Transfers the amount of tokens from a payer to a foreign payable.
@@ -369,21 +338,17 @@ contract CbTransactions is CbUtils {
   /// @return userPaymentId The ID of the recorded payment from the user.
   /// @return wormholeMessageSequence The sequence number of the Wormhole
   /// message.
-  function payForeignWithCircle(
-    bytes32 payableId,
-    address token,
-    uint256 amount
-  )
+  function payForeignWithCircle(bytes32 payableId, address token, uint256 amount)
     public
     payable
     returns (bytes32 userPaymentId, uint64 wormholeMessageSequence)
   {
     /* CHECKS */
     // Basic Payment Checks
-    ensurePaymentChecks(token, amount);
+    _ensurePaymentChecks(token, amount);
 
     // Ensure that the required Wormhole Fees were paid.
-    ensureWormholeFees();
+    _ensureWormholeFees();
 
     // Ensure that the foreign payable exists and it is not closed
     PayableForeign storage _payable = foreignPayables[payableId];
@@ -395,10 +360,8 @@ contract CbTransactions is CbUtils {
     uint8 aTAALength = _payable.allowedTokensAndAmountsCount;
     if (aTAALength > 0) {
       for (uint8 i = 0; i < aTAALength; i++) {
-        TokenAndAmountForeign storage ataa =
-          foreignPayableAllowedTokensAndAmounts[payableId][i];
-        address matchingToken =
-          forForeignChainMatchingTokenAddresses[_payable.chainId][ataa.token];
+        TokenAndAmountForeign storage ataa = foreignPayableAllowedTokensAndAmounts[payableId][i];
+        address matchingToken = forForeignChainMatchingTokenAddresses[_payable.chainId][ataa.token];
         if (matchingToken == token && ataa.amount == uint64(amount)) break;
         if (i == aTAALength - 1) revert MatchingTokenAndAmountNotFound();
       }
@@ -415,21 +378,16 @@ contract CbTransactions is CbUtils {
 
     // Burn tokens with CircleBridge
     uint64 circleNonce = circleBridge().depositForBurn(
-      amount,
-      chainIdToCircleDomain[_payable.chainId],
-      registeredForeignContracts[_payable.chainId],
-      token
+      amount, chainIdToCircleDomain[_payable.chainId], registeredForeignContracts[_payable.chainId], token
     );
 
     /* STATE CHANGES */
     // Record successful payment and activity from the payer.
-    userPaymentId =
-      recordUserPayment(payableId, _payable.chainId, token, amount);
+    userPaymentId = _recordUserPayment(payableId, _payable.chainId, token, amount);
 
     // Publish Message through Wormhole.
-    bytes32 foreignTokenAddr =
-      forTokenAddressMatchingForeignChainTokens[token][_payable.chainId];
-    wormholeMessageSequence = publishPayloadMessage(
+    bytes32 foreignTokenAddr = forTokenAddressMatchingForeignChainTokens[token][_payable.chainId];
+    wormholeMessageSequence = _publishPayloadMessage(
       PaymentPayload({
         version: 1,
         payableId: payableId,
@@ -451,17 +409,16 @@ contract CbTransactions is CbUtils {
   /// - circleBridgeMessage The encoded message from Circle Bridge.
   /// - circleAttestation The encoded attestation from Circle.
   /// @return payablePaymentId The ID of the recorded payment from the payable.
-  function receiveForeignPaymentWithCircle(
-    RedeemCirclePaymentParameters memory params
-  ) public returns (bytes32 payablePaymentId) {
+  function receiveForeignPaymentWithCircle(RedeemCirclePaymentParameters memory params)
+    public
+    returns (bytes32 payablePaymentId)
+  {
     /* CHECKS */
     // Carry out necessary verifications on the encoded Wormhole and parse it.
-    IWormhole.VM memory wormholeMessage =
-      parseAndCheckWormholeMessage(params.wormholeEncoded);
+    IWormhole.VM memory wormholeMessage = _parseAndCheckWormholeMessage(params.wormholeEncoded);
 
     // Decode the Payload from the Wormhole message.
-    PaymentPayload memory payload =
-      wormholeMessage.payload.decodePaymentPayload();
+    PaymentPayload memory payload = wormholeMessage.payload.decodePaymentPayload();
 
     // Ensure that the payable exists.
     bytes32 payableId = payload.payableId;
@@ -478,10 +435,8 @@ contract CbTransactions is CbUtils {
     bytes32 circleRecipient;
     uint32 payloadSourceDomain = chainIdToCircleDomain[payload.payerChainId];
     uint32 payloadTargetDomain = chainIdToCircleDomain[payload.payableChainId];
-    (circleParsedSourceDomain, index) =
-      params.circleBridgeMessage.asUint32(index);
-    (circleParsedTargetDomain, index) =
-      params.circleBridgeMessage.asUint32(index);
+    (circleParsedSourceDomain, index) = params.circleBridgeMessage.asUint32(index);
+    (circleParsedTargetDomain, index) = params.circleBridgeMessage.asUint32(index);
     (circleNonce, index) = params.circleBridgeMessage.asUint64(index);
     (circleSender, index) = params.circleBridgeMessage.asBytes32(index);
     (circleRecipient, index) = params.circleBridgeMessage.asBytes32(index);
@@ -503,11 +458,7 @@ contract CbTransactions is CbUtils {
     // Obtain the token that Circle will mint from Circle.
     bytes32 localCircleToken = toWormholeFormat(
       circleTokenMinter().remoteTokensToLocalTokens(
-        keccak256(
-          abi.encodePacked(
-            chainIdToCircleDomain[payload.payerChainId], payload.payerChainToken
-          )
-        )
+        keccak256(abi.encodePacked(chainIdToCircleDomain[payload.payerChainId], payload.payerChainToken))
       )
     );
 
@@ -518,31 +469,25 @@ contract CbTransactions is CbUtils {
 
     /* TRANSFER */
     // Redeem the Circle Message. Minting takes place in this call.
-    bool isSuccess = circleTransmitter().receiveMessage(
-      params.circleBridgeMessage, params.circleAttestation
-    );
+    bool isSuccess = circleTransmitter().receiveMessage(params.circleBridgeMessage, params.circleAttestation);
     if (!isSuccess) revert CircleMintingFailed();
 
     /* STATE CHANGES */
     // Record successful payment and activity to the payable.
     address token = fromWormholeFormat(payload.payableChainToken);
     uint256 amount = uint256(payload.amount);
-    payablePaymentId = recordPayablePayment(
-      payableId, payload.payer, payload.payerChainId, token, amount
-    );
+    payablePaymentId = _recordPayablePayment(payableId, payload.payer, payload.payerChainId, token, amount);
 
     /// Store and consume the Wormhole message.
     consumeWormholeMessage(wormholeMessage);
 
     // Emit Event.
-    emit ConsumedWormholePaymentMessage(
-      payableId, payload.payerChainId, wormholeMessage.hash
-    );
+    emit ConsumedWormholePaymentMessage(payableId, payload.payerChainId, wormholeMessage.hash);
 
     // If the Payable is an auto-withdraw, then make transfer of just-redeemed
     // amount to the payable's owner and update state immediately by calling
     // helper function.
-    if (_payable.isAutoWithdraw) actualizeWithdrawal(payableId, token, amount);
+    if (_payable.isAutoWithdraw) _actualizeWithdrawal(payableId, token, amount);
   }
 
   /// Transfers the amount of tokens from a payable to the owner host.
@@ -550,10 +495,7 @@ contract CbTransactions is CbUtils {
   /// @param token The address of the token been withdrawn.
   /// @param amount The amount of the token.
   /// @return withdrawalId The ID of the withdrawal.
-  function withdraw(bytes32 payableId, address token, uint256 amount)
-    public
-    returns (bytes32 withdrawalId)
-  {
+  function withdraw(bytes32 payableId, address token, uint256 amount) public returns (bytes32 withdrawalId) {
     /* CHECKS */
     // Ensure that the payable exists and that the caller owns the payable.
     Payable storage _payable = payables[payableId];
@@ -582,6 +524,6 @@ contract CbTransactions is CbUtils {
 
     /* ACTION */
     // Make transfer and update state by calling helper function.
-    withdrawalId = actualizeWithdrawal(payableId, token, amount);
+    withdrawalId = _actualizeWithdrawal(payableId, token, amount);
   }
 }

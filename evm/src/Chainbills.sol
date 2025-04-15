@@ -4,28 +4,19 @@ pragma solidity ^0.8.20;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
-import
-  '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
 import './circle/ICircleBridge.sol';
 import './circle/IMessageTransmitter.sol';
 import './circle/ITokenMinter.sol';
-import './CbErrors.sol';
-import './CbEvents.sol';
 import './CbUtils.sol';
 import './CbPayables.sol';
 import './CbTransactions.sol';
 
 /// A Cross-Chain Payment Gateway.
-contract Chainbills is
-  CbUtils,
-  Initializable,
-  OwnableUpgradeable,
-  ReentrancyGuardUpgradeable,
-  UUPSUpgradeable
-{
+contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
   fallback() external payable {}
 
   receive() external payable {}
@@ -34,10 +25,7 @@ contract Chainbills is
   /// @param feeCollector The address that will collect withdrawal fees.
   /// @param feePercent The percentage of withdrawals to collect as fees.
   /// The percentage should account for 2 decimal places. That is, 200 means 2%.
-  function initialize(address feeCollector, uint16 feePercent)
-    public
-    initializer
-  {
+  function initialize(address feeCollector, uint16 feePercent) public initializer {
     if (feeCollector == address(0)) revert InvalidFeeCollector();
     config.feeCollector = feeCollector;
     config.withdrawalFeePercentage = feePercent;
@@ -58,19 +46,16 @@ contract Chainbills is
   /// @param chainId The Wormhole Chain ID of the chain.
   /// @param wormholeFinality Confirmed/Finalized for Wormhole messages.
   /// @dev Only the deployer (owner) can invoke this method
-  function setupWormholeAndCircle(
-    address wormhole,
-    address circleBridge,
-    uint16 chainId,
-    uint8 wormholeFinality
-  ) public onlyOwner {
+  function setupWormholeAndCircle(address wormhole, address circleBridge, uint16 chainId, uint8 wormholeFinality)
+    public
+    onlyOwner
+  {
     if (wormhole == address(0)) revert InvalidWormholeAddress();
     else if (chainId == 0) revert InvalidWormholeChainId();
     else if (wormholeFinality == 0) revert InvalidWormholeFinality();
     else if (circleBridge == address(0)) revert InvalidCircleBridge();
 
-    IMessageTransmitter circleTransmitter =
-      ICircleBridge(circleBridge).localMessageTransmitter();
+    IMessageTransmitter circleTransmitter = ICircleBridge(circleBridge).localMessageTransmitter();
     uint32 circleDomain = circleTransmitter.localDomain();
     ITokenMinter circleTokenMinter = ICircleBridge(circleBridge).localMinter();
 
@@ -92,11 +77,7 @@ contract Chainbills is
   /// Withdraws the specified `amount` of `token` to the {owner}.
   /// If token is the same as this deployed contract's address, the
   /// native token is transferred.
-  function ownerWithdraw(address token, uint256 amount)
-    public
-    onlyOwner
-    nonReentrant
-  {
+  function ownerWithdraw(address token, uint256 amount) public onlyOwner nonReentrant {
     require(amount > 0);
     require(token != address(0));
     if (token == address(this)) (payable(owner()).call{value: amount}(''));
@@ -108,10 +89,7 @@ contract Chainbills is
   /// @dev Only the deployer (owner) can invoke this method
   /// @param circleDomain The Circle Chain Domain.
   /// @param chainId The Wormhole Chain ID.
-  function registerCircleDomainToWormholeChainId(
-    uint32 circleDomain,
-    uint16 chainId
-  ) public onlyOwner {
+  function registerCircleDomainToWormholeChainId(uint32 circleDomain, uint16 chainId) public onlyOwner {
     if (circleDomain == 0 || chainId == 0) revert InvalidChainId();
     chainIdToCircleDomain[chainId] = circleDomain;
     circleDomainToChainId[circleDomain] = chainId;
@@ -123,16 +101,10 @@ contract Chainbills is
   /// @param emitterChainId Wormhole ChainId of the contract being registered.
   /// @param emitterAddress Wormhole-normalized address of the contract being
   /// registered. For EVM, contracts' first 12 bytes should be zeros.
-  function registerForeignContract(
-    uint16 emitterChainId,
-    bytes32 emitterAddress
-  ) public onlyOwner {
+  function registerForeignContract(uint16 emitterChainId, bytes32 emitterAddress) public onlyOwner {
     if (emitterChainId == 0 || emitterChainId == config.chainId) {
       revert InvalidWormholeChainId();
-    } else if (
-      emitterAddress == bytes32(0)
-        || emitterAddress == toWormholeFormat(address(this))
-    ) {
+    } else if (emitterAddress == bytes32(0) || emitterAddress == toWormholeFormat(address(this))) {
       revert InvalidWormholeEmitterAddress();
     }
     // update the registeredForeignContracts state variable
@@ -145,11 +117,7 @@ contract Chainbills is
   /// @param chainId The chainId of the foreign chain.
   /// @param foreignToken The address of the token in the foreign chain.
   /// @param token The address of corresponding token in this chain.
-  function registerMatchingTokenForForeignChain(
-    uint16 chainId,
-    bytes32 foreignToken,
-    address token
-  ) public onlyOwner {
+  function registerMatchingTokenForForeignChain(uint16 chainId, bytes32 foreignToken, address token) public onlyOwner {
     if (chainId == 0 || chainId == config.chainId) {
       revert InvalidWormholeChainId();
     } else if (token == address(0) || foreignToken == bytes32(0)) {
@@ -172,10 +140,7 @@ contract Chainbills is
   /// Sets the Transactions Logic Contract address.
   /// @dev Only the deployer (owner) can invoke this method
   /// @param transactionsLogicAddress The address of the Transactions Logic Contract.
-  function setTransactionsLogic(address transactionsLogicAddress)
-    public
-    onlyOwner
-  {
+  function setTransactionsLogic(address transactionsLogicAddress) public onlyOwner {
     if (transactionsLogicAddress == address(0)) {
       revert InvalidTransactionsLogic();
     }
@@ -187,10 +152,7 @@ contract Chainbills is
   /// @dev Only the deployer (owner) can invoke this method
   /// @param token The address of the token to update its max fees
   /// @param maxWithdrawalFees The maximum cap of fees during withdrawal
-  function updateMaxWithdrawalFees(address token, uint256 maxWithdrawalFees)
-    public
-    onlyOwner
-  {
+  function updateMaxWithdrawalFees(address token, uint256 maxWithdrawalFees) public onlyOwner {
     if (token == address(0)) revert InvalidTokenAddress();
     tokenDetails[token].token = token;
     tokenDetails[token].maxWithdrawalFees = maxWithdrawalFees;
@@ -202,6 +164,7 @@ contract Chainbills is
   /// @param token The address of the token to support for payments
   function allowPaymentsForToken(address token) public onlyOwner {
     if (token == address(0)) revert InvalidTokenAddress();
+    tokenDetails[token].token = token;
     tokenDetails[token].isSupported = true;
     emit AllowedPaymentsForToken(token);
   }
@@ -231,10 +194,7 @@ contract Chainbills is
     emit SetFeeCollectorAddress(feeCollector);
   }
 
-  function createPayable(
-    TokenAndAmount[] calldata, /* allowedTokensAndAmounts */
-    bool /* isAutoWithdraw */
-  )
+  function createPayable(TokenAndAmount[] calldata, /* allowedTokensAndAmounts */ bool /* isAutoWithdraw */ )
     public
     payable
     nonReentrant
@@ -250,12 +210,7 @@ contract Chainbills is
     }
   }
 
-  function closePayable(bytes32 /* payableId */ )
-    public
-    payable
-    nonReentrant
-    returns (uint64 wormholeMessageSequence)
-  {
+  function closePayable(bytes32 /* payableId */ ) public payable nonReentrant returns (uint64 wormholeMessageSequence) {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -266,12 +221,7 @@ contract Chainbills is
     }
   }
 
-  function reopenPayable(bytes32 /* payableId */ )
-    public
-    payable
-    nonReentrant
-    returns (uint64 wormholeMessageSequence)
-  {
+  function reopenPayable(bytes32 /* payableId */ ) public payable nonReentrant returns (uint64 wormholeMessageSequence) {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -296,10 +246,7 @@ contract Chainbills is
     }
   }
 
-  function updatePayableAutoWithdraw(
-    bytes32, /* payableId */
-    bool /* isAutoWithdraw */
-  ) public nonReentrant {
+  function updatePayableAutoWithdraw(bytes32, /* payableId */ bool /* isAutoWithdraw */ ) public nonReentrant {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -324,9 +271,7 @@ contract Chainbills is
     }
   }
 
-  function recordForeignPayableUpdate(bytes memory /* wormholeEncoded */ )
-    public
-  {
+  function recordForeignPayableUpdate(bytes memory /* wormholeEncoded */ ) public {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -335,18 +280,13 @@ contract Chainbills is
     }
   }
 
-  function pay(
-    bytes32, /* payableId */
-    address, /* token */
-    uint256 /* amount */
-  )
+  function pay(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ )
     public
     payable
     nonReentrant
     returns (bytes32 userPaymentId, bytes32 payablePaymentId)
   {
-    (bool success, bytes memory result) =
-      transactionsLogic.delegatecall(msg.data);
+    (bool success, bytes memory result) = transactionsLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
         revert(add(result, 32), mload(result))
@@ -356,18 +296,13 @@ contract Chainbills is
     }
   }
 
-  function payForeignWithCircle(
-    bytes32, /* payableId */
-    address, /* token */
-    uint256 /* amount */
-  )
+  function payForeignWithCircle(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ )
     public
     payable
     nonReentrant
     returns (bytes32 userPaymentId, uint64 wormholeMessageSequence)
   {
-    (bool success, bytes memory result) =
-      transactionsLogic.delegatecall(msg.data);
+    (bool success, bytes memory result) = transactionsLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
         revert(add(result, 32), mload(result))
@@ -377,11 +312,11 @@ contract Chainbills is
     }
   }
 
-  function receiveForeignPaymentWithCircle(
-    RedeemCirclePaymentParameters memory /* params */
-  ) public returns (bytes32 payablePaymentId) {
-    (bool success, bytes memory result) =
-      transactionsLogic.delegatecall(msg.data);
+  function receiveForeignPaymentWithCircle(RedeemCirclePaymentParameters memory /* params */ )
+    public
+    returns (bytes32 payablePaymentId)
+  {
+    (bool success, bytes memory result) = transactionsLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
         revert(add(result, 32), mload(result))
@@ -391,13 +326,12 @@ contract Chainbills is
     }
   }
 
-  function withdraw(
-    bytes32, /* payableId */
-    address, /* token */
-    uint256 /* amount */
-  ) public nonReentrant returns (bytes32 withdrawalId) {
-    (bool success, bytes memory result) =
-      transactionsLogic.delegatecall(msg.data);
+  function withdraw(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ )
+    public
+    nonReentrant
+    returns (bytes32 withdrawalId)
+  {
+    (bool success, bytes memory result) = transactionsLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
         revert(add(result, 32), mload(result))

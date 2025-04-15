@@ -9,52 +9,28 @@ import 'src/Chainbills.sol';
 import 'src/CbPayables.sol';
 import 'src/CbTransactions.sol';
 
-contract USDC is ERC20 {
-  constructor() ERC20('USDC', 'USDC') {}
-
-  function decimals() public view virtual override returns (uint8) {
-    return 6;
-  }
-}
-
 contract CbActivitiesTest is Test {
   Chainbills chainbills;
-  USDC usdc;
-
-  address owner = makeAddr('owner');
-  address user = makeAddr('user');
-  address feeCollector = makeAddr('fee-collector');
-
   uint256 ethAmt = 1e16; // 0.01 ETH
   uint16 feePercent = 200; // 2% (with 2 decimals)
   uint256 maxWtdlFeeEth = 5e17; // 0.5 ETH
-  uint256 maxWtdlFeeUsdc = 2e8; // 200 USDC
-  uint256 usdcAmt = 1e8; // 100 USDC
+  address owner = makeAddr('owner');
+  bytes32 payableId;
+  address user = makeAddr('user');
 
   function setUp() public {
     vm.startPrank(owner);
     chainbills = Chainbills(payable(address(new ERC1967Proxy(address(new Chainbills()), ''))));
-    usdc = new USDC();
-
-    chainbills.initialize(feeCollector, feePercent);
+    chainbills.initialize(makeAddr('fee-collector'), feePercent);
     chainbills.setPayablesLogic(address(new CbPayables()));
     chainbills.setTransactionsLogic(address(new CbTransactions()));
-
     chainbills.allowPaymentsForToken(address(chainbills));
     chainbills.updateMaxWithdrawalFees(address(chainbills), maxWtdlFeeEth);
-
-    chainbills.allowPaymentsForToken(address(usdc));
-    chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeeUsdc);
     vm.stopPrank();
 
-    deal(user, ethAmt * 2);
-    deal(address(usdc), user, usdcAmt * 2);
-    vm.startPrank(user);
-    usdc.approve(address(chainbills), usdcAmt * 2);
-
-    // Creating a payable so that initialized user activity is recorded
-    chainbills.createPayable(new TokenAndAmount[](0), false);
-    vm.stopPrank();
+    deal(user, ethAmt);
+    vm.prank(user);
+    (payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
   }
 
   function testRecordInitializedUser() public {
@@ -66,14 +42,14 @@ contract CbActivitiesTest is Test {
 
     // Create a Payable as userA for contract to record initialized user activity
     vm.prank(userAAddr);
-    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 pybleId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     ChainStats memory chainStatsAfterA = chainbills.getChainStats();
 
     // Make a payment to the payable as userB for contract to initialize user activity
     deal(userBAddr, ethAmt);
     vm.prank(userBAddr);
-    chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
+    chainbills.pay{value: ethAmt}(pybleId, address(chainbills), ethAmt);
 
     ChainStats memory chainStatsAfterB = chainbills.getChainStats();
     User memory userA = chainbills.getUser(userAAddr);
@@ -83,7 +59,7 @@ contract CbActivitiesTest is Test {
     // but to test that contract won't record another initialized user activity
     deal(userAAddr, ethAmt);
     vm.prank(userAAddr);
-    chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
+    chainbills.pay{value: ethAmt}(pybleId, address(chainbills), ethAmt);
 
     ChainStats memory chainStatsAfterA2 = chainbills.getChainStats();
     User memory userA2 = chainbills.getUser(userAAddr);
@@ -170,17 +146,17 @@ contract CbActivitiesTest is Test {
 
     // Create a Payable to record CreatedPayable activity
     vm.prank(user);
-    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+    (bytes32 pybleId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     ChainStats memory chainStatsAfter = chainbills.getChainStats();
     User memory userAfter = chainbills.getUser(user);
-    Payable memory pyble = chainbills.getPayable(payableId);
+    Payable memory pyble = chainbills.getPayable(pybleId);
 
     // Fetch CreatedPayable activity ID
     // subtracting 1 because of 0-based array indexing
     bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
     bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
-    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pyble.activitiesCount - 1);
+    bytes32 payableActvId = chainbills.payableActivityIds(pybleId, pyble.activitiesCount - 1);
 
     // Fetch activity record
     ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
@@ -203,20 +179,285 @@ contract CbActivitiesTest is Test {
     assertEq(activity.payableCount, pyble.activitiesCount);
     assertGt(activity.timestamp, 0);
     assertGe(activity.timestamp, block.timestamp);
+    assertEq(activity.entity, pybleId);
+  }
+
+  function testRecordPayment() public {
+    ChainStats memory chainStatsInitial = chainbills.getChainStats();
+    User memory userInitial = chainbills.getUser(user);
+    Payable memory pybleInitial = chainbills.getPayable(payableId);
+
+    // Make a payment to the payable
+    vm.prank(user);
+    (bytes32 userPaymentId, bytes32 payablePaymentId) =
+      chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
+
+    ChainStats memory chainStatsAfter = chainbills.getChainStats();
+    User memory userAfter = chainbills.getUser(user);
+    Payable memory pybleAfter = chainbills.getPayable(payableId);
+
+    // Fetch activity IDs
+    bytes32 chainActvIdUser = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 2);
+    bytes32 chainActvIdPayable = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
+    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
+    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+
+    // Fetch activity records
+    ActivityRecord memory activityUser = chainbills.getActivityRecord(chainActvIdUser);
+    ActivityRecord memory activityPayable = chainbills.getActivityRecord(chainActvIdPayable);
+
+    // Check the counts of activities
+    // 2 for chain because of UserPaid and PayableReceived
+    assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 2);
+    assertEq(userAfter.activitiesCount, userInitial.activitiesCount + 1);
+    assertEq(pybleAfter.activitiesCount, pybleInitial.activitiesCount + 1);
+
+    // Confirm that the activity types are UserPaid and PayableReceived
+    assert(activityUser.activityType == ActivityType.UserPaid);
+    assert(activityPayable.activityType == ActivityType.PayableReceived);
+
+    // Confirm that the activity IDs are the same
+    assertEq(chainActvIdUser, userActvId);
+    assertEq(chainActvIdPayable, payableActvId);
+
+    // Confirm data contents of UserPaid activity
+    // subtracting 1 because UserPaid activity is recorded first
+    assertEq(activityUser.chainCount, chainStatsAfter.activitiesCount - 1);
+    assertEq(activityUser.userCount, userAfter.activitiesCount);
+    // 0 because contract doesn't record payable count for UserPaid activity
+    // That's because in cross-chain payments, contract doesn't need that info
+    assertEq(activityUser.payableCount, 0);
+    assertGt(activityUser.timestamp, 0);
+    assertGe(activityUser.timestamp, block.timestamp);
+    assertEq(activityUser.entity, userPaymentId);
+
+    // Confirm data contents of PayableReceived activity
+    assertEq(activityPayable.chainCount, chainStatsAfter.activitiesCount);
+    // 0 because contract doesn't record user count for PayableReceived activity
+    // That's because in cross-chain payments, contract doesn't need that info
+    assertEq(activityPayable.userCount, 0);
+    assertEq(activityPayable.payableCount, pybleAfter.activitiesCount);
+    assertGt(activityPayable.timestamp, 0);
+    assertGe(activityPayable.timestamp, block.timestamp);
+    assertEq(activityPayable.entity, payablePaymentId);
+  }
+
+  function testRecordWithdrew() public {
+    // Make payment to use for withdrawal
+    vm.prank(user);
+    chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
+
+    ChainStats memory chainStatsInitial = chainbills.getChainStats();
+    User memory userInitial = chainbills.getUser(user);
+    Payable memory pybleInitial = chainbills.getPayable(payableId);
+
+    // Withdraw
+    vm.prank(user);
+    (bytes32 withdrawalId) = chainbills.withdraw(payableId, address(chainbills), ethAmt);
+
+    ChainStats memory chainStatsAfter = chainbills.getChainStats();
+    User memory userAfter = chainbills.getUser(user);
+    Payable memory pybleAfter = chainbills.getPayable(payableId);
+
+    // Fetch activity IDs
+    // subtracting 1 because of 0-based array indexing
+    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
+    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
+    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+
+    // Fetch activity record
+    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+
+    // Check the counts of activities
+    assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
+    assertEq(userAfter.activitiesCount, userInitial.activitiesCount + 1);
+    assertEq(pybleAfter.activitiesCount, pybleInitial.activitiesCount + 1);
+
+    // Confirm that the activity type is Withdrew
+    assert(activity.activityType == ActivityType.Withdrew);
+
+    // Confirm that the activity IDs are the same
+    assertEq(chainActvId, userActvId);
+    assertEq(chainActvId, payableActvId);
+
+    // Confirm data contents of Withdrew activity
+    assertEq(activity.chainCount, chainStatsAfter.activitiesCount);
+    assertEq(activity.userCount, userAfter.activitiesCount);
+    assertEq(activity.payableCount, pybleAfter.activitiesCount);
+    assertGt(activity.timestamp, 0);
+    assertGe(activity.timestamp, block.timestamp);
+    assertEq(activity.entity, withdrawalId);
+  }
+
+  function testRecordClosedPayable() public {
+    ChainStats memory chainStatsInitial = chainbills.getChainStats();
+    User memory userInitial = chainbills.getUser(user);
+    Payable memory pybleInitial = chainbills.getPayable(payableId);
+
+    // Close the payable
+    vm.prank(user);
+    chainbills.closePayable(payableId);
+
+    ChainStats memory chainStatsAfter = chainbills.getChainStats();
+    User memory userAfter = chainbills.getUser(user);
+    Payable memory pybleAfter = chainbills.getPayable(payableId);
+
+    // Fetch activity IDs
+    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
+    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
+    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+
+    // Fetch activity record
+    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+
+    // Check the counts of activities
+    assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
+    assertEq(userAfter.activitiesCount, userInitial.activitiesCount + 1);
+    assertEq(pybleAfter.activitiesCount, pybleInitial.activitiesCount + 1);
+
+    // Confirm that the activity type is ClosedPayable
+    assert(activity.activityType == ActivityType.ClosedPayable);
+
+    // Confirm that the activity IDs are the same
+    assertEq(chainActvId, userActvId);
+    assertEq(chainActvId, payableActvId);
+
+    // Confirm data contents of ClosedPayable activity
+    assertEq(activity.chainCount, chainStatsAfter.activitiesCount);
+    assertEq(activity.userCount, userAfter.activitiesCount);
+    assertEq(activity.payableCount, pybleAfter.activitiesCount);
+    assertGt(activity.timestamp, 0);
+    assertGe(activity.timestamp, block.timestamp);
     assertEq(activity.entity, payableId);
   }
 
-  function testRecordUserPaid() public {}
+  function testRecordReopenedPayable() public { 
+    // Close the payable to reopen it for activity testing
+    vm.prank(user);
+    chainbills.closePayable(payableId);
 
-  function testRecordPayableReceived() public {}
+    ChainStats memory chainStatsInitial = chainbills.getChainStats();
+    User memory userInitial = chainbills.getUser(user);
+    Payable memory pybleInitial = chainbills.getPayable(payableId);
 
-  function testRecordWithdrew() public {}
+    // Reopen the payable
+    vm.prank(user);
+    chainbills.reopenPayable(payableId);
 
-  function testRecordClosedPayable() public {}
+    ChainStats memory chainStatsAfter = chainbills.getChainStats();
+    User memory userAfter = chainbills.getUser(user);
+    Payable memory pybleAfter = chainbills.getPayable(payableId);
 
-  function testRecordReopenedPayable() public {}
+    // Fetch activity IDs
+    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
+    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
+    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
 
-  function testRecordUpdatedPayableAllowedTokensAndAmounts() public {}
+    // Fetch activity record
+    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
 
-  function testRecordUpdatedPayableAutoWithdrawStatus() public {}
+    // Check the counts of activities
+    assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
+    assertEq(userAfter.activitiesCount, userInitial.activitiesCount + 1);
+    assertEq(pybleAfter.activitiesCount, pybleInitial.activitiesCount + 1);
+
+    // Confirm that the activity type is ReopenedPayable
+    assert(activity.activityType == ActivityType.ReopenedPayable);
+
+    // Confirm that the activity IDs are the same
+    assertEq(chainActvId, userActvId);
+    assertEq(chainActvId, payableActvId);
+
+    // Confirm data contents of ReopenedPayable activity
+    assertEq(activity.chainCount, chainStatsAfter.activitiesCount);
+    assertEq(activity.userCount, userAfter.activitiesCount);
+    assertEq(activity.payableCount, pybleAfter.activitiesCount);
+    assertGt(activity.timestamp, 0);
+    assertGe(activity.timestamp, block.timestamp);
+    assertEq(activity.entity, payableId);
+  }
+
+  function testRecordUpdatedPayableAllowedTokensAndAmounts() public {
+    ChainStats memory chainStatsInitial = chainbills.getChainStats();
+    User memory userInitial = chainbills.getUser(user);
+    Payable memory pybleInitial = chainbills.getPayable(payableId);
+
+    // Update the payable to test the activity
+    vm.prank(user);
+    chainbills.updatePayableAllowedTokensAndAmounts(payableId, new TokenAndAmount[](0));
+
+    ChainStats memory chainStatsAfter = chainbills.getChainStats();
+    User memory userAfter = chainbills.getUser(user);
+    Payable memory pybleAfter = chainbills.getPayable(payableId);
+
+    // Fetch activity IDs
+    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
+    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
+    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+
+    // Fetch activity record
+    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+
+    // Check the counts of activities
+    assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
+    assertEq(userAfter.activitiesCount, userInitial.activitiesCount + 1);
+    assertEq(pybleAfter.activitiesCount, pybleInitial.activitiesCount + 1);
+
+    // Confirm that the activity type is UpdatedPayableAllowedTokensAndAmounts
+    assert(activity.activityType == ActivityType.UpdatedPayableAllowedTokensAndAmounts);
+
+    // Confirm that the activity IDs are the same
+    assertEq(chainActvId, userActvId);
+    assertEq(chainActvId, payableActvId);
+
+    // Confirm data contents of UpdatedPayableAllowedTokensAndAmounts activity
+    assertEq(activity.chainCount, chainStatsAfter.activitiesCount);
+    assertEq(activity.userCount, userAfter.activitiesCount);
+    assertEq(activity.payableCount, pybleAfter.activitiesCount);
+    assertGt(activity.timestamp, 0);
+    assertGe(activity.timestamp, block.timestamp);
+    assertEq(activity.entity, payableId);
+  }
+
+  function testRecordUpdatedPayableAutoWithdrawStatus() public {
+    ChainStats memory chainStatsInitial = chainbills.getChainStats();
+    User memory userInitial = chainbills.getUser(user);
+    Payable memory pybleInitial = chainbills.getPayable(payableId);
+
+    // Update the payable to test the activity
+    vm.prank(user);
+    chainbills.updatePayableAutoWithdraw(payableId, false);
+
+    ChainStats memory chainStatsAfter = chainbills.getChainStats();
+    User memory userAfter = chainbills.getUser(user);
+    Payable memory pybleAfter = chainbills.getPayable(payableId);
+
+    // Fetch activity IDs
+    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
+    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
+    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+
+    // Fetch activity record
+    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+
+    // Check the counts of activities
+    assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
+    assertEq(userAfter.activitiesCount, userInitial.activitiesCount + 1);
+    assertEq(pybleAfter.activitiesCount, pybleInitial.activitiesCount + 1);
+
+    // Confirm that the activity type is UpdatedPayableAutoWithdrawStatus
+    assert(activity.activityType == ActivityType.UpdatedPayableAutoWithdrawStatus);
+
+    // Confirm that the activity IDs are the same
+    assertEq(chainActvId, userActvId);
+    assertEq(chainActvId, payableActvId);
+
+    // Confirm data contents of UpdatedPayableAutoWithdrawStatus activity
+    assertEq(activity.chainCount, chainStatsAfter.activitiesCount);
+    assertEq(activity.userCount, userAfter.activitiesCount);
+    assertEq(activity.payableCount, pybleAfter.activitiesCount);
+    assertGt(activity.timestamp, 0);
+    assertGe(activity.timestamp, block.timestamp);
+    assertEq(activity.entity, payableId);
+  }
 }

@@ -11,8 +11,6 @@ import 'wormhole/Utils.sol';
 import './circle/ICircleBridge.sol';
 import './circle/IMessageTransmitter.sol';
 import './circle/ITokenMinter.sol';
-import './CbErrors.sol';
-import './CbEvents.sol';
 import './CbUtils.sol';
 import './CbPayables.sol';
 import './CbTransactions.sol';

@@ -3,11 +3,8 @@ pragma solidity ^0.8.20;
 
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
-import './CbErrors.sol';
-import './CbEvents.sol';
-import './CbUtils.sol';
 import './CbPayloadMessages.sol';
-import './CbStructs.sol';
+import './CbUtils.sol';
 
 contract CbPayables is CbUtils {
   using CbDecodePayload for bytes;

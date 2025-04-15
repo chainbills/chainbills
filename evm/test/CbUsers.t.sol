@@ -4,12 +4,8 @@ pragma solidity ^0.8.20;
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/interfaces/draft-IERC6093.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
-import 'wormhole/interfaces/IWormhole.sol';
-import 'src/CbState.sol';
-import 'src/Chainbills.sol';
-import 'src/circle/ICircleBridge.sol';
-import 'src/circle/IMessageTransmitter.sol';
 import 'forge-std/Test.sol';
+import 'src/Chainbills.sol';
 
 contract USDC is ERC20 {
   constructor() ERC20('USDC', 'USDC') {}
@@ -19,7 +15,7 @@ contract USDC is ERC20 {
   }
 }
 
-contract CbUsersTest is Test {
+contract CbUsersTest is CbStructs, Test {
   Chainbills chainbills;
   USDC usdc;
 

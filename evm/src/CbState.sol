@@ -5,10 +5,9 @@ import 'wormhole/interfaces/IWormhole.sol';
 import './circle/ICircleBridge.sol';
 import './circle/IMessageTransmitter.sol';
 import './circle/ITokenMinter.sol';
-import './CbErrors.sol';
 import './CbStructs.sol';
 
-contract CbState {
+contract CbState is CbStructs {
   /// Configuration of this chain.
   Config public config;
   /// Counter for activities on this chain.

@@ -3,9 +3,7 @@ pragma solidity ^0.8.20;
 
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
-import './CbEvents.sol';
 import './CbState.sol';
-import './CbStructs.sol';
 
 contract CbUtils is CbState {
   /// Stores a Wormhole Message and mark it as consumed.

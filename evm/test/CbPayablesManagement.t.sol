@@ -6,8 +6,6 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import 'forge-std/Test.sol';
 import 'src/Chainbills.sol';
-import 'src/CbPayables.sol';
-import 'src/CbTransactions.sol';
 
 contract USDC is ERC20 {
   constructor() ERC20('USDC', 'USDC') {}
@@ -17,7 +15,7 @@ contract USDC is ERC20 {
   }
 }
 
-contract CbPayablesManagementTest is Test {
+contract CbPayablesManagementTest is CbStructs, Test {
   Chainbills chainbills;
   USDC usdc;
 

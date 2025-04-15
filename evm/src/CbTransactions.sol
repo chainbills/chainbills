@@ -6,11 +6,8 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import 'wormhole/libraries/BytesParsing.sol';
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
-import './CbErrors.sol';
-import './CbEvents.sol';
 import './CbUtils.sol';
 import './CbPayloadMessages.sol';
-import './CbStructs.sol';
 
 contract CbTransactions is CbUtils {
   using BytesParsing for bytes;

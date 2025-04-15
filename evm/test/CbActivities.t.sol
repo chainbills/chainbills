@@ -6,10 +6,8 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import 'forge-std/Test.sol';
 import 'src/Chainbills.sol';
-import 'src/CbPayables.sol';
-import 'src/CbTransactions.sol';
 
-contract CbActivitiesTest is Test {
+contract CbActivitiesTest is CbStructs, Test {
   Chainbills chainbills;
   uint256 ethAmt = 1e16; // 0.01 ETH
   uint16 feePercent = 200; // 2% (with 2 decimals)

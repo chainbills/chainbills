@@ -11,7 +11,7 @@ contract CbStructs is CbEvents {
     /// will attest a message.
     uint8 wormholeFinality;
     /// Wormhole Chain ID of this chain.
-    uint16 chainId;
+    uint16 wormholeChainId;
     /// The withdrawal fee percentage with 2 decimals. 200 means 2%.
     uint16 withdrawalFeePercentage;
     /// The Circle Domain of this chain.

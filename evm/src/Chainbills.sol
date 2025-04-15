@@ -43,15 +43,17 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
   /// Sets up Wormhole and Circle Bridge contracts.
   /// @param wormhole The address of the Wormhole contract.
   /// @param circleBridge The address of the Circle Bridge contract.
-  /// @param chainId The Wormhole Chain ID of the chain.
+  /// @param wormholeChainId The Wormhole Chain ID of the chain.
   /// @param wormholeFinality Confirmed/Finalized for Wormhole messages.
   /// @dev Only the deployer (owner) can invoke this method
-  function setupWormholeAndCircle(address wormhole, address circleBridge, uint16 chainId, uint8 wormholeFinality)
-    public
-    onlyOwner
-  {
+  function setupWormholeAndCircle(
+    address wormhole,
+    address circleBridge,
+    uint16 wormholeChainId,
+    uint8 wormholeFinality
+  ) public onlyOwner {
     if (wormhole == address(0)) revert InvalidWormholeAddress();
-    else if (chainId == 0) revert InvalidWormholeChainId();
+    else if (wormholeChainId == 0) revert InvalidWormholeChainId();
     else if (wormholeFinality == 0) revert InvalidWormholeFinality();
     else if (circleBridge == address(0)) revert InvalidCircleBridge();
 
@@ -63,7 +65,7 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     // wormholeFinality, circleDomain, circleBridge, circleTransmitter, and
     // circleTokenMinter.
     config.wormholeFinality = wormholeFinality;
-    config.chainId = chainId;
+    config.wormholeChainId = wormholeChainId;
     config.circleDomain = circleDomain;
     config.wormhole = wormhole;
     config.circleBridge = circleBridge;
@@ -102,7 +104,7 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
   /// @param emitterAddress Wormhole-normalized address of the contract being
   /// registered. For EVM, contracts' first 12 bytes should be zeros.
   function registerForeignContract(uint16 emitterChainId, bytes32 emitterAddress) public onlyOwner {
-    if (emitterChainId == 0 || emitterChainId == config.chainId) {
+    if (emitterChainId == 0 || emitterChainId == config.wormholeChainId) {
       revert InvalidWormholeChainId();
     } else if (emitterAddress == bytes32(0) || emitterAddress == toWormholeFormat(address(this))) {
       revert InvalidWormholeEmitterAddress();
@@ -118,7 +120,7 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
   /// @param foreignToken The address of the token in the foreign chain.
   /// @param token The address of corresponding token in this chain.
   function registerMatchingTokenForForeignChain(uint16 chainId, bytes32 foreignToken, address token) public onlyOwner {
-    if (chainId == 0 || chainId == config.chainId) {
+    if (chainId == 0 || chainId == config.wormholeChainId) {
       revert InvalidWormholeChainId();
     } else if (token == address(0) || foreignToken == bytes32(0)) {
       revert InvalidTokenAddress();

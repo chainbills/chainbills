@@ -317,12 +317,12 @@ contract CbTransactions is CbUtils {
     /* STATE CHANGES */
     // Record successful payment and activity from the payer.
     // Use 0 (zero) as the chain ID for this chain. Using zero instead of
-    // config.chainId to account for chains that don't yet have Wormhole.
+    // config.wormholeChainId to account for chains that don't yet have Wormhole.
     userPaymentId = _recordUserPayment(payableId, 0, token, amount);
 
     // Record successful payment and activity to the payable.
     // Use 0 (zero) as the chain ID for this chain. Using zero instead of
-    // config.chainId to account for chains that don't yet have Wormhole.
+    // config.wormholeChainId to account for chains that don't yet have Wormhole.
     payablePaymentId = _recordPayablePayment(payableId, toWormholeFormat(msg.sender), 0, token, amount);
 
     // If the Payable is an auto-withdraw, then make transfer of just-paid
@@ -395,7 +395,7 @@ contract CbTransactions is CbUtils {
         payableChainId: _payable.chainId,
         payer: toWormholeFormat(msg.sender),
         payerChainToken: foreignTokenAddr,
-        payerChainId: config.chainId,
+        payerChainId: config.wormholeChainId,
         amount: uint64(amount),
         circleNonce: circleNonce
       }).encode()

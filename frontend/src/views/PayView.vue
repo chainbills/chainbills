@@ -284,7 +284,7 @@ onMounted(async () => {
                 <Button
                   :class="
                     'text-current border-none shadow-md px-3 py-2 text-xl ' +
-                    (selectedConfig?.name == taa.name
+                    (selectedConfig?.name == taa.name && selectedConfig?.amount == taa.amount
                       ? 'bg-primary bg-opacity-30'
                       : 'bg-transparent')
                   "

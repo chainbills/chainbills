@@ -30,10 +30,11 @@ const route = useRoute();
 const fetchPayable = async (ignoreErrors: boolean) => {
   if (!route.params.id) return;
   isLoading.value = true;
-  payable.value = await payableStore.get(
+  const fetched = await payableStore.get(
     route.params.id as string,
     ignoreErrors
   );
+  if (fetched) payable.value = fetched;
   isLoading.value = false;
 };
 
@@ -175,13 +176,7 @@ onMounted(async () => {
     resetTablePage();
     getTransactions();
   });
-  watch(
-    () => payable.value,
-    (_) => {
-      // only refresh transactions if a withdrawal was just completed
-      if (activeCat.value == 1) getTransactions();
-    }
-  );
+  watch(() => payable.value, getTransactions);
 });
 </script>
 

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.20;
 
 import 'openzeppelin-foundry-upgrades/Upgrades.sol';
-import 'src/Chainbills.sol';
 import 'forge-std/Script.sol';
+import 'src/Chainbills.sol';
 
 contract UpgradeChainbills is Script {
   // TODO: Set the proxy's address before upgrading or on new deployments

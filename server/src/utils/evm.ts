@@ -10,6 +10,8 @@ import { abi } from './abi';
 
 export const SEPOLIA_CONTRACT_ADDRESS =
   '0x77eb76be1b283145ebc49d7d40e904b70c3b06ab';
+export const MEGAETH_TESTNET_CONTRACT_ADDRESS =
+  '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60';
 
 export const evmVerify = async (
   message: string,

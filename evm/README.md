@@ -206,9 +206,12 @@ $ forge test
 # Format the code
 $ forge fmt
 
-# Deploy/Upgrade the contract(s)
-$ source .env
-$ forge script --chain sepolia script/DeployChainbills.s.sol:DeployChainbills --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv
+# Deploy the Contract
+$ forge script script/DeployChainbills.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
+
+# Run Necessary Scripts
+$ forge script script/AllowPaymentsForToken.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
+$ forge script script/UpdateMaxWithdrawalFees.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
 
 # More info on the commands
 $ forge --help

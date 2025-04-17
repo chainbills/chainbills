@@ -16,6 +16,7 @@ import './CbPayables.sol';
 import './CbTransactions.sol';
 
 /// A Cross-Chain Payment Gateway.
+/// @custom:oz-upgrades-unsafe-allow delegatecall
 contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
   fallback() external payable {}
 

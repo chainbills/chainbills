@@ -5,10 +5,9 @@ import 'wormhole/interfaces/IWormhole.sol';
 import './circle/ICircleBridge.sol';
 import './circle/IMessageTransmitter.sol';
 import './circle/ITokenMinter.sol';
-import './CbErrors.sol';
 import './CbStructs.sol';
 
-contract CbState {
+contract CbState is CbStructs {
   /// Configuration of this chain.
   Config public config;
   /// Counter for activities on this chain.
@@ -55,8 +54,7 @@ contract CbState {
   /// Payables that exist on other chains.
   mapping(bytes32 => PayableForeign) public foreignPayables;
   /// Allowed tokens and amounts of foreign payables.
-  mapping(bytes32 => TokenAndAmountForeign[]) public
-    foreignPayableAllowedTokensAndAmounts;
+  mapping(bytes32 => TokenAndAmountForeign[]) public foreignPayableAllowedTokensAndAmounts;
   /// Payments to Payables, from all chains, by their IDs. The Payment IDs
   /// will be the same as the IDs of userPayments if the payment was made
   /// by a User on this chain. Otherwise, the payment ID will be different.
@@ -65,8 +63,7 @@ contract CbState {
   mapping(bytes32 => bytes32[]) public payablePaymentIds;
   /// Total Number of payments made to this payable, from each chain by
   /// their Wormhole Chain IDs, indexed by 0 (zero) if in this chain.
-  mapping(bytes32 => mapping(uint16 => uint256)) public
-    payableChainPaymentsCount;
+  mapping(bytes32 => mapping(uint16 => uint256)) public payableChainPaymentsCount;
   /// Payment IDs of payments made to this payable, from each chain by
   /// their Wormhole Chain IDs, indexed by 0 (zero) if in this chain.
   mapping(bytes32 => mapping(uint16 => bytes32[])) public payableChainPaymentIds;
@@ -79,11 +76,9 @@ contract CbState {
   /// Array of IDs of Withdrawals made in a payable.
   mapping(bytes32 => bytes32[]) public payableWithdrawalIds;
   /// Tells the token address to be used for a foreign payable's payment.
-  mapping(uint16 => mapping(bytes32 => address)) public
-    forForeignChainMatchingTokenAddresses;
+  mapping(uint16 => mapping(bytes32 => address)) public forForeignChainMatchingTokenAddresses;
   /// Tells the foreign chain token address for a given token and chain ID.
-  mapping(address => mapping(uint16 => bytes32)) public
-    forTokenAddressMatchingForeignChainTokens;
+  mapping(address => mapping(uint16 => bytes32)) public forTokenAddressMatchingForeignChainTokens;
   /// Wormhole Chain ID to Circle Chain Domain Mapping
   mapping(uint16 => uint32) chainIdToCircleDomain;
   /// Circle Chain Domain to Wormhole Chain ID mapping
@@ -129,22 +124,14 @@ contract CbState {
     return chainStats;
   }
 
-  function getTokenDetails(address token)
-    external
-    view
-    returns (TokenDetails memory)
-  {
+  function getTokenDetails(address token) external view returns (TokenDetails memory) {
     if (token == address(0) || tokenDetails[token].token != token) {
       revert InvalidTokenAddress();
     }
     return tokenDetails[token];
   }
 
-  function getActivityRecord(bytes32 activityId)
-    external
-    view
-    returns (ActivityRecord memory)
-  {
+  function getActivityRecord(bytes32 activityId) external view returns (ActivityRecord memory) {
     if (activityId == bytes32(0) || activities[activityId].timestamp == 0) {
       revert InvalidActivityId();
     }
@@ -164,31 +151,19 @@ contract CbState {
     return payables[payableId];
   }
 
-  function getAllowedTokensAndAmounts(bytes32 payableId)
-    external
-    view
-    returns (TokenAndAmount[] memory)
-  {
+  function getAllowedTokensAndAmounts(bytes32 payableId) external view returns (TokenAndAmount[] memory) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
     return payableAllowedTokensAndAmounts[payableId];
   }
 
-  function getBalances(bytes32 payableId)
-    external
-    view
-    returns (TokenAndAmount[] memory)
-  {
+  function getBalances(bytes32 payableId) external view returns (TokenAndAmount[] memory) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
     return payableBalances[payableId];
   }
 
-  function getForeignPayable(bytes32 payableId)
-    external
-    view
-    returns (PayableForeign memory)
-  {
+  function getForeignPayable(bytes32 payableId) external view returns (PayableForeign memory) {
     if (payableId == bytes32(0) || foreignPayables[payableId].chainId == 0) {
       revert InvalidPayableId();
     }
@@ -206,21 +181,13 @@ contract CbState {
     return foreignPayableAllowedTokensAndAmounts[payableId];
   }
 
-  function getUserPayment(bytes32 paymentId)
-    external
-    view
-    returns (UserPayment memory)
-  {
+  function getUserPayment(bytes32 paymentId) external view returns (UserPayment memory) {
     if (paymentId == bytes32(0)) revert InvalidPaymentId();
     if (userPayments[paymentId].payer == address(0)) revert InvalidPaymentId();
     return userPayments[paymentId];
   }
 
-  function getPayablePayment(bytes32 paymentId)
-    external
-    view
-    returns (PayablePayment memory)
-  {
+  function getPayablePayment(bytes32 paymentId) external view returns (PayablePayment memory) {
     if (paymentId == bytes32(0)) revert InvalidPaymentId();
     if (payablePayments[paymentId].payableId == bytes32(0)) {
       revert InvalidPaymentId();
@@ -228,11 +195,7 @@ contract CbState {
     return payablePayments[paymentId];
   }
 
-  function getWithdrawal(bytes32 withdrawalId)
-    external
-    view
-    returns (Withdrawal memory)
-  {
+  function getWithdrawal(bytes32 withdrawalId) external view returns (Withdrawal memory) {
     if (withdrawalId == bytes32(0)) revert InvalidWithdrawalId();
     if (withdrawals[withdrawalId].host == address(0)) {
       revert InvalidWithdrawalId();
@@ -240,38 +203,32 @@ contract CbState {
     return withdrawals[withdrawalId];
   }
 
-  function getPayableChainPaymentsCount(bytes32 payableId, uint16 chainId_)
-    external
-    view
-    returns (uint256)
-  {
+  function getPayableChainPaymentsCount(bytes32 payableId, uint16 chainId_) external view returns (uint256) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
     return payableChainPaymentsCount[payableId][chainId_];
   }
 
-  function getPayableChainPaymentIds(bytes32 payableId, uint16 chainId_)
-    external
-    view
-    returns (bytes32[] memory)
-  {
+  function getPayableChainPaymentIds(bytes32 payableId, uint16 chainId_) external view returns (bytes32[] memory) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
     return payableChainPaymentIds[payableId][chainId_];
   }
 
-  function getForForeignChainMatchingTokenAddress(
-    uint16 chainId,
-    bytes32 foreignToken
-  ) external view returns (address token) {
+  function getForForeignChainMatchingTokenAddress(uint16 chainId, bytes32 foreignToken)
+    external
+    view
+    returns (address token)
+  {
     token = forForeignChainMatchingTokenAddresses[chainId][foreignToken];
     if (token == address(0)) revert InvalidChainIdOrForeignToken();
   }
 
-  function getForTokenAddressMatchingForeignChainToken(
-    address token,
-    uint16 chainId
-  ) external view returns (bytes32 foreignToken) {
+  function getForTokenAddressMatchingForeignChainToken(address token, uint16 chainId)
+    external
+    view
+    returns (bytes32 foreignToken)
+  {
     foreignToken = forTokenAddressMatchingForeignChainTokens[token][chainId];
     if (foreignToken == bytes32(0)) revert InvalidChainIdOrForeignToken();
   }

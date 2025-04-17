@@ -3,9 +3,10 @@ pragma solidity ^0.8.20;
 
 import 'forge-std/Test.sol';
 import 'wormhole/Utils.sol';
+import 'src/CbStructs.sol';
 import 'src/CbPayloadMessages.sol';
 
-contract CbPayloadMessagesTest is Test {
+contract CbPayloadMessagesTest is CbStructs, Test {
   using CbDecodePayload for bytes;
   using CbDecodePayload for bytes;
   using CbEncodePayablePayload for PayablePayload;

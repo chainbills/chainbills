@@ -4,6 +4,8 @@ import { PublicKey } from '@solana/web3.js';
 
 export const SEPOLIA_CONTRACT_ADDRESS =
   '0x77eb76be1b283145ebc49d7d40e904b70c3b06ab';
+export const MEGAETH_TESTNET_CONTRACT_ADDRESS =
+  '0x92e67Bfe49466b18ccDF2A3A28B234AB68374c60';
 export const PROGRAM_ID = '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND';
 
 export interface TokenChainDetails {

@@ -56,9 +56,14 @@ export class Payable {
       const copied = [...balances];
       // Iterate through the ATAAs to ensure the order of the displayed balances
       //
-      // Using a Set is to make ATAAs with same token but different amounts to
+      // Make ATAAs with same token but different amounts to
       // be treated as one (a balance can only be in a token but not an ATAA).
-      for (let token of new Set(ataas.map((t) => t.token()))) {
+      const uniqued: Token[] = [];
+      for (let ataa of ataas) {
+        if (!uniqued.some(({ name }) => ataa.name == name))
+          uniqued.push(ataa.token());
+      }
+      for (let token of uniqued) {
         // Find the balance with the token in the ATAAs.
         const found = balances.find((b) => b.name == token.name);
         // Add the token from the ATAA with the amount from the balance (or 0).

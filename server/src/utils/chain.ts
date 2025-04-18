@@ -1,19 +1,34 @@
-import { ChainId, toChainId } from '@wormhole-foundation/sdk';
+export type ChainName = 'megaethtestnet' | 'solanadevnet';
+export const chainNames: ChainName[] = ['megaethtestnet', 'solanadevnet'];
 
-export const SOLANA_CLUSTER = 'devnet';
-export const WH_CHAIN_ID_SOLANA: ChainId = toChainId('Solana');
-export const WH_CHAIN_ID_ETH_SEPOLIA: ChainId = toChainId('Sepolia');
-export const chains: Chain[] = ['Solana', 'Ethereum Sepolia'];
-export type Chain = 'Solana' | 'Ethereum Sepolia';
+export type ChainNetworkType = 'mainnet' | 'testnet';
+export const chainNetworkTypes: ChainNetworkType[] = ['mainnet', 'testnet'];
 
-export const getChain = (id: number): Chain => {
-  if (id == WH_CHAIN_ID_SOLANA) return 'Solana';
-  if (id == WH_CHAIN_ID_ETH_SEPOLIA) return 'Ethereum Sepolia';
-  throw `Unknown ChainId: ${id}`;
+export interface Chain {
+  name: ChainName;
+  displayName: string;
+  isEvm: boolean;
+  isSolana: boolean;
+  networkType: ChainNetworkType;
+}
+
+export const megaethtestnet: Chain = {
+  name: 'megaethtestnet',
+  displayName: 'MegaETH Testnet',
+  isEvm: true,
+  isSolana: false,
+  networkType: 'testnet'
 };
 
-export const getChainId = (chain: Chain): ChainId => {
-  if (chain == 'Solana') return WH_CHAIN_ID_SOLANA;
-  if (chain == 'Ethereum Sepolia') return WH_CHAIN_ID_ETH_SEPOLIA;
-  throw `Unknown Chain: ${chain}`;
+export const solanadevnet: Chain = {
+  name: 'solanadevnet',
+  displayName: 'Solana Devnet',
+  isEvm: false,
+  isSolana: true,
+  networkType: 'testnet'
+};
+
+export const chainNamesToChains: Record<ChainName, Chain> = {
+  megaethtestnet,
+  solanadevnet
 };

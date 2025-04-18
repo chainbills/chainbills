@@ -379,7 +379,6 @@ onMounted(async () => {
           :hideUser="activeCat == 1"
           :receipts="transactions"
           :totalCount="totalActivitiesCount"
-          userChainField="payerChain"
           @updateTablePage="updateTablePage"
         />
       </template>

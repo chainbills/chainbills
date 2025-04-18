@@ -1,4 +1,11 @@
-import { Payable, TokenAndAmount, Withdrawal } from '@/schemas';
+import {
+  type Chain,
+  megaethtestnet,
+  Payable,
+  solanadevnet,
+  TokenAndAmount,
+  Withdrawal,
+} from '@/schemas';
 import {
   useAuthStore,
   useCacheStore,
@@ -6,7 +13,6 @@ import {
   usePayableStore,
   useServerStore,
   useSolanaStore,
-  type Chain,
 } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
 import { encoding } from '@wormhole-foundation/sdk';
@@ -31,15 +37,13 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     if (!auth.currentUser) return null;
 
     try {
-      const result = await { 'Ethereum Sepolia': evm, Solana: solana }[
-        auth.currentUser.chain
+      const result = await { megaethtestnet: evm, solanadevnet: solana }[
+        auth.currentUser.chain.name
       ]['withdraw'](payableId, details);
       if (!result) return null;
       await auth.refreshUser();
 
-      console.log(
-        `Made Withdrawal Transaction Details: ${result.explorerUrl()}`
-      );
+      console.log(`Made Withdrawal Transaction Details: ${result.explorerUrl}`);
       await server.withdrew(result.created);
       toast.add({
         severity: 'success',
@@ -64,11 +68,11 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     // A simple trick to guess the chain based on the ID's format
     // (if not provided)
     if (!chain) {
-      chain = 'Solana';
+      chain = solanadevnet;
       try {
         new PublicKey(id);
       } catch (_) {
-        if (encoding.hex.valid(id)) chain = 'Ethereum Sepolia';
+        if (encoding.hex.valid(id)) chain = megaethtestnet;
         // If it's not a valid Solana public key or it is not a hex string,
         // then it's not a valid ID.
         else return null;
@@ -76,22 +80,18 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     }
 
     // Check if the withdrawal is already in the cache and return if so.
-    let withdrawal = await cache.retrieve(cacheKey(chain, id));
+    let withdrawal = await cache.retrieve(cacheKey(chain.name, id));
     if (withdrawal) {
       withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
-      withdrawal.details = Object.setPrototypeOf(
-        withdrawal.details,
-        TokenAndAmount.prototype
-      );
       return withdrawal;
     }
 
     try {
       let raw: any;
-      if (chain == 'Solana')
+      if (chain.isEvm)
+        raw = await evm.fetchEntity('Withdrawal', id, ignoreErrors);
+      else if (chain.isSolana)
         raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
-      else if (chain == 'Ethereum Sepolia')
-        raw = await evm.fetchWithdrawal(id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
       if (raw) withdrawal = new Withdrawal(id, chain, raw);
     } catch (e) {
@@ -102,7 +102,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     }
 
     // If a withdrawal was found, cache it and return it.
-    if (withdrawal) await cache.save(cacheKey(chain, id), withdrawal);
+    if (withdrawal) await cache.save(cacheKey(chain.name, id), withdrawal);
 
     return withdrawal;
   };
@@ -123,7 +123,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       for (let i = start; i >= target; i--) {
         const id = await auth.getWithdrawalId(i);
         if (id) {
-          const withdrawal = await get(id, auth.currentUser.chain);
+          const withdrawal = await get(id, { ...auth.currentUser.chain });
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;
@@ -152,7 +152,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       for (let i = start; i >= target; i--) {
         const id = await payableStore.getWithdrawalId(payable.id, chain, i);
         if (id) {
-          const withdrawal = await get(id, chain);
+          const withdrawal = await get(id, { ...chain });
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;

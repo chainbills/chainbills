@@ -4,7 +4,7 @@ import Shimmer from '@/components/Shimmer.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconForward from '@/icons/IconForward.vue';
 import IconWallet from '@/icons/IconWallet.vue';
-import { Payable } from '@/schemas';
+import { Payable, getTokenLogo } from '@/schemas';
 import { usePayableStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
@@ -132,7 +132,7 @@ onMounted(() => {
             class="flex gap-x-1 items-center bg-primary bg-opacity-10 px-1 rounded"
           >
             <img
-              :src="`/assets/tokens/${bal.name}.png`"
+              :src="getTokenLogo(payable.chain, bal.token())"
               class="w-5 h-5"
               aria-hidden="true"
             />

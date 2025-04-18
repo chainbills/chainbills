@@ -1,6 +1,7 @@
 import {
+  contracts,
+  megaethtestnet,
   OnChainSuccess,
-  SEPOLIA_CONTRACT_ADDRESS,
   TokenAndAmount,
   User,
   type Token,
@@ -23,7 +24,7 @@ import {
   type ContractFunctionName,
   type TransactionReceipt,
 } from 'viem';
-import { sepolia } from 'viem/chains';
+import { megaethTestnet } from 'viem/chains';
 import { ref } from 'vue';
 
 export type AbiFunctionName = ContractFunctionName<typeof abi, 'pure' | 'view'>;
@@ -45,7 +46,7 @@ export const useEvmStore = defineStore('evm', () => {
   const pendingSigResolve = ref<(() => void) | null>(null);
   const latestSignature = ref<string | null>(null);
   const publicClient = createPublicClient({
-    chain: sepolia,
+    chain: megaethTestnet,
     transport: http(),
   });
   const { signMessage } = useSignMessage({
@@ -73,11 +74,11 @@ export const useEvmStore = defineStore('evm', () => {
   /** Returns UI-Formatted balance (Accounts for Decimals) */
   const balance = async (token: Token): Promise<number | null> => {
     if (!account.address.value) return null;
-    if (!token.details['Ethereum Sepolia']) return null;
-    const { address: addr, decimals } = token.details['Ethereum Sepolia'];
+    if (!token.details.megaethtestnet) return null;
+    const { address: addr, decimals } = token.details.megaethtestnet;
     try {
       const balance =
-        addr == SEPOLIA_CONTRACT_ADDRESS
+        addr == contracts.megaethtestnet
           ? await publicClient.getBalance({ address: account.address.value })
           : await publicClient.readContract({
               address: addr as `0x${string}`,
@@ -112,7 +113,7 @@ export const useEvmStore = defineStore('evm', () => {
 
     try {
       const walletClient = createWalletClient({
-        chain: sepolia,
+        chain: megaethTestnet,
         transport: custom((window as any).ethereum),
       });
       const [account] = await walletClient.getAddresses();
@@ -132,8 +133,9 @@ export const useEvmStore = defineStore('evm', () => {
         toastError(
           `${e}`.toLowerCase().includes('failed to fetch')
             ? 'Network Error'
-            : (e['message'] ?? e['details'] ?? e['shortMessage'] ?? `${e}`)
+            : (e['details'] ?? `${e}`).split('()')[0] // Message just before the EVM Revert error
         );
+        console.error(e);
       }
       return null;
     }
@@ -156,10 +158,11 @@ export const useEvmStore = defineStore('evm', () => {
     tokensAndAmounts: TokenAndAmount[]
   ): Promise<OnChainSuccess | null> => {
     const response = await writeContract({
-      address: SEPOLIA_CONTRACT_ADDRESS,
+      address: contracts.megaethtestnet as `0x${string}`,
       abi,
       functionName: 'createPayable',
-      args: [tokensAndAmounts.map((t) => t.toOnChain('Ethereum Sepolia'))],
+      // default false is for autoWithdraw status as false
+      args: [tokensAndAmounts.map((t) => t.toOnChain(megaethtestnet)), false],
     });
     if (!response) return null;
     return new OnChainSuccess({
@@ -169,13 +172,13 @@ export const useEvmStore = defineStore('evm', () => {
         'payableId'
       ),
       txHash: response.hash,
-      chain: 'Ethereum Sepolia',
+      chain: megaethtestnet,
     });
   };
 
   const fetchPayable = async (id: string, ignoreErrors?: boolean) => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('payables', [xId], ignoreErrors);
+    const raw = await readContract('getPayable', [xId], ignoreErrors);
     const aTAAs = await readContract(
       'getAllowedTokensAndAmounts',
       [xId],
@@ -183,73 +186,37 @@ export const useEvmStore = defineStore('evm', () => {
     );
     const balances = await readContract('getBalances', [xId], ignoreErrors);
     if (!raw || !aTAAs || !balances) return null;
-    // the following was just to reduce the number of code lines
-    const [host, chainCount, hostCount, createdAt, paymentsCount] = raw;
-    const [withdrawalsCount, , , isClosed] = raw.splice(5);
-    return {
-      ...{ host, chainCount, hostCount, createdAt, paymentsCount, balances },
-      ...{ withdrawalsCount, isClosed, allowedTokensAndAmounts: aTAAs },
-    };
+    return { allowedTokensAndAmounts: aTAAs, balances, ...raw };
   };
 
-  const fetchUserPayment = async (id: string, ignoreErrors?: boolean) => {
-    const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('userPayments', [xId], ignoreErrors);
-    const details = await readContract(
-      'getUserPaymentDetails',
-      [xId],
+  const fetchEntity = async (
+    entity: 'UserPayment' | 'PayablePayment' | 'Withdrawal',
+    id: string,
+    ignoreErrors?: boolean
+  ) =>
+    await readContract(
+      `get${entity}` as AbiFunctionName,
+      [id as `0x${string}`],
       ignoreErrors
     );
-    if (!raw || !details) return null;
-    // the following was just to reduce the number of code lines
-    const [payableId, payer, payableChainId, chainCount, payerCount] = raw;
-    const [payableCount, timestamp] = raw.splice(5);
-    return {
-      ...{ payableId, payer, payableChainId, chainCount, payerCount },
-      ...{ details, payableCount, timestamp },
-    };
-  };
-
-  const fetchPayablePayment = async (id: string, ignoreErrors?: boolean) => {
-    const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('payablePayments', [xId], ignoreErrors);
-    const details = await readContract(
-      'getPayablePaymentDetails',
-      [xId],
-      ignoreErrors
-    );
-    if (!raw || !details) return null;
-    // the following was just to reduce the number of code lines
-    const [payableId, payer, payerChainId, localChainCount, payableCount] = raw;
-    const [payerCount, timestamp] = raw.splice(5);
-    return {
-      ...{ payableId, payer, payerChainId, localChainCount, payableCount },
-      ...{ payerCount, timestamp, details },
-    };
-  };
-
-  const fetchWithdrawal = async (id: string, ignoreErrors?: boolean) => {
-    const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('withdrawals', [xId], ignoreErrors);
-    const details = await readContract(
-      'getWithdrawalDetails',
-      [xId],
-      ignoreErrors
-    );
-    if (!raw || !details) return null;
-    const [payableId, host, chainCount, hostCount, payableCount] = raw;
-    return {
-      ...{ payableId, host, chainCount, hostCount, payableCount },
-      ...{ timestamp: raw[5], details },
-    };
-  };
 
   const getCurrentUser = async () => {
-    const addr = account.address.value;
+    let addr = (account.address.value ?? '').toLowerCase() as `0x${string}`;
     if (!addr) return null;
-    const raw = await readContract('users', [addr]);
+    let raw;
+    try {
+      raw = await readContract('getUser', [addr], false, true);
+    } catch (e) {
+      if (`${e}`.includes('InvalidWalletAddress')) {
+        // Is New User, return the default
+        return new User(megaethtestnet, addr, null);
+      } else {
+        console.error(e);
+        toastError(`${e}`);
+      }
+    }
     if (!raw) return null;
-    return User.fromEvm(addr.toLowerCase(), walletExplorerUrl(addr), raw);
+    return new User(megaethtestnet, addr, raw);
   };
 
   const getPayablePaymentId = async (
@@ -302,19 +269,22 @@ export const useEvmStore = defineStore('evm', () => {
     payableId: string,
     { amount, details }: TokenAndAmount
   ): Promise<OnChainSuccess | null> => {
-    if (!details['Ethereum Sepolia']) {
-      toastError('Token not supported on Ethereum Sepolia for now');
+    if (!details.megaethtestnet) {
+      toastError('Token not supported on EVM for now');
       return null;
     }
 
-    const token = details['Ethereum Sepolia'].address as `0x${string}`;
+    const token = details.megaethtestnet.address as `0x${string}`;
     // Check if enough allowance
-    if (token != SEPOLIA_CONTRACT_ADDRESS) {
+    if (token != contracts.megaethtestnet) {
       const allowance = await publicClient.readContract({
         address: token,
         abi: erc20Abi,
         functionName: 'allowance',
-        args: [account.address.value!, SEPOLIA_CONTRACT_ADDRESS],
+        args: [
+          account.address.value!,
+          contracts.megaethtestnet as `0x${string}`,
+        ],
       });
       // Request Approval if not enough allowance
       if (!allowance || Number(allowance) < amount) {
@@ -322,40 +292,42 @@ export const useEvmStore = defineStore('evm', () => {
           address: token,
           abi: erc20Abi,
           functionName: 'approve',
-          args: [SEPOLIA_CONTRACT_ADDRESS, amount],
+          args: [contracts.megaethtestnet, amount],
         });
         if (!approval) return null;
       }
     }
 
     const response = await writeContract({
-      address: SEPOLIA_CONTRACT_ADDRESS,
+      address: contracts.megaethtestnet as `0x${string}`,
       abi,
       functionName: 'pay',
       args: [payableId, token, BigInt(amount)],
-      ...(token == SEPOLIA_CONTRACT_ADDRESS ? { value: amount } : {}),
+      ...(token == contracts.megaethtestnet ? { value: amount } : {}),
     });
     if (!response) return null;
     return new OnChainSuccess({
       created: extractNewId(response.receipt.logs, 'UserPaid', 'paymentId'),
       txHash: response.hash,
-      chain: 'Ethereum Sepolia',
+      chain: megaethtestnet,
     });
   };
 
   const readContract = async (
-    functionName: AbiFunctionName,
-    args: AbiArgs = [],
-    ignoreErrors = false
+    functionName: any,
+    args: any,
+    ignoreErrors = false,
+    rethrowError = false
   ): Promise<any> => {
     try {
       return await publicClient.readContract({
-        address: SEPOLIA_CONTRACT_ADDRESS,
+        address: contracts.megaethtestnet as `0x${string}`,
         abi,
         functionName,
         args,
       });
     } catch (e) {
+      if (rethrowError) throw e;
       if (!ignoreErrors) {
         console.error(e);
         toastError(`${e}`);
@@ -382,28 +354,25 @@ export const useEvmStore = defineStore('evm', () => {
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  const walletExplorerUrl = (wallet: string) =>
-    `https://sepolia.etherscan.io/address/${wallet}`;
-
   const withdraw = async (
     payableId: string,
     { amount, details }: TokenAndAmount
   ): Promise<OnChainSuccess | null> => {
-    if (!details['Ethereum Sepolia']) {
-      toastError('Token not supported on Ethereum Sepolia for now');
+    if (!details.megaethtestnet) {
+      toastError('Token not supported on EVM for now');
       return null;
     }
     const response = await writeContract({
-      address: SEPOLIA_CONTRACT_ADDRESS,
+      address: contracts.megaethtestnet as `0x${string}`,
       abi,
       functionName: 'withdraw',
-      args: [payableId, details['Ethereum Sepolia'].address, amount],
+      args: [payableId, details.megaethtestnet.address, amount],
     });
     if (!response) return null;
     return new OnChainSuccess({
       created: extractNewId(response.receipt.logs, 'Withdrew', 'withdrawalId'),
       txHash: response.hash,
-      chain: 'Ethereum Sepolia',
+      chain: megaethtestnet,
     });
   };
 
@@ -411,9 +380,7 @@ export const useEvmStore = defineStore('evm', () => {
     balance,
     createPayable,
     fetchPayable,
-    fetchPayablePayment,
-    fetchUserPayment,
-    fetchWithdrawal,
+    fetchEntity,
     getCurrentUser,
     getPayablePaymentId,
     getPayableWithdrawalId,
@@ -423,7 +390,6 @@ export const useEvmStore = defineStore('evm', () => {
     readContract,
     pay,
     sign,
-    walletExplorerUrl,
     withdraw,
   };
 });

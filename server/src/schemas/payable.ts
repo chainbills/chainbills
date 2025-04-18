@@ -1,34 +1,26 @@
-import { ChainId, Network } from '@wormhole-foundation/sdk';
 import { Timestamp } from 'firebase-admin/firestore';
-import { Chain, getChainId } from '../utils';
+import { Chain, ChainName, ChainNetworkType } from '../utils';
 
 export class Payable {
   id: string;
-  chain: Chain;
-  chainId: ChainId;
+  chainName: ChainName;
   chainCount: number;
-  network: Network;
+  chainNetworkType: ChainNetworkType;
   host: string;
   hostCount: number;
   createdAt: Timestamp;
-  paymentsCount: number;
-  withdrawalsCount: number;
 
-  constructor(id: string, chain: Chain, network: Network, onChainData: any) {
+  constructor(id: string, chain: Chain, onChainData: any) {
     this.id = id;
-    this.chain = chain;
-    this.chainId = getChainId(chain);
-    this.network = network;
+    this.chainName = chain.name;
+    this.chainNetworkType = chain.networkType;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain == 'Ethereum Sepolia') {
-      this.host = onChainData.host.toLowerCase();
-    } else if (chain == 'Solana') this.host = onChainData.host.toBase58();
-    else throw `Unknown chain: ${chain}`;
+    if (chain.isEvm) this.host = onChainData.host.toLowerCase();
+    else if (chain.isSolana) this.host = onChainData.host.toBase58();
+    else this.host = onChainData.host;
 
     this.hostCount = Number(onChainData.hostCount);
     this.createdAt = Timestamp.fromMillis(Number(onChainData.createdAt) * 1000);
-    this.paymentsCount = Number(onChainData.paymentsCount);
-    this.withdrawalsCount = Number(onChainData.withdrawalsCount);
   }
 }

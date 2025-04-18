@@ -1,21 +1,15 @@
-import { Network } from '@wormhole-foundation/sdk';
 import { Withdrawal } from '../schemas';
 import {
   Chain,
-  devDb,
-  evmFetchWithdrawal,
+  evmFetch,
+  getFirestore,
   notifyHost,
-  prodDb,
   solanaFetch
 } from '../utils';
 
-export const withdrew = async (
-  withdrawalId: string,
-  chain: Chain,
-  network: Network
-) => {
-  // Set Database based on Network mode
-  const db = network === 'Mainnet' ? prodDb : devDb;
+export const withdrew = async (withdrawalId: string, chain: Chain) => {
+  // Set Database based on Chain Name
+  const db = getFirestore(chain.name);
 
   // Ensure the withdrawal is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
@@ -28,21 +22,19 @@ export const withdrew = async (
 
   // Extract On-Chain Data
   let raw: any;
-  if (chain === 'Solana') {
-    raw = await solanaFetch('withdrawal', withdrawalId, network);
-  } else if (chain === 'Ethereum Sepolia') {
-    raw = await evmFetchWithdrawal(withdrawalId);
+  if (chain.isEvm) {
+    raw = await evmFetch('Withdrawal', withdrawalId);
     withdrawalId = withdrawalId.toLowerCase();
-  } else throw `Unsupported Chain ${chain}`;
+  } else if (chain.isSolana)
+    raw = await solanaFetch('withdrawal', withdrawalId);
+  else throw `Unsupported Chain ${chain.name}`;
 
   // Construct new Withdrawal to save.
-  const withdrawal = new Withdrawal(withdrawalId, chain, network, raw);
+  const withdrawal = new Withdrawal(withdrawalId, chain, raw);
 
   // Notify Host (email)
   notifyHost({ ...withdrawal, activity: 'withdrawal' });
 
   // Save the withdrawal to the database
-  await db
-    .doc(`/withdrawals/${withdrawalId}`)
-    .set({ ...withdrawal }, { merge: true });
+  await db.doc(`/withdrawals/${withdrawalId}`).set({ ...withdrawal });
 };

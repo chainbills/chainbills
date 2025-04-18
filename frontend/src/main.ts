@@ -5,7 +5,7 @@ import './assets/main.css';
 import { definePreset } from '@primevue/themes';
 import Aura from '@primevue/themes/aura';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { sepolia, type AppKitNetwork } from '@reown/appkit/networks';
+import { megaethTestnet, type AppKitNetwork } from '@reown/appkit/networks';
 import { createAppKit } from '@reown/appkit/vue';
 import {
   PhantomWalletAdapter,
@@ -76,9 +76,10 @@ app.use(ToastService);
 app.use(VueWriter as any);
 
 const projectId = import.meta.env.VITE_WC_PROJECT_ID;
-const networks: [AppKitNetwork] = [sepolia];
+const networks: [AppKitNetwork] = [megaethTestnet];
 const wagmiAdapter = new WagmiAdapter({ projectId, networks });
 const queryClient = new QueryClient();
+
 createAppKit({
   projectId,
   networks,

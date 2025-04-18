@@ -1,4 +1,9 @@
-import { Payable, TokenAndAmount } from '@/schemas';
+import {
+  type Chain,
+  chainNamesToChains,
+  Payable,
+  TokenAndAmount,
+} from '@/schemas';
 import {
   useAuthStore,
   useCacheStore,
@@ -6,7 +11,6 @@ import {
   useNotificationsStore,
   useServerStore,
   useSolanaStore,
-  type Chain,
 } from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -20,14 +24,18 @@ export const usePayableStore = defineStore('payable', () => {
   const solana = useSolanaStore();
   const toast = useToast();
 
-  const cacheKey = (chain: string, id: string, entity: string, count: number) =>
-    `${chain}::payable::${id}::${entity}::${count}`;
+  const cacheKey = (
+    chainName: string,
+    id: string,
+    entity: string,
+    count: number
+  ) => `${chainName}::payable::${id}::${entity}::${count}`;
 
   const getChainStore: any = () =>
     ({
-      'Ethereum Sepolia': evm,
-      Solana: solana,
-    })[auth.currentUser!.chain];
+      megaethtestnet: evm,
+      solanadevnet: solana,
+    })[auth.currentUser!.chain.name];
 
   const getEntityId = async (
     payableId: string,
@@ -37,7 +45,7 @@ export const usePayableStore = defineStore('payable', () => {
   ): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    const key = cacheKey(payableId, chain, entity, count);
+    const key = cacheKey(payableId, chain.name, entity, count);
     let id = await cache.retrieve(key);
     if (id) return id;
 
@@ -60,9 +68,7 @@ export const usePayableStore = defineStore('payable', () => {
       const result = await getChainStore()['createPayable'](tokensAndAmounts);
       if (!result) return null;
 
-      console.log(
-        `Created Payable Transaction Details: ${result.explorerUrl()}`
-      );
+      console.log(`Created Payable Transaction Details: ${result.explorerUrl}`);
       await server.createPayable(result.created, description);
       await auth.refreshUser();
       toast.add({
@@ -88,13 +94,15 @@ export const usePayableStore = defineStore('payable', () => {
     if (!dbData) return null;
 
     try {
+      const chain = chainNamesToChains[dbData.chainName];
+      if (!chain) throw `Unhandled Payable Chain: ${dbData.chainName}`;
+
       let raw: any;
-      if (dbData.chain == 'Solana')
+      if (chain.isEvm) raw = await evm.fetchPayable(id, ignoreErrors);
+      else if (chain.isSolana)
         raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
-      else if (dbData.chain == 'Ethereum Sepolia')
-        raw = await evm.fetchPayable(id, ignoreErrors);
-      else throw `Unknown chain: ${dbData.chain}`;
-      if (raw) return new Payable(id, dbData.chain, dbData.description, raw);
+      else throw 'Unhandled Chain Type';
+      if (raw) return new Payable(id, chain, dbData.description, raw);            
     } catch (e) {
       console.error(e);
       toastError(`${e}`);

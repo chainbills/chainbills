@@ -7,7 +7,7 @@ import {
   userPaid,
   withdrew
 } from './handlers';
-import { validateAuth, validateChain, validateNetwork } from './middleware';
+import { validateAuth, validateChain } from './middleware';
 
 export const router = Router();
 
@@ -57,13 +57,11 @@ router.get('/payable/:id', async (req: Request, res: Response) => {
 router.post(
   '/payable',
   validateChain,
-  validateNetwork,
   validateAuth,
   async (req: Request, res: Response) => {
-    const { chain, walletAddress, whNetwork } = res.locals;
+    const { chain, walletAddress } = res.locals;
     await wrapper(
-      async () =>
-        await createPayable(req.body, chain, walletAddress, whNetwork),
+      async () => await createPayable(req.body, chain, walletAddress),
       'create payable finalizer',
       res
     );
@@ -78,11 +76,10 @@ router.post(
   router.get(
     `/${entity}/:id`,
     validateChain,
-    validateNetwork,
     async (req: Request, res: Response) => {
-      const { chain, whNetwork } = res.locals;
+      const { chain } = res.locals;
       await wrapper(
-        async () => await handler(req.params.id, chain, whNetwork),
+        async () => await handler(req.params.id, chain),
         `${entity} finalizer`,
         res
       );

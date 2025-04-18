@@ -3,6 +3,8 @@ import ReceiptLoader from '@/components/ReceiptLoader.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import {
+  getTokenLogo,
+  getWalletUrl,
   PayablePayment,
   UserPayment,
   Withdrawal,
@@ -105,9 +107,11 @@ onMounted(async () => {
       </p>
     </div>
 
-    <p class="mb-8 leading-tight" v-if="userChain == payableChain">
+    <p class="mb-8 leading-tight" v-if="userChain?.name == payableChain?.name">
       <span>Chain:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ userChain }}</span>
+      <span class="text-xs break-all text-gray-500">{{
+        userChain?.displayName
+      }}</span>
     </p>
 
     <div class="mb-8 leading-tight">
@@ -124,7 +128,7 @@ onMounted(async () => {
           <IconCopy class="text-primary w-4 h-4" />
         </Button>
         <a
-          :href="auth.getExplorerUrl(receipt.user(), userChain)"
+          :href="getWalletUrl(receipt.user(), receipt.userChain())"
           target="_blank"
           rel="noopener noreferrer"
           title="View on Explorer"
@@ -137,22 +141,22 @@ onMounted(async () => {
       </p>
     </div>
 
-    <p class="mb-8 leading-tight" v-if="userChain != payableChain">
+    <p class="mb-8 leading-tight" v-if="userChain?.name != payableChain?.name">
       <span>{{ userType }}'s Chain:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ userChain }}</span>
+      <span class="text-xs break-all text-gray-500">{{
+        userChain?.displayName
+      }}</span>
     </p>
 
     <div class="mb-8 leading-tight">
       <span>{{ activityType }}:</span>
       <p class="mt-1 flex gap-x-2 items-center">
         <img
-          :src="`/assets/tokens/${receipt.details.name}.png`"
+          :src="getTokenLogo(receipt.chain, receipt.token)"
           class="w-6 h-6"
           aria-hidden="true"
         />
-        <span class="text-xl font-bold">{{
-          receipt.details.display(receipt.chain)
-        }}</span>
+        <span class="text-xl font-bold">{{ receipt.displayDetails() }}</span>
       </p>
     </div>
 
@@ -189,9 +193,11 @@ onMounted(async () => {
       </p>
     </div>
 
-    <p class="mb-8 leading-tight" v-if="payableChain != userChain">
+    <p class="mb-8 leading-tight" v-if="payableChain?.name != userChain?.name">
       <span>Payable's Chain:</span><br />
-      <span class="text-xs break-all text-gray-500">{{ payableChain }}</span>
+      <span class="text-xs break-all text-gray-500">{{
+        payableChain?.displayName
+      }}</span>
     </p>
 
     <p

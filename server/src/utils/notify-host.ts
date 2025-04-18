@@ -1,21 +1,18 @@
 import { FieldValue } from 'firebase-admin/firestore';
-import { TokenAndAmountDB } from '../schemas';
-import { defaultDb, devDb, messaging, prodDb } from './firebase';
-import { Network } from '@wormhole-foundation/sdk';
+import { defaultDb, messaging } from './firebase';
 
 export interface NotifyHostInputs {
   id: string;
   activity: 'payment' | 'withdrawal';
-  details: TokenAndAmountDB;
+  token: string;
+  amount: number;
   payableId: string;
-  network: Network
 }
 
 export const notifyHost = async (inputs: NotifyHostInputs) => {
-  const { activity, details, id, payableId, network } = inputs;
-  
-  const db = network === 'Mainnet' ? prodDb : devDb;
-  const payableSnap = await db.doc(`/payables/${payableId}`).get();
+  const { activity, token: txToken, amount, id, payableId } = inputs;
+
+  const payableSnap = await defaultDb.doc(`/payables/${payableId}`).get();
   if (!payableSnap.exists) {
     // TODO: Alert developers in some way
     return;
@@ -38,13 +35,13 @@ export const notifyHost = async (inputs: NotifyHostInputs) => {
     const { fcmTokens } = hostSnap.data()!;
     if (!fcmTokens || !fcmTokens.length) return;
 
-    for (const token of fcmTokens) {
+    for (const fcmToken of fcmTokens) {
       try {
         console.log(
           await messaging.send({
-            token,
+            token: fcmToken,
             notification: {
-              title: `You just got paid ${details.amount} ${details.token}`,
+              title: `You just got paid ${amount} ${txToken}`,
               body: 'Click to View the Payment Receipt'
               // image: 'https://chainbills.xyz/assets/chainbills-light.png'
             },
@@ -60,7 +57,10 @@ export const notifyHost = async (inputs: NotifyHostInputs) => {
         if (`${e}`.toLowerCase().includes('not found')) {
           await defaultDb
             .doc(`/users/${host}`)
-            .set({ fcmTokens: FieldValue.arrayRemove(token) }, { merge: true });
+            .set(
+              { fcmTokens: FieldValue.arrayRemove(fcmToken) },
+              { merge: true }
+            );
         } else {
           // not re-throwing any error because the flow should not be affected
           console.error(e);

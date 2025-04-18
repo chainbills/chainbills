@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import { type Receipt, Withdrawal } from '@/schemas';
+import {
+  type Receipt,
+  Withdrawal,
+  getTokenLogo,
+  getWalletUrl,
+} from '@/schemas';
 import { useAuthStore, usePaginatorsStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
@@ -9,23 +14,15 @@ import DataTable from 'primevue/datatable';
 import { useToast } from 'primevue/usetoast';
 import { computed, ref } from 'vue';
 
-const {
-  countField,
-  currentPage,
-  hidePayable,
-  hideUser,
-  receipts,
-  totalCount,
-  userChainField,
-} = defineProps<{
-  countField: string;
-  currentPage: number;
-  hidePayable?: boolean;
-  hideUser?: boolean;
-  receipts: Receipt[];
-  totalCount: number;
-  userChainField?: string;
-}>();
+const { countField, currentPage, hidePayable, hideUser, receipts, totalCount } =
+  defineProps<{
+    countField: string;
+    currentPage: number;
+    hidePayable?: boolean;
+    hideUser?: boolean;
+    receipts: Receipt[];
+    totalCount: number;
+  }>();
 
 const auth = useAuthStore();
 const paginators = usePaginatorsStore();
@@ -98,7 +95,7 @@ const sortedReceipts = computed(() =>
       <template #body="{ data }">
         <p class="flex gap-x-2 items-center w-32">
           <img
-            :src="`/assets/tokens/${data.details.name}.png`"
+            :src="getTokenLogo(data.chain, data.token)"
             class="w-6 h-6"
             aria-hidden="true"
           />
@@ -182,9 +179,7 @@ const sortedReceipts = computed(() =>
             <IconCopy class="text-primary" />
           </Button>
           <a
-            :href="
-              auth.getExplorerUrl(data.user(), data[userChainField ?? 'chain'])
-            "
+            :href="getWalletUrl(data.user(), data.userChain())"
             target="_blank"
             rel="noopener noreferrer"
             title="View on Explorer"

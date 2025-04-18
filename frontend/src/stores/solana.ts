@@ -1,16 +1,12 @@
 import {
   OnChainSuccess,
-  PROGRAM_ID,
   TokenAndAmount,
   User,
+  contracts,
+  solanadevnet,
   type Token,
 } from '@/schemas';
-import {
-  IDL,
-  SOLANA_CLUSTER,
-  WH_CHAIN_ID_SOLANA,
-  type Chainbills,
-} from '@/stores';
+import { IDL, type Chainbills } from '@/stores';
 import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
 import type { AllAccountsMap } from '@project-serum/anchor/dist/cjs/program/namespace/types';
 import {
@@ -33,6 +29,8 @@ import {
   useWallet as useSolanaWallet,
 } from 'solana-wallets-vue';
 
+const PROGRAM_ID = contracts.solanadevnet;
+
 export const useSolanaStore = defineStore('solana', () => {
   const getPDA = (seeds: (Buffer | Uint8Array)[]): string =>
     PublicKey.findProgramAddressSync(
@@ -42,7 +40,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const anchorWallet = useAnchorWallet();
   const chainStats = getPDA([Buffer.from('chain')]);
-  const connection = new Connection(clusterApiUrl(SOLANA_CLUSTER), 'finalized');
+  const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
   const solanaWallet = useSolanaWallet();
   const systemProgram = new PublicKey(web3.SystemProgram.programId);
   const toast = useToast();
@@ -52,8 +50,8 @@ export const useSolanaStore = defineStore('solana', () => {
   const balance = async (token: Token): Promise<number | null> => {
     try {
       if (!anchorWallet.value) return null;
-      if (!token.details.Solana) return null;
-      if (token.details.Solana.address == PROGRAM_ID) {
+      if (!token.details.solanadevnet) return null;
+      if (token.details.solanadevnet.address == PROGRAM_ID) {
         return (
           (await connection.getBalance(anchorWallet.value!.publicKey)) / 10 ** 9
         );
@@ -61,7 +59,7 @@ export const useSolanaStore = defineStore('solana', () => {
         return (
           await connection.getTokenAccountBalance(
             getATA(
-              new PublicKey(token.details.Solana.address),
+              new PublicKey(token.details.solanadevnet.address),
               anchorWallet.value!.publicKey
             )
           )
@@ -90,11 +88,11 @@ export const useSolanaStore = defineStore('solana', () => {
     const payable = getPDA(getSeeds('payable', hostCount));
     const payableChainCounter = getPDA([
       new PublicKey(payable).toBuffer(),
-      new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
+      new BN(1).toArrayLike(Buffer, 'le', 2), // TODO: 1 should be come zero for current chain
     ]);
     const call = program()
       .methods.createPayable(
-        tokensAndAmounts.map((t) => t.toOnChain('Solana')) as any
+        tokensAndAmounts.map((t) => t.toOnChain(solanadevnet)) as any
       )
       .accounts({
         payable,
@@ -110,7 +108,7 @@ export const useSolanaStore = defineStore('solana', () => {
     return new OnChainSuccess({
       created: payable,
       txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
-      chain: 'Solana',
+      chain: solanadevnet,
     });
   };
 
@@ -143,14 +141,11 @@ export const useSolanaStore = defineStore('solana', () => {
     const wallet = anchorWallet.value.publicKey.toBase58();
     const pdaAddr = getCurrentUserPDA();
     try {
-      return User.fromSolana(
-        wallet,
-        walletExplorerUrl(wallet),
-        await fetchEntity('user', pdaAddr)
-      );
+      return new User(solanadevnet, wallet, await fetchEntity('user', pdaAddr));
     } catch (_) {
-      // TODO: Check for network errors and throw and return null instead
-      return User.newUser('Solana', wallet, walletExplorerUrl(wallet));
+      // TODO: Check for network errors and throw and return null if need be
+      // Return empty/new user
+      return new User(solanadevnet, wallet, null);
     }
   };
 
@@ -225,7 +220,7 @@ export const useSolanaStore = defineStore('solana', () => {
       return null;
     }
 
-    if (!details.Solana) {
+    if (!details.solanadevnet) {
       toastError('Token not supported on Solana for now');
       return null;
     }
@@ -243,16 +238,16 @@ export const useSolanaStore = defineStore('solana', () => {
     );
     const payableChainCounter = getPDA([
       new PublicKey(payableId).toBuffer(),
-      new BN(WH_CHAIN_ID_SOLANA).toArrayLike(Buffer, 'le', 2),
+      new BN(1).toArrayLike(Buffer, 'le', 2), // TODO: 1 should be come zero for current chain
     ]);
     const signer = anchorWallet.value.publicKey;
-    const mint = new PublicKey(details.Solana.address);
+    const mint = new PublicKey(details.solanadevnet.address);
     const maxWithdrawalFeeDetails = getPDA([
       Buffer.from('max_withdrawal_fee'),
       mint.toBuffer(),
     ]);
 
-    const isNativePayment = details.Solana.address == PROGRAM_ID;
+    const isNativePayment = details.solanadevnet.address == PROGRAM_ID;
     let splAccounts = {};
     if (!isNativePayment) {
       const payerTokenAccount = getATA(mint, signer, true);
@@ -291,7 +286,7 @@ export const useSolanaStore = defineStore('solana', () => {
     return new OnChainSuccess({
       created: userPayment,
       txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
-      chain: 'Solana',
+      chain: solanadevnet,
     });
   };
 
@@ -316,7 +311,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
   const toastError = (detail: string) =>
     toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
-  
+
   const tryFetchEntity = async (
     entity: keyof AllAccountsMap<Chainbills>,
     id: string,
@@ -333,9 +328,6 @@ export const useSolanaStore = defineStore('solana', () => {
     }
   };
 
-  const walletExplorerUrl = (wallet: string) =>
-    `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
-
   const withdraw = async (
     payableId: string,
     { amount, details }: TokenAndAmount
@@ -350,7 +342,7 @@ export const useSolanaStore = defineStore('solana', () => {
       return null;
     }
 
-    if (!details.Solana) {
+    if (!details.solanadevnet) {
       toastError('Token not supported on Solana for now');
       return null;
     }
@@ -368,7 +360,7 @@ export const useSolanaStore = defineStore('solana', () => {
         new PublicKey(payableId)
       )
     );
-    const mint = new PublicKey(details.Solana.address);
+    const mint = new PublicKey(details.solanadevnet.address);
     const maxWithdrawalFeeDetails = getPDA([
       Buffer.from('max_withdrawal_fee'),
       mint.toBuffer(),
@@ -377,7 +369,7 @@ export const useSolanaStore = defineStore('solana', () => {
     const configData = await fetchEntity('config', config);
     const feeCollector = configData.chainbillsFeeCollector;
 
-    const isNativePayment = details.Solana.address == PROGRAM_ID;
+    const isNativePayment = details.solanadevnet.address == PROGRAM_ID;
     let splAccounts = {};
     if (!isNativePayment) {
       const hostTokenAccount = getATA(mint, signer, false);
@@ -422,7 +414,7 @@ export const useSolanaStore = defineStore('solana', () => {
     return new OnChainSuccess({
       created: withdrawal,
       txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
-      chain: 'Solana',
+      chain: solanadevnet,
     });
   };
 
@@ -440,7 +432,6 @@ export const useSolanaStore = defineStore('solana', () => {
     program,
     sign,
     tryFetchEntity,
-    walletExplorerUrl,
     withdraw,
   };
 });

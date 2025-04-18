@@ -1,4 +1,5 @@
-import { getChainId, useAuthStore, type Chain } from '@/stores';
+import type { ChainName } from '@/schemas';
+import { useAuthStore } from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
@@ -15,7 +16,7 @@ export const useServerStore = defineStore('server', () => {
       // TODO: Change wh-network to Mainnet when needed
       const headers: any = { 'wh-network': 'Testnet' };
       if (auth.currentUser) {
-        headers['chain-id'] = getChainId(auth.currentUser.chain);
+        headers['chain-name'] = auth.currentUser.chain.name;
         headers['wallet-address'] = auth.currentUser.walletAddress;
       }
       if (auth.signature) headers['signature'] = auth.signature;
@@ -75,7 +76,7 @@ export const useServerStore = defineStore('server', () => {
   const getPayable = async (
     payableId: string,
     ignoreErrors?: boolean
-  ): Promise<{ chain: Chain; description: string } | null> => {
+  ): Promise<{ chainName: ChainName; description: string } | null> => {
     return await call(`/payable/${payableId}`, null, ignoreErrors);
   };
 

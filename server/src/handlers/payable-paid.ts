@@ -1,21 +1,15 @@
-import { Network } from '@wormhole-foundation/sdk';
 import { PayablePayment } from '../schemas';
 import {
   Chain,
-  devDb,
-  evmFetchPayablePayment,
+  evmFetch,
+  getFirestore,
   notifyHost,
-  prodDb,
   solanaFetch
 } from '../utils';
 
-export const payablePaid = async (
-  paymentId: string,
-  chain: Chain,
-  network: Network
-) => {
-  // Set Database based on Network mode
-  const db = network === 'Mainnet' ? prodDb : devDb;
+export const payablePaid = async (paymentId: string, chain: Chain) => {
+  // Set Database based on Chain Name
+  const db = getFirestore(chain.name);
 
   // Ensure the payment is not being recreated a second time.
   // This is necessary to prevent sending emails twice.
@@ -28,21 +22,19 @@ export const payablePaid = async (
 
   // Extract On-Chain Data
   let raw: any;
-  if (chain === 'Solana') {
-    raw = await solanaFetch('payablePayment', paymentId, network);
-  } else if (chain === 'Ethereum Sepolia') {
-    raw = await evmFetchPayablePayment(paymentId);
+  if (chain.isEvm) {
+    raw = await evmFetch('PayablePayment', paymentId);
     paymentId = paymentId.toLowerCase();
-  } else throw `Unsupported Chain ${chain}`;
+  } else if (chain.isSolana)
+    raw = await solanaFetch('payablePayment', paymentId);
+  else throw `Unsupported Chain ${chain.name}`;
 
   // Construct new UserPayment to save.
-  const payment = new PayablePayment(paymentId, chain, network, raw);
+  const payment = new PayablePayment(paymentId, chain, raw);
 
   // Notify Host (browser and email)
   notifyHost({ ...payment, activity: 'payment' });
 
   // Save the userPayment to the database
-  await db
-    .doc(`/payablePayments/${paymentId}`)
-    .set({ ...payment }, { merge: true });
+  await db.doc(`/payablePayments/${paymentId}`).set({ ...payment });
 };

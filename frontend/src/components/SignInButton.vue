@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { id } = defineProps(['id']);
 import IconCopy from '@/icons/IconCopy.vue';
-import IconEthereum from '@/icons/IconEthereum.vue';
+import IconMegaETH from '@/icons/IconMegaETH.vue';
 import IconLogout from '@/icons/IconLogout.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import IconSolana from '@/icons/IconSolana.vue';
@@ -45,7 +45,7 @@ const toastLoadingAuth = () => {
 
 const walletItems = () => [
   ...(auth.currentUser
-    ? [{ label: auth.currentUser.chain, class: 'pointer-events-none' }]
+    ? [{ label: auth.currentUser.chain.displayName, class: 'pointer-events-none' }]
     : []),
   {
     label: 'Copy Address',
@@ -119,9 +119,9 @@ onMounted(() => {
     <component
       :is="
         {
-          Solana: IconSolana,
-          'Ethereum Sepolia': IconEthereum,
-        }[auth.currentUser.chain]
+          solanadevnet: IconSolana,
+          megaethtestnet: IconMegaETH,
+        }[auth.currentUser.chain.name]
       "
       :id="id"
       class="w-5 h-5 mr-1.5"
@@ -158,7 +158,7 @@ onMounted(() => {
     >
       <h2 class="text-lg flex items-center">
         <IconSolana class="w-5.5 h-5.5 mr-1.5" />
-        <span>Solana</span>
+        <span>Solana Devnet</span>
       </h2>
       <wallet-multi-button :dark="theme.isDisplayDark" />
     </div>
@@ -167,8 +167,8 @@ onMounted(() => {
       class="flex max-sm:flex-col max-sm:gap-2 gap-4 max-sm:items-start sm:items-center sm:justify-between mb-4"
     >
       <h2 class="text-lg flex items-center">
-        <IconEthereum class="w-5.5 h-5.5 mr-1.5" />
-        <span>Ethereum Sepolia</span>
+        <IconMegaETH class="w-5.5 h-5.5 mr-1.5" />
+        <span>MegaETH Testnet</span>
       </h2>
       <Button class="px-4 py-2" @click="onClickEvm"> Select Wallet </Button>
     </div>

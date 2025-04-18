@@ -1,30 +1,24 @@
-import { ChainId } from '@wormhole-foundation/sdk';
 import { NextFunction, Request, Response } from 'express';
-import {
-  getChain,
-  WH_CHAIN_ID_ETH_SEPOLIA,
-  WH_CHAIN_ID_SOLANA
-} from '../utils';
+import { ChainName, chainNames, chainNamesToChains } from '../utils';
 
-const isChainId = (chainId: any): chainId is ChainId =>
-  +chainId === WH_CHAIN_ID_ETH_SEPOLIA || +chainId === WH_CHAIN_ID_SOLANA;
+const isChainName = (chainName: any): chainName is ChainName =>
+  chainNames.includes(chainName);
 
 export const validateChain = async (
   { headers }: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { 'chain-id': chainId } = headers;
+  const { ['chain-name']: chainName } = headers;
   let message = '';
-  if (!chainId) message = 'Provide Valid chain-id in headers.';
-  if (!isChainId(chainId)) message = `Unsupported chain-id: ${chainId}`;
+  if (!chainName) message = 'Provide Valid chain-name in headers.';
+  if (!isChainName(chainName)) message = `Unsupported chain-name: ${chainName}`;
   if (message) {
-    console.error('Error at validating chain ...');
+    console.error('Error at validating chain-name ...');
     console.error(message);
     res.status(400).json({ success: false, message });
   } else {
-    res.locals.chainId = +chainId!;
-    res.locals.chain = getChain(+chainId!);
+    res.locals.chain = chainNamesToChains[chainName as ChainName];
     next();
   }
 };

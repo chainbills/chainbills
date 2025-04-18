@@ -16,7 +16,9 @@ const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
 const auth = useAuthStore();
 const availableTokens = computed(() =>
-  tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain])
+  tokens.filter(
+    (t) => !auth.currentUser || !!t.details[auth.currentUser.chain.name]
+  )
 );
 const configError = ref('');
 const displayedConfig = ref<TokenAndAmount[]>([]);
@@ -120,7 +122,7 @@ const create = async () => {
             selectedTokens.value[i],
             amounts.value[i].value *
               10 **
-                selectedTokens.value[i].details[auth.currentUser.chain]!
+                selectedTokens.value[i].details[auth.currentUser.chain.name]!
                   .decimals
           )
         );
@@ -200,7 +202,7 @@ onMounted(() => {
             required
             @input="() => (description = DomPurify.sanitize(description))"
             v-model="description"
-            description 
+            description
           ></textarea>
           <small class="text-xs block mb-10">{{ descriptionError }}</small>
         </label>

@@ -1,5 +1,9 @@
-import { TokenAndAmount, type TokenAndAmountOnChain } from '@/schemas';
-import { type Chain } from '@/stores';
+import {
+  TokenAndAmount,
+  type Chain,
+  type Token,
+  type TokenAndAmountOnChain,
+} from '@/schemas';
 
 export class Payable {
   id: string;
@@ -20,10 +24,9 @@ export class Payable {
     this.chain = chain;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain == 'Ethereum Sepolia') {
-      this.host = onChainData.host.toLowerCase();
-    } else if (chain == 'Solana') this.host = onChainData.host.toBase58();
-    else throw `Unknown chain: ${chain}`;
+    if (chain.isEvm) this.host = onChainData.host.toLowerCase();
+    else if (chain.isSolana) this.host = onChainData.host.toBase58();
+    else this.host = onChainData.host;
 
     this.hostCount = Number(onChainData.hostCount);
     this.description = description;

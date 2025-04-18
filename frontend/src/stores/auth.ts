@@ -1,8 +1,12 @@
-import { type Token, User } from '@/schemas';
+import {
+  type Chain,
+  megaethtestnet,
+  solanadevnet,
+  type Token,
+  User,
+} from '@/schemas';
 import { useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
-import type { Cluster } from '@solana/web3.js';
 import { useAccount, useDisconnect } from '@wagmi/vue';
-import { toChainId } from '@wormhole-foundation/sdk';
 import { encoding } from '@wormhole-foundation/sdk-base';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -13,31 +17,13 @@ import {
 import { onMounted, ref, watch } from 'vue';
 
 export const AUTH_MESSAGE = 'Authentication';
-export const SOLANA_CLUSTER: Cluster = 'devnet';
-export const WH_CHAIN_ID_SOLANA = toChainId('Solana');
-export const WH_CHAIN_ID_ETH_SEPOLIA = toChainId('Sepolia');
-
-export const chains: Chain[] = ['Solana', 'Ethereum Sepolia'];
-export type Chain = 'Solana' | 'Ethereum Sepolia';
 
 export const denormalizeBytes = (bytes: Uint8Array, chain: Chain): string => {
   bytes = Uint8Array.from(bytes);
-  if (chain == 'Solana') return encoding.b58.encode(bytes);
-  if (chain == 'Ethereum Sepolia') {
+  if (chain.isSolana) return encoding.b58.encode(bytes);
+  if (chain.isEvm) {
     return '0x' + encoding.hex.encode(bytes, false).replace(/^0+/, '');
   } else throw `Unknown chain: ${chain}`;
-};
-
-export const getChain = (id: number): Chain => {
-  if (id == WH_CHAIN_ID_SOLANA) return 'Solana';
-  if (id == WH_CHAIN_ID_ETH_SEPOLIA) return 'Ethereum Sepolia';
-  throw `Unknown chainId: ${id}`;
-};
-
-export const getChainId = (chain: Chain): number => {
-  if (chain == 'Solana') return WH_CHAIN_ID_SOLANA;
-  if (chain == 'Ethereum Sepolia') return WH_CHAIN_ID_ETH_SEPOLIA;
-  throw `Unknown chain: ${chain}`;
 };
 
 export const useAuthStore = defineStore('auth', () => {
@@ -55,9 +41,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   const getChainStore: any = (chain?: Chain) =>
     ({
-      'Ethereum Sepolia': evm,
-      Solana: solana,
-    })[chain ?? currentUser.value!.chain];
+      megaethtestnet: evm,
+      solanadevnet: solana,
+    })[(chain ?? currentUser.value!.chain).name];
 
   /**
    * Fetches and Returns the UI-formatted balance of a token based on the
@@ -73,15 +59,15 @@ export const useAuthStore = defineStore('auth', () => {
   const cacheKey = (entity: string, count: number) => {
     if (!currentUser.value) return null;
     const { chain, walletAddress } = currentUser.value;
-    return `${chain}::user::${walletAddress}::${entity}::${count}`;
+    return `${chain.name}::user::${walletAddress}::${entity}::${count}`;
   };
 
   const disconnect = async (chain?: Chain): Promise<void> => {
     if (chain || currentUser.value) {
       return await {
-        'Ethereum Sepolia': evmDisconnect,
-        Solana: solanaWallet.disconnect,
-      }[chain ?? currentUser.value!.chain]();
+        megaethtestnet: evmDisconnect,
+        solanadevnet: solanaWallet.disconnect,
+      }[(chain ?? currentUser.value!.chain).name]();
     }
   };
 
@@ -103,10 +89,6 @@ export const useAuthStore = defineStore('auth', () => {
     return id;
   };
 
-  const getExplorerUrl = (walletAddress: string, chain: Chain): string => {
-    return getChainStore(chain)['walletExplorerUrl'](walletAddress);
-  };
-
   const getPayableId = async (count: number): Promise<string | null> =>
     getEntityId('payable', count);
 
@@ -117,8 +99,8 @@ export const useAuthStore = defineStore('auth', () => {
     getEntityId('withdrawal', count);
 
   const storageKey = (user: User) =>
-    `chainbills::chainId=>${getChainId(user.chain)}` +
-    `::signature=>${user.walletAddress}`;
+    `chainbills::chainId=>${user.chain.name}` +
+    `::signature::v2=>${user.walletAddress}`;
 
   const getSavedSig = (user: User): string | null =>
     localStorage.getItem(storageKey(user));
@@ -154,8 +136,8 @@ export const useAuthStore = defineStore('auth', () => {
   const updateCurrentUser = async ([newAnchorWallet, newEvmAddress]: any[]) => {
     isLoading.value = true;
     let newChain: Chain | null = null;
-    if (newEvmAddress) newChain = 'Ethereum Sepolia';
-    else if (newAnchorWallet) newChain = 'Solana';
+    if (newEvmAddress) newChain = megaethtestnet;
+    else if (newAnchorWallet) newChain = solanadevnet;
     else newChain = null;
 
     if (!newChain) {
@@ -204,7 +186,6 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser,
     disconnect,
     isLoading,
-    getExplorerUrl,
     getPayableId,
     getPaymentId,
     getWithdrawalId,

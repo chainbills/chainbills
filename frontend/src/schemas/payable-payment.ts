@@ -1,6 +1,10 @@
-import { TokenAndAmount, type Payment } from '@/schemas';
-import { denormalizeBytes, getChain, type Chain } from '@/stores';
-import { UniversalAddress } from '@wormhole-foundation/sdk';
+import {
+  type Chain,
+  getTokenDetails,
+  type Payment,
+  type Token,
+} from '@/schemas';
+import { denormalizeBytes } from '@/stores';
 
 export class PayablePayment implements Payment {
   id: string;
@@ -11,39 +15,49 @@ export class PayablePayment implements Payment {
   payer: string;
   payerChain: Chain;
   timestamp: number;
-  details: TokenAndAmount;
+  token: Token;
+  amount: number;
 
   constructor(id: string, chain: Chain, onChainData: any) {
     this.id = id;
     this.chain = chain;
-    this.payerChain = getChain(onChainData.payerChainId);
 
-    if (chain == 'Ethereum Sepolia') {
-      this.payableId = onChainData.payableId.toLowerCase();
+    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
+    else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
+    else this.payableId = onChainData.payableId;
 
-      if (this.payerChain == 'Ethereum Sepolia') {
-        this.payer = new UniversalAddress(onChainData.payer, 'hex')
-          .toNative('Sepolia')
-          .address.toLowerCase();
-      } else if (this.payerChain == 'Solana') {
-        this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
-      } else throw `Unknown payerChain: ${this.payerChain}`;
-    } else if (chain == 'Solana') {
-      this.payableId = onChainData.payableId.toBase58();
+    if (onChainData.payerChainId == 0) this.payerChain = chain;
+    else throw `Unhandled payerChain: ${onChainData.payerChainId}`;
+
+    if (chain.isEvm && this.chain.name == this.payerChain.name) {
+      // This because of the "toWormholeFormat" conversion in EVM contract
+      this.payer = '0x' + onChainData.payer.split('0x')[1].replace(/^0+/, '');
+    } else {
       this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
-    } else throw `Unknown chain: ${chain}`;
+    }
 
     this.payableCount = Number(onChainData.payableCount);
     this.localChainCount = Number(onChainData.localChainCount);
-    this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
+    this.token = getTokenDetails(onChainData.token, chain);
+    this.amount = Number(onChainData.amount);
     this.timestamp = Number(onChainData.timestamp);
   }
 
-  displayDetails(): string {
-    return this.details.display(this.chain);
+  displayDetails() {
+    return this.formatAmount() + ' ' + this.token.name;
+  }
+
+  formatAmount() {
+    return (
+      this.amount / 10 ** (this.token.details[this.chain.name]?.decimals ?? 0)
+    );
   }
 
   user(): string {
     return this.payer;
+  }
+
+  userChain(): Chain {
+    return this.payerChain;
   }
 }

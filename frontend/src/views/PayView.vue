@@ -3,13 +3,14 @@ import MakePaymentLoader from '@/components/MakePaymentLoader.vue';
 import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import IconWallet from '@/icons/IconWallet.vue';
-import { Payable, TokenAndAmount, tokens, type Token } from '@/schemas';
 import {
-  useAuthStore,
-  usePayableStore,
-  usePaymentStore,
-  type Chain,
-} from '@/stores';
+  Payable,
+  TokenAndAmount,
+  tokens,
+  type ChainName,
+  type Token,
+} from '@/schemas';
+import { useAuthStore, usePayableStore, usePaymentStore } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
@@ -22,7 +23,9 @@ const auth = useAuthStore();
 const balanceError = ref('');
 const balances = ref<(number | null)[]>([]);
 const availableTokens = computed(() =>
-  tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain])
+  tokens.filter(
+    (t) => !auth.currentUser || !!t.details[auth.currentUser.chain.name]
+  )
 );
 const configError = ref('');
 const isLoading = ref(true);
@@ -42,16 +45,17 @@ const selectToken = (token: Token) => {
 
   // Obtaining a Choice Chain first is good when no wallet is connected
   // and the User is interacting with the dropdown of tokens.
-  let choiceChain = auth.currentUser?.chain ?? payable.value.chain;
+  let choiceChainName =
+    auth.currentUser?.chain.name ?? payable.value.chain.name;
   // If the token the user selected has no details in the choice chain,
   // we default to the first chain that has details for the token.
-  if (!token.details[choiceChain]) {
-    choiceChain = Object.keys(token.details)[0] as Chain;
+  if (!token.details[choiceChainName]) {
+    choiceChainName = Object.keys(token.details)[0] as ChainName;
   }
 
   selectedConfig.value = new TokenAndAmount(
     token,
-    amount.value * 10 ** token.details[choiceChain]!.decimals
+    amount.value * 10 ** token.details[choiceChainName]!.decimals
   );
   updateBalances();
 };
@@ -66,7 +70,7 @@ const validateAmount = () => {
   if (allowsFreePayments.value && selectedConfig.value) {
     const chain = auth.currentUser?.chain ?? payable.value.chain;
     selectedConfig.value.amount =
-      v * 10 ** (selectedConfig.value.details[chain]?.decimals ?? 0);
+      v * 10 ** (selectedConfig.value.details[chain.name]?.decimals ?? 0);
   }
   validateBalance();
 };
@@ -284,7 +288,8 @@ onMounted(async () => {
                 <Button
                   :class="
                     'text-current border-none shadow-md px-3 py-2 text-xl ' +
-                    (selectedConfig?.name == taa.name && selectedConfig?.amount == taa.amount
+                    (selectedConfig?.name == taa.name &&
+                    selectedConfig?.amount == taa.amount
                       ? 'bg-primary bg-opacity-30'
                       : 'bg-transparent')
                   "

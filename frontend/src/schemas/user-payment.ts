@@ -1,5 +1,9 @@
-import { TokenAndAmount, type Payment } from '@/schemas';
-import { denormalizeBytes, getChain, type Chain } from '@/stores';
+import {
+  type Chain,
+  getTokenDetails,
+  type Payment,
+  type Token,
+} from '@/schemas';
 
 export class UserPayment implements Payment {
   id: string;
@@ -10,40 +14,46 @@ export class UserPayment implements Payment {
   payableId: string;
   payableChain: Chain;
   timestamp: number;
-  details: TokenAndAmount;
+  token: Token;
+  amount: number;
 
   constructor(id: string, chain: Chain, onChainData: any) {
     this.id = id;
     this.chain = chain;
     this.chainCount = Number(onChainData.chainCount);
-    this.payableChain = getChain(onChainData.payableChainId);
 
-    if (chain == 'Ethereum Sepolia') {
-      this.payer = onChainData.payer.toLowerCase();
+    if (chain.isEvm) this.payer = onChainData.payer.toLowerCase();
+    else if (chain.isSolana) this.payer = onChainData.payer.toBase58();
+    else this.payer = onChainData.payer;
 
-      if (this.payableChain == 'Ethereum Sepolia') {
-        this.payableId = onChainData.payableId.toLowerCase();
-      } else if (this.payableChain == 'Solana') {
-        this.payableId = denormalizeBytes(onChainData.payableId, 'Solana');
-      } else throw `Unknown payableChain: ${this.payableChain}`;
-    } else if (chain == 'Solana') {
-      this.payer = onChainData.payer.toBase58();
-      this.payableId = denormalizeBytes(
-        onChainData.payableId,
-        this.payableChain
-      );
-    } else throw `Unknown chain: ${chain}`;
+    if (onChainData.payableChainId == 0) this.payableChain = chain;
+    else throw `Unhandled payableChain: ${onChainData.payableChainId}`;
+
+    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
+    else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
+    else this.payableId = onChainData.payableId;
 
     this.payerCount = Number(onChainData.payerCount);
-    this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
+    this.token = getTokenDetails(onChainData.token, chain);
+    this.amount = Number(onChainData.amount);
     this.timestamp = Number(onChainData.timestamp);
   }
 
-  displayDetails(): string {
-    return this.details.display(this.chain);
+  displayDetails() {
+    return this.formatAmount() + ' ' + this.token.name;
+  }
+
+  formatAmount() {
+    return (
+      this.amount / 10 ** (this.token.details[this.chain.name]?.decimals ?? 0)
+    );
   }
 
   user(): string {
     return this.payer;
+  }
+
+  userChain(): Chain {
+    return this.chain;
   }
 }

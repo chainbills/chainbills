@@ -1,13 +1,14 @@
-import { type TokenAndAmount } from '@/schemas';
-import { type Chain } from '@/stores';
+import { type Chain, type Token } from '@/schemas';
 
 export interface Receipt {
   id: string;
   chain: Chain;
   payableId: string;
   timestamp: number;
-  details: TokenAndAmount;
+  token: Token;
+  amount: number;
 
   displayDetails(): string;
   user(): string; // payer or host
+  userChain(): Chain;
 }

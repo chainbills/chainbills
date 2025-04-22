@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import ThemeMenu from '@/components/ThemeMenu.vue';
 import IconMenu from '@/icons/IconMenu.vue';
-import { useSidebarStore, useThemeStore } from '@/stores';
+import { useAnalyticsStore, useSidebarStore, useThemeStore } from '@/stores';
 import Button from 'primevue/button';
 import SignInButton from './SignInButton.vue';
 
+const analytics = useAnalyticsStore();
 const sidebar = useSidebarStore();
 const theme = useThemeStore();
 </script>
@@ -32,6 +33,7 @@ const theme = useThemeStore();
                 href="https://blog.chainbills.xyz"
                 rel="noopener noreferrer"
                 target="_blank"
+                @click="analytics.recordNavigation('/blog', 'blog')"
                 >Blog
               </a>
             </li>

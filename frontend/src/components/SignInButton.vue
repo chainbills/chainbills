@@ -7,7 +7,12 @@ import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import IconSolana from '@/icons/IconSolana.vue';
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
-import { useAuthStore, useSidebarStore, useThemeStore } from '@/stores';
+import {
+  useAnalyticsStore,
+  useAuthStore,
+  useSidebarStore,
+  useThemeStore,
+} from '@/stores';
 import { useAppKit } from '@reown/appkit/vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
@@ -16,6 +21,7 @@ import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet, WalletMultiButton } from 'solana-wallets-vue';
 import { onMounted, ref, watch } from 'vue';
 
+const analytics = useAnalyticsStore();
 const anchorWallet = useAnchorWallet();
 const auth = useAuthStore();
 const walletMenu = ref();
@@ -26,6 +32,7 @@ const theme = useThemeStore();
 const { open: evmConnect } = useAppKit();
 
 const onClickEvm = () => {
+  analytics.recordEvent('clicked_evm_signin');
   sidebar.close();
   isModalVisible.value = false;
   evmConnect();
@@ -45,7 +52,12 @@ const toastLoadingAuth = () => {
 
 const walletItems = () => [
   ...(auth.currentUser
-    ? [{ label: auth.currentUser.chain.displayName, class: 'pointer-events-none' }]
+    ? [
+        {
+          label: auth.currentUser.chain.displayName,
+          class: 'pointer-events-none',
+        },
+      ]
     : []),
   {
     label: 'Copy Address',
@@ -60,6 +72,9 @@ const walletItems = () => [
           detail: `Wallet Address: ${walletAddress} copied to clipboard.`,
           life: 5000,
         });
+        analytics.recordEvent('copied_wallet_address', {
+          from: 'wallet_menu',
+        });
       }
       sidebar.close();
     },
@@ -68,7 +83,12 @@ const walletItems = () => [
     label: 'View In Explorer',
     customIcon: IconOpenInNew,
     command: () => {
-      if (auth.currentUser) window.open(auth.currentUser.explorerUrl, '_blank');
+      if (auth.currentUser) {
+        window.open(auth.currentUser.explorerUrl, '_blank');
+        analytics.recordEvent('opened_wallet_in_explorer', {
+          from: 'wallet_menu',
+        });
+      }
       sidebar.close();
     },
   },
@@ -76,6 +96,7 @@ const walletItems = () => [
     label: 'Disconnect',
     customIcon: IconLogout,
     command: () => {
+      analytics.recordEvent('disconnected_wallet');
       auth.disconnect();
       sidebar.close();
     },
@@ -101,17 +122,18 @@ onMounted(() => {
     <IconSpinnerWhite class="mx-4" v-else />
   </Button>
 
-  <Button
-    @click="onClickEvm"
-    v-else-if="!auth.currentUser"
-    class="px-4 py-2"
-  >
+  <Button @click="onClickEvm" v-else-if="!auth.currentUser" class="px-4 py-2">
     Sign In
   </Button>
 
   <Button
     v-else
-    @click="($event) => walletMenu.toggle($event)"
+    @click="
+      ($event) => {
+        walletMenu.toggle($event);
+        analytics.recordEvent('clicked_wallet_menu');
+      }
+    "
     aria-haspopup="true"
     aria-controls="wallet-menu"
     class="px-4 py-2 gap-0"

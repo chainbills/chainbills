@@ -7,7 +7,12 @@ import {
   getTokenLogo,
   getWalletUrl,
 } from '@/schemas';
-import { useAuthStore, usePaginatorsStore, useTimeStore } from '@/stores';
+import {
+  useAnalyticsStore,
+  useAuthStore,
+  usePaginatorsStore,
+  useTimeStore,
+} from '@/stores';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
@@ -24,6 +29,7 @@ const { countField, currentPage, hidePayable, hideUser, receipts, totalCount } =
     totalCount: number;
   }>();
 
+const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const paginators = usePaginatorsStore();
 const sortOrder = ref(-1);
@@ -35,13 +41,16 @@ const userField = computed(() => {
   return 'host';
 });
 
-const copy = (text: string, context: string) => {
+const copy = (text: string, context: string, eventContext: string) => {
   navigator.clipboard.writeText(text);
   toast.add({
     severity: 'info',
     summary: 'Copied',
     detail: `${context} copied to clipboard.`,
     life: 3000,
+  });
+  analytics.recordEvent(`copied_${eventContext}`, {
+    from: 'transactions_table',
   });
 };
 
@@ -82,6 +91,7 @@ const sortedReceipts = computed(() =>
       (e) => {
         paginators.setRowsPerPage(e.rows);
         $emit('updateTablePage', e.page);
+        analytics.recordEvent('updated_transactions_table_pagination');
       }
     "
   >
@@ -113,7 +123,7 @@ const sortedReceipts = computed(() =>
           </span>
           <Button
             class="bg-transparent p-1 border-none"
-            @click="copy(data.id, `Receipt ID: ${data.id}`)"
+            @click="copy(data.id, `Receipt ID: ${data.id}`, 'receipt_id')"
             title="Copy Receipt ID"
           >
             <IconCopy class="text-primary" />
@@ -124,6 +134,11 @@ const sortedReceipts = computed(() =>
             rel="noopener noreferrer"
             title="View Receipt"
             class="p-1 rounded-md"
+            @click="
+              analytics.recordEvent('opened_receipt_link', {
+                from: 'transactions_table',
+              })
+            "
             v-ripple
           >
             <IconOpenInNew class="text-primary" />
@@ -139,7 +154,13 @@ const sortedReceipts = computed(() =>
           </span>
           <Button
             class="bg-transparent p-1 border-none"
-            @click="copy(data.payableId, `Payable ID: ${data.payableId}`)"
+            @click="
+              copy(
+                data.payableId,
+                `Payable ID: ${data.payableId}`,
+                'payable_id'
+              )
+            "
             title="Copy Payable ID"
           >
             <IconCopy class="text-primary" />
@@ -154,6 +175,11 @@ const sortedReceipts = computed(() =>
                 : 'Payment Page'
             "
             class="p-1 rounded-md"
+            @click="
+              analytics.recordEvent('opened_payment_link', {
+                from: 'transactions_table',
+              })
+            "
             v-ripple
           >
             <IconOpenInNew class="text-primary" />
@@ -173,7 +199,13 @@ const sortedReceipts = computed(() =>
           </span>
           <Button
             class="bg-transparent p-1 border-none"
-            @click="copy(data.user(), `Wallet Address: ${data.user()}`)"
+            @click="
+              copy(
+                data.user(),
+                `Wallet Address: ${data.user()}`,
+                'wallet_address'
+              )
+            "
             title="Copy Wallet Address"
           >
             <IconCopy class="text-primary" />
@@ -184,6 +216,11 @@ const sortedReceipts = computed(() =>
             rel="noopener noreferrer"
             title="View on Explorer"
             class="p-1 rounded-md"
+            @click="
+              analytics.recordEvent('opened_wallet_in_explorer', {
+                from: 'transactions_table',
+              })
+            "
             v-ripple
           >
             <IconOpenInNew class="text-primary" />

@@ -6,7 +6,7 @@ import {
   solanadevnet,
   type Token,
 } from '@/schemas';
-import { IDL, type Chainbills } from '@/stores';
+import { IDL, useAnalyticsStore, type Chainbills } from '@/stores';
 import { AnchorProvider, BN, Program, web3 } from '@project-serum/anchor';
 import type { AllAccountsMap } from '@project-serum/anchor/dist/cjs/program/namespace/types';
 import {
@@ -38,6 +38,7 @@ export const useSolanaStore = defineStore('solana', () => {
       new PublicKey(PROGRAM_ID)
     )[0].toBase58();
 
+  const analytics = useAnalyticsStore();
   const anchorWallet = useAnchorWallet();
   const chainStats = getPDA([Buffer.from('chain')]);
   const connection = new Connection(clusterApiUrl('devnet'), 'finalized');
@@ -68,6 +69,27 @@ export const useSolanaStore = defineStore('solana', () => {
     } catch (e) {
       if (`${e}`.includes('could not find account')) return 0;
       toastError(`Couldn't fetch ${token.name} balance: ${e}`);
+      return null;
+    }
+  };
+
+  const callContractWrapper = async (
+    call: Promise<string>,
+    created: string
+  ): Promise<OnChainSuccess | null> => {
+    try {
+      analytics.recordEvent('initiated_solana_transaction');
+      const txHash = await call;
+      analytics.recordEvent('completed_solana_transaction');
+      return new OnChainSuccess({ created, txHash, chain: solanadevnet });
+    } catch (e) {
+      if (!`${e}`.includes('rejected')) {
+        toastError(`${e}`);
+        analytics.recordEvent('failed_solana_transaction');
+        console.error(e);
+      } else {
+        analytics.recordEvent('rejected_solana_transaction');
+      }
       return null;
     }
   };
@@ -105,11 +127,10 @@ export const useSolanaStore = defineStore('solana', () => {
 
     if (!isExistingUser) call.preInstructions([(await initializeUserIx())!]);
 
-    return new OnChainSuccess({
-      created: payable,
-      txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
-      chain: solanadevnet,
-    });
+    return await callContractWrapper(
+      call.rpc({ preflightCommitment: 'confirmed' }),
+      payable
+    );
   };
 
   const doesATAExists = async (ata: PublicKey): Promise<boolean> => {
@@ -283,11 +304,10 @@ export const useSolanaStore = defineStore('solana', () => {
       ...(!isExistingUser ? [(await initializeUserIx())!] : []),
     ]);
 
-    return new OnChainSuccess({
-      created: userPayment,
-      txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
-      chain: solanadevnet,
-    });
+    return await callContractWrapper(
+      call.rpc({ preflightCommitment: 'confirmed' }),
+      userPayment
+    );
   };
 
   const program = () =>
@@ -411,11 +431,10 @@ export const useSolanaStore = defineStore('solana', () => {
       }
     }
 
-    return new OnChainSuccess({
-      created: withdrawal,
-      txHash: await call.rpc({ preflightCommitment: 'confirmed' }),
-      chain: solanadevnet,
-    });
+    return await callContractWrapper(
+      call.rpc({ preflightCommitment: 'confirmed' }),
+      withdrawal
+    );
   };
 
   return {

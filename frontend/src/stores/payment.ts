@@ -10,6 +10,7 @@ import {
   type Payment,
 } from '@/schemas';
 import {
+  useAnalyticsStore,
   useAuthStore,
   useCacheStore,
   useEvmStore,
@@ -23,6 +24,7 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const usePaymentStore = defineStore('payment', () => {
+  const analytics = useAnalyticsStore();
   const auth = useAuthStore();
   const cache = useCacheStore();
   const evm = useEvmStore();
@@ -40,40 +42,38 @@ export const usePaymentStore = defineStore('payment', () => {
   ): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    try {
-      const result = await {
-        megaethtestnet: evm,
-        solanadevnet: solana,
-      }[auth.currentUser.chain.name]['pay'](payableId, details);
-      if (!result) return null;
-      await auth.refreshUser();
+    const result = await {
+      megaethtestnet: evm,
+      solanadevnet: solana,
+    }[auth.currentUser.chain.name]['pay'](payableId, details);
+    if (!result) return null;
+    await auth.refreshUser();
 
-      console.log(`Made Payment Transaction Details: ${result.explorerUrl}`);
-      await server.userPaid(result.created);
+    console.log(`Made Payment Transaction Details: ${result.explorerUrl}`);
+    await server.userPaid(result.created);
 
-      // TODO: Move this payablePaid call to the relayer or a different process
-      const payable = await payableStore.get(payableId);
-      if (payable) {
-        const payablePaymentId = await payableStore.getPaymentId(
-          payableId,
-          payable.chain,
-          payable.paymentsCount
-        );
-        if (payablePaymentId) await server.payablePaid(payablePaymentId);
-      }
-
-      toast.add({
-        severity: 'success',
-        summary: 'Successfully Paid',
-        detail: 'You have successfully made a Payment.',
-        life: 12000,
-      });
-      return result.created;
-    } catch (e) {
-      console.error(e);
-      if (!`${e}`.includes('rejected')) toastError(`${e}`);
-      return null;
+    // TODO: Move this payablePaid call to the relayer or a different process
+    const payable = await payableStore.get(payableId);
+    if (payable) {
+      const payablePaymentId = await payableStore.getPaymentId(
+        payableId,
+        payable.chain,
+        payable.paymentsCount
+      );
+      if (payablePaymentId) await server.payablePaid(payablePaymentId);
     }
+
+    toast.add({
+      severity: 'success',
+      summary: 'Successfully Paid',
+      detail: 'You have successfully made a Payment.',
+      life: 12000,
+    });
+    analytics.recordEvent('made_payment', {
+      user_payment_id: result.created,
+      chain: result.chain.name,
+    });
+    return result.created;
   };
 
   const get = async (

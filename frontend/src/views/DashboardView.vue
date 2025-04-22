@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import PayableInfoCard from '@/components/PayableInfoCard.vue';
 import SignInButton from '@/components/SignInButton.vue';
-import { useAuthStore, usePaginatorsStore, usePayableStore } from '@/stores';
+import {
+  useAnalyticsStore,
+  useAuthStore,
+  usePaginatorsStore,
+  usePayableStore,
+} from '@/stores';
 import Button from 'primevue/button';
 import Paginator from 'primevue/paginator';
 import { onMounted, ref, watch } from 'vue';
 
+const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const lsPageKey = () =>
   `chainbills::user=>${auth.currentUser?.walletAddress}` +
@@ -67,7 +73,15 @@ onMounted(async () => {
       <p class="pt-8 mb-8 text-center text-xl">
         Please connect your wallet to continue
       </p>
-      <p class="mx-auto w-fit"><SignInButton /></p>
+      <p class="mx-auto w-fit">
+        <SignInButton
+          @click="
+            analytics.recordEvent('clicked_signin', {
+              from: 'dashboard_page',
+            })
+          "
+        />
+      </p>
     </template>
 
     <template v-else-if="payableIds && payableIds.length == 0">
@@ -78,7 +92,14 @@ onMounted(async () => {
         Get Started with us today by Creating a Payable today.
       </p>
       <p class="text-center">
-        <router-link to="/start">
+        <router-link
+          to="/start"
+          @click="
+            analytics.recordEvent('clicked_get_started', {
+              from: 'dashboard_page',
+            })
+          "
+        >
           <Button class="px-3 py-2">Get Started</Button>
         </router-link>
       </p>
@@ -114,6 +135,7 @@ onMounted(async () => {
             (e) => {
               paginators.setRowsPerPage(e.rows);
               updatePage(e.page);
+              analytics.recordEvent('updated_payables_list_pagination');
             }
           "
         />
@@ -122,7 +144,14 @@ onMounted(async () => {
       <template v-else>
         <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
         <p class="mx-auto w-fit">
-          <Button class="text-xl px-6 py-2" @click="getPayableIds"
+          <Button
+            class="text-xl px-6 py-2"
+            @click="
+              getPayableIds();
+              analytics.recordEvent('clicked_retry_get_payable_ids', {
+                from: 'dashboard_page',
+              });
+            "
             >Retry</Button
           >
         </p>

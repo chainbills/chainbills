@@ -11,6 +11,7 @@ import {
   type Receipt,
 } from '@/schemas';
 import {
+  useAnalyticsStore,
   useAuthStore,
   usePaymentStore,
   useTimeStore,
@@ -22,6 +23,7 @@ import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
+const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const isLoading = ref(true);
 const payments = usePaymentStore();
@@ -55,6 +57,13 @@ const payableChain = computed(() =>
     : receipt.value?.chain
 );
 
+const isPaymentLink = computed(() => {
+  return (
+    auth.currentUser?.walletAddress != receipt.value?.user() ||
+    !(receipt instanceof Withdrawal)
+  );
+});
+
 const payableRoute = computed(() => {
   const isMine = auth.currentUser?.walletAddress == receipt.value?.user();
   return (
@@ -63,13 +72,16 @@ const payableRoute = computed(() => {
   );
 });
 
-const copy = (text: string, context: string) => {
+const copy = (text: string, context: string, eventContext: string) => {
   navigator.clipboard.writeText(text);
   toast.add({
     severity: 'info',
     summary: 'Copied',
     detail: `${context} copied to clipboard.`,
     life: 3000,
+  });
+  analytics.recordEvent(`copied_${eventContext}`, {
+    from: 'transactions_table',
   });
 };
 
@@ -99,7 +111,7 @@ onMounted(async () => {
         }}</span>
         <Button
           class="bg-transparent p-1 border-none block w-fit h-fit"
-          @click="copy(receipt.id, `Receipt ID: ${receipt.id}`)"
+          @click="copy(receipt.id, `Receipt ID: ${receipt.id}`, 'receipt_id')"
           title="Copy Receipt ID"
         >
           <IconCopy class="text-primary w-4 h-4" />
@@ -122,7 +134,13 @@ onMounted(async () => {
         </span>
         <Button
           class="bg-transparent p-1 border-none block w-fit h-fit"
-          @click="copy(receipt.user(), `Wallet Address: ${receipt.user()}`)"
+          @click="
+            copy(
+              receipt.user(),
+              `Wallet Address: ${receipt.user()}`,
+              'wallet_address'
+            )
+          "
           title="Copy Wallet Address"
         >
           <IconCopy class="text-primary w-4 h-4" />
@@ -135,6 +153,11 @@ onMounted(async () => {
           class="p-1 rounded-md block w-fit h-fit"
           v-ripple
           v-if="userChain"
+          @click="
+            analytics.recordEvent('opened_wallet_in_explorer', {
+              from: 'receipt_page',
+            })
+          "
         >
           <IconOpenInNew class="text-primary w-4 h-4" />
         </a>
@@ -175,7 +198,13 @@ onMounted(async () => {
         </span>
         <Button
           class="bg-transparent p-1 border-none block w-fit h-fit"
-          @click="copy(receipt.payableId, `Payable ID: ${receipt.payableId}`)"
+          @click="
+            copy(
+              receipt.payableId,
+              `Payable ID: ${receipt.payableId}`,
+              'payable_id'
+            )
+          "
           title="Copy Payable ID"
         >
           <IconCopy class="text-primary w-4 h-4" />
@@ -187,6 +216,12 @@ onMounted(async () => {
           title="About"
           class="p-1 rounded-md block w-fit h-fit"
           v-ripple
+          @click="
+            analytics.recordEvent(
+              `opened_${isPaymentLink ? 'payment' : 'payable'}_link`,
+              { from: 'receipt_page' }
+            )
+          "
         >
           <IconOpenInNew class="text-primary w-4 h-4" />
         </a>

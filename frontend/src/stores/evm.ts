@@ -6,7 +6,7 @@ import {
   User,
   type Token,
 } from '@/schemas';
-import { abi, erc20Abi } from '@/stores';
+import { abi, erc20Abi, useAnalyticsStore } from '@/stores';
 import { useAccount, useSignMessage } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -42,6 +42,7 @@ interface WriteContractResponse {
 
 export const useEvmStore = defineStore('evm', () => {
   const account = useAccount();
+  const analytics = useAnalyticsStore();
   const pendingSignature = ref<Promise<void> | null>(null);
   const pendingSigResolve = ref<(() => void) | null>(null);
   const latestSignature = ref<string | null>(null);
@@ -112,6 +113,7 @@ export const useEvmStore = defineStore('evm', () => {
     }
 
     try {
+      analytics.recordEvent('initiated_evm_transaction');
       const walletClient = createWalletClient({
         chain: megaethTestnet,
         transport: custom((window as any).ethereum),
@@ -127,6 +129,7 @@ export const useEvmStore = defineStore('evm', () => {
       });
       const hash = await walletClient.writeContract(request);
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      analytics.recordEvent('completed_evm_transaction');
       return { hash, receipt, result };
     } catch (e: any) {
       if (!`${e}`.toLowerCase().includes('user rejected')) {
@@ -135,7 +138,10 @@ export const useEvmStore = defineStore('evm', () => {
             ? 'Network Error'
             : (e['details'] ?? `${e}`).split('()')[0] // Message just before the EVM Revert error
         );
+        analytics.recordEvent('failed_evm_transaction');        
         console.error(e);
+      } else {
+        analytics.recordEvent('rejected_evm_transaction');
       }
       return null;
     }

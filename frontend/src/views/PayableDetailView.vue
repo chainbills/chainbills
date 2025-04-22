@@ -9,6 +9,7 @@ import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { Payable, type Receipt, TokenAndAmount } from '@/schemas';
 import {
+  useAnalyticsStore,
   useAuthStore,
   usePaginatorsStore,
   usePayableStore,
@@ -48,6 +49,7 @@ const lsPageKey = () =>
   '';
 
 const activeCat = ref(+(localStorage.getItem(lsCatKey()) ?? '0'));
+const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const categories = ['Payments', 'Withdrawals'];
 const currentTablePage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
@@ -83,10 +85,14 @@ const copy = () => {
     life: 5000,
   });
   navigator.clipboard.writeText(link.value ?? '');
+  analytics.recordEvent(`copied_payment_link`, {
+    from: 'payable_detail_page',
+  });
 };
 
 const comingSoon = () => {
   toast.add({ severity: 'info', summary: 'Coming Soon!', life: 5000 });
+  analytics.recordEvent('clicked_coming_soon_feature');
 };
 
 const balsDisplay = computed(
@@ -136,6 +142,7 @@ const updateTablePage = (page: number) => {
 };
 
 const withdraw = async (balance: TokenAndAmount) => {
+  analytics.recordEvent('clicked_withdraw');
   if (!payable.value || !auth.currentUser) return;
   if (balance.amount == 0) {
     toast.add({
@@ -176,6 +183,15 @@ onMounted(async () => {
     resetTablePage();
     getTransactions();
   });
+  watch(
+    () => activeCat.value,
+    (_) => {
+      analytics.recordEvent('changed_payable_activity_category', {
+        payable_id: payable.value?.id,
+        category: activeCat.value == 0 ? 'payments' : 'withdrawals',
+      });
+    }
+  );
   watch(() => payable.value, getTransactions);
 });
 </script>
@@ -190,7 +206,15 @@ onMounted(async () => {
       <p class="my-12 text-center text-xl">
         Please connect your wallet to continue
       </p>
-      <p class="mx-auto w-fit"><SignInButton /></p>
+      <p class="mx-auto w-fit">
+        <SignInButton
+          @click="
+            analytics.recordEvent('clicked_signin', {
+              from: 'payable_detail_page',
+            })
+          "
+        />
+      </p>
     </template>
 
     <template class="" v-else-if="!isMine">
@@ -203,12 +227,28 @@ onMounted(async () => {
         Creating a Payable.
       </p>
       <p class="text-center">
-        <router-link to="/">
+        <router-link
+          to="/"
+          @click="
+            analytics.recordEvent('clicked_go_home', {
+              from: 'payable_detail_page',
+              unauthorized: true,
+            })
+          "
+        >
           <Button class="bg-transparent text-primary px-3 py-2 mr-6"
             >Go Home</Button
           >
         </router-link>
-        <router-link to="/start">
+        <router-link
+          to="/start"
+          @click="
+            analytics.recordEvent('clicked_get_started', {
+              from: 'payable_detail_page',
+              unauthorized: true,
+            })
+          "
+        >
           <Button class="-mt-1 px-3 py-2">Get Started</Button>
         </router-link>
       </p>
@@ -230,7 +270,10 @@ onMounted(async () => {
 
         <Button
           class="px-4 py-1 max-sm:ml-auto max-sm:block"
-          @click="() => fetchPayable(false)"
+          @click="
+            fetchPayable(false);
+            analytics.recordEvent('clicked_refresh_payable');
+          "
         >
           Refresh
         </Button>
@@ -358,7 +401,14 @@ onMounted(async () => {
       <template v-else-if="!transactions">
         <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
         <p class="mx-auto w-fit">
-          <Button class="text-xl px-6 py-2" @click="getTransactions"
+          <Button
+            class="text-xl px-6 py-2"
+            @click="
+              getTransactions();
+              analytics.recordEvent('clicked_retry_get_transactions', {
+                from: 'payable_detail_page',
+              });
+            "
             >Retry</Button
           >
         </p>

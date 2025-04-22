@@ -4,6 +4,7 @@ import TableLoader from '@/components/TableLoader.vue';
 import TransactionsTable from '@/components/TransactionsTable.vue';
 import { type Receipt } from '@/schemas';
 import {
+  useAnalyticsStore,
   useAuthStore,
   usePaginatorsStore,
   usePaymentStore,
@@ -24,6 +25,7 @@ const lsPageKey = () =>
   '::activity_table_page';
 
 const activeCat = ref(+(localStorage.getItem(lsCatKey()) ?? '0'));
+const analytics = useAnalyticsStore();
 const categories = ['Payments', 'Withdrawals'];
 const countFields = ['payerCount', 'hostCount'];
 const currentTablePage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
@@ -94,6 +96,9 @@ onMounted(async () => {
       localStorage.setItem(lsCatKey(), activeCat.value.toString());
       resetTablePage();
       getTransactions();
+      analytics.recordEvent('changed_user_activity_category', {
+        category: activeCat.value == 0 ? 'payments' : 'withdrawals',
+      });
     }
   );
 });
@@ -122,7 +127,15 @@ onMounted(async () => {
       <p class="pt-8 mb-8 text-center text-xl">
         Please connect your wallet to continue
       </p>
-      <p class="mx-auto w-fit"><SignInButton /></p>
+      <p class="mx-auto w-fit">
+        <SignInButton
+          @click="
+            analytics.recordEvent('clicked_signin', {
+              from: 'user_activity_page',
+            })
+          "
+        />
+      </p>
     </template>
 
     <template v-else-if="isLoading"><TableLoader /></template>
@@ -130,7 +143,14 @@ onMounted(async () => {
     <template v-else-if="!transactions">
       <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
       <p class="mx-auto w-fit">
-        <Button class="text-xl px-6 py-2" @click="getTransactions"
+        <Button
+          class="text-xl px-6 py-2"
+          @click="
+            getTransactions();
+            analytics.recordEvent('clicked_retry_get_transactions', {
+              from: 'user_activity_page',
+            });
+          "
           >Retry</Button
         >
       </p>
@@ -146,7 +166,14 @@ onMounted(async () => {
         today by Creating a Payable today.
       </p>
       <p class="text-center">
-        <router-link to="/start">
+        <router-link
+          to="/start"
+          @click="
+            analytics.recordEvent('clicked_get_started', {
+              from: 'user_activity_page',
+            })
+          "
+        >
           <Button class="px-3 py-2">Get Started</Button>
         </router-link>
       </p>

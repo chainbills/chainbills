@@ -5,6 +5,7 @@ import {
   TokenAndAmount,
 } from '@/schemas';
 import {
+  useAnalyticsStore,
   useAuthStore,
   useCacheStore,
   useEvmStore,
@@ -16,6 +17,7 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const usePayableStore = defineStore('payable', () => {
+  const analytics = useAnalyticsStore();
   const auth = useAuthStore();
   const cache = useCacheStore();
   const evm = useEvmStore();
@@ -64,26 +66,24 @@ export const usePayableStore = defineStore('payable', () => {
   ): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    try {
-      const result = await getChainStore()['createPayable'](tokensAndAmounts);
-      if (!result) return null;
+    const result = await getChainStore()['createPayable'](tokensAndAmounts);
+    if (!result) return null;
 
-      console.log(`Created Payable Transaction Details: ${result.explorerUrl}`);
-      await server.createPayable(result.created, description);
-      await auth.refreshUser();
-      toast.add({
-        severity: 'success',
-        summary: 'Successful Payable Creation',
-        detail: 'You have successfully created a Payable.',
-        life: 12000,
-      });
-      notifications.ensure();
-      return result.created;
-    } catch (e) {
-      console.error(e);
-      if (!`${e}`.includes('rejected')) toastError(`${e}`);
-      return null;
-    }
+    console.log(`Created Payable Transaction Details: ${result.explorerUrl}`);
+    await server.createPayable(result.created, description);
+    await auth.refreshUser();
+    toast.add({
+      severity: 'success',
+      summary: 'Successful Payable Creation',
+      detail: 'You have successfully created a Payable.',
+      life: 12000,
+    });
+    notifications.ensure();
+    analytics.recordEvent('created_payable', {
+      payable_id: result.created,
+      chain: result.chain.name,
+    });
+    return result.created;
   };
 
   const get = async (
@@ -102,7 +102,7 @@ export const usePayableStore = defineStore('payable', () => {
       else if (chain.isSolana)
         raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
       else throw 'Unhandled Chain Type';
-      if (raw) return new Payable(id, chain, dbData.description, raw);            
+      if (raw) return new Payable(id, chain, dbData.description, raw);
     } catch (e) {
       console.error(e);
       toastError(`${e}`);

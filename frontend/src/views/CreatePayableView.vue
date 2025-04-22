@@ -3,7 +3,7 @@ import SignInButton from '@/components/SignInButton.vue';
 import IconClose from '@/icons/IconClose.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import { TokenAndAmount, tokens, type Token } from '@/schemas';
-import { useAuthStore, usePayableStore } from '@/stores';
+import { useAnalyticsStore, useAuthStore, usePayableStore } from '@/stores';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
@@ -14,6 +14,7 @@ import { useRouter } from 'vue-router';
 const allowsFreePayments = ref(false);
 const amounts = ref<Ref[]>([]);
 const amountErrors = ref<Ref[]>([]);
+const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const availableTokens = computed(() =>
   tokens.filter(
@@ -30,6 +31,7 @@ const router = useRouter();
 const selectedTokens = ref<Token[]>([]);
 
 const removeToken = (index: number) => {
+  analytics.recordEvent('removed_create_ataa_token');
   selectedTokens.value.splice(index, 1);
   selectedTokens.value = [...selectedTokens.value];
   amounts.value.splice(index, 1);
@@ -37,6 +39,7 @@ const removeToken = (index: number) => {
 };
 
 const chooseToken = (token: any) => {
+  analytics.recordEvent('selected_create_ataa_token', { token: token.name });
   amounts.value.push(ref(undefined));
   amountErrors.value.push(ref('Required'));
   displayedConfig.value = [];
@@ -105,6 +108,7 @@ const validateDescription = () => {
 };
 
 const create = async () => {
+  analytics.recordEvent('clicked_create_payable');
   if (!auth.currentUser) return;
 
   validateDescription();
@@ -146,7 +150,13 @@ const reviewConfig = () => {
 
 onMounted(() => {
   watch(() => description.value, validateDescription);
-  watch(() => allowsFreePayments.value, reviewConfig);
+  watch(
+    () => allowsFreePayments.value,
+    (value) => {
+      reviewConfig();
+      analytics.recordEvent('toggled_allows_free_payment', { value });
+    }
+  );
   watch(() => selectedTokens.value, reviewConfig);
   watch(() => amounts.value, reviewConfig, { deep: true });
   watch(
@@ -172,7 +182,15 @@ onMounted(() => {
 
     <div class="text-center pb-20" v-if="!auth.currentUser">
       <p class="mb-8">Please connect your wallet to continue.</p>
-      <p class="mx-auto w-fit"><SignInButton /></p>
+      <p class="mx-auto w-fit">
+        <SignInButton
+          @click="
+            analytics.recordEvent('clicked_signin', {
+              from: 'create_payable_page',
+            })
+          "
+        />
+      </p>
     </div>
 
     <div class="text-center" v-else-if="isCreating">

@@ -21,7 +21,6 @@ import Ripple from 'primevue/ripple';
 import ToastService from 'primevue/toastservice';
 import SolanaWallets from 'solana-wallets-vue';
 import { createApp } from 'vue';
-import VueGtag from 'vue-gtag';
 import VueWriter from 'vue-writer';
 import App from './App.vue';
 import router from './router';
@@ -97,18 +96,12 @@ createAppKit({
     icons: ['https://chainbills.xyz/assets/chainbills-light.png'],
   },
 });
+
 app.use(WagmiPlugin, {
   config: wagmiAdapter.wagmiConfig,
 } as WagmiPluginOptions);
-app.use(VueQueryPlugin, { queryClient });
 
-if (!import.meta.env.DEV) {
-  app.use(
-    VueGtag,
-    { config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID } },
-    router
-  );
-}
+app.use(VueQueryPlugin, { queryClient });
 
 app.mount('#app');
 

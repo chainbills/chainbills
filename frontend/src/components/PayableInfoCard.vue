@@ -5,11 +5,12 @@ import IconCopy from '@/icons/IconCopy.vue';
 import IconForward from '@/icons/IconForward.vue';
 import IconWallet from '@/icons/IconWallet.vue';
 import { Payable, getTokenLogo } from '@/schemas';
-import { usePayableStore, useTimeStore } from '@/stores';
+import { useAnalyticsStore, usePayableStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
 
+const analytics = useAnalyticsStore();
 const balsDisplay = computed(() => {
   if (!payable.value) return [];
   return payable.value.getBalsDisplay();
@@ -29,6 +30,9 @@ const copy = () => {
       summary: 'Copied',
       detail: `Payment Link: ${link} copied to clipboard.`,
       life: 3000,
+    });
+    analytics.recordEvent('copy_payment_link', {
+      from: 'payable_info_card',
     });
   }
 };

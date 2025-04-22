@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { useAnalyticsStore } from '@/stores';
 import Button from 'primevue/button';
+
+const analytics = useAnalyticsStore();
 </script>
 
 <template>
@@ -13,12 +16,26 @@ import Button from 'primevue/button';
       a Payable.
     </p>
     <p>
-      <router-link to="/">
+      <router-link
+        to="/"
+        @click="
+          analytics.recordEvent('clicked_go_home', {
+            from: 'not_found_page',
+          })
+        "
+      >
         <Button class="bg-transparent text-primary px-3 py-2 mr-6"
           >Go Home</Button
         >
       </router-link>
-      <router-link to="/start">
+      <router-link
+        to="/start"
+        @click="
+          analytics.recordEvent('clicked_get_started', {
+            from: 'not_found_page',
+          })
+        "
+      >
         <Button class="-mt-1 px-3 py-2">Get Started</Button>
       </router-link>
     </p>

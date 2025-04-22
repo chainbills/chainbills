@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
+import { useAnalyticsStore } from '@/stores';
 
 const baseTitle = 'Chainbills';
 
@@ -99,9 +100,13 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _, next) => {
+  const analytics = useAnalyticsStore();
+  analytics.recordNavigation(to.path, String(to.name));
+
   if (to.meta && to.meta.title) {
     document.querySelector('head title')!.textContent = to.meta.title as string;
   }
+
   next();
 });
 

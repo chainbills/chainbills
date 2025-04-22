@@ -1,6 +1,7 @@
 import { useAppKitTheme } from '@reown/appkit/vue';
 import { defineStore } from 'pinia';
 import { onMounted, ref, watch } from 'vue';
+import { useAnalyticsStore } from './analytics';
 
 export type ThemeMode = 'Dark Theme' | 'Light Theme' | 'System Mode';
 
@@ -11,6 +12,7 @@ const isThemeMode = (value: any): value is ThemeMode => themes.includes(value);
 const getHtml = () => document.querySelector('html')!;
 
 export const useThemeStore = defineStore('theme', () => {
+  const analytics = useAnalyticsStore();
   const icon = ref<ThemeMode>('Dark Theme');
   const isDisplayDark = ref(false);
   const mode = ref<ThemeMode>('System Mode');
@@ -62,6 +64,14 @@ export const useThemeStore = defineStore('theme', () => {
     watch(
       () => isDisplayDark.value,
       (yes) => setWalletConnectTheme(yes ? 'dark' : 'light')
+    );
+    watch(
+      () => mode.value,
+      (value) => {
+        analytics.recordEvent('changed_app_theme', {
+          theme: value.split(' ')[0],
+        });
+      }
     );
 
     window.addEventListener('storage', () => {

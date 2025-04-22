@@ -2,8 +2,9 @@
 import IconDiscord from '@/icons/IconDiscord.vue';
 import IconGithub from '@/icons/IconGithub.vue';
 import IconX from '@/icons/IconX.vue';
-import { useThemeStore } from '@/stores';
+import { useAnalyticsStore, useThemeStore } from '@/stores';
 
+const analytics = useAnalyticsStore();
 const theme = useThemeStore();
 const year = new Date().getFullYear();
 </script>
@@ -46,6 +47,7 @@ const year = new Date().getFullYear();
                   href="https://blog.chainbills.xyz"
                   rel="noopener noreferrer"
                   target="_blank"
+                  @click="analytics.recordNavigation('/blog', 'blog')"
                   >Blog</a
                 >
               </li>
@@ -67,6 +69,7 @@ const year = new Date().getFullYear();
             rel="noopener noreferrer"
             title="Send an Email"
             class="inline-block mb-4 hover:underline"
+            @click="analytics.recordEvent('clicked_email_link')"
             >contact@chainbills.xyz</a
           >
           <p class="flex gap-4">
@@ -75,6 +78,7 @@ const year = new Date().getFullYear();
               target="_blank"
               rel="noopener noreferrer"
               title="Join our Discord"
+              @click="analytics.recordEvent('clicked_discord_link')"
             >
               <IconDiscord class="text-primary" />
             </a>
@@ -91,6 +95,7 @@ const year = new Date().getFullYear();
               target="_blank"
               rel="noopener noreferrer"
               title="Github"
+              @click="analytics.recordEvent('clicked_github_link')"
             >
               <IconGithub class="text-primary" />
             </a>

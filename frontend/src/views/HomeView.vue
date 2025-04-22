@@ -6,7 +6,10 @@ import IconLock from '@/icons/IconLock.vue';
 import IconMobileFriendly from '@/icons/IconMobileFriendly.vue';
 import IconPayCheck from '@/icons/IconPayCheck.vue';
 import IconWallet from '@/icons/IconWallet.vue';
+import { useAnalyticsStore } from '@/stores';
 import Button from 'primevue/button';
+
+const analytics = useAnalyticsStore();
 </script>
 
 <template>
@@ -26,7 +29,9 @@ import Button from 'primevue/button';
           </p>
           <p class="max-sm:mb-16">
             <router-link to="/start">
-              <Button class="border-none bg-black text-white rounded-full px-6 py-2"
+              <Button
+                class="border-none bg-black text-white rounded-full px-6 py-2"
+                @click="analytics.recordEvent('clicked_home_hero_get_started')"
                 >Get Started</Button
               >
             </router-link>
@@ -258,6 +263,7 @@ import Button from 'primevue/button';
           >
             <Button
               class="border-none bg-black text-white rounded-full px-6 py-2 md:text-lg"
+              @click="analytics.recordEvent('clicked_home_wormhole_learn_more')"
               >Learn More</Button
             >
           </a>
@@ -278,7 +284,9 @@ import Button from 'primevue/button';
     </p>
     <p>
       <router-link to="/start">
-        <Button class="border-none bg-black text-white rounded-full px-6 py-2 md:text-lg"
+        <Button
+          class="border-none bg-black text-white rounded-full px-6 py-2 md:text-lg"
+          @click="analytics.recordEvent('clicked_home_hero_get_started')"
           >Get Started Now</Button
         >
       </router-link>

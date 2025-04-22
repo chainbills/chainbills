@@ -4,10 +4,11 @@ import IconBlog from '@/icons/IconBlog.vue';
 import IconDashboard from '@/icons/IconDashboard.vue';
 import IconReplay from '@/icons/IconReplay.vue';
 import IconWallet from '@/icons/IconWallet.vue';
-import { useSidebarStore, useThemeStore } from '@/stores';
+import { useAnalyticsStore, useSidebarStore, useThemeStore } from '@/stores';
 import Drawer from 'primevue/drawer';
 import SignInButton from './SignInButton.vue';
 
+const analytics = useAnalyticsStore();
 const sidebar = useSidebarStore();
 const theme = useThemeStore();
 </script>
@@ -41,6 +42,7 @@ const theme = useThemeStore();
             target="_blank"
             class="flex items-center w-full p-2 rounded-md"
             v-ripple
+            @click="analytics.recordNavigation('/blog', 'blog')"
             ><IconBlog class="mr-2" /><span>Blog</span>
           </a>
         </li>

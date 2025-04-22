@@ -10,7 +10,12 @@ import {
   type ChainName,
   type Token,
 } from '@/schemas';
-import { useAuthStore, usePayableStore, usePaymentStore } from '@/stores';
+import {
+  useAnalyticsStore,
+  useAuthStore,
+  usePayableStore,
+  usePaymentStore,
+} from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
@@ -19,6 +24,7 @@ import { useRoute, useRouter } from 'vue-router';
 
 const amount = ref<any>('');
 const amountError = ref('');
+const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const balanceError = ref('');
 const balances = ref<(number | null)[]>([]);
@@ -41,6 +47,7 @@ const selectedConfig = ref<TokenAndAmount | null>(null);
 const selectedToken = ref<Token | null>(null);
 
 const selectToken = (token: Token) => {
+  analytics.recordEvent('selected_payment_token', { token: token.name });
   if (!payable.value) return;
 
   // Obtaining a Choice Chain first is good when no wallet is connected
@@ -111,6 +118,7 @@ const validateConfig = () => {
 };
 
 const pay = async () => {
+  analytics.recordEvent('clicked_pay');
   if (!payable.value || !auth.currentUser) return;
 
   validateAmount();
@@ -293,7 +301,10 @@ onMounted(async () => {
                       ? 'bg-primary bg-opacity-30'
                       : 'bg-transparent')
                   "
-                  @click="selectedConfig = taa"
+                  @click="
+                    selectedConfig = taa;
+                    analytics.recordEvent('selected_payment_ataa');
+                  "
                 >
                   <!-- TODO: Review whether to use the payable's chain for 
            formatting tokenAndAmount display especially when swaps start -->
@@ -348,7 +359,13 @@ onMounted(async () => {
       <p class="mt-12 mb-6 text-center text-xl">
         Please connect your Wallet to continue
       </p>
-      <p class="mx-auto w-fit max-md:mb-12"><SignInButton /></p>
+      <p class="mx-auto w-fit max-md:mb-12">
+        <SignInButton
+          @click="
+            analytics.recordEvent('clicked_signin', { from: 'payment_page' })
+          "
+        />
+      </p>
     </template>
 
     <div

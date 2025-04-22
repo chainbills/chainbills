@@ -7,6 +7,7 @@ import {
   Withdrawal,
 } from '@/schemas';
 import {
+  useAnalyticsStore,
   useAuthStore,
   useCacheStore,
   useEvmStore,
@@ -20,6 +21,7 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const useWithdrawalStore = defineStore('withdrawal', () => {
+  const analytics = useAnalyticsStore();
   const auth = useAuthStore();
   const cache = useCacheStore();
   const evm = useEvmStore();
@@ -36,28 +38,26 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   ): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    try {
-      const result = await { megaethtestnet: evm, solanadevnet: solana }[
-        auth.currentUser.chain.name
-      ]['withdraw'](payableId, details);
-      if (!result) return null;
-      await auth.refreshUser();
+    const result = await { megaethtestnet: evm, solanadevnet: solana }[
+      auth.currentUser.chain.name
+    ]['withdraw'](payableId, details);
+    if (!result) return null;
+    await auth.refreshUser();
 
-      console.log(`Made Withdrawal Transaction Details: ${result.explorerUrl}`);
-      await server.withdrew(result.created);
-      toast.add({
-        severity: 'success',
-        summary: 'Successfully Withdrew',
-        detail:
-          'You have successfully made a Withdrawal. Check your wallet for your increments.',
-        life: 12000,
-      });
-      return result.created;
-    } catch (e: any) {
-      console.error(e);
-      if (!`${e}`.includes('rejected')) toastError(`${e}`);
-      return null;
-    }
+    console.log(`Made Withdrawal Transaction Details: ${result.explorerUrl}`);
+    await server.withdrew(result.created);
+    toast.add({
+      severity: 'success',
+      summary: 'Successfully Withdrew',
+      detail:
+        'You have successfully made a Withdrawal. Check your wallet for your increments.',
+      life: 12000,
+    });
+    analytics.recordEvent('made_withdrawal', {
+      withdrawal_id: result.created,
+      chain: result.chain.name,
+    });
+    return result.created;
   };
 
   const get = async (

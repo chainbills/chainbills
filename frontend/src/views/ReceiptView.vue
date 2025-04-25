@@ -2,21 +2,8 @@
 import ReceiptLoader from '@/components/ReceiptLoader.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import {
-  getTokenLogo,
-  getWalletUrl,
-  PayablePayment,
-  UserPayment,
-  Withdrawal,
-  type Receipt,
-} from '@/schemas';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  usePaymentStore,
-  useTimeStore,
-  useWithdrawalStore,
-} from '@/stores';
+import { getTokenLogo, getWalletUrl, PayablePayment, UserPayment, Withdrawal, type Receipt } from '@/schemas';
+import { useAnalyticsStore, useAuthStore, usePaymentStore, useTimeStore, useWithdrawalStore } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
@@ -33,43 +20,25 @@ const time = useTimeStore();
 const toast = useToast();
 const withdrawals = useWithdrawalStore();
 
-const receiptType = computed(() =>
-  receipt.value instanceof Withdrawal ? 'Withdrawal' : 'Payment'
-);
-const userType = computed(() =>
-  receipt.value instanceof Withdrawal ? 'Host' : 'Payer'
-);
-const activityType = computed(() =>
-  receipt.value instanceof Withdrawal ? 'Withdrew' : 'Paid'
-);
-const payableIntro = computed(() =>
-  receipt.value instanceof Withdrawal ? 'Withdrew From' : 'Paid To'
-);
+const receiptType = computed(() => (receipt.value instanceof Withdrawal ? 'Withdrawal' : 'Payment'));
+const userType = computed(() => (receipt.value instanceof Withdrawal ? 'Host' : 'Payer'));
+const activityType = computed(() => (receipt.value instanceof Withdrawal ? 'Withdrew' : 'Paid'));
+const payableIntro = computed(() => (receipt.value instanceof Withdrawal ? 'Withdrew From' : 'Paid To'));
 
 const userChain = computed(() =>
-  receipt.value instanceof PayablePayment
-    ? (receipt.value as PayablePayment).payerChain
-    : receipt.value?.chain
+  receipt.value instanceof PayablePayment ? (receipt.value as PayablePayment).payerChain : receipt.value?.chain
 );
 const payableChain = computed(() =>
-  receipt.value instanceof UserPayment
-    ? (receipt.value as UserPayment).payableChain
-    : receipt.value?.chain
+  receipt.value instanceof UserPayment ? (receipt.value as UserPayment).payableChain : receipt.value?.chain
 );
 
 const isPaymentLink = computed(() => {
-  return (
-    auth.currentUser?.walletAddress != receipt.value?.user() ||
-    !(receipt instanceof Withdrawal)
-  );
+  return auth.currentUser?.walletAddress != receipt.value?.user() || !(receipt instanceof Withdrawal);
 });
 
 const payableRoute = computed(() => {
   const isMine = auth.currentUser?.walletAddress == receipt.value?.user();
-  return (
-    `/${receipt instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` +
-    receipt.value?.payableId
-  );
+  return `/${receipt instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` + receipt.value?.payableId;
 });
 
 const copy = (text: string, context: string, eventContext: string) => {
@@ -106,9 +75,7 @@ onMounted(async () => {
     <div class="mb-8 leading-tight">
       <span>Receipt ID:</span>
       <p class="mt-1 flex items-center">
-        <span class="text-xs break-all text-gray-500 mr-1">{{
-          receipt.id
-        }}</span>
+        <span class="text-xs break-all text-gray-500 mr-1">{{ receipt.id }}</span>
         <Button
           class="bg-transparent p-1 border-none block w-fit h-fit"
           @click="copy(receipt.id, `Receipt ID: ${receipt.id}`, 'receipt_id')"
@@ -121,9 +88,7 @@ onMounted(async () => {
 
     <p class="mb-8 leading-tight" v-if="userChain?.name == payableChain?.name">
       <span>Chain:</span><br />
-      <span class="text-xs break-all text-gray-500">{{
-        userChain?.displayName
-      }}</span>
+      <span class="text-xs break-all text-gray-500">{{ userChain?.displayName }}</span>
     </p>
 
     <div class="mb-8 leading-tight">
@@ -134,13 +99,7 @@ onMounted(async () => {
         </span>
         <Button
           class="bg-transparent p-1 border-none block w-fit h-fit"
-          @click="
-            copy(
-              receipt.user(),
-              `Wallet Address: ${receipt.user()}`,
-              'wallet_address'
-            )
-          "
+          @click="copy(receipt.user(), `Wallet Address: ${receipt.user()}`, 'wallet_address')"
           title="Copy Wallet Address"
         >
           <IconCopy class="text-primary w-4 h-4" />
@@ -166,28 +125,20 @@ onMounted(async () => {
 
     <p class="mb-8 leading-tight" v-if="userChain?.name != payableChain?.name">
       <span>{{ userType }}'s Chain:</span><br />
-      <span class="text-xs break-all text-gray-500">{{
-        userChain?.displayName
-      }}</span>
+      <span class="text-xs break-all text-gray-500">{{ userChain?.displayName }}</span>
     </p>
 
     <div class="mb-8 leading-tight">
       <span>{{ activityType }}:</span>
       <p class="mt-1 flex gap-x-2 items-center">
-        <img
-          :src="getTokenLogo(receipt.chain, receipt.token)"
-          class="w-6 h-6"
-          aria-hidden="true"
-        />
+        <img :src="getTokenLogo(receipt.chain, receipt.token)" class="w-6 h-6" aria-hidden="true" />
         <span class="text-xl font-bold">{{ receipt.displayDetails() }}</span>
       </p>
     </div>
 
     <p class="mb-8 leading-tight">
       <span>{{ activityType }} At:</span><br />
-      <span class="text-lg font-bold">{{
-        time.display(receipt.timestamp)
-      }}</span>
+      <span class="text-lg font-bold">{{ time.display(receipt.timestamp) }}</span>
     </p>
 
     <div class="mb-8 leading-tight">
@@ -198,13 +149,7 @@ onMounted(async () => {
         </span>
         <Button
           class="bg-transparent p-1 border-none block w-fit h-fit"
-          @click="
-            copy(
-              receipt.payableId,
-              `Payable ID: ${receipt.payableId}`,
-              'payable_id'
-            )
-          "
+          @click="copy(receipt.payableId, `Payable ID: ${receipt.payableId}`, 'payable_id')"
           title="Copy Payable ID"
         >
           <IconCopy class="text-primary w-4 h-4" />
@@ -217,10 +162,7 @@ onMounted(async () => {
           class="p-1 rounded-md block w-fit h-fit"
           v-ripple
           @click="
-            analytics.recordEvent(
-              `opened_${isPaymentLink ? 'payment' : 'payable'}_link`,
-              { from: 'receipt_page' }
-            )
+            analytics.recordEvent(`opened_${isPaymentLink ? 'payment' : 'payable'}_link`, { from: 'receipt_page' })
           "
         >
           <IconOpenInNew class="text-primary w-4 h-4" />
@@ -230,18 +172,12 @@ onMounted(async () => {
 
     <p class="mb-8 leading-tight" v-if="payableChain?.name != userChain?.name">
       <span>Payable's Chain:</span><br />
-      <span class="text-xs break-all text-gray-500">{{
-        payableChain?.displayName
-      }}</span>
+      <span class="text-xs break-all text-gray-500">{{ payableChain?.displayName }}</span>
     </p>
 
-    <p
-      class="text-lg text-center max-w-md mx-auto pt-12 mb-8"
-      v-if="!(receipt instanceof Withdrawal)"
-    >
+    <p class="text-lg text-center max-w-md mx-auto pt-12 mb-8" v-if="!(receipt instanceof Withdrawal)">
       Receive money from anyone on anychain on
-      <span class="font-bold text-primary">Chainbills</span>. Get Started with
-      us today by Creating a Payable.
+      <span class="font-bold text-primary">Chainbills</span>. Get Started with us today by Creating a Payable.
     </p>
     <p class="text-center" v-if="!(receipt instanceof Withdrawal)">
       <router-link to="/start">

@@ -3,12 +3,7 @@ const { id } = defineProps(['id']);
 </script>
 
 <template>
-  <svg
-    width="24px"
-    height="24px"
-    viewBox="0 0 400 400"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="24px" height="24px" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
     <mask :id="`mask-megaeth-${id}`">
       <circle cx="200" cy="200" r="200" fill="white" />
       <g fill="black" fill-rule="nonzero">
@@ -17,12 +12,6 @@ const { id } = defineProps(['id']);
         />
       </g>
     </mask>
-    <circle
-      :mask="`url(#mask-megaeth-${id})`"
-      cx="200"
-      cy="200"
-      r="200"
-      fill="currentColor"
-    />
+    <circle :mask="`url(#mask-megaeth-${id})`" cx="200" cy="200" r="200" fill="currentColor" />
   </svg>
 </template>

@@ -33,13 +33,9 @@ export const usePaymentStore = defineStore('payment', () => {
   const solana = useSolanaStore();
   const toast = useToast();
 
-  const cacheKey = (chainName: ChainName, type: string, id: string) =>
-    `${chainName}::payment::${type}::${id}`;
+  const cacheKey = (chainName: ChainName, type: string, id: string) => `${chainName}::payment::${type}::${id}`;
 
-  const exec = async (
-    payableId: string,
-    details: TokenAndAmount
-  ): Promise<string | null> => {
+  const exec = async (payableId: string, details: TokenAndAmount): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
     const result = await {
@@ -55,11 +51,7 @@ export const usePaymentStore = defineStore('payment', () => {
     // TODO: Move this payablePaid call to the relayer or a different process
     const payable = await payableStore.get(payableId);
     if (payable) {
-      const payablePaymentId = await payableStore.getPaymentId(
-        payableId,
-        payable.chain,
-        payable.paymentsCount
-      );
+      const payablePaymentId = await payableStore.getPaymentId(payableId, payable.chain, payable.paymentsCount);
       if (payablePaymentId) await server.payablePaid(payablePaymentId);
     }
 
@@ -76,11 +68,7 @@ export const usePaymentStore = defineStore('payment', () => {
     return result.created;
   };
 
-  const get = async (
-    id: string,
-    chain?: Chain,
-    ignoreErrors?: boolean
-  ): Promise<Payment | null> => {
+  const get = async (id: string, chain?: Chain, ignoreErrors?: boolean): Promise<Payment | null> => {
     // A simple trick to guess the chain based on the ID's format
     // (if not provided)
     if (!chain) {
@@ -112,10 +100,8 @@ export const usePaymentStore = defineStore('payment', () => {
     // Otherwise, first try to fetch the payment as if it was a user payment.
     try {
       let raw: any;
-      if (chain.isEvm)
-        raw = await evm.fetchEntity('UserPayment', id, ignoreErrors);
-      else if (chain.isSolana)
-        raw = await solana.tryFetchEntity('userPayment', id, ignoreErrors);
+      if (chain.isEvm) raw = await evm.fetchEntity('UserPayment', id, ignoreErrors);
+      else if (chain.isSolana) raw = await solana.tryFetchEntity('userPayment', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
       if (raw) {
         payment = new UserPayment(id, chain, raw);
@@ -127,10 +113,8 @@ export const usePaymentStore = defineStore('payment', () => {
     if (!payment) {
       try {
         let raw: any;
-        if (chain.isEvm)
-          raw = await evm.fetchEntity('PayablePayment', id, ignoreErrors);
-        else if (chain.isSolana)
-          raw = await solana.tryFetchEntity('payablePayment', id, ignoreErrors);
+        if (chain.isEvm) raw = await evm.fetchEntity('PayablePayment', id, ignoreErrors);
+        else if (chain.isSolana) raw = await solana.tryFetchEntity('payablePayment', id, ignoreErrors);
         else throw `Unknown chain: ${chain}`;
         if (raw) {
           payment = new PayablePayment(id, chain, raw);
@@ -142,10 +126,7 @@ export const usePaymentStore = defineStore('payment', () => {
     return payment;
   };
 
-  const getForPayable = async (
-    id: string,
-    chain: Chain
-  ): Promise<PayablePayment | null> => {
+  const getForPayable = async (id: string, chain: Chain): Promise<PayablePayment | null> => {
     let payment = await cache.retrieve(cacheKey(chain.name, 'payable', id));
     if (payment) {
       // Necessary to restore callable methods on retrieved instance
@@ -156,8 +137,7 @@ export const usePaymentStore = defineStore('payment', () => {
     try {
       let raw: any;
       if (chain.isEvm) raw = await evm.fetchEntity('PayablePayment', id);
-      else if (chain.isSolana)
-        raw = await solana.fetchEntity('payablePayment', id);
+      else if (chain.isSolana) raw = await solana.fetchEntity('payablePayment', id);
       else throw `Unknown chain: ${chain}`;
       if (raw) {
         payment = new PayablePayment(id, chain, raw);
@@ -171,10 +151,7 @@ export const usePaymentStore = defineStore('payment', () => {
     return null;
   };
 
-  const getForUser = async (
-    id: string,
-    chain: Chain
-  ): Promise<UserPayment | null> => {
+  const getForUser = async (id: string, chain: Chain): Promise<UserPayment | null> => {
     let payment = await cache.retrieve(cacheKey(chain.name, 'user', id));
     if (payment) {
       // Necessary to restore callable methods on retrieved instance
@@ -185,8 +162,7 @@ export const usePaymentStore = defineStore('payment', () => {
     try {
       let raw: any;
       if (chain.isEvm) raw = await evm.fetchEntity('UserPayment', id);
-      else if (chain.isSolana)
-        raw = await solana.fetchEntity('userPayment', id);
+      else if (chain.isSolana) raw = await solana.fetchEntity('userPayment', id);
       else throw `Unknown chain: ${chain.name}`;
       if (raw) {
         payment = new UserPayment(id, chain, raw);
@@ -200,10 +176,7 @@ export const usePaymentStore = defineStore('payment', () => {
     return null;
   };
 
-  const getManyForCurrentUser = async (
-    page: number,
-    count: number
-  ): Promise<UserPayment[] | null> => {
+  const getManyForCurrentUser = async (page: number, count: number): Promise<UserPayment[] | null> => {
     if (!auth.currentUser) return null;
     const { paymentsCount: totalCount } = auth.currentUser;
     if (totalCount === 0) return [];
@@ -229,11 +202,7 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const getManyForPayable = async (
-    payable: Payable,
-    page: number,
-    count: number
-  ): Promise<PayablePayment[] | null> => {
+  const getManyForPayable = async (payable: Payable, page: number, count: number): Promise<PayablePayment[] | null> => {
     const { paymentsCount: totalCount, chain } = payable;
     if (count === 0) return [];
 
@@ -258,8 +227,7 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   return {
     exec,

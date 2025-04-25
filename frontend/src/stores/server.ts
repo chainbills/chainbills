@@ -7,11 +7,7 @@ export const useServerStore = defineStore('server', () => {
   const auth = useAuthStore();
   const toast = useToast();
 
-  const call = async (
-    path: string,
-    body?: any,
-    ignoreErrors?: boolean
-  ): Promise<any> => {
+  const call = async (path: string, body?: any, ignoreErrors?: boolean): Promise<any> => {
     return new Promise(async (resolve, _) => {
       // TODO: Change wh-network to Mainnet when needed
       const headers: any = { 'wh-network': 'Testnet' };
@@ -55,10 +51,7 @@ export const useServerStore = defineStore('server', () => {
       } catch (error: any) {
         if (!ignoreErrors) {
           console.error(error);
-          const detail =
-            error['message'] == 'Failed to fetch'
-              ? 'Network Error'
-              : `${error}`;
+          const detail = error['message'] == 'Failed to fetch' ? 'Network Error' : `${error}`;
           toastError(detail);
         }
         resolve(false);
@@ -66,10 +59,7 @@ export const useServerStore = defineStore('server', () => {
     });
   };
 
-  const createPayable = async (
-    payableId: string,
-    description: string
-  ): Promise<boolean> => {
+  const createPayable = async (payableId: string, description: string): Promise<boolean> => {
     return await call('/payable', { payableId, description });
   };
 
@@ -88,8 +78,7 @@ export const useServerStore = defineStore('server', () => {
     return await call('/notifications', { fcmToken });
   };
 
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const userPaid = async (paymentId: string): Promise<boolean> => {
     return await call(`/payment/user/${paymentId}`);

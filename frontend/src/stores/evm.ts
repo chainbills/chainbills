@@ -1,11 +1,4 @@
-import {
-  contracts,
-  megaethtestnet,
-  OnChainSuccess,
-  TokenAndAmount,
-  User,
-  type Token,
-} from '@/schemas';
+import { contracts, megaethtestnet, OnChainSuccess, TokenAndAmount, User, type Token } from '@/schemas';
 import { abi, erc20Abi, useAnalyticsStore } from '@/stores';
 import {
   createConfig,
@@ -108,9 +101,7 @@ export const useEvmStore = defineStore('evm', () => {
     } catch (e: any) {
       if (!`${e}`.toLowerCase().includes('user rejected')) {
         toastError(
-          `${e}`.toLowerCase().includes('failed to fetch')
-            ? 'Network Error'
-            : (e['details'] ?? `${e}`).split('()')[0] // Message just before the EVM Revert error
+          `${e}`.toLowerCase().includes('failed to fetch') ? 'Network Error' : (e['details'] ?? `${e}`).split('()')[0] // Message just before the EVM Revert error
         );
         analytics.recordEvent('failed_evm_transaction');
         console.error(e);
@@ -134,9 +125,7 @@ export const useEvmStore = defineStore('evm', () => {
       })[0].args as any
     )[idField as any];
 
-  const createPayable = async (
-    tokensAndAmounts: TokenAndAmount[]
-  ): Promise<OnChainSuccess | null> => {
+  const createPayable = async (tokensAndAmounts: TokenAndAmount[]): Promise<OnChainSuccess | null> => {
     const response = await writeContract({
       address: contracts.megaethtestnet as `0x${string}`,
       abi,
@@ -146,11 +135,7 @@ export const useEvmStore = defineStore('evm', () => {
     });
     if (!response) return null;
     return new OnChainSuccess({
-      created: extractNewId(
-        response.receipt.logs,
-        'CreatedPayable',
-        'payableId'
-      ),
+      created: extractNewId(response.receipt.logs, 'CreatedPayable', 'payableId'),
       txHash: response.hash,
       chain: megaethtestnet,
     });
@@ -159,11 +144,7 @@ export const useEvmStore = defineStore('evm', () => {
   const fetchPayable = async (id: string, ignoreErrors?: boolean) => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
     const raw = await readContract('getPayable', [xId], ignoreErrors);
-    const aTAAs = await readContract(
-      'getAllowedTokensAndAmounts',
-      [xId],
-      ignoreErrors
-    );
+    const aTAAs = await readContract('getAllowedTokensAndAmounts', [xId], ignoreErrors);
     const balances = await readContract('getBalances', [xId], ignoreErrors);
     if (!raw || !aTAAs || !balances) return null;
     return { allowedTokensAndAmounts: aTAAs, balances, ...raw };
@@ -194,36 +175,21 @@ export const useEvmStore = defineStore('evm', () => {
     return new User(megaethtestnet, addr, raw);
   };
 
-  const getPayablePaymentId = async (
-    payableId: string,
-    count: number
-  ): Promise<string | null> => {
+  const getPayablePaymentId = async (payableId: string, count: number): Promise<string | null> => {
     if (!payableId.startsWith('0x')) payableId = `0x${payableId}`;
-    const id = await readContract('payablePaymentIds', [
-      payableId as `0x${string}`,
-      count - 1,
-    ]);
+    const id = await readContract('payablePaymentIds', [payableId as `0x${string}`, count - 1]);
     if (!id || id === zeroAddress) return null;
     return id;
   };
 
-  const getPayableWithdrawalId = async (
-    payableId: string,
-    count: number
-  ): Promise<string | null> => {
+  const getPayableWithdrawalId = async (payableId: string, count: number): Promise<string | null> => {
     if (!payableId.startsWith('0x')) payableId = `0x${payableId}`;
-    const id = await readContract('payableWithdrawalIds', [
-      payableId as `0x${string}`,
-      count - 1,
-    ]);
+    const id = await readContract('payableWithdrawalIds', [payableId as `0x${string}`, count - 1]);
     if (!id || id === zeroAddress) return null;
     return id;
   };
 
-  const getUserEntityId = async (
-    entity: string,
-    count: number
-  ): Promise<string | null> => {
+  const getUserEntityId = async (entity: string, count: number): Promise<string | null> => {
     if (!account.address.value) return null;
     const setNames = `user${entity}Ids`;
     const id = await readContract(setNames, [account.address.value, count]);
@@ -231,19 +197,13 @@ export const useEvmStore = defineStore('evm', () => {
     return id;
   };
 
-  const getUserPayableId = async (count: number) =>
-    getUserEntityId('Payable', count - 1);
+  const getUserPayableId = async (count: number) => getUserEntityId('Payable', count - 1);
 
-  const getUserPaymentId = async (count: number) =>
-    getUserEntityId('Payment', count - 1);
+  const getUserPaymentId = async (count: number) => getUserEntityId('Payment', count - 1);
 
-  const getUserWithdrawalId = async (count: number) =>
-    getUserEntityId('Withdrawal', count - 1);
+  const getUserWithdrawalId = async (count: number) => getUserEntityId('Withdrawal', count - 1);
 
-  const pay = async (
-    payableId: string,
-    { amount, details }: TokenAndAmount
-  ): Promise<OnChainSuccess | null> => {
+  const pay = async (payableId: string, { amount, details }: TokenAndAmount): Promise<OnChainSuccess | null> => {
     if (!details.megaethtestnet) {
       toastError('Token not supported on EVM for now');
       return null;
@@ -256,10 +216,7 @@ export const useEvmStore = defineStore('evm', () => {
         address: token,
         abi: erc20Abi,
         functionName: 'allowance',
-        args: [
-          account.address.value!,
-          contracts.megaethtestnet as `0x${string}`,
-        ],
+        args: [account.address.value!, contracts.megaethtestnet as `0x${string}`],
       });
       // Request Approval if not enough allowance
       if (!allowance || Number(allowance) < amount) {
@@ -329,13 +286,9 @@ export const useEvmStore = defineStore('evm', () => {
     }
   };
 
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  const withdraw = async (
-    payableId: string,
-    { amount, details }: TokenAndAmount
-  ): Promise<OnChainSuccess | null> => {
+  const withdraw = async (payableId: string, { amount, details }: TokenAndAmount): Promise<OnChainSuccess | null> => {
     if (!details.megaethtestnet) {
       toastError('Token not supported on EVM for now');
       return null;

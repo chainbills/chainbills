@@ -61,9 +61,7 @@ const router = createRouter({
       path: '/slidedeck',
       name: 'slidedeck',
       redirect: (to) => {
-        window.location.replace(
-          'https://docs.google.com/presentation/d/1QAAfjjkM5ob5ziftZE-bpjUHTT5lWYR7'
-        );
+        window.location.replace('https://docs.google.com/presentation/d/1QAAfjjkM5ob5ziftZE-bpjUHTT5lWYR7');
         return to;
       },
     },
@@ -81,9 +79,7 @@ const router = createRouter({
       path: '/ptchdck',
       name: 'ptchdck',
       redirect: (to) => {
-        window.location.replace(
-          'https://drive.google.com/file/d/1aD4MmylCYxy75GjZA0bNg1TYg0ljBYsj/view?usp=sharing'
-        );
+        window.location.replace('https://drive.google.com/file/d/1aD4MmylCYxy75GjZA0bNg1TYg0ljBYsj/view?usp=sharing');
         return to;
       },
     },

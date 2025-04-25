@@ -1,10 +1,5 @@
 import { firebaseApp, useAuthStore } from '@/stores';
-import {
-  getAnalytics,
-  logEvent,
-  setAnalyticsCollectionEnabled,
-  setUserId,
-} from 'firebase/analytics';
+import { getAnalytics, logEvent, setAnalyticsCollectionEnabled, setUserId } from 'firebase/analytics';
 import { defineStore } from 'pinia';
 import { onMounted, watch } from 'vue';
 

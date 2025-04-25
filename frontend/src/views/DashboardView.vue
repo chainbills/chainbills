@@ -1,21 +1,14 @@
 <script setup lang="ts">
 import PayableInfoCard from '@/components/PayableInfoCard.vue';
 import SignInButton from '@/components/SignInButton.vue';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  usePaginatorsStore,
-  usePayableStore,
-} from '@/stores';
+import { useAnalyticsStore, useAuthStore, usePaginatorsStore, usePayableStore } from '@/stores';
 import Button from 'primevue/button';
 import Paginator from 'primevue/paginator';
 import { onMounted, ref, watch } from 'vue';
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
-const lsPageKey = () =>
-  `chainbills::user=>${auth.currentUser?.walletAddress}` +
-  '::payable_info_cards_page';
+const lsPageKey = () => `chainbills::user=>${auth.currentUser?.walletAddress}` + '::payable_info_cards_page';
 
 const currentPage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
 const isLoading = ref(true);
@@ -27,10 +20,7 @@ const generateEmpties = (length: number) => Array.from({ length }, (_) => null);
 
 const getPayableIds = async () => {
   isLoading.value = true;
-  payableIds.value = await payableStore.getIdsForCurrentUser(
-    currentPage.value,
-    paginators.rowsPerPage
-  );
+  payableIds.value = await payableStore.getIdsForCurrentUser(currentPage.value, paginators.rowsPerPage);
   isLoading.value = false;
 };
 
@@ -70,9 +60,7 @@ onMounted(async () => {
     </div>
 
     <template v-if="!auth.currentUser">
-      <p class="pt-8 mb-8 text-center text-xl">
-        Please connect your wallet to continue
-      </p>
+      <p class="pt-8 mb-8 text-center text-xl">Please connect your wallet to continue</p>
       <p class="mx-auto w-fit">
         <SignInButton
           @click="
@@ -85,12 +73,8 @@ onMounted(async () => {
     </template>
 
     <template v-else-if="payableIds && payableIds.length == 0">
-      <p class="text-lg text-center max-w-sm mx-auto mb-4 pt-8">
-        You haven't created any payables.
-      </p>
-      <p class="text-lg text-center max-w-md mx-auto mb-8">
-        Get Started with us today by Creating a Payable today.
-      </p>
+      <p class="text-lg text-center max-w-sm mx-auto mb-4 pt-8">You haven't created any payables.</p>
+      <p class="text-lg text-center max-w-md mx-auto mb-8">Get Started with us today by Creating a Payable today.</p>
       <p class="text-center">
         <router-link
           to="/start"
@@ -111,13 +95,9 @@ onMounted(async () => {
           class="grid gap-6 max-sm:!grid-cols-1 max-[992px]:!grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 mb-12 mx-auto"
         >
           <PayableInfoCard
-            v-for="(id, i) in payableIds ??
-            generateEmpties(paginators.rowsPerPage)"
+            v-for="(id, i) in payableIds ?? generateEmpties(paginators.rowsPerPage)"
             :key="id ?? i"
-            :count="
-              paginators.rowsPerPage * currentPage +
-              ((payableIds?.length ?? paginators.rowsPerPage) - i)
-            "
+            :count="paginators.rowsPerPage * currentPage + ((payableIds?.length ?? paginators.rowsPerPage) - i)"
             :payableId="id"
             class="max-lg:max-w-sm w-full max-sm:mx-auto"
           />

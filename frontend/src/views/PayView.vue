@@ -3,19 +3,8 @@ import MakePaymentLoader from '@/components/MakePaymentLoader.vue';
 import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import IconWallet from '@/icons/IconWallet.vue';
-import {
-  Payable,
-  TokenAndAmount,
-  tokens,
-  type ChainName,
-  type Token,
-} from '@/schemas';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  usePayableStore,
-  usePaymentStore,
-} from '@/stores';
+import { Payable, TokenAndAmount, tokens, type ChainName, type Token } from '@/schemas';
+import { useAnalyticsStore, useAuthStore, usePayableStore, usePaymentStore } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
@@ -29,9 +18,7 @@ const auth = useAuthStore();
 const balanceError = ref('');
 const balances = ref<(number | null)[]>([]);
 const availableTokens = computed(() =>
-  tokens.filter(
-    (t) => !auth.currentUser || !!t.details[auth.currentUser.chain.name]
-  )
+  tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain.name])
 );
 const configError = ref('');
 const isLoading = ref(true);
@@ -52,18 +39,14 @@ const selectToken = (token: Token) => {
 
   // Obtaining a Choice Chain first is good when no wallet is connected
   // and the User is interacting with the dropdown of tokens.
-  let choiceChainName =
-    auth.currentUser?.chain.name ?? payable.value.chain.name;
+  let choiceChainName = auth.currentUser?.chain.name ?? payable.value.chain.name;
   // If the token the user selected has no details in the choice chain,
   // we default to the first chain that has details for the token.
   if (!token.details[choiceChainName]) {
     choiceChainName = Object.keys(token.details)[0] as ChainName;
   }
 
-  selectedConfig.value = new TokenAndAmount(
-    token,
-    amount.value * 10 ** token.details[choiceChainName]!.decimals
-  );
+  selectedConfig.value = new TokenAndAmount(token, amount.value * 10 ** token.details[choiceChainName]!.decimals);
   updateBalances();
 };
 
@@ -76,8 +59,7 @@ const validateAmount = () => {
   else amountError.value = '';
   if (allowsFreePayments.value && selectedConfig.value) {
     const chain = auth.currentUser?.chain ?? payable.value.chain;
-    selectedConfig.value.amount =
-      v * 10 ** (selectedConfig.value.details[chain.name]?.decimals ?? 0);
+    selectedConfig.value.amount = v * 10 ** (selectedConfig.value.details[chain.name]?.decimals ?? 0);
   }
   validateBalance();
 };
@@ -87,13 +69,9 @@ const updateBalances = async () => {
     balances.value = [];
   } else {
     if (allowsFreePayments.value) {
-      balances.value = [
-        selectedToken.value ? await auth.balance(selectedToken.value) : null,
-      ];
+      balances.value = [selectedToken.value ? await auth.balance(selectedToken.value) : null];
     } else {
-      balances.value = await Promise.all(
-        aTAAs.value.map(async (taa) => await auth.balance(taa.token()))
-      );
+      balances.value = await Promise.all(aTAAs.value.map(async (taa) => await auth.balance(taa.token())));
     }
   }
 };
@@ -124,11 +102,7 @@ const pay = async () => {
   validateAmount();
   await validateBalance();
   validateConfig();
-  if (
-    (allowsFreePayments.value && amountError.value) ||
-    balanceError.value ||
-    configError.value
-  ) {
+  if ((allowsFreePayments.value && amountError.value) || balanceError.value || configError.value) {
     return;
   }
 
@@ -176,9 +150,7 @@ onMounted(async () => {
 
   if (allowsFreePayments.value) {
     setTimeout(() => {
-      (
-        document.querySelector('input.amount[type=number]') as HTMLInputElement
-      ).addEventListener('keydown', (e) => {
+      (document.querySelector('input.amount[type=number]') as HTMLInputElement).addEventListener('keydown', (e) => {
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
       });
     });
@@ -191,10 +163,7 @@ onMounted(async () => {
 
   <NotFoundView v-else-if="!payable" />
 
-  <section
-    class="max-md:max-w-md md:max-w-screen-md mx-auto md:pt-8 pb-20"
-    v-else
-  >
+  <section class="max-md:max-w-md md:max-w-screen-md mx-auto md:pt-8 pb-20" v-else>
     <div class="md:flex gap-12">
       <div class="grow">
         <h2 class="text-3xl mb-4 font-bold">Make Payment</h2>
@@ -237,9 +206,7 @@ onMounted(async () => {
                   type="number"
                   aria-label="Amount"
                 />
-                <small class="text-xs block text-red-500">{{
-                  amountError
-                }}</small>
+                <small class="text-xs block text-red-500">{{ amountError }}</small>
               </div>
               <div class="flex flex-col">
                 <Select
@@ -252,18 +219,12 @@ onMounted(async () => {
                   ariaLabel="Select a Token"
                 />
                 <p v-if="selectedToken && balances.length == 1 && balances[0]">
-                  <IconWallet
-                    class="w-3 h-3 inline-block mt-px mr-1 stroke-current"
-                  />
+                  <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
                   <span class="text-[10px] text-gray-500">
-                    {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
-                      selectedToken.name
-                    }}
+                    {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{ selectedToken.name }}
                   </span>
                 </p>
-                <small class="text-xs block text-red-500">{{
-                  configError
-                }}</small>
+                <small class="text-xs block text-red-500">{{ configError }}</small>
               </div>
             </div>
           </div>
@@ -280,13 +241,9 @@ onMounted(async () => {
                 {{ aTAAs[0].display(payable.chain) }}
               </p>
               <p v-if="balances.length == 1 && balances[0]">
-                <IconWallet
-                  class="w-3 h-3 inline-block mt-px mr-1 stroke-current"
-                />
+                <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
                 <span class="text-[10px] text-gray-500">
-                  {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{
-                    aTAAs[0].name
-                  }}
+                  {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{ aTAAs[0].name }}
                 </span>
               </p>
             </div>
@@ -296,8 +253,7 @@ onMounted(async () => {
                 <Button
                   :class="
                     'text-current border-none shadow-md px-3 py-2 text-xl ' +
-                    (selectedConfig?.name == taa.name &&
-                    selectedConfig?.amount == taa.amount
+                    (selectedConfig?.name == taa.name && selectedConfig?.amount == taa.amount
                       ? 'bg-primary bg-opacity-30'
                       : 'bg-transparent')
                   "
@@ -311,13 +267,9 @@ onMounted(async () => {
                   {{ taa.display(payable.chain) }}
                 </Button>
                 <p v-if="balances.length == aTAAs.length && balances[i]">
-                  <IconWallet
-                    class="w-3 h-3 inline-block mt-px mr-1 stroke-current"
-                  />
+                  <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
                   <span class="text-[10px] text-gray-500">
-                    {{ Math.trunc(balances[i]! * 10 ** 5) / 10 ** 5 }}&nbsp;{{
-                      taa.name
-                    }}</span
+                    {{ Math.trunc(balances[i]! * 10 ** 5) / 10 ** 5 }}&nbsp;{{ taa.name }}</span
                   >
                 </p>
               </div>
@@ -328,27 +280,19 @@ onMounted(async () => {
           <template v-if="auth.currentUser">
             <p
               v-if="
-                (allowsFreePayments ||
-                  (!allowsFreePayments && aTAAs.length != 1)) &&
+                (allowsFreePayments || (!allowsFreePayments && aTAAs.length != 1)) &&
                 selectedConfig &&
                 selectedConfig.amount
               "
               class="mb-4"
             >
               You are paying
-              <span class="font-bold text-2xl">{{
-                selectedConfig.display(auth.currentUser.chain)
-              }}</span>
+              <span class="font-bold text-2xl">{{ selectedConfig.display(auth.currentUser.chain) }}</span>
             </p>
 
-            <p
-              class="mt-8 mb-24 text-right"
-              v-if="auth.currentUser.chain == payable.chain"
-            >
+            <p class="mt-8 mb-24 text-right" v-if="auth.currentUser.chain == payable.chain">
               <Button type="submit" class="text-xl px-6 py-2"> Pay Now </Button>
-              <small class="text-xs block text-red-500 mt-1.5">{{
-                balanceError
-              }}</small>
+              <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
             </p>
           </template>
         </form>
@@ -356,15 +300,9 @@ onMounted(async () => {
     </div>
 
     <template v-if="!auth.currentUser">
-      <p class="mt-12 mb-6 text-center text-xl">
-        Please connect your Wallet to continue
-      </p>
+      <p class="mt-12 mb-6 text-center text-xl">Please connect your Wallet to continue</p>
       <p class="mx-auto w-fit max-md:mb-12">
-        <SignInButton
-          @click="
-            analytics.recordEvent('clicked_signin', { from: 'payment_page' })
-          "
-        />
+        <SignInButton @click="analytics.recordEvent('clicked_signin', { from: 'payment_page' })" />
       </p>
     </template>
 
@@ -374,16 +312,11 @@ onMounted(async () => {
     >
       <p class="mb-8">
         Our Cross-Chain Features with
-        <a
-          href="https://wormhole.com"
-          target="_blank"
-          rel="noopener noreferer"
-          class="underline text-primary"
+        <a href="https://wormhole.com" target="_blank" rel="noopener noreferer" class="underline text-primary"
           >Wormhole</a
         >
         are almost complete. As for now, as this Payable is on
-        {{ payable.chain }}, you can only pay from {{ payable.chain }} wallets.
-        Please switch wallets to continue.
+        {{ payable.chain }}, you can only pay from {{ payable.chain }} wallets. Please switch wallets to continue.
       </p>
       <SignInButton />
     </div>

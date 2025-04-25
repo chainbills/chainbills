@@ -1,33 +1,22 @@
 <script setup lang="ts">
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import {
-  type Receipt,
-  Withdrawal,
-  getTokenLogo,
-  getWalletUrl,
-} from '@/schemas';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  usePaginatorsStore,
-  useTimeStore,
-} from '@/stores';
+import { type Receipt, Withdrawal, getTokenLogo, getWalletUrl } from '@/schemas';
+import { useAnalyticsStore, useAuthStore, usePaginatorsStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
 import { useToast } from 'primevue/usetoast';
 import { computed, ref } from 'vue';
 
-const { countField, currentPage, hidePayable, hideUser, receipts, totalCount } =
-  defineProps<{
-    countField: string;
-    currentPage: number;
-    hidePayable?: boolean;
-    hideUser?: boolean;
-    receipts: Receipt[];
-    totalCount: number;
-  }>();
+const { countField, currentPage, hidePayable, hideUser, receipts, totalCount } = defineProps<{
+  countField: string;
+  currentPage: number;
+  hidePayable?: boolean;
+  hideUser?: boolean;
+  receipts: Receipt[];
+  totalCount: number;
+}>();
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
@@ -56,18 +45,12 @@ const copy = (text: string, context: string, eventContext: string) => {
 
 const payableRoute = (receipt: Receipt) => {
   const isMine = auth.currentUser?.walletAddress == receipt.user();
-  return (
-    `/${receipt instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` +
-    receipt.payableId
-  );
+  return `/${receipt instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` + receipt.payableId;
 };
 
-const shorten = (v: string) =>
-  `${v.substring(0, 5)}...${v.substring(v.length - 5)}`;
+const shorten = (v: string) => `${v.substring(0, 5)}...${v.substring(v.length - 5)}`;
 
-const sortedReceipts = computed(() =>
-  receipts.sort((a, b) => (a.timestamp - b.timestamp) * sortOrder.value)
-);
+const sortedReceipts = computed(() => receipts.sort((a, b) => (a.timestamp - b.timestamp) * sortOrder.value));
 </script>
 
 <template>
@@ -104,11 +87,7 @@ const sortedReceipts = computed(() =>
     <Column field="details" header="Details">
       <template #body="{ data }">
         <p class="flex gap-x-2 items-center w-32">
-          <img
-            :src="getTokenLogo(data.chain, data.token)"
-            class="w-6 h-6"
-            aria-hidden="true"
-          />
+          <img :src="getTokenLogo(data.chain, data.token)" class="w-6 h-6" aria-hidden="true" />
           <span class="font-medium text-lg text-nowrap">
             {{ data.displayDetails() }}
           </span>
@@ -154,13 +133,7 @@ const sortedReceipts = computed(() =>
           </span>
           <Button
             class="bg-transparent p-1 border-none"
-            @click="
-              copy(
-                data.payableId,
-                `Payable ID: ${data.payableId}`,
-                'payable_id'
-              )
-            "
+            @click="copy(data.payableId, `Payable ID: ${data.payableId}`, 'payable_id')"
             title="Copy Payable ID"
           >
             <IconCopy class="text-primary" />
@@ -169,11 +142,7 @@ const sortedReceipts = computed(() =>
             :href="payableRoute(data)"
             target="_blank"
             rel="noopener noreferrer"
-            :title="
-              payableRoute(data).includes('payable')
-                ? 'Payable Page'
-                : 'Payment Page'
-            "
+            :title="payableRoute(data).includes('payable') ? 'Payable Page' : 'Payment Page'"
             class="p-1 rounded-md"
             @click="
               analytics.recordEvent('opened_payment_link', {
@@ -199,13 +168,7 @@ const sortedReceipts = computed(() =>
           </span>
           <Button
             class="bg-transparent p-1 border-none"
-            @click="
-              copy(
-                data.user(),
-                `Wallet Address: ${data.user()}`,
-                'wallet_address'
-              )
-            "
+            @click="copy(data.user(), `Wallet Address: ${data.user()}`, 'wallet_address')"
             title="Copy Wallet Address"
           >
             <IconCopy class="text-primary" />

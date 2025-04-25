@@ -17,8 +17,7 @@ export const useCacheStore = defineStore('cache', () => {
     return db;
   };
 
-  const retrieve = async (key: string) =>
-    db ? await db.get('cache-v2', key) : null;
+  const retrieve = async (key: string) => (db ? await db.get('cache-v2', key) : null);
 
   const save = async (key: string, value: any) => {
     if (db) {

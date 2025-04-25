@@ -1,9 +1,4 @@
-import {
-  TokenAndAmount,
-  type Chain,
-  type Token,
-  type TokenAndAmountOnChain,
-} from '@/schemas';
+import { TokenAndAmount, type Chain, type Token, type TokenAndAmountOnChain } from '@/schemas';
 
 export class Payable {
   id: string;
@@ -30,12 +25,10 @@ export class Payable {
 
     this.hostCount = Number(onChainData.hostCount);
     this.description = description;
-    this.allowedTokensAndAmounts = onChainData.allowedTokensAndAmounts.map(
-      (aTAA: TokenAndAmountOnChain) => TokenAndAmount.fromOnChain(aTAA, chain)
+    this.allowedTokensAndAmounts = onChainData.allowedTokensAndAmounts.map((aTAA: TokenAndAmountOnChain) =>
+      TokenAndAmount.fromOnChain(aTAA, chain)
     );
-    this.balances = onChainData.balances.map((bal: TokenAndAmountOnChain) =>
-      TokenAndAmount.fromOnChain(bal, chain)
-    );
+    this.balances = onChainData.balances.map((bal: TokenAndAmountOnChain) => TokenAndAmount.fromOnChain(bal, chain));
     this.createdAt = Number(onChainData.createdAt);
     this.paymentsCount = Number(onChainData.paymentsCount);
     this.withdrawalsCount = Number(onChainData.withdrawalsCount);
@@ -63,8 +56,7 @@ export class Payable {
       // be treated as one (a balance can only be in a token but not an ATAA).
       const uniqued: Token[] = [];
       for (let ataa of ataas) {
-        if (!uniqued.some(({ name }) => ataa.name == name))
-          uniqued.push(ataa.token());
+        if (!uniqued.some(({ name }) => ataa.name == name)) uniqued.push(ataa.token());
       }
       for (let token of uniqued) {
         // Find the balance with the token in the ATAAs.

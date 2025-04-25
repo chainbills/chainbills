@@ -11,16 +11,11 @@ const theme = useThemeStore();
 </script>
 
 <template>
-  <header
-    class="max-md:py-4 py-2 px-8 lg:px-12 fixed top-0 left-0 right-0 z-10 h-16 bg-app-bg"
-  >
+  <header class="max-md:py-4 py-2 px-8 lg:px-12 fixed top-0 left-0 right-0 z-10 h-16 bg-app-bg">
     <div class="flex justify-between max-w-screen-xl mx-auto md:items-start">
       <h1 class="text-2xl font-bold max-md:pt-0 pt-2">
         <router-link to="/" class="flex items-center">
-          <img
-            :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
-            class="mr-1 h-8 w-8"
-          />
+          <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`" class="mr-1 h-8 w-8" />
           <span>Chainbills</span>
         </router-link>
       </h1>
@@ -48,9 +43,7 @@ const theme = useThemeStore();
           </ul>
         </nav>
       </div>
-      <Button
-        @click="sidebar.open"
-        class="bg-transparent border-none text-current -mr-4 md:hidden"
+      <Button @click="sidebar.open" class="bg-transparent border-none text-current -mr-4 md:hidden"
         ><IconMenu
       /></Button>
     </div>

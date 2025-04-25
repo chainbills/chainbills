@@ -7,10 +7,7 @@ import Aura from '@primevue/themes/aura';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { megaethTestnet, type AppKitNetwork } from '@reown/appkit/networks';
 import { createAppKit } from '@reown/appkit/vue';
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from '@solana/wallet-adapter-wallets';
+import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { WagmiPlugin } from '@wagmi/vue';
 import AOS from 'aos';

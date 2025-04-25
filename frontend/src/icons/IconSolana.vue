@@ -3,12 +3,7 @@ const { id } = defineProps(['id']);
 </script>
 
 <template>
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 400 400"
-  >
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 400 400">
     <mask :id="`mask-solana-${id}`">
       <circle cx="200" cy="200" r="200" fill="white" />
       <path
@@ -17,12 +12,6 @@ const { id } = defineProps(['id']);
         fill-rule="evenodd"
       ></path>
     </mask>
-    <circle
-      :mask="`url(#mask-solana-${id})`"
-      cx="200"
-      cy="200"
-      r="200"
-      fill="currentColor"
-    />
+    <circle :mask="`url(#mask-solana-${id})`" cx="200" cy="200" r="200" fill="currentColor" />
   </svg>
 </template>

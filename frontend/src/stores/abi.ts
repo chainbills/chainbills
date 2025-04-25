@@ -119,18 +119,14 @@ export const abi = [
     type: 'function',
     name: 'circleBridge',
     inputs: [],
-    outputs: [
-      { name: '', type: 'address', internalType: 'contract ICircleBridge' },
-    ],
+    outputs: [{ name: '', type: 'address', internalType: 'contract ICircleBridge' }],
     stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'circleTokenMinter',
     inputs: [],
-    outputs: [
-      { name: '', type: 'address', internalType: 'contract ITokenMinter' },
-    ],
+    outputs: [{ name: '', type: 'address', internalType: 'contract ITokenMinter' }],
     stateMutability: 'view',
   },
   {
@@ -420,9 +416,7 @@ export const abi = [
       { name: 'token', type: 'address', internalType: 'address' },
       { name: 'chainId', type: 'uint16', internalType: 'uint16' },
     ],
-    outputs: [
-      { name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' },
-    ],
+    outputs: [{ name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' }],
     stateMutability: 'view',
   },
   {
@@ -626,9 +620,7 @@ export const abi = [
   {
     type: 'function',
     name: 'getWithdrawal',
-    inputs: [
-      { name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' },
-    ],
+    inputs: [{ name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' }],
     outputs: [
       {
         name: '',
@@ -897,9 +889,7 @@ export const abi = [
         ],
       },
     ],
-    outputs: [
-      { name: 'payablePaymentId', type: 'bytes32', internalType: 'bytes32' },
-    ],
+    outputs: [{ name: 'payablePaymentId', type: 'bytes32', internalType: 'bytes32' }],
     stateMutability: 'nonpayable',
   },
   {
@@ -970,9 +960,7 @@ export const abi = [
   {
     type: 'function',
     name: 'setFeeCollectorAddress',
-    inputs: [
-      { name: 'feeCollector', type: 'address', internalType: 'address' },
-    ],
+    inputs: [{ name: 'feeCollector', type: 'address', internalType: 'address' }],
     outputs: [],
     stateMutability: 'nonpayable',
   },
@@ -1196,9 +1184,7 @@ export const abi = [
       { name: '', type: 'address', internalType: 'address' },
       { name: '', type: 'uint256', internalType: 'uint256' },
     ],
-    outputs: [
-      { name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' },
-    ],
+    outputs: [{ name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' }],
     stateMutability: 'nonpayable',
   },
   {
@@ -1221,9 +1207,7 @@ export const abi = [
     type: 'function',
     name: 'wormhole',
     inputs: [],
-    outputs: [
-      { name: '', type: 'address', internalType: 'contract IWormhole' },
-    ],
+    outputs: [{ name: '', type: 'address', internalType: 'contract IWormhole' }],
     stateMutability: 'view',
   },
   {
@@ -1782,9 +1766,7 @@ export const abi = [
   {
     type: 'error',
     name: 'ERC1967InvalidImplementation',
-    inputs: [
-      { name: 'implementation', type: 'address', internalType: 'address' },
-    ],
+    inputs: [{ name: 'implementation', type: 'address', internalType: 'address' }],
   },
   { type: 'error', name: 'ERC1967NonPayable', inputs: [] },
   { type: 'error', name: 'EmitterNotRegistered', inputs: [] },

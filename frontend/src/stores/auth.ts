@@ -1,18 +1,9 @@
-import {
-  type Chain,
-  megaethtestnet,
-  solanadevnet,
-  type Token,
-  User,
-} from '@/schemas';
+import { type Chain, megaethtestnet, solanadevnet, type Token, User } from '@/schemas';
 import { useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import {
-  useAnchorWallet,
-  useWallet as useSolanaWallet,
-} from 'solana-wallets-vue';
+import { useAnchorWallet, useWallet as useSolanaWallet } from 'solana-wallets-vue';
 import { onMounted, ref, watch } from 'vue';
 import * as encoding from './encoding';
 
@@ -72,10 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
-  const getEntityId = async (
-    entity: string,
-    count: number
-  ): Promise<string | null> => {
+  const getEntityId = async (entity: string, count: number): Promise<string | null> => {
     if (!currentUser.value) return null;
 
     let id = await cache.retrieve(cacheKey(entity, count)!);
@@ -90,21 +78,16 @@ export const useAuthStore = defineStore('auth', () => {
     return id;
   };
 
-  const getPayableId = async (count: number): Promise<string | null> =>
-    getEntityId('payable', count);
+  const getPayableId = async (count: number): Promise<string | null> => getEntityId('payable', count);
 
-  const getPaymentId = async (count: number): Promise<string | null> =>
-    getEntityId('payment', count);
+  const getPaymentId = async (count: number): Promise<string | null> => getEntityId('payment', count);
 
-  const getWithdrawalId = async (count: number): Promise<string | null> =>
-    getEntityId('withdrawal', count);
+  const getWithdrawalId = async (count: number): Promise<string | null> => getEntityId('withdrawal', count);
 
   const storageKey = (user: User) =>
-    `chainbills::chainId=>${user.chain.name}` +
-    `::signature::v2=>${user.walletAddress}`;
+    `chainbills::chainId=>${user.chain.name}` + `::signature::v2=>${user.walletAddress}`;
 
-  const getSavedSig = (user: User): string | null =>
-    localStorage.getItem(storageKey(user));
+  const getSavedSig = (user: User): string | null => localStorage.getItem(storageKey(user));
 
   const ensureSigned = async (user: User): Promise<void> => {
     let signed = getSavedSig(user);
@@ -131,8 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser.value = await getChainStore()['getCurrentUser']();
   };
 
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const updateCurrentUser = async ([newAnchorWallet, newEvmAddress]: any[]) => {
     isLoading.value = true;
@@ -182,11 +164,7 @@ export const useAuthStore = defineStore('auth', () => {
   onMounted(() => {
     updateCurrentUser([anchorWallet.value, evmAccount.address.value]);
 
-    watch(
-      [() => anchorWallet.value, () => evmAccount.address.value],
-      updateCurrentUser,
-      { deep: true }
-    );
+    watch([() => anchorWallet.value, () => evmAccount.address.value], updateCurrentUser, { deep: true });
   });
 
   return {

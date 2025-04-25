@@ -1,9 +1,4 @@
-import {
-  type Chain,
-  getTokenDetails,
-  type Payment,
-  type Token,
-} from '@/schemas';
+import { type Chain, getTokenDetails, type Payment, type Token } from '@/schemas';
 import { denormalizeBytes } from '@/stores';
 
 export class PayablePayment implements Payment {
@@ -48,9 +43,7 @@ export class PayablePayment implements Payment {
   }
 
   formatAmount() {
-    return (
-      this.amount / 10 ** (this.token.details[this.chain.name]?.decimals ?? 0)
-    );
+    return this.amount / 10 ** (this.token.details[this.chain.name]?.decimals ?? 0);
   }
 
   user(): string {

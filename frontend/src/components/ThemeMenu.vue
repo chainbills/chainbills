@@ -2,12 +2,7 @@
 const { full } = defineProps(['full']);
 import IconMoon from '@/icons/IconMoon.vue';
 import IconSun from '@/icons/IconSun.vue';
-import {
-  themes,
-  useSidebarStore,
-  useThemeStore,
-  type ThemeMode,
-} from '@/stores';
+import { themes, useSidebarStore, useThemeStore, type ThemeMode } from '@/stores';
 import Menu from 'primevue/menu';
 import { ref } from 'vue';
 

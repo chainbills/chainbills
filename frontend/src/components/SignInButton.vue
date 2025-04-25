@@ -7,12 +7,7 @@ import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import IconSolana from '@/icons/IconSolana.vue';
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  useSidebarStore,
-  useThemeStore,
-} from '@/stores';
+import { useAnalyticsStore, useAuthStore, useSidebarStore, useThemeStore } from '@/stores';
 import { useAppKit } from '@reown/appkit/vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
@@ -38,8 +33,7 @@ const onClickEvm = () => {
   evmConnect();
 };
 
-const shortenAddress = (v: string) =>
-  `${v.substring(0, 6)}...${v.substring(v.length - 3)}`;
+const shortenAddress = (v: string) => `${v.substring(0, 6)}...${v.substring(v.length - 3)}`;
 
 const toastLoadingAuth = () => {
   toast.add({
@@ -123,9 +117,7 @@ onMounted(() => {
       <IconSpinnerWhite class="mx-4" v-else />
     </Button>
 
-    <Button @click="onClickEvm" v-else-if="!auth.currentUser" class="px-4 py-2">
-      Sign In
-    </Button>
+    <Button @click="onClickEvm" v-else-if="!auth.currentUser" class="px-4 py-2"> Sign In </Button>
 
     <Button
       v-else
@@ -152,21 +144,12 @@ onMounted(() => {
       <span>{{ shortenAddress(auth.currentUser!.walletAddress) }}</span>
     </Button>
 
-    <Menu
-      ref="walletMenu"
-      id="wallet-menu"
-      :model="walletItems()"
-      :popup="true"
-    >
+    <Menu ref="walletMenu" id="wallet-menu" :model="walletItems()" :popup="true">
       <template #item="{ item, props }">
         <p v-if="!item.command" class="px-2 py-1 text-lg text-gray-500">
           {{ item.label }}
         </p>
-        <Button
-          class="flex items-center bg-transparent border-none hover:text-current"
-          v-bind="props.action"
-          v-else
-        >
+        <Button class="flex items-center bg-transparent border-none hover:text-current" v-bind="props.action" v-else>
           <component :is="item.customIcon" class="w-5 h-5 mr-1" />
           <span>{{ item.label }}</span>
         </Button>

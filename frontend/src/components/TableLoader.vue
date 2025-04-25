@@ -4,10 +4,7 @@ import Shimmer from '@/components/Shimmer.vue';
 
 <template>
   <div class="border border-shadow" wrapper>
-    <div
-      class="px-3 py-2 border-b border-shadow"
-      v-for="_ of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
-    >
+    <div class="px-3 py-2 border-b border-shadow" v-for="_ of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]">
       <Shimmer class="h-8 rounded-md animate-pulse" />
     </div>
   </div>

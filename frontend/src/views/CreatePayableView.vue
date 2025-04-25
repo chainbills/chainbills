@@ -17,9 +17,7 @@ const amountErrors = ref<Ref[]>([]);
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const availableTokens = computed(() =>
-  tokens.filter(
-    (t) => !auth.currentUser || !!t.details[auth.currentUser.chain.name]
-  )
+  tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain.name])
 );
 const configError = ref('');
 const displayedConfig = ref<TokenAndAmount[]>([]);
@@ -64,9 +62,7 @@ const updateDisplayedConfig = () => {
         displayedConfig.value = [];
         return;
       } else {
-        tokensAndAmounts.push(
-          new TokenAndAmount(selectedTokens.value[i], amounts.value[i].value)
-        );
+        tokensAndAmounts.push(new TokenAndAmount(selectedTokens.value[i], amounts.value[i].value));
       }
     }
     displayedConfig.value = tokensAndAmounts;
@@ -81,9 +77,7 @@ const validateAmount = (v: any) => {
 
 const validateConfig = () => {
   if (!allowsFreePayments.value && selectedTokens.value.length == 0) {
-    configError.value =
-      'Either allow free payments OR specify at least one allowed ' +
-      'token and its amount.';
+    configError.value = 'Either allow free payments OR specify at least one allowed ' + 'token and its amount.';
   } else {
     const tempConfig = selectedTokens.value.map(({ name }, i) =>
       JSON.stringify({
@@ -124,20 +118,14 @@ const create = async () => {
         tokensAndAmounts.push(
           new TokenAndAmount(
             selectedTokens.value[i],
-            amounts.value[i].value *
-              10 **
-                selectedTokens.value[i].details[auth.currentUser.chain.name]!
-                  .decimals
+            amounts.value[i].value * 10 ** selectedTokens.value[i].details[auth.currentUser.chain.name]!.decimals
           )
         );
     }
   }
 
   isCreating.value = true;
-  const id = await payable.create(
-    DomPurify.sanitize(description.value.trim()),
-    tokensAndAmounts
-  );
+  const id = await payable.create(DomPurify.sanitize(description.value.trim()), tokensAndAmounts);
   isCreating.value = false;
 
   if (id) router.push(`/payable/${id}`);
@@ -174,9 +162,7 @@ onMounted(() => {
 
 <template>
   <section class="pt-12 md:pt-4 pb-20">
-    <h2
-      class="text-center text-xl max-w-sm md:text-2xl md:max-w-lg mx-auto mb-12"
-    >
+    <h2 class="text-center text-xl max-w-sm md:text-2xl md:max-w-lg mx-auto mb-12">
       Create a Payable to Receive Payments on any chain from anyone
     </h2>
 
@@ -198,16 +184,11 @@ onMounted(() => {
       <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
     </div>
 
-    <form
-      class="max-md:max-w-sm md:max-w-screen-md mx-auto md:flex gap-12"
-      @submit.prevent="create"
-      v-else
-    >
+    <form class="max-md:max-w-sm md:max-w-screen-md mx-auto md:flex gap-12" @submit.prevent="create" v-else>
       <div class="grow">
         <label
           :class="
-            'text-sm focus-within:text-primary ' +
-            (descriptionError ? 'text-red-500 focus-within:text-red-500' : '')
+            'text-sm focus-within:text-primary ' + (descriptionError ? 'text-red-500 focus-within:text-red-500' : '')
           "
         >
           <span>Description *</span>
@@ -228,35 +209,19 @@ onMounted(() => {
 
       <div class="">
         <div class="mb-10">
-          <label for="allow-any-token" class="inline-block"
-            >Allow Free Payments ?
-          </label>
-          <small class="text-xs text-gray-500 block mb-4"
-            >Do you want to accept any token and any amount?</small
-          >
+          <label for="allow-any-token" class="inline-block">Allow Free Payments ? </label>
+          <small class="text-xs text-gray-500 block mb-4">Do you want to accept any token and any amount?</small>
           <p class="flex items-center">
-            <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')"
-              >No</span
-            >
-            <ToggleSwitch
-              inputId="allow-any-token"
-              v-model="allowsFreePayments"
-            />
-            <span :class="'ml-2 ' + (allowsFreePayments ? 'font-bold' : '')"
-              >Yes</span
-            >
+            <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')">No</span>
+            <ToggleSwitch inputId="allow-any-token" v-model="allowsFreePayments" />
+            <span :class="'ml-2 ' + (allowsFreePayments ? 'font-bold' : '')">Yes</span>
           </p>
         </div>
 
         <template v-if="!allowsFreePayments">
           <p>Allowed Tokens and Amounts</p>
-          <small class="text-xs text-gray-500 block mb-4"
-            >If no above, please specify the payments you want.</small
-          >
-          <label
-            v-for="(token, i) of selectedTokens"
-            class="flex items-start mb-4"
-          >
+          <small class="text-xs text-gray-500 block mb-4">If no above, please specify the payments you want.</small>
+          <label v-for="(token, i) of selectedTokens" class="flex items-start mb-4">
             <div class="w-36 flex flex-col mr-4">
               <input
                 class="amount pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
@@ -273,9 +238,7 @@ onMounted(() => {
                   }
                 "
               />
-              <small class="text-xs block text-red-500">{{
-                amountErrors[i].value
-              }}</small>
+              <small class="text-xs block text-red-500">{{ amountErrors[i].value }}</small>
             </div>
             <span class="px-2 py-1 border mr-2 rounded">{{ token.name }}</span>
             <Button
@@ -295,9 +258,7 @@ onMounted(() => {
             class="mb-2"
           />
         </template>
-        <small class="text-xs block mb-2 text-red-500 md:max-w-xs">{{
-          configError
-        }}</small>
+        <small class="text-xs block mb-2 text-red-500 md:max-w-xs">{{ configError }}</small>
 
         <template v-if="!configError">
           <p v-if="allowsFreePayments" class="text-xl mb-2 md:max-w-xs">
@@ -305,16 +266,11 @@ onMounted(() => {
           </p>
           <p v-else-if="displayedConfig.length == 1" class="md:max-w-xs">
             This payable will accept
-            <span class="font-bold text-2xl"
-              >{{ displayedConfig[0].amount }}&nbsp;{{
-                displayedConfig[0].name
-              }}</span
-            >
+            <span class="font-bold text-2xl">{{ displayedConfig[0].amount }}&nbsp;{{ displayedConfig[0].name }}</span>
           </p>
           <div class="pt-4" v-else-if="displayedConfig.length > 1">
             <p class="mb-2 text-lg md:max-w-xs">
-              This payable will accept <span class="font-bold">any</span> of the
-              following
+              This payable will accept <span class="font-bold">any</span> of the following
             </p>
             <div class="flex gap-4 flex-wrap">
               <span

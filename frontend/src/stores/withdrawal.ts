@@ -1,11 +1,4 @@
-import {
-  type Chain,
-  megaethtestnet,
-  Payable,
-  solanadevnet,
-  TokenAndAmount,
-  Withdrawal,
-} from '@/schemas';
+import { type Chain, megaethtestnet, Payable, solanadevnet, TokenAndAmount, Withdrawal } from '@/schemas';
 import {
   useAnalyticsStore,
   useAuthStore,
@@ -32,15 +25,13 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
   const cacheKey = (chain: string, id: string) => `${chain}::withdrawal::${id}`;
 
-  const exec = async (
-    payableId: string,
-    details: TokenAndAmount
-  ): Promise<string | null> => {
+  const exec = async (payableId: string, details: TokenAndAmount): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    const result = await { megaethtestnet: evm, solanadevnet: solana }[
-      auth.currentUser.chain.name
-    ]['withdraw'](payableId, details);
+    const result = await { megaethtestnet: evm, solanadevnet: solana }[auth.currentUser.chain.name]['withdraw'](
+      payableId,
+      details
+    );
     if (!result) return null;
     await auth.refreshUser();
 
@@ -49,8 +40,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     toast.add({
       severity: 'success',
       summary: 'Successfully Withdrew',
-      detail:
-        'You have successfully made a Withdrawal. Check your wallet for your increments.',
+      detail: 'You have successfully made a Withdrawal. Check your wallet for your increments.',
       life: 12000,
     });
     analytics.recordEvent('made_withdrawal', {
@@ -60,11 +50,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     return result.created;
   };
 
-  const get = async (
-    id: string,
-    chain?: Chain,
-    ignoreErrors?: boolean
-  ): Promise<Withdrawal | null> => {
+  const get = async (id: string, chain?: Chain, ignoreErrors?: boolean): Promise<Withdrawal | null> => {
     // A simple trick to guess the chain based on the ID's format
     // (if not provided)
     if (!chain) {
@@ -88,10 +74,8 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
     try {
       let raw: any;
-      if (chain.isEvm)
-        raw = await evm.fetchEntity('Withdrawal', id, ignoreErrors);
-      else if (chain.isSolana)
-        raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
+      if (chain.isEvm) raw = await evm.fetchEntity('Withdrawal', id, ignoreErrors);
+      else if (chain.isSolana) raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
       else throw `Unknown chain: ${chain}`;
       if (raw) withdrawal = new Withdrawal(id, chain, raw);
     } catch (e) {
@@ -107,10 +91,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     return withdrawal;
   };
 
-  const getManyForCurrentUser = async (
-    page: number,
-    count: number
-  ): Promise<Withdrawal[] | null> => {
+  const getManyForCurrentUser = async (page: number, count: number): Promise<Withdrawal[] | null> => {
     if (!auth.currentUser) return null;
     const { withdrawalsCount: totalCount } = auth.currentUser;
     if (count === 0) return [];
@@ -136,11 +117,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     }
   };
 
-  const getManyForPayable = async (
-    payable: Payable,
-    page: number,
-    count: number
-  ): Promise<Withdrawal[] | null> => {
+  const getManyForPayable = async (payable: Payable, page: number, count: number): Promise<Withdrawal[] | null> => {
     const { withdrawalsCount: totalCount, chain } = payable;
     if (count === 0) return [];
 
@@ -165,8 +142,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     }
   };
 
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   return { exec, get, getManyForCurrentUser, getManyForPayable };
 });

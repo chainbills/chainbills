@@ -10,13 +10,9 @@ export const useNotificationsStore = defineStore('notifications', () => {
   const server = useServerStore();
   const toast = useToast();
 
-  const lsKey = () =>
-    `chainbills::fcmToken=>${auth.currentUser!.walletAddress}`;
+  const lsKey = () => `chainbills::fcmToken=>${auth.currentUser!.walletAddress}`;
   const ensure = async () => {
-    if (
-      !auth.currentUser ||
-      (Notification.permission == 'granted' && localStorage.getItem(lsKey()))
-    ) {
+    if (!auth.currentUser || (Notification.permission == 'granted' && localStorage.getItem(lsKey()))) {
       return;
     }
 

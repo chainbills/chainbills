@@ -23,24 +23,17 @@ export const useThemeStore = defineStore('theme', () => {
       getHtml().classList.add('dark');
     } else if (mode.value == 'Light Theme') {
       getHtml().classList.remove('dark');
-    } else if (
-      window.matchMedia &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-    ) {
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       getHtml().classList.add('dark');
     } else {
       getHtml().classList.remove('dark');
     }
 
-    icon.value = getHtml().classList.contains('dark')
-      ? 'Light Theme'
-      : 'Dark Theme';
+    icon.value = getHtml().classList.contains('dark') ? 'Light Theme' : 'Dark Theme';
     isDisplayDark.value = getHtml().classList.contains('dark');
   };
 
-  const isSystemDark = () =>
-    window.matchMedia &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isSystemDark = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   const set = (value: ThemeMode) => {
     mode.value = value;
@@ -54,11 +47,9 @@ export const useThemeStore = defineStore('theme', () => {
 
     css();
 
-    window
-      .matchMedia('(prefers-color-scheme: dark)')
-      .addEventListener('change', () => {
-        if (mode.value == 'System Mode') css();
-      });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (mode.value == 'System Mode') css();
+    });
 
     setWalletConnectTheme(isDisplayDark.value ? 'dark' : 'light');
     watch(

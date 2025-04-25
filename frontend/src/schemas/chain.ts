@@ -10,15 +10,13 @@ export interface Chain {
 
 export const getTxUrl = (txHash: string, chain: Chain) => {
   if (chain.isEvm) return `https://megaexplorer.xyz/tx/${txHash}`;
-  else if (chain.isSolana)
-    return `https://explorer.solana.com/tx/${txHash}?cluster=devnet`;
+  else if (chain.isSolana) return `https://explorer.solana.com/tx/${txHash}?cluster=devnet`;
   else throw 'Unhandled Chain Type';
 };
 
 export const getWalletUrl = (wallet: string, chain: Chain) => {
   if (chain.isEvm) return `https://megaexplorer.xyz/address/${wallet}`;
-  else if (chain.isSolana)
-    return `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
+  else if (chain.isSolana) return `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
   else throw 'Unhandled Chain Type';
 };
 

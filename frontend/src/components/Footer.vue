@@ -12,26 +12,18 @@ const year = new Date().getFullYear();
 <template>
   <footer class="p-8 sm:pb-12 lg:px-12 mt-auto">
     <div class="max-w-screen-xl mx-auto">
-      <div
-        class="flex flex-col gap-8 sm:flex-row md:justify-between items-start"
-      >
+      <div class="flex flex-col gap-8 sm:flex-row md:justify-between items-start">
         <div>
           <p class="flex items-center text-2xl font-bold mb-4">
-            <img
-              :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
-              class="mr-1 h-8 w-8"
-            />
+            <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`" class="mr-1 h-8 w-8" />
             <span>Chainbills</span>
           </p>
 
           <h2 class="font-medium mb-1 text-lg">About Chainbills</h2>
-          <p
-            class="text-sm max-w-sm sm:max-w-xs md:max-w-sm lg:max-w-lg dark:text-gray-400"
-          >
-            At Chainbills, you can effortlessly receive payments to your
-            businesses, subscriptions for your services, or donations to your
-            foundation. We believe you should easily receive as much money and
-            that's why cross-chain payments are native to Chainbills.
+          <p class="text-sm max-w-sm sm:max-w-xs md:max-w-sm lg:max-w-lg dark:text-gray-400">
+            At Chainbills, you can effortlessly receive payments to your businesses, subscriptions for your services, or
+            donations to your foundation. We believe you should easily receive as much money and that's why cross-chain
+            payments are native to Chainbills.
           </p>
         </div>
 

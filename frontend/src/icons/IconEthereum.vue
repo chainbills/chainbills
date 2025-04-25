@@ -3,12 +3,7 @@ const { id } = defineProps(['id']);
 </script>
 
 <template>
-  <svg
-    width="24px"
-    height="24px"
-    viewBox="0 0 32 32"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg width="24px" height="24px" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
     <mask :id="`mask-ethereum-${id}`">
       <circle cx="16" cy="16" r="16" fill="white" />
       <g fill="black" fill-rule="nonzero">
@@ -20,12 +15,6 @@ const { id } = defineProps(['id']);
         <path fill-opacity=".602" d="M9 16.22l7.498 4.353v-7.701z" />
       </g>
     </mask>
-    <circle
-      :mask="`url(#mask-ethereum-${id})`"
-      cx="16"
-      cy="16"
-      r="16"
-      fill="currentColor"
-    />
+    <circle :mask="`url(#mask-ethereum-${id})`" cx="16" cy="16" r="16" fill="currentColor" />
   </svg>
 </template>

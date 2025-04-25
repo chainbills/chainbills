@@ -25,40 +25,32 @@ export const useTimeStore = defineStore('time', () => {
       timeStr = '0' + timeStr;
     }
 
-    const lastMidnight = Math.round(
-      new Date(new Date().setHours(0, 0, 0, 0)).getTime() / 1000
-    );
+    const lastMidnight = Math.round(new Date(new Date().setHours(0, 0, 0, 0)).getTime() / 1000);
     const lastTwoMidnights = lastMidnight - 24 * 60 * 60;
     if (lastTwoMidnights < when) {
       return `${lastMidnight < when ? 'Today' : 'Yesterday'} · ${timeStr}`;
     }
 
     const dateParts = date.toDateString().split(' ');
-    const dateStr = [
-      dateParts[2],
-      dateParts[1],
-      dateParts[3].split('').slice(2).join(''),
-    ].join('/');
+    const dateStr = [dateParts[2], dateParts[1], dateParts[3].split('').slice(2).join('')].join('/');
     return `${dateStr} · ${timeStr}`;
   };
 
   const display = (when: number) => {
     const displayed = ref(getDisplay(when));
 
-    const lastMidnight = Math.round(
-      new Date(new Date().setHours(0, 0, 0, 0)).getTime() / 1000
-    );
+    const lastMidnight = Math.round(new Date(new Date().setHours(0, 0, 0, 0)).getTime() / 1000);
     const lastTwoMidnights = lastMidnight - 24 * 60 * 60;
 
     // If the time is within the last two midnights, update the displayed value
-    // 
+    //
     // Not updating the value otherwise because the displayed value will
     // become an absolute date and no longer a relative one
     if (lastTwoMidnights < when) {
       // get the number of seconds till the next minute from now
       const seconds = 60 - (Math.round(Date.now() / 1000) % 60);
 
-      // update the displayed value after the next minute and set 
+      // update the displayed value after the next minute and set
       // a listener by then.
       setTimeout(() => {
         displayed.value = getDisplay(when);
@@ -74,7 +66,7 @@ export const useTimeStore = defineStore('time', () => {
         } else {
           interval = 60 * 60 * 1000;
         }
-        
+
         // Update the displayed value every interval
         setInterval(() => (displayed.value = getDisplay(when)), interval);
       }, seconds);

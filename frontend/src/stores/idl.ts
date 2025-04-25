@@ -216,10 +216,7 @@ export type Chainbills = {
           name: 'chainTokenAccount';
           isMut: true;
           isSigner: false;
-          docs: [
-            'Initialize the chain token account for storing payments of the token mint',
-            "if it doesn't exist.",
-          ];
+          docs: ['Initialize the chain token account for storing payments of the token mint', "if it doesn't exist."];
         },
         {
           name: 'feeCollector';
@@ -235,10 +232,7 @@ export type Chainbills = {
           name: 'feesTokenAccount';
           isMut: true;
           isSigner: false;
-          docs: [
-            'Initialize the fees token account for storing payments of the token mint',
-            "if it doesn't exist.",
-          ];
+          docs: ['Initialize the fees token account for storing payments of the token mint', "if it doesn't exist."];
         },
         {
           name: 'config';
@@ -263,9 +257,7 @@ export type Chainbills = {
           name: 'mint';
           isMut: false;
           isSigner: false;
-          docs: [
-            'The token mint whose max withdrawal fee is being set/updated.',
-          ];
+          docs: ['The token mint whose max withdrawal fee is being set/updated.'];
         },
         {
           name: 'owner';
@@ -373,10 +365,7 @@ export type Chainbills = {
           name: 'chainStats';
           isMut: true;
           isSigner: false;
-          docs: [
-            'Keeps track of entities on this chain. Its user_count will be',
-            'incremented in this instruction.',
-          ];
+          docs: ['Keeps track of entities on this chain. Its user_count will be', 'incremented in this instruction.'];
         },
         {
           name: 'signer';
@@ -408,9 +397,7 @@ export type Chainbills = {
           name: 'payable';
           isMut: true;
           isSigner: false;
-          docs: [
-            'The payable account to create. It houses details about the payable.',
-          ];
+          docs: ['The payable account to create. It houses details about the payable.'];
         },
         {
           name: 'payableChainCounter';
@@ -425,9 +412,7 @@ export type Chainbills = {
           name: 'host';
           isMut: true;
           isSigner: false;
-          docs: [
-            'The user account of the signer that is creating the payable.',
-          ];
+          docs: ['The user account of the signer that is creating the payable.'];
         },
         {
           name: 'chainStats';
@@ -464,10 +449,7 @@ export type Chainbills = {
     },
     {
       name: 'closePayable';
-      docs: [
-        'Stop a payable from accepting payments. Can be called only',
-        'by the host (user) that owns the payable.',
-      ];
+      docs: ['Stop a payable from accepting payments. Can be called only', 'by the host (user) that owns the payable.'];
       accounts: [
         {
           name: 'payable';
@@ -928,30 +910,22 @@ export type Chainbills = {
           },
           {
             name: 'usersCount';
-            docs: [
-              'Total number of users that have ever been initialized on this chain.',
-            ];
+            docs: ['Total number of users that have ever been initialized on this chain.'];
             type: 'u64';
           },
           {
             name: 'payablesCount';
-            docs: [
-              'Total number of payables that have ever been created on this chain.',
-            ];
+            docs: ['Total number of payables that have ever been created on this chain.'];
             type: 'u64';
           },
           {
             name: 'paymentsCount';
-            docs: [
-              'Total number of payments that have ever been made on this chain.',
-            ];
+            docs: ['Total number of payments that have ever been made on this chain.'];
             type: 'u64';
           },
           {
             name: 'withdrawalsCount';
-            docs: [
-              'Total number of withdrawals that have ever been made on this chain.',
-            ];
+            docs: ['Total number of withdrawals that have ever been made on this chain.'];
             type: 'u64';
           },
         ];
@@ -959,9 +933,7 @@ export type Chainbills = {
     },
     {
       name: 'config';
-      docs: [
-        'Config account data. Mainly Wormhole-related addresses and infos.',
-      ];
+      docs: ['Config account data. Mainly Wormhole-related addresses and infos.'];
       type: {
         kind: 'struct';
         fields: [
@@ -990,10 +962,7 @@ export type Chainbills = {
           },
           {
             name: 'wormholeFeeCollector';
-            docs: [
-              "Wormhole's [FeeCollector](wormhole_anchor_sdk::wormhole::FeeCollector)",
-              'address.',
-            ];
+            docs: ["Wormhole's [FeeCollector](wormhole_anchor_sdk::wormhole::FeeCollector)", 'address.'];
             type: 'publicKey';
           },
           {
@@ -1061,9 +1030,7 @@ export type Chainbills = {
           },
           {
             name: 'chainId';
-            docs: [
-              'The Wormhole Chain ID of the chain from which the payment was made.',
-            ];
+            docs: ['The Wormhole Chain ID of the chain from which the payment was made.'];
             type: 'u16';
           },
           {
@@ -1103,9 +1070,7 @@ export type Chainbills = {
           },
           {
             name: 'payerChainId';
-            docs: [
-              'The Wormhole Chain ID of the chain from which the payment was made.',
-            ];
+            docs: ['The Wormhole Chain ID of the chain from which the payment was made.'];
             type: 'u16';
           },
           {
@@ -1126,10 +1091,7 @@ export type Chainbills = {
           },
           {
             name: 'payerCount';
-            docs: [
-              'The nth count of payments that the payer has made',
-              'at the point of making this payment.',
-            ];
+            docs: ['The nth count of payments that the payer has made', 'at the point of making this payment.'];
             type: 'u64';
           },
           {
@@ -1161,9 +1123,7 @@ export type Chainbills = {
         fields: [
           {
             name: 'hostCount';
-            docs: [
-              'The host count of withdrawals at the point when the withdrawal was made.',
-            ];
+            docs: ['The host count of withdrawals at the point when the withdrawal was made.'];
             type: 'u64';
           },
         ];
@@ -1171,18 +1131,13 @@ export type Chainbills = {
     },
     {
       name: 'payable';
-      docs: [
-        'A payable is like a public invoice through which anybody can pay to.',
-      ];
+      docs: ['A payable is like a public invoice through which anybody can pay to.'];
       type: {
         kind: 'struct';
         fields: [
           {
             name: 'chainCount';
-            docs: [
-              'The nth count of payables on this chain at the point this payable',
-              'was created.',
-            ];
+            docs: ['The nth count of payables on this chain at the point this payable', 'was created.'];
             type: 'u64';
           },
           {
@@ -1192,10 +1147,7 @@ export type Chainbills = {
           },
           {
             name: 'hostCount';
-            docs: [
-              'The nth count of payables that the host has created at the point of',
-              "this payable's creation.",
-            ];
+            docs: ['The nth count of payables that the host has created at the point of', "this payable's creation."];
             type: 'u64';
           },
           {
@@ -1267,25 +1219,17 @@ export type Chainbills = {
           },
           {
             name: 'payableChainId';
-            docs: [
-              'The Wormhole Chain ID of the chain into which the payment was made.',
-            ];
+            docs: ['The Wormhole Chain ID of the chain into which the payment was made.'];
             type: 'u16';
           },
           {
             name: 'chainCount';
-            docs: [
-              'The nth count of payments on this chain at the point this payment',
-              'was made.',
-            ];
+            docs: ['The nth count of payments on this chain at the point this payment', 'was made.'];
             type: 'u64';
           },
           {
             name: 'payerCount';
-            docs: [
-              'The nth count of payments that the payer has made',
-              'at the point of making this payment.',
-            ];
+            docs: ['The nth count of payments that the payer has made', 'at the point of making this payment.'];
             type: 'u64';
           },
           {
@@ -1324,10 +1268,7 @@ export type Chainbills = {
           },
           {
             name: 'chainCount';
-            docs: [
-              'The nth count of users on this chain at the point this user was',
-              'initialized.',
-            ];
+            docs: ['The nth count of users on this chain at the point this user was', 'initialized.'];
             type: 'u64';
           },
           {
@@ -1356,32 +1297,22 @@ export type Chainbills = {
         fields: [
           {
             name: 'payableId';
-            docs: [
-              'The address of the Payable from which this Withdrawal was made.',
-            ];
+            docs: ['The address of the Payable from which this Withdrawal was made.'];
             type: 'publicKey';
           },
           {
             name: 'host';
-            docs: [
-              "The wallet address (payable's owner) that made this Withdrawal.",
-            ];
+            docs: ["The wallet address (payable's owner) that made this Withdrawal."];
             type: 'publicKey';
           },
           {
             name: 'chainCount';
-            docs: [
-              'The nth count of withdrawals on this chain at the point',
-              'this withdrawal was made.',
-            ];
+            docs: ['The nth count of withdrawals on this chain at the point', 'this withdrawal was made.'];
             type: 'u64';
           },
           {
             name: 'hostCount';
-            docs: [
-              'The nth count of withdrawals that the host has made',
-              'at the point of making this withdrawal.',
-            ];
+            docs: ['The nth count of withdrawals that the host has made', 'at the point of making this withdrawal.'];
             type: 'u64';
           },
           {
@@ -1985,10 +1916,7 @@ export const IDL: Chainbills = {
           name: 'chainTokenAccount',
           isMut: true,
           isSigner: false,
-          docs: [
-            'Initialize the chain token account for storing payments of the token mint',
-            "if it doesn't exist.",
-          ],
+          docs: ['Initialize the chain token account for storing payments of the token mint', "if it doesn't exist."],
         },
         {
           name: 'feeCollector',
@@ -2004,10 +1932,7 @@ export const IDL: Chainbills = {
           name: 'feesTokenAccount',
           isMut: true,
           isSigner: false,
-          docs: [
-            'Initialize the fees token account for storing payments of the token mint',
-            "if it doesn't exist.",
-          ],
+          docs: ['Initialize the fees token account for storing payments of the token mint', "if it doesn't exist."],
         },
         {
           name: 'config',
@@ -2032,9 +1957,7 @@ export const IDL: Chainbills = {
           name: 'mint',
           isMut: false,
           isSigner: false,
-          docs: [
-            'The token mint whose max withdrawal fee is being set/updated.',
-          ],
+          docs: ['The token mint whose max withdrawal fee is being set/updated.'],
         },
         {
           name: 'owner',
@@ -2142,10 +2065,7 @@ export const IDL: Chainbills = {
           name: 'chainStats',
           isMut: true,
           isSigner: false,
-          docs: [
-            'Keeps track of entities on this chain. Its user_count will be',
-            'incremented in this instruction.',
-          ],
+          docs: ['Keeps track of entities on this chain. Its user_count will be', 'incremented in this instruction.'],
         },
         {
           name: 'signer',
@@ -2177,9 +2097,7 @@ export const IDL: Chainbills = {
           name: 'payable',
           isMut: true,
           isSigner: false,
-          docs: [
-            'The payable account to create. It houses details about the payable.',
-          ],
+          docs: ['The payable account to create. It houses details about the payable.'],
         },
         {
           name: 'payableChainCounter',
@@ -2194,9 +2112,7 @@ export const IDL: Chainbills = {
           name: 'host',
           isMut: true,
           isSigner: false,
-          docs: [
-            'The user account of the signer that is creating the payable.',
-          ],
+          docs: ['The user account of the signer that is creating the payable.'],
         },
         {
           name: 'chainStats',
@@ -2233,10 +2149,7 @@ export const IDL: Chainbills = {
     },
     {
       name: 'closePayable',
-      docs: [
-        'Stop a payable from accepting payments. Can be called only',
-        'by the host (user) that owns the payable.',
-      ],
+      docs: ['Stop a payable from accepting payments. Can be called only', 'by the host (user) that owns the payable.'],
       accounts: [
         {
           name: 'payable',
@@ -2697,30 +2610,22 @@ export const IDL: Chainbills = {
           },
           {
             name: 'usersCount',
-            docs: [
-              'Total number of users that have ever been initialized on this chain.',
-            ],
+            docs: ['Total number of users that have ever been initialized on this chain.'],
             type: 'u64',
           },
           {
             name: 'payablesCount',
-            docs: [
-              'Total number of payables that have ever been created on this chain.',
-            ],
+            docs: ['Total number of payables that have ever been created on this chain.'],
             type: 'u64',
           },
           {
             name: 'paymentsCount',
-            docs: [
-              'Total number of payments that have ever been made on this chain.',
-            ],
+            docs: ['Total number of payments that have ever been made on this chain.'],
             type: 'u64',
           },
           {
             name: 'withdrawalsCount',
-            docs: [
-              'Total number of withdrawals that have ever been made on this chain.',
-            ],
+            docs: ['Total number of withdrawals that have ever been made on this chain.'],
             type: 'u64',
           },
         ],
@@ -2728,9 +2633,7 @@ export const IDL: Chainbills = {
     },
     {
       name: 'config',
-      docs: [
-        'Config account data. Mainly Wormhole-related addresses and infos.',
-      ],
+      docs: ['Config account data. Mainly Wormhole-related addresses and infos.'],
       type: {
         kind: 'struct',
         fields: [
@@ -2759,10 +2662,7 @@ export const IDL: Chainbills = {
           },
           {
             name: 'wormholeFeeCollector',
-            docs: [
-              "Wormhole's [FeeCollector](wormhole_anchor_sdk::wormhole::FeeCollector)",
-              'address.',
-            ],
+            docs: ["Wormhole's [FeeCollector](wormhole_anchor_sdk::wormhole::FeeCollector)", 'address.'],
             type: 'publicKey',
           },
           {
@@ -2830,9 +2730,7 @@ export const IDL: Chainbills = {
           },
           {
             name: 'chainId',
-            docs: [
-              'The Wormhole Chain ID of the chain from which the payment was made.',
-            ],
+            docs: ['The Wormhole Chain ID of the chain from which the payment was made.'],
             type: 'u16',
           },
           {
@@ -2872,9 +2770,7 @@ export const IDL: Chainbills = {
           },
           {
             name: 'payerChainId',
-            docs: [
-              'The Wormhole Chain ID of the chain from which the payment was made.',
-            ],
+            docs: ['The Wormhole Chain ID of the chain from which the payment was made.'],
             type: 'u16',
           },
           {
@@ -2895,10 +2791,7 @@ export const IDL: Chainbills = {
           },
           {
             name: 'payerCount',
-            docs: [
-              'The nth count of payments that the payer has made',
-              'at the point of making this payment.',
-            ],
+            docs: ['The nth count of payments that the payer has made', 'at the point of making this payment.'],
             type: 'u64',
           },
           {
@@ -2930,9 +2823,7 @@ export const IDL: Chainbills = {
         fields: [
           {
             name: 'hostCount',
-            docs: [
-              'The host count of withdrawals at the point when the withdrawal was made.',
-            ],
+            docs: ['The host count of withdrawals at the point when the withdrawal was made.'],
             type: 'u64',
           },
         ],
@@ -2940,18 +2831,13 @@ export const IDL: Chainbills = {
     },
     {
       name: 'payable',
-      docs: [
-        'A payable is like a public invoice through which anybody can pay to.',
-      ],
+      docs: ['A payable is like a public invoice through which anybody can pay to.'],
       type: {
         kind: 'struct',
         fields: [
           {
             name: 'chainCount',
-            docs: [
-              'The nth count of payables on this chain at the point this payable',
-              'was created.',
-            ],
+            docs: ['The nth count of payables on this chain at the point this payable', 'was created.'],
             type: 'u64',
           },
           {
@@ -2961,10 +2847,7 @@ export const IDL: Chainbills = {
           },
           {
             name: 'hostCount',
-            docs: [
-              'The nth count of payables that the host has created at the point of',
-              "this payable's creation.",
-            ],
+            docs: ['The nth count of payables that the host has created at the point of', "this payable's creation."],
             type: 'u64',
           },
           {
@@ -3036,25 +2919,17 @@ export const IDL: Chainbills = {
           },
           {
             name: 'payableChainId',
-            docs: [
-              'The Wormhole Chain ID of the chain into which the payment was made.',
-            ],
+            docs: ['The Wormhole Chain ID of the chain into which the payment was made.'],
             type: 'u16',
           },
           {
             name: 'chainCount',
-            docs: [
-              'The nth count of payments on this chain at the point this payment',
-              'was made.',
-            ],
+            docs: ['The nth count of payments on this chain at the point this payment', 'was made.'],
             type: 'u64',
           },
           {
             name: 'payerCount',
-            docs: [
-              'The nth count of payments that the payer has made',
-              'at the point of making this payment.',
-            ],
+            docs: ['The nth count of payments that the payer has made', 'at the point of making this payment.'],
             type: 'u64',
           },
           {
@@ -3093,10 +2968,7 @@ export const IDL: Chainbills = {
           },
           {
             name: 'chainCount',
-            docs: [
-              'The nth count of users on this chain at the point this user was',
-              'initialized.',
-            ],
+            docs: ['The nth count of users on this chain at the point this user was', 'initialized.'],
             type: 'u64',
           },
           {
@@ -3125,32 +2997,22 @@ export const IDL: Chainbills = {
         fields: [
           {
             name: 'payableId',
-            docs: [
-              'The address of the Payable from which this Withdrawal was made.',
-            ],
+            docs: ['The address of the Payable from which this Withdrawal was made.'],
             type: 'publicKey',
           },
           {
             name: 'host',
-            docs: [
-              "The wallet address (payable's owner) that made this Withdrawal.",
-            ],
+            docs: ["The wallet address (payable's owner) that made this Withdrawal."],
             type: 'publicKey',
           },
           {
             name: 'chainCount',
-            docs: [
-              'The nth count of withdrawals on this chain at the point',
-              'this withdrawal was made.',
-            ],
+            docs: ['The nth count of withdrawals on this chain at the point', 'this withdrawal was made.'],
             type: 'u64',
           },
           {
             name: 'hostCount',
-            docs: [
-              'The nth count of withdrawals that the host has made',
-              'at the point of making this withdrawal.',
-            ],
+            docs: ['The nth count of withdrawals that the host has made', 'at the point of making this withdrawal.'],
             type: 'u64',
           },
           {

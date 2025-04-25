@@ -49,7 +49,7 @@ export const useEvmStore = defineStore('evm', () => {
     try {
       const balance =
         addr == contracts.megaethtestnet
-          ? await getBalance(config, { address: account.address.value })
+          ? (await getBalance(config, { address: account.address.value })).value
           : await rawReadContract(config, {
               address: addr as `0x${string}`,
               abi: erc20Abi,

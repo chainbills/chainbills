@@ -19,9 +19,9 @@ import {
   useSolanaStore,
 } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
-import { encoding } from '@wormhole-foundation/sdk';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
+import * as encoding from './encoding';
 
 export const usePaymentStore = defineStore('payment', () => {
   const analytics = useAnalyticsStore();

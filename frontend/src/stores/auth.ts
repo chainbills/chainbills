@@ -7,7 +7,6 @@ import {
 } from '@/schemas';
 import { useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import { useAccount, useDisconnect } from '@wagmi/vue';
-import { encoding } from '@wormhole-foundation/sdk-base';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import {
@@ -15,6 +14,7 @@ import {
   useWallet as useSolanaWallet,
 } from 'solana-wallets-vue';
 import { onMounted, ref, watch } from 'vue';
+import * as encoding from './encoding';
 
 export const AUTH_MESSAGE = 'Authentication';
 
@@ -146,6 +146,7 @@ export const useAuthStore = defineStore('auth', () => {
       currentUser.value = null;
       signature.value = null;
       isLoading.value = false;
+      loadingMessage.value = '';
       return;
     }
 

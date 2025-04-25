@@ -21,6 +21,7 @@ export const evmReadContract = async (
   functionName: AbiFunctionName,
   args: ContractFunctionArgs<typeof abi, 'pure' | 'view', AbiFunctionName> = []
 ) =>
+  // @ts-ignore
   createPublicClient({
     chain: megaethTestnet,
     transport: http()

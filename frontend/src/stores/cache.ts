@@ -9,9 +9,8 @@ export const useCacheStore = defineStore('cache', () => {
     if (!('indexedDB' in window)) return null;
     const db = await openDB('chainbills', 2, {
       upgrade(db) {
-        if (!db.objectStoreNames.contains('cache-v2')) {
-          db.createObjectStore('cache-v2');
-        }
+        if (db.objectStoreNames.contains('cache')) db.deleteObjectStore('cache');
+        if (!db.objectStoreNames.contains('cache-v2')) db.createObjectStore('cache-v2');
       },
     });
     return db;

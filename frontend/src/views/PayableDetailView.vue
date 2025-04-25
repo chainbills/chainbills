@@ -224,8 +224,14 @@ onMounted(async () => {
     <template v-else>
       <div class="sm:flex items-start mb-8">
         <h2 class="sm:grow max-sm:mb-8 leading-tight flex gap-x-2 items-center">
-          <span class="text-lg sm:text-xl font-bold text-gray-500">Payables</span>
-          <IconForward class="w-3 h-3 mt-px sm:w-4 sm:h-4 sm:mt-[2px] text-gray-500 inline-block" />
+          <router-link
+            to="/dashboard"
+            class="text-lg sm:text-xl font-bold text-gray-500 hover:underline flex gap-x-2 items-center"
+            @click="analytics.recordEvent('clicked_payables', { from: 'payable_detail_page' })"
+          >
+            <span>Payables</span>
+            <IconForward class="w-3 h-3 mt-px sm:w-4 sm:h-4 sm:mt-[2px] text-gray-500 inline-block" />
+          </router-link>
           <span class="text-xl sm:text-2xl font-bold break-all">{{ shorten(payable.id) }}</span>
         </h2>
 

@@ -7,12 +7,18 @@ import {
   type Token,
 } from '@/schemas';
 import { abi, erc20Abi, useAnalyticsStore } from '@/stores';
-import { createConfig, signMessage } from '@wagmi/core';
+import {
+  createConfig,
+  getBalance,
+  readContract as rawReadContract,
+  signMessage,
+  simulateContract,
+  waitForTransactionReceipt,
+} from '@wagmi/core';
 import { useAccount } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import {
-  createPublicClient,
   createWalletClient,
   custom,
   http,
@@ -21,18 +27,9 @@ import {
   type Abi,
   type ContractEventArgs,
   type ContractEventName,
-  type ContractFunctionArgs,
-  type ContractFunctionName,
   type TransactionReceipt,
 } from 'viem';
 import { megaethTestnet } from 'viem/chains';
-
-export type AbiFunctionName = ContractFunctionName<typeof abi, 'pure' | 'view'>;
-export type AbiArgs = ContractFunctionArgs<
-  typeof abi,
-  'pure' | 'view',
-  AbiFunctionName
->;
 
 interface WriteContractResponse {
   hash: string;
@@ -43,17 +40,12 @@ interface WriteContractResponse {
 export const useEvmStore = defineStore('evm', () => {
   const account = useAccount();
   const analytics = useAnalyticsStore();
-  const wagmiConfig = createConfig({
+  const config = createConfig({
     chains: [megaethTestnet],
     transports: {
       [megaethTestnet.id]: http(),
     },
   });
-  const viemConfig = {
-    chain: megaethTestnet,
-    transport: http(),
-  };
-  const publicClient = createPublicClient(viemConfig);
   const toast = useToast();
 
   /** Returns UI-Formatted balance (Accounts for Decimals) */
@@ -64,8 +56,8 @@ export const useEvmStore = defineStore('evm', () => {
     try {
       const balance =
         addr == contracts.megaethtestnet
-          ? await publicClient.getBalance({ address: account.address.value })
-          : await publicClient.readContract({
+          ? await getBalance(config, { address: account.address.value })
+          : await rawReadContract(config, {
               address: addr as `0x${string}`,
               abi: erc20Abi,
               functionName: 'balanceOf',
@@ -98,21 +90,19 @@ export const useEvmStore = defineStore('evm', () => {
 
     try {
       analytics.recordEvent('initiated_evm_transaction');
-      const walletClient = createWalletClient({
-        chain: megaethTestnet,
-        transport: custom((window as any).ethereum),
-      });
-      const [account] = await walletClient.getAddresses();
-      const { result, request } = await publicClient.simulateContract({
+      const { result, request } = await simulateContract(config, {
         address,
         abi,
         functionName,
         args,
-        account,
+        account: account.address.value,
         ...(value ? { value: BigInt(value) } : {}),
       });
-      const hash = await walletClient.writeContract(request);
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      const hash = await createWalletClient({
+        chain: megaethTestnet,
+        transport: custom((window as any).ethereum),
+      }).writeContract(request);
+      const receipt = await waitForTransactionReceipt(config, { hash });
       analytics.recordEvent('completed_evm_transaction');
       return { hash, receipt, result };
     } catch (e: any) {
@@ -183,12 +173,7 @@ export const useEvmStore = defineStore('evm', () => {
     entity: 'UserPayment' | 'PayablePayment' | 'Withdrawal',
     id: string,
     ignoreErrors?: boolean
-  ) =>
-    await readContract(
-      `get${entity}` as AbiFunctionName,
-      [id as `0x${string}`],
-      ignoreErrors
-    );
+  ) => await readContract(`get${entity}`, [id as `0x${string}`], ignoreErrors);
 
   const getCurrentUser = async () => {
     let addr = (account.address.value ?? '').toLowerCase() as `0x${string}`;
@@ -240,7 +225,7 @@ export const useEvmStore = defineStore('evm', () => {
     count: number
   ): Promise<string | null> => {
     if (!account.address.value) return null;
-    const setNames = `user${entity}Ids` as AbiFunctionName;
+    const setNames = `user${entity}Ids`;
     const id = await readContract(setNames, [account.address.value, count]);
     if (!id || id === zeroAddress) return null;
     return id;
@@ -267,7 +252,7 @@ export const useEvmStore = defineStore('evm', () => {
     const token = details.megaethtestnet.address as `0x${string}`;
     // Check if enough allowance
     if (token != contracts.megaethtestnet) {
-      const allowance = await publicClient.readContract({
+      const allowance = await rawReadContract(config, {
         address: token,
         abi: erc20Abi,
         functionName: 'allowance',
@@ -311,7 +296,7 @@ export const useEvmStore = defineStore('evm', () => {
   ): Promise<any> => {
     try {
       // @ts-ignore
-      return await publicClient.readContract({
+      return await rawReadContract(config, {
         address: contracts.megaethtestnet as `0x${string}`,
         abi,
         functionName,
@@ -334,7 +319,7 @@ export const useEvmStore = defineStore('evm', () => {
     }
 
     try {
-      return await signMessage(wagmiConfig, { message });
+      return await signMessage(config, { message });
     } catch (e) {
       const detail = `${e}`.toLocaleLowerCase().includes('rejected')
         ? 'Please Sign to Continue'

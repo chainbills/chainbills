@@ -117,57 +117,63 @@ onMounted(() => {
 </script>
 
 <template>
-  <Button class="px-4 py-2" @click="toastLoadingAuth" v-if="auth.isLoading">
-    <IconSpinnerBlack class="mx-4" v-if="theme.isDisplayDark" />
-    <IconSpinnerWhite class="mx-4" v-else />
-  </Button>
+  <div @click="$emit('click')">
+    <Button class="px-4 py-2" @click="toastLoadingAuth" v-if="auth.isLoading">
+      <IconSpinnerBlack class="mx-4" v-if="theme.isDisplayDark" />
+      <IconSpinnerWhite class="mx-4" v-else />
+    </Button>
 
-  <Button @click="onClickEvm" v-else-if="!auth.currentUser" class="px-4 py-2">
-    Sign In
-  </Button>
+    <Button @click="onClickEvm" v-else-if="!auth.currentUser" class="px-4 py-2">
+      Sign In
+    </Button>
 
-  <Button
-    v-else
-    @click="
-      ($event) => {
-        walletMenu.toggle($event);
-        analytics.recordEvent('clicked_wallet_menu');
-      }
-    "
-    aria-haspopup="true"
-    aria-controls="wallet-menu"
-    class="px-4 py-2 gap-0"
-  >
-    <component
-      :is="
-        {
-          solanadevnet: IconSolana,
-          megaethtestnet: IconMegaETH,
-        }[auth.currentUser.chain.name]
+    <Button
+      v-else
+      @click="
+        ($event) => {
+          walletMenu.toggle($event);
+          analytics.recordEvent('clicked_wallet_menu');
+        }
       "
-      :id="id"
-      class="w-5 h-5 mr-1.5"
-    />
-    <span>{{ shortenAddress(auth.currentUser!.walletAddress) }}</span>
-  </Button>
+      aria-haspopup="true"
+      aria-controls="wallet-menu"
+      class="px-4 py-2 gap-0"
+    >
+      <component
+        :is="
+          {
+            solanadevnet: IconSolana,
+            megaethtestnet: IconMegaETH,
+          }[auth.currentUser.chain.name]
+        "
+        :id="id"
+        class="w-5 h-5 mr-1.5"
+      />
+      <span>{{ shortenAddress(auth.currentUser!.walletAddress) }}</span>
+    </Button>
 
-  <Menu ref="walletMenu" id="wallet-menu" :model="walletItems()" :popup="true">
-    <template #item="{ item, props }">
-      <p v-if="!item.command" class="px-2 py-1 text-lg text-gray-500">
-        {{ item.label }}
-      </p>
-      <Button
-        class="flex items-center bg-transparent border-none hover:text-current"
-        v-bind="props.action"
-        v-else
-      >
-        <component :is="item.customIcon" class="w-5 h-5 mr-1" />
-        <span>{{ item.label }}</span>
-      </Button>
-    </template>
-  </Menu>
+    <Menu
+      ref="walletMenu"
+      id="wallet-menu"
+      :model="walletItems()"
+      :popup="true"
+    >
+      <template #item="{ item, props }">
+        <p v-if="!item.command" class="px-2 py-1 text-lg text-gray-500">
+          {{ item.label }}
+        </p>
+        <Button
+          class="flex items-center bg-transparent border-none hover:text-current"
+          v-bind="props.action"
+          v-else
+        >
+          <component :is="item.customIcon" class="w-5 h-5 mr-1" />
+          <span>{{ item.label }}</span>
+        </Button>
+      </template>
+    </Menu>
 
-  <!-- <Dialog
+    <!-- <Dialog
     v-model:visible="isModalVisible"
     modal
     header="Sign In"
@@ -195,4 +201,5 @@ onMounted(() => {
       <Button class="px-4 py-2" @click="onClickEvm"> Select Wallet </Button>
     </div>
   </Dialog> -->
+  </div>
 </template>

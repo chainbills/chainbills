@@ -7,7 +7,8 @@ import {
   type Token,
 } from '@/schemas';
 import { abi, erc20Abi, useAnalyticsStore } from '@/stores';
-import { useAccount, useSignMessage } from '@wagmi/vue';
+import { createConfig, signMessage } from '@wagmi/core';
+import { useAccount } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import {
@@ -25,7 +26,6 @@ import {
   type TransactionReceipt,
 } from 'viem';
 import { megaethTestnet } from 'viem/chains';
-import { ref } from 'vue';
 
 export type AbiFunctionName = ContractFunctionName<typeof abi, 'pure' | 'view'>;
 export type AbiArgs = ContractFunctionArgs<
@@ -43,33 +43,17 @@ interface WriteContractResponse {
 export const useEvmStore = defineStore('evm', () => {
   const account = useAccount();
   const analytics = useAnalyticsStore();
-  const pendingSignature = ref<Promise<void> | null>(null);
-  const pendingSigResolve = ref<(() => void) | null>(null);
-  const latestSignature = ref<string | null>(null);
-  const publicClient = createPublicClient({
-    chain: megaethTestnet,
-    transport: http(),
-  });
-  const { signMessage } = useSignMessage({
-    mutation: {
-      onSettled: () => {
-        if (pendingSigResolve.value) {
-          pendingSigResolve.value();
-          pendingSigResolve.value = null;
-        }
-      },
-      onSuccess: (signature) => {
-        latestSignature.value = signature;
-      },
-      onError: (e) => {
-        const detail = `${e}`.toLocaleLowerCase().includes('rejected')
-          ? 'Please Sign to Continue'
-          : `Couldn't sign: ${e}`;
-        toastError(detail);
-        latestSignature.value = null;
-      },
+  const wagmiConfig = createConfig({
+    chains: [megaethTestnet],
+    transports: {
+      [megaethTestnet.id]: http(),
     },
   });
+  const viemConfig = {
+    chain: megaethTestnet,
+    transport: http(),
+  };
+  const publicClient = createPublicClient(viemConfig);
   const toast = useToast();
 
   /** Returns UI-Formatted balance (Accounts for Decimals) */
@@ -138,7 +122,7 @@ export const useEvmStore = defineStore('evm', () => {
             ? 'Network Error'
             : (e['details'] ?? `${e}`).split('()')[0] // Message just before the EVM Revert error
         );
-        analytics.recordEvent('failed_evm_transaction');        
+        analytics.recordEvent('failed_evm_transaction');
         console.error(e);
       } else {
         analytics.recordEvent('rejected_evm_transaction');
@@ -326,6 +310,7 @@ export const useEvmStore = defineStore('evm', () => {
     rethrowError = false
   ): Promise<any> => {
     try {
+      // @ts-ignore
       return await publicClient.readContract({
         address: contracts.megaethtestnet as `0x${string}`,
         abi,
@@ -347,14 +332,16 @@ export const useEvmStore = defineStore('evm', () => {
       toastError('Connect EVM Wallet First!');
       return null;
     }
-    if (!pendingSignature.value) {
-      pendingSignature.value = new Promise((resolve) => {
-        signMessage({ message });
-        pendingSigResolve.value = resolve;
-      });
+
+    try {
+      return await signMessage(wagmiConfig, { message });
+    } catch (e) {
+      const detail = `${e}`.toLocaleLowerCase().includes('rejected')
+        ? 'Please Sign to Continue'
+        : `Couldn't sign: ${e}`;
+      toastError(detail);
+      return null;
     }
-    await pendingSignature.value;
-    return latestSignature.value;
   };
 
   const toastError = (detail: string) =>

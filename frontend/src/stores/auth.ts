@@ -32,6 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
   const currentUser = ref<User | null>(null);
   const evm = useEvmStore();
   const isLoading = ref(true);
+  const loadingMessage = ref('');
   const signature = ref<string | null>(null);
   const solana = useSolanaStore();
   const solanaWallet = useSolanaWallet();
@@ -135,6 +136,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const updateCurrentUser = async ([newAnchorWallet, newEvmAddress]: any[]) => {
     isLoading.value = true;
+    loadingMessage.value = 'Authenticating ...';
     let newChain: Chain | null = null;
     if (newEvmAddress) newChain = megaethtestnet;
     else if (newAnchorWallet) newChain = solanadevnet;
@@ -147,19 +149,23 @@ export const useAuthStore = defineStore('auth', () => {
       return;
     }
 
+    loadingMessage.value = 'Fetching On-Chain Data ...';
     const newUser = await getChainStore(newChain)['getCurrentUser']();
     if (!newUser) {
       currentUser.value = null;
       signature.value = null;
       isLoading.value = false;
+      loadingMessage.value = '';
       return;
     }
 
+    loadingMessage.value = 'Kindly Sign Authentication Message in Wallet';
     await ensureSigned(newUser);
     if (signature.value) {
       currentUser.value = newUser;
     } else {
       currentUser.value = null;
+      loadingMessage.value = '';
       await disconnect(newUser.chain);
     }
 
@@ -169,6 +175,7 @@ export const useAuthStore = defineStore('auth', () => {
     ];
     await Promise.all(disconnectFns.map((d) => d()));
     isLoading.value = false;
+    loadingMessage.value = '';
   };
 
   onMounted(() => {
@@ -186,6 +193,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser,
     disconnect,
     isLoading,
+    loadingMessage,
     getPayableId,
     getPaymentId,
     getWithdrawalId,

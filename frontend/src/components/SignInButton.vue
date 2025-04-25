@@ -45,7 +45,7 @@ const toastLoadingAuth = () => {
   toast.add({
     severity: 'info',
     summary: 'Loading',
-    detail: 'Authenticating ...',
+    detail: auth.loadingMessage,
     life: 5000,
   });
 };

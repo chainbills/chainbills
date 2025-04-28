@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
+import { useAnalyticsStore } from '@/stores';
 
 const baseTitle = 'Chainbills';
 
@@ -31,18 +32,6 @@ const router = createRouter({
       meta: { title: `Activity | ${baseTitle}` },
     },
     {
-      path: '/stats',
-      name: 'stats',
-      component: () => import('../views/StatsView.vue'),
-      meta: { title: `Stats | ${baseTitle}` },
-    },
-    {
-      path: '/start/xion',
-      name: 'start-xion',
-      component: () => import('../views/XionPrometheanSaga.vue'),
-      meta: { title: `XION Promethean Saga | ${baseTitle}` },
-    },
-    {
       path: '/payable/:id',
       name: 'payable',
       component: () => import('../views/PayableDetailView.vue'),
@@ -72,9 +61,7 @@ const router = createRouter({
       path: '/slidedeck',
       name: 'slidedeck',
       redirect: (to) => {
-        window.location.replace(
-          'https://docs.google.com/presentation/d/1QAAfjjkM5ob5ziftZE-bpjUHTT5lWYR7'
-        );
+        window.location.replace('https://docs.google.com/presentation/d/1QAAfjjkM5ob5ziftZE-bpjUHTT5lWYR7');
         return to;
       },
     },
@@ -92,9 +79,7 @@ const router = createRouter({
       path: '/ptchdck',
       name: 'ptchdck',
       redirect: (to) => {
-        window.location.replace(
-          'https://drive.google.com/file/d/1aD4MmylCYxy75GjZA0bNg1TYg0ljBYsj/view?usp=sharing'
-        );
+        window.location.replace('https://drive.google.com/file/d/1aD4MmylCYxy75GjZA0bNg1TYg0ljBYsj/view?usp=sharing');
         return to;
       },
     },
@@ -111,9 +96,13 @@ const router = createRouter({
 });
 
 router.beforeEach((to, _, next) => {
+  const analytics = useAnalyticsStore();
+  analytics.recordNavigation(to.path, String(to.name));
+
   if (to.meta && to.meta.title) {
     document.querySelector('head title')!.textContent = to.meta.title as string;
   }
+
   next();
 });
 

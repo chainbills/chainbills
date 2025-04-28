@@ -61,7 +61,7 @@ After a successful payment, Chainbills generates a receipt with the payment's de
 
 Chainbills permits the same activity set across multiple chains.
 
-For now Ethereum Sepolia (EVM), Solana Devnet (Solana), and Burnt XION (CosmWasm) are supported. More chains will be added.
+For now MegaETH Testnet (EVM), Solana Devnet (Solana) are supported. More chains will be added.
 
 Our mission is to provide a seamless payment-receiving experience to content creators, merchants, and foundations. To enable them receive money for donations, products, and services from a large user base (across multiple chains). Chainbills also makes money easy by providing all these payments in one dashboard.
 

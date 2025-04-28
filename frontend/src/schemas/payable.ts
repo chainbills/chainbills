@@ -1,5 +1,4 @@
-import { TokenAndAmount, type TokenAndAmountOnChain } from '@/schemas';
-import { type Chain } from '@/stores';
+import { TokenAndAmount, type Chain, type Token, type TokenAndAmountOnChain } from '@/schemas';
 
 export class Payable {
   id: string;
@@ -20,19 +19,16 @@ export class Payable {
     this.chain = chain;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
-      this.host = onChainData.host.toLowerCase();
-    } else if (chain == 'Solana') this.host = onChainData.host.toBase58();
-    else throw `Unknown chain: ${chain}`;
+    if (chain.isEvm) this.host = onChainData.host.toLowerCase();
+    else if (chain.isSolana) this.host = onChainData.host.toBase58();
+    else this.host = onChainData.host;
 
     this.hostCount = Number(onChainData.hostCount);
     this.description = description;
-    this.allowedTokensAndAmounts = onChainData.allowedTokensAndAmounts.map(
-      (aTAA: TokenAndAmountOnChain) => TokenAndAmount.fromOnChain(aTAA, chain)
+    this.allowedTokensAndAmounts = onChainData.allowedTokensAndAmounts.map((aTAA: TokenAndAmountOnChain) =>
+      TokenAndAmount.fromOnChain(aTAA, chain)
     );
-    this.balances = onChainData.balances.map((bal: TokenAndAmountOnChain) =>
-      TokenAndAmount.fromOnChain(bal, chain)
-    );
+    this.balances = onChainData.balances.map((bal: TokenAndAmountOnChain) => TokenAndAmount.fromOnChain(bal, chain));
     this.createdAt = Number(onChainData.createdAt);
     this.paymentsCount = Number(onChainData.paymentsCount);
     this.withdrawalsCount = Number(onChainData.withdrawalsCount);
@@ -56,9 +52,13 @@ export class Payable {
       const copied = [...balances];
       // Iterate through the ATAAs to ensure the order of the displayed balances
       //
-      // Using a Set is to make ATAAs with same token but different amounts to
+      // Make ATAAs with same token but different amounts to
       // be treated as one (a balance can only be in a token but not an ATAA).
-      for (let token of new Set(ataas.map((t) => t.token()))) {
+      const uniqued: Token[] = [];
+      for (let ataa of ataas) {
+        if (!uniqued.some(({ name }) => ataa.name == name)) uniqued.push(ataa.token());
+      }
+      for (let token of uniqued) {
         // Find the balance with the token in the ATAAs.
         const found = balances.find((b) => b.name == token.name);
         // Add the token from the ATAA with the amount from the balance (or 0).

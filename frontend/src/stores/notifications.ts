@@ -1,24 +1,18 @@
-import { firebaseConfig, useAuthStore, useServerStore } from '@/stores';
-import { initializeApp } from 'firebase/app';
+import { firebaseApp, useAuthStore, useServerStore } from '@/stores';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { onMounted } from 'vue';
 
 export const useNotificationsStore = defineStore('notifications', () => {
-  const app = initializeApp(firebaseConfig);
   const auth = useAuthStore();
-  const messaging = getMessaging(app);
+  const messaging = getMessaging(firebaseApp);
   const server = useServerStore();
   const toast = useToast();
 
-  const lsKey = () =>
-    `chainbills::fcmToken=>${auth.currentUser!.walletAddress}`;
+  const lsKey = () => `chainbills::fcmToken=>${auth.currentUser!.walletAddress}`;
   const ensure = async () => {
-    if (
-      !auth.currentUser ||
-      (Notification.permission == 'granted' && localStorage.getItem(lsKey()))
-    ) {
+    if (!auth.currentUser || (Notification.permission == 'granted' && localStorage.getItem(lsKey()))) {
       return;
     }
 

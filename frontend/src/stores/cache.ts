@@ -7,22 +7,20 @@ export const useCacheStore = defineStore('cache', () => {
 
   const useDb = async () => {
     if (!('indexedDB' in window)) return null;
-    const db = await openDB('chainbills', 1, {
+    const db = await openDB('chainbills', 2, {
       upgrade(db) {
-        if (!db.objectStoreNames.contains('cache')) {
-          db.createObjectStore('cache');
-        }
+        if (db.objectStoreNames.contains('cache')) db.deleteObjectStore('cache');
+        if (!db.objectStoreNames.contains('cache-v2')) db.createObjectStore('cache-v2');
       },
     });
     return db;
   };
 
-  const retrieve = async (key: string) =>
-    db ? await db.get('cache', key) : null;
+  const retrieve = async (key: string) => (db ? await db.get('cache-v2', key) : null);
 
   const save = async (key: string, value: any) => {
     if (db) {
-      const tx = db.transaction('cache', 'readwrite');
+      const tx = db.transaction('cache-v2', 'readwrite');
       await Promise.all([tx.store.put(value, key), tx.done]);
     }
   };

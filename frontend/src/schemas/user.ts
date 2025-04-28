@@ -1,75 +1,23 @@
-import { type Chain } from '@/stores';
+import { getWalletUrl, type Chain } from './chain';
 
 export class User {
   chain!: Chain;
   chainCount!: number;
-  explorerUrl!: string;
   payablesCount!: number;
   paymentsCount!: number;
   walletAddress!: string;
   withdrawalsCount!: number;
 
-  static fromCosmwasm(
-    walletAddress: string,
-    explorerUrl: string,
-    onChainData: any
-  ): User {
-    return {
-      chain: 'Burnt Xion',
-      chainCount: onChainData.chain_count,
-      explorerUrl,
-      payablesCount: onChainData.payables_count,
-      paymentsCount: onChainData.payments_count,
-      walletAddress,
-      withdrawalsCount: onChainData.withdrawals_count,
-    };
+  constructor(chain: Chain, walletAddress: string, onChainData: any) {
+    this.chain = chain;
+    this.walletAddress = walletAddress;
+    this.chainCount = Number(onChainData?.chainCount ?? 0);
+    this.payablesCount = Number(onChainData?.payablesCount ?? 0);
+    this.paymentsCount = Number(onChainData?.paymentsCount ?? 0);
+    this.withdrawalsCount = Number(onChainData?.withdrawalsCount ?? 0);
   }
 
-  static fromEvm(
-    walletAddress: string,
-    explorerUrl: string,
-    onChainData: any
-  ): User {
-    return {
-      chain: 'Ethereum Sepolia',
-      chainCount: Number(onChainData[0]),
-      explorerUrl,
-      payablesCount: Number(onChainData[1]),
-      paymentsCount: Number(onChainData[2]),
-      walletAddress,
-      withdrawalsCount: Number(onChainData[3]),
-    };
-  }
-
-  static fromSolana(
-    walletAddress: string,
-    explorerUrl: string,
-    onChainData: any
-  ): User {
-    return {
-      chain: 'Solana',
-      chainCount: Number(onChainData.chainCount),
-      explorerUrl,
-      payablesCount: Number(onChainData.payablesCount),
-      paymentsCount: Number(onChainData.paymentsCount),
-      walletAddress,
-      withdrawalsCount: Number(onChainData.withdrawalsCount),
-    };
-  }
-
-  static newUser(
-    chain: Chain,
-    walletAddress: string,
-    explorerUrl: string
-  ): User {
-    return {
-      chain,
-      chainCount: 0,
-      explorerUrl,
-      payablesCount: 0,
-      paymentsCount: 0,
-      walletAddress,
-      withdrawalsCount: 0,
-    };
+  get explorerUrl() {
+    return getWalletUrl(this.walletAddress, this.chain);
   }
 }

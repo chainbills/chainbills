@@ -1,6 +1,4 @@
-import { TokenAndAmount, type Receipt } from '@/schemas';
-import { type Chain } from '@/stores';
-import { encoding } from '@wormhole-foundation/sdk';
+import { type Chain, getTokenDetails, type Receipt, type Token } from '@/schemas';
 
 export class Withdrawal implements Receipt {
   id: string;
@@ -11,41 +9,43 @@ export class Withdrawal implements Receipt {
   host: string;
   hostCount: number;
   timestamp: number;
-  details: TokenAndAmount;
+  token: Token;
+  amount: number;
 
   constructor(id: string, chain: Chain, onChainData: any) {
     this.id = id;
     this.chain = chain;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
-      this.host = onChainData.host.toLowerCase();
-    } else if (chain == 'Solana') this.host = onChainData.host.toBase58();
-    else throw `Unknown chain: ${chain}`;
+    if (chain.isEvm) this.host = onChainData.host.toLowerCase();
+    else if (chain.isSolana) this.host = onChainData.host.toBase58();
+    else this.host = onChainData.host;
 
     this.hostCount = Number(onChainData.hostCount);
 
-    if (chain == 'Burnt Xion') {
-      this.payableId = encoding.hex.encode(
-        Uint8Array.from(onChainData.payableId),
-        false
-      );
-    } else if (chain == 'Ethereum Sepolia') {
-      this.payableId = onChainData.payableId.toLowerCase();
-    } else if (chain == 'Solana') {
-      this.payableId = onChainData.payableId.toBase58();
-    } else throw `Unknown chain: ${chain}`;
+    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
+    else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
+    else this.payableId = onChainData.payableId;
 
     this.payableCount = Number(onChainData.payableCount);
-    this.details = TokenAndAmount.fromOnChain(onChainData.details, chain);
+    this.token = getTokenDetails(onChainData.token, chain);
+    this.amount = Number(onChainData.amount);
     this.timestamp = Number(onChainData.timestamp);
   }
 
-  displayDetails(): string {
-    return this.details.display(this.chain);
+  displayDetails() {
+    return this.formatAmount() + ' ' + this.token.name;
+  }
+
+  formatAmount() {
+    return this.amount / 10 ** (this.token.details[this.chain.name]?.decimals ?? 0);
   }
 
   user(): string {
     return this.host;
+  }
+
+  userChain(): Chain {
+    return this.chain;
   }
 }

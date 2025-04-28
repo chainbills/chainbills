@@ -1,6 +1,7 @@
 import { useAppKitTheme } from '@reown/appkit/vue';
 import { defineStore } from 'pinia';
 import { onMounted, ref, watch } from 'vue';
+import { useAnalyticsStore } from './analytics';
 
 export type ThemeMode = 'Dark Theme' | 'Light Theme' | 'System Mode';
 
@@ -11,6 +12,7 @@ const isThemeMode = (value: any): value is ThemeMode => themes.includes(value);
 const getHtml = () => document.querySelector('html')!;
 
 export const useThemeStore = defineStore('theme', () => {
+  const analytics = useAnalyticsStore();
   const icon = ref<ThemeMode>('Dark Theme');
   const isDisplayDark = ref(false);
   const mode = ref<ThemeMode>('System Mode');
@@ -21,24 +23,17 @@ export const useThemeStore = defineStore('theme', () => {
       getHtml().classList.add('dark');
     } else if (mode.value == 'Light Theme') {
       getHtml().classList.remove('dark');
-    } else if (
-      window.matchMedia &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches
-    ) {
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       getHtml().classList.add('dark');
     } else {
       getHtml().classList.remove('dark');
     }
 
-    icon.value = getHtml().classList.contains('dark')
-      ? 'Light Theme'
-      : 'Dark Theme';
+    icon.value = getHtml().classList.contains('dark') ? 'Light Theme' : 'Dark Theme';
     isDisplayDark.value = getHtml().classList.contains('dark');
   };
 
-  const isSystemDark = () =>
-    window.matchMedia &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isSystemDark = () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   const set = (value: ThemeMode) => {
     mode.value = value;
@@ -52,16 +47,22 @@ export const useThemeStore = defineStore('theme', () => {
 
     css();
 
-    window
-      .matchMedia('(prefers-color-scheme: dark)')
-      .addEventListener('change', () => {
-        if (mode.value == 'System Mode') css();
-      });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (mode.value == 'System Mode') css();
+    });
 
     setWalletConnectTheme(isDisplayDark.value ? 'dark' : 'light');
     watch(
       () => isDisplayDark.value,
       (yes) => setWalletConnectTheme(yes ? 'dark' : 'light')
+    );
+    watch(
+      () => mode.value,
+      (value) => {
+        analytics.recordEvent('changed_app_theme', {
+          theme: value.split(' ')[0],
+        });
+      }
     );
 
     window.addEventListener('storage', () => {

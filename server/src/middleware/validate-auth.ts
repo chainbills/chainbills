@@ -1,12 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import {
-  cosmwasmVerify,
-  evmVerify,
-  solanaVerify,
-  WH_CHAIN_ID_BURNT_XION,
-  WH_CHAIN_ID_ETH_SEPOLIA,
-  WH_CHAIN_ID_SOLANA
-} from '../utils';
+import { evmVerify, solanaVerify } from '../utils';
 
 export const AUTH_MESSAGE = 'Authentication';
 
@@ -16,8 +9,8 @@ export const validateAuth = async (
   next: NextFunction
 ) => {
   try {
-    const { chainId } = res.locals;
-    const { 'wallet-address': walletAddress, signature } = headers;
+    const { chain } = res.locals;
+    let { 'wallet-address': walletAddress, signature } = headers;
 
     if (!walletAddress || typeof walletAddress != 'string') {
       throw 'Provide wallet-address in headers';
@@ -28,29 +21,16 @@ export const validateAuth = async (
     }
 
     let verify: Function = () => {
-      throw 'Invalid Chain ID';
+      throw 'Invalid Chain in Verifying Auth';
     };
-    if (chainId == WH_CHAIN_ID_SOLANA) verify = solanaVerify;
-    if (chainId == WH_CHAIN_ID_ETH_SEPOLIA) verify = evmVerify;
-    if (chainId == WH_CHAIN_ID_BURNT_XION) {
-      verify = async (message: string, signature: any, address: any) => {
-        return await cosmwasmVerify(
-          message,
-          signature,
-          address,
-          headers['xion-grantee'],
-          headers['xion-pubkey']
-        );
-      };
-    }
+    if (chain.isSolana) verify = solanaVerify;
+    if (chain.isEvm) verify = evmVerify;
 
     const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
     if (!isVerified) throw 'Unauthorized. Signature and Address Not Matching.';
 
-    res.locals.walletAddress =
-      chainId == WH_CHAIN_ID_ETH_SEPOLIA
-        ? walletAddress.toLowerCase()
-        : walletAddress;
+    if (chain.isEvm) walletAddress = walletAddress.toLowerCase();
+    res.locals.walletAddress = walletAddress;
     next();
   } catch (e: any) {
     console.error('Error at validating auth ... ');

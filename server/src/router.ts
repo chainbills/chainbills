@@ -2,14 +2,12 @@ import { Request, Response, Router } from 'express';
 import {
   createPayable,
   getPayable,
-  getVolumes,
   payablePaid,
   saveNotificationToken,
-  saveXionSagaEmail,
   userPaid,
   withdrew
 } from './handlers';
-import { validateAuth, validateChain, validateNetwork } from './middleware';
+import { validateAuth, validateChain } from './middleware';
 
 export const router = Router();
 
@@ -59,13 +57,11 @@ router.get('/payable/:id', async (req: Request, res: Response) => {
 router.post(
   '/payable',
   validateChain,
-  validateNetwork,
   validateAuth,
   async (req: Request, res: Response) => {
-    const { chain, walletAddress, whNetwork } = res.locals;
+    const { chain, walletAddress } = res.locals;
     await wrapper(
-      async () =>
-        await createPayable(req.body, chain, walletAddress, whNetwork),
+      async () => await createPayable(req.body, chain, walletAddress),
       'create payable finalizer',
       res
     );
@@ -80,27 +76,14 @@ router.post(
   router.get(
     `/${entity}/:id`,
     validateChain,
-    validateNetwork,
     async (req: Request, res: Response) => {
-      const { chain, whNetwork } = res.locals;
+      const { chain } = res.locals;
       await wrapper(
-        async () => await handler(req.params.id, chain, whNetwork),
+        async () => await handler(req.params.id, chain),
         `${entity} finalizer`,
         res
       );
     }
-  );
-});
-
-router.get('/volumes', async (_: Request, res: Response) => {
-  await wrapper(getVolumes, 'getting volumes', res);
-});
-
-router.post('/xion-saga-email', async (req: Request, res: Response) => {
-  await wrapper(
-    async () => await saveXionSagaEmail(req.body),
-    'saving xion saga email',
-    res
   );
 });
 

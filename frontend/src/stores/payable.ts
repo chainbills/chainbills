@@ -1,36 +1,34 @@
-import { Payable, TokenAndAmount } from '@/schemas';
+import { type Chain, chainNamesToChains, Payable, TokenAndAmount } from '@/schemas';
 import {
+  useAnalyticsStore,
   useAuthStore,
   useCacheStore,
-  useCosmwasmStore,
   useEvmStore,
   useNotificationsStore,
   useServerStore,
   useSolanaStore,
-  type Chain,
 } from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
 export const usePayableStore = defineStore('payable', () => {
+  const analytics = useAnalyticsStore();
   const auth = useAuthStore();
   const cache = useCacheStore();
-  const cosmwasm = useCosmwasmStore();
   const evm = useEvmStore();
   const notifications = useNotificationsStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
 
-  const cacheKey = (chain: string, id: string, entity: string, count: number) =>
-    `${chain}::payable::${id}::${entity}::${count}`;
+  const cacheKey = (chainName: string, id: string, entity: string, count: number) =>
+    `${chainName}::payable::${id}::${entity}::${count}`;
 
   const getChainStore: any = () =>
     ({
-      'Burnt Xion': cosmwasm,
-      'Ethereum Sepolia': evm,
-      Solana: solana,
-    })[auth.currentUser!.chain];
+      megaethtestnet: evm,
+      solanadevnet: solana,
+    })[auth.currentUser!.chain.name];
 
   const getEntityId = async (
     payableId: string,
@@ -40,7 +38,7 @@ export const usePayableStore = defineStore('payable', () => {
   ): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    const key = cacheKey(payableId, chain, entity, count);
+    const key = cacheKey(payableId, chain.name, entity, count);
     let id = await cache.retrieve(key);
     if (id) return id;
 
@@ -53,54 +51,42 @@ export const usePayableStore = defineStore('payable', () => {
     return id;
   };
 
-  const create = async (
-    description: string,
-    tokensAndAmounts: TokenAndAmount[]
-  ): Promise<string | null> => {
+  const create = async (description: string, tokensAndAmounts: TokenAndAmount[]): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    try {
-      const result = await getChainStore()['createPayable'](tokensAndAmounts);
-      if (!result) return null;
+    const result = await getChainStore()['createPayable'](tokensAndAmounts);
+    if (!result) return null;
 
-      console.log(
-        `Created Payable Transaction Details: ${result.explorerUrl()}`
-      );
-      await server.createPayable(result.created, description);
-      await auth.refreshUser();
-      toast.add({
-        severity: 'success',
-        summary: 'Successful Payable Creation',
-        detail: 'You have successfully created a Payable.',
-        life: 12000,
-      });
-      // TODO: Remove this checker after integrating sign and verify in Burnt Xion
-      if (auth.currentUser.chain != 'Burnt Xion') notifications.ensure();
-      return result.created;
-    } catch (e) {
-      console.error(e);
-      if (!`${e}`.includes('rejected')) toastError(`${e}`);
-      return null;
-    }
+    console.log(`Created Payable Transaction Details: ${result.explorerUrl}`);
+    await server.createPayable(result.created, description);
+    await auth.refreshUser();
+    toast.add({
+      severity: 'success',
+      summary: 'Successful Payable Creation',
+      detail: 'You have successfully created a Payable.',
+      life: 12000,
+    });
+    notifications.ensure();
+    analytics.recordEvent('created_payable', {
+      payable_id: result.created,
+      chain: result.chain.name,
+    });
+    return result.created;
   };
 
-  const get = async (
-    id: string,
-    ignoreErrors?: boolean
-  ): Promise<Payable | null> => {
+  const get = async (id: string, ignoreErrors?: boolean): Promise<Payable | null> => {
     const dbData = await server.getPayable(id, ignoreErrors);
     if (!dbData) return null;
 
     try {
+      const chain = chainNamesToChains[dbData.chainName];
+      if (!chain) throw `Unhandled Payable Chain: ${dbData.chainName}`;
+
       let raw: any;
-      if (dbData.chain == 'Solana')
-        raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
-      else if (dbData.chain == 'Ethereum Sepolia')
-        raw = await evm.fetchPayable(id, ignoreErrors);
-      else if (dbData.chain == 'Burnt Xion')
-        raw = await cosmwasm.fetchEntity('payable', id, ignoreErrors);
-      else throw `Unknown chain: ${dbData.chain}`;
-      if (raw) return new Payable(id, dbData.chain, dbData.description, raw);
+      if (chain.isEvm) raw = await evm.fetchPayable(id, ignoreErrors);
+      else if (chain.isSolana) raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
+      else throw 'Unhandled Chain Type';
+      if (raw) return new Payable(id, chain, dbData.description, raw);
     } catch (e) {
       console.error(e);
       toastError(`${e}`);
@@ -108,10 +94,7 @@ export const usePayableStore = defineStore('payable', () => {
     return null;
   };
 
-  const getIdsForCurrentUser = async (
-    page: number,
-    count: number
-  ): Promise<string[] | null> => {
+  const getIdsForCurrentUser = async (page: number, count: number): Promise<string[] | null> => {
     if (!auth.currentUser) return null;
     const { payablesCount: totalCount } = auth.currentUser;
     if (totalCount === 0) return [];
@@ -134,21 +117,13 @@ export const usePayableStore = defineStore('payable', () => {
     }
   };
 
-  const getPaymentId = async (
-    payableId: string,
-    chain: Chain,
-    count: number
-  ): Promise<string | null> => getEntityId(payableId, chain, 'payment', count);
+  const getPaymentId = async (payableId: string, chain: Chain, count: number): Promise<string | null> =>
+    getEntityId(payableId, chain, 'payment', count);
 
-  const getWithdrawalId = async (
-    payableId: string,
-    chain: Chain,
-    count: number
-  ): Promise<string | null> =>
+  const getWithdrawalId = async (payableId: string, chain: Chain, count: number): Promise<string | null> =>
     getEntityId(payableId, chain, 'withdrawal', count);
 
-  const toastError = (detail: string) =>
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+  const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   return {
     create,

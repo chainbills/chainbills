@@ -1,54 +1,42 @@
-import { ChainId, encoding, Network } from '@wormhole-foundation/sdk';
 import { Timestamp } from 'firebase-admin/firestore';
-import { Chain, denormalizeBytes, getChain, getChainId } from '../utils';
-import { TokenAndAmount, TokenAndAmountDB } from './tokens-and-amounts';
+import { Chain, ChainName, ChainNetworkType } from '../utils';
+import { getTokenDetails } from './tokens-and-amounts';
 
 export class UserPayment {
   id: string;
-  chain: Chain;
-  chainId: ChainId | 50;
+  chainName: ChainName;
   chainCount: number;
-  network: Network;
+  chainNetworkType: ChainNetworkType;
   payer: string;
   payerCount: number;
   payableId: string;
   payableChain: Chain;
   timestamp: Timestamp;
-  details: TokenAndAmountDB;
+  token: string;
+  amount: number;
 
-  constructor(id: string, chain: Chain, network: Network, onChainData: any) {
+  constructor(id: string, chain: Chain, onChainData: any) {
     this.id = id;
-    this.chain = chain;
-    this.chainId = getChainId(chain);
-    this.network = network;
+    this.chainName = chain.name;
+    this.chainNetworkType = chain.networkType;
     this.chainCount = Number(onChainData.chainCount);
-    this.payableChain = getChain(onChainData.payableChainId);
 
-    if (chain == 'Ethereum Sepolia' || chain == 'Burnt Xion') {
-      this.payer = onChainData.payer.toLowerCase();
+    if (chain.isEvm) this.payer = onChainData.payer.toLowerCase();
+    else if (chain.isSolana) this.payer = onChainData.payer.toBase58();
+    else this.payer = onChainData.payer;
 
-      if (this.payableChain == 'Ethereum Sepolia') {
-        this.payableId = onChainData.payableId.toLowerCase();
-      } else if (this.payableChain == 'Burnt Xion') {
-        this.payableId = encoding.hex.encode(
-          Uint8Array.from(onChainData.payableId),
-          false
-        );
-      } else if (this.payableChain == 'Solana') {
-        this.payableId = denormalizeBytes(onChainData.payableId, 'Solana');
-      } else throw `Unknown payableChain: ${this.payableChain}`;
-    } else if (chain == 'Solana') {
-      this.payer = onChainData.payer.toBase58();
-      // TODO: Review this denormalization if destination chain is Burnt Xion
-      this.payableId = denormalizeBytes(
-        onChainData.payableId,
-        this.payableChain
-      );
-    } else throw `Unknown chain: ${chain}`;
+    if (onChainData.payableChainId == 0) this.payableChain = chain;
+    else throw `Unhandled payableChain: ${onChainData.payableChainId}`;
+
+    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
+    else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
+    else this.payableId = onChainData.payableId;
 
     this.payerCount = Number(onChainData.payerCount);
-    const taa = TokenAndAmount.fromOnChain(onChainData.details, chain);
-    this.details = { token: taa.name, amount: taa.format(chain) };
+    const { name: token, details } = getTokenDetails(onChainData.token, chain);
+    this.token = token;
+    this.amount =
+      Number(onChainData.amount) / 10 ** (details[chain.name]?.decimals ?? 0);
     this.timestamp = Timestamp.fromMillis(Number(onChainData.timestamp) * 1000);
   }
 }

@@ -2,6 +2,8 @@
 import IconContactSupport from '@/icons/IconContactSupport.vue';
 import IconFastForward from '@/icons/IconFastForward.vue';
 import IconFinance from '@/icons/IconFinance.vue';
+import IconGlobe from '@/icons/IconGlobe.vue';
+import IconHorizontalAdjustments from '@/icons/IconHorizontalAdjustments.vue';
 import IconLock from '@/icons/IconLock.vue';
 import IconMobileFriendly from '@/icons/IconMobileFriendly.vue';
 import IconPayCheck from '@/icons/IconPayCheck.vue';
@@ -17,12 +19,12 @@ const analytics = useAnalyticsStore();
     class="bg-primary rounded-2xl p-6 text-white md:flex md:gap-x-8 md:items-center lg:p-10 lg:pt-0 lg:h-[512px] mb-16 sm:mb-32 md:w-full md:relative max-w-screen-xl mx-auto"
   >
     <div class="md:w-1/2">
-      <h2 class="text-3xl mb-6 lg:text-5xl lg:leading-tight">Receive any Crypto on any Chain from anyone.</h2>
+      <h2 class="text-3xl mb-6 lg:text-5xl lg:leading-tight">Simplified On-Chain Payments for Everyone.</h2>
       <div class="max-sm:block max-md:flex sm:gap-x-4 sm:items-center">
         <div>
           <p class="mb-4 lg:text-lg">
-            Welcome to Chainbills! We help you easily manage your crypto transactions. Connect your wallet and handle
-            your finances with our simple dashboard.
+            Decentralized payment gateway that makes crypto payments easy... no wallet addresses, no confusion. Just one
+            link.
           </p>
           <p class="max-sm:mb-16">
             <router-link to="/start">
@@ -49,32 +51,48 @@ const analytics = useAnalyticsStore();
   </section>
 
   <section class="mb-16 sm:mb-32 max-w-screen-xl mx-auto">
-    <h2 class="text-2xl sm:text-5xl mb-4">Some of Our Key Features</h2>
-    <p class="sm:text-xl mb-4 sm:mb-8">See some of the key features Chainbills offers</p>
+    <h2 class="text-2xl sm:text-5xl mb-4">Key Features</h2>
+    <p class="sm:text-xl mb-4 sm:mb-8">Powerful Simplicity, Built for Web3.</p>
 
     <div class="sm:grid sm:grid-cols-2 sm:gap-4 md:grid-cols-3">
       <div class="bg-black rounded-2xl p-6 text-white dark:bg-white dark:text-black max-sm:mb-4">
         <div class="p-2 rounded-full bg-white dark:bg-black w-fit mb-4">
-          <IconWallet class="stroke-black dark:stroke-white" />
+          <IconPayCheck class="stroke-black dark:stroke-white" />
         </div>
-        <h3 class="text-xl font-medium mb-2">Sign In</h3>
-        <p class="text-gray-500">Seamlessly connect your crypto wallet and start managing your transactions</p>
+        <h3 class="text-xl font-medium mb-2">Payable Links</h3>
+        <p class="text-gray-500">Send or receive crypto with a shareable link.</p>
       </div>
 
       <div class="bg-primary bg-opacity-10 dark:bg-opacity-30 rounded-2xl p-6 border max-sm:mb-4">
         <div class="p-2 rounded-full bg-primary w-fit mb-4">
-          <IconPayCheck class="stroke-white" />
-        </div>
-        <h3 class="text-xl font-medium mb-2">Create Payables</h3>
-        <p class="text-gray-500">Easily create payables with customizable options for tokens and amounts</p>
-      </div>
-
-      <div class="bg-purple-light dark:bg-opacity-90 rounded-2xl p-6">
-        <div class="p-2 rounded-full bg-primary w-fit mb-4">
           <IconFinance class="stroke-white" />
         </div>
-        <h3 class="text-xl font-medium mb-2 dark:text-black">Track Transactions</h3>
-        <p class="text-gray-500">Monitor your payables and withdrawals with detailed transaction histories</p>
+        <h3 class="text-xl font-medium mb-2">Focused Dashboards</h3>
+        <p class="text-gray-500">Track payments, payables, and withdrawals easily.</p>
+      </div>
+
+      <div class="bg-purple-light dark:bg-opacity-90 rounded-2xl p-6 max-sm:mb-4">
+        <div class="p-2 rounded-full bg-primary w-fit mb-4">
+          <IconWallet class="stroke-white" />
+        </div>
+        <h3 class="text-xl font-medium mb-2 dark:text-black">Payment Control</h3>
+        <p class="text-gray-500">Pause, resume, or stop payments on demand.</p>
+      </div>
+
+      <div class="bg-primary bg-opacity-10 dark:bg-opacity-30 rounded-2xl p-6 border max-sm:mb-4">
+        <div class="p-2 rounded-full bg-primary w-fit mb-4">
+          <IconHorizontalAdjustments class="stroke-white" />
+        </div>
+        <h3 class="text-xl font-medium mb-2">Payment Enforcement</h3>
+        <p class="text-gray-500">Ensure exact tokens and amounts are paid.</p>
+      </div>
+
+      <div class="bg-black rounded-2xl p-6 text-white dark:bg-white dark:text-black max-sm:mb-4">
+        <div class="p-2 rounded-full bg-white dark:bg-black w-fit mb-4">
+          <IconGlobe class="stroke-black dark:stroke-white" />
+        </div>
+        <h3 class="text-xl font-medium mb-2">On-Chain Transparency</h3>
+        <p class="text-gray-500">Everything is verified, secure, and on-chain.</p>
       </div>
     </div>
   </section>
@@ -152,51 +170,6 @@ const analytics = useAnalyticsStore();
         <h3 class="max-sm:text-center mb-2 font-medium text-xl">Support</h3>
         <p class="max-sm:text-center max-sm:max-w-64 max-sm:mx-auto">
           Save time with quick and easy transaction management
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <section
-    class="bg-primary bg-opacity-10 dark:bg-opacity-30 -ml-8 -mr-8 px-8 pt-12 pb-24 sm:p-12 mb-24 lg:-ml-12 lg:-mr-12"
-  >
-    <h2 class="text-2xl sm:text-3xl max-lg:text-center mb-8 max-w-screen-xl mx-auto">Cross-Chain & Wormhole</h2>
-
-    <div
-      class="bg-gray-700 rounded-2xl p-4 text-white dark:bg-white dark:text-black max-lg:max-w-lg lg:max-w-screen-xl mx-auto lg:flex md:gap-8"
-    >
-      <img src="/assets/wormhole.png" alt="Wormhole" class="rounded-md max-lg:w-full max-lg:mb-8 lg:w-1/3 h-fit" />
-
-      <div>
-        <p class="mb-6 max-sm:text-sm">
-          Our mission is to enable you receive money a large user base (across multiple chains). We are able to achieve
-          this thanks to Wormhole's
-          <a class="underline" href="https://wormhole.com/messaging/" target="_blank" rel="noopener noreferrer"
-            >cross-chain messaging</a
-          >
-          and with payment
-          <a
-            class="underline"
-            href="https://docs.wormhole.com/wormhole/wormhole-connect/routes"
-            target="_blank"
-            rel="noopener noreferrer"
-            >routes</a
-          >.
-        </p>
-
-        <p class="mb-6 max-sm:text-sm">
-          When the blockchain network of a payer's wallet is different from your payable's chain, the payment goes
-          through the route and info about your payable goes alongside through Wormhole messaging.
-        </p>
-
-        <p class="max-md:mb-2">
-          <a class="underline" href="https://wormhole.com" target="_blank" rel="noopener noreferrer">
-            <Button
-              class="border-none bg-black text-white rounded-full px-6 py-2 md:text-lg"
-              @click="analytics.recordEvent('clicked_home_wormhole_learn_more')"
-              >Learn More</Button
-            >
-          </a>
         </p>
       </div>
     </div>

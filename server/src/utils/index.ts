@@ -5,8 +5,8 @@ export * from './firebase';
 export * from './notify-host';
 export * from './solana';
 
-import { encoding } from '@wormhole-foundation/sdk-base';
 import { Chain } from './chain';
+import * as encoding from './encoding';
 
 export const denormalizeBytes = (bytes: Uint8Array, chain: Chain): string => {
   bytes = Uint8Array.from(bytes);

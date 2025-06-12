@@ -12,7 +12,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   const lsKey = () => `chainbills::fcmToken=>${auth.currentUser!.walletAddress}`;
   const ensure = async () => {
-    if (!auth.currentUser || (Notification.permission == 'granted' && localStorage.getItem(lsKey()))) {
+    if (
+      !auth.currentUser ||
+      !('Notification' in window) ||
+      (Notification.permission == 'granted' && localStorage.getItem(lsKey()))
+    ) {
       return;
     }
 

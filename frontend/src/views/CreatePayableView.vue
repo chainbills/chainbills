@@ -27,11 +27,11 @@ const descriptionError = ref('');
 const payable = usePayableStore();
 const router = useRouter();
 const selectedTokens = ref<Token[]>([]);
+const selectTokenHolder = ref<Token | null>();
 
 const removeToken = (index: number) => {
   analytics.recordEvent('removed_create_ataa_token');
   selectedTokens.value.splice(index, 1);
-  selectedTokens.value = [...selectedTokens.value];
   amounts.value.splice(index, 1);
   amountErrors.value.splice(index, 1);
 };
@@ -43,8 +43,10 @@ const chooseToken = (token: any) => {
   displayedConfig.value = [];
   selectedTokens.value = [...selectedTokens.value, token];
 
-  // wrapping in set time out to allow the other listeners to finish
+  // wrapping in set time out to allow the other "view builds" and listeners to finish
   setTimeout(() => {
+    selectTokenHolder.value = null;
+
     document.querySelectorAll('input.amount[type=number]').forEach((el) => {
       (el as HTMLInputElement).addEventListener('keydown', (e) => {
         if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
@@ -77,18 +79,16 @@ const validateAmount = (v: any) => {
 
 const validateConfig = () => {
   if (!allowsFreePayments.value && selectedTokens.value.length == 0) {
-    configError.value = 'Either allow free payments OR specify at least one allowed ' + 'token and its amount.';
+    configError.value = 'Either allow open payments OR specify at least one allowed token and its amount.';
   } else {
-    const tempConfig = selectedTokens.value.map(({ name }, i) =>
-      JSON.stringify({
-        token: name,
-        amount: amounts.value[i].value,
-      })
-    );
-    if (new Set(tempConfig).size != tempConfig.length) {
-      configError.value = 'Remove duplicate tokens and amounts.';
-    } else {
+    if (amounts.value.some((a) => !a.value)) {
+      // Don't show any "duplicate" error when any amounts are invalid
       configError.value = '';
+    } else {
+      const tempConfig = selectedTokens.value.map(({ name }, i) =>
+        JSON.stringify({ token: name, amount: amounts.value[i].value })
+      );
+      configError.value = new Set(tempConfig).size != tempConfig.length ? 'Remove duplicate tokens and amounts.' : '';
     }
   }
 };
@@ -96,7 +96,7 @@ const validateConfig = () => {
 const validateDescription = () => {
   const v = description.value.trim();
   if (v.length == 0) descriptionError.value = 'Required';
-  else if (v.length < 15) descriptionError.value = 'Min. 15 characters';
+  else if (v.length < 3) descriptionError.value = 'Min. 3 characters';
   else if (v.length > 3000) descriptionError.value = 'Max. 3000 characters';
   else descriptionError.value = '';
 };
@@ -155,6 +155,7 @@ onMounted(() => {
       amounts.value = [];
       amountErrors.value = [];
       displayedConfig.value = [];
+      setTimeout(() => (configError.value = ''));
     }
   );
 });
@@ -163,7 +164,7 @@ onMounted(() => {
 <template>
   <section class="pt-12 md:pt-4 pb-20">
     <h2 class="text-center text-xl max-w-sm md:text-2xl md:max-w-lg mx-auto mb-12">
-      Create a Payable to Receive Payments on any chain from anyone
+      Create a Payable to Receive Payments from anyone
     </h2>
 
     <div class="text-center pb-20" v-if="!auth.currentUser">
@@ -209,7 +210,7 @@ onMounted(() => {
 
       <div class="">
         <div class="mb-10">
-          <label for="allow-any-token" class="inline-block">Allow Free Payments ? </label>
+          <label for="allow-any-token" class="inline-block">Allow Open Payments ? </label>
           <small class="text-xs text-gray-500 block mb-4">Do you want to accept any token and any amount?</small>
           <p class="flex items-center">
             <span :class="'mr-2 ' + (allowsFreePayments ? '' : 'font-bold')">No</span>
@@ -254,6 +255,7 @@ onMounted(() => {
             :options="availableTokens"
             optionLabel="name"
             @change="(e) => chooseToken(e.value)"
+            v-model="selectTokenHolder"
             placeholder="Select a Token"
             class="mb-2"
           />

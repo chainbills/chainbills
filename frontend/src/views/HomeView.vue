@@ -122,7 +122,7 @@ const analytics = useAnalyticsStore();
       <div class="rounded-2xl px-3 py-5 bg-white dark:bg-black max-sm:max-w-sm">
         <div class="bg-primary bg-opacity-10 dark:bg-opacity-30 px-3 py-1 rounded-full text-sm w-fit mb-6">Step 3</div>
         <h3 class="text-xl font-medium mb-3">Get Paid</h3>
-        <p>Your payable receives crypto from any chain, and gets funded.</p>
+        <p>Your payable receives crypto from anyone, and gets funded.</p>
       </div>
       <div class="rounded-2xl px-3 py-5 bg-white dark:bg-black max-sm:max-w-sm">
         <div class="bg-primary bg-opacity-10 dark:bg-opacity-30 px-3 py-1 rounded-full text-sm w-fit mb-6">Step 4</div>
@@ -181,7 +181,7 @@ const analytics = useAnalyticsStore();
   >
     <h2 class="font-medium text-2xl sm:text-4xl mb-4">Join Us Today</h2>
     <p class="mb-8 max-w-lg sm:text-xl mx-auto">
-      With Chainbills, you can do a lot of things: receive crypto on any chain, keep track of all your payments and
+      With Chainbills, you can do a lot of things: receive crypto on anyone, keep track of all your payments and
       withdrawals on Chainbills, make donations, and make payments easily.
     </p>
     <p>

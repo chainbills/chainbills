@@ -252,7 +252,7 @@ onMounted(async () => {
               <div class="w-fit flex flex-col gap-1" v-for="(taa, i) of aTAAs">
                 <Button
                   :class="
-                    'text-current border-none shadow-md px-3 py-2 text-xl ' +
+                    'text-current border-none shadow-md dark:shadow-[#ffffff0a]  px-3 py-2 text-xl ' +
                     (selectedConfig?.name == taa.name && selectedConfig?.amount == taa.amount
                       ? 'bg-primary bg-opacity-30'
                       : 'bg-transparent')
@@ -311,12 +311,8 @@ onMounted(async () => {
       v-if="auth.currentUser && auth.currentUser.chain != payable.chain"
     >
       <p class="mb-8">
-        Our Cross-Chain Features with
-        <a href="https://wormhole.com" target="_blank" rel="noopener noreferer" class="underline text-primary"
-          >Wormhole</a
-        >
-        are almost complete. As for now, as this Payable is on
-        {{ payable.chain }}, you can only pay from {{ payable.chain }} wallets. Please switch wallets to continue.
+        Cross-Chain Payments are on the way. As for now, as this Payable was created on
+        {{ payable.chain.displayName }}, you can only pay while connected on {{ payable.chain.displayName }}. Please Switch Chain to continue.
       </p>
       <SignInButton />
     </div>

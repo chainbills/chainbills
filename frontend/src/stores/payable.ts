@@ -26,6 +26,7 @@ export const usePayableStore = defineStore('payable', () => {
 
   const getChainStore: any = () =>
     ({
+      basecamptestnet: evm,
       megaethtestnet: evm,
       solanadevnet: solana,
     })[auth.currentUser!.chain.name];
@@ -83,7 +84,7 @@ export const usePayableStore = defineStore('payable', () => {
       if (!chain) throw `Unhandled Payable Chain: ${dbData.chainName}`;
 
       let raw: any;
-      if (chain.isEvm) raw = await evm.fetchPayable(id, ignoreErrors);
+      if (chain.isEvm) raw = await evm.fetchPayable(id, chain.name, ignoreErrors);
       else if (chain.isSolana) raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
       else throw 'Unhandled Chain Type';
       if (raw) return new Payable(id, chain, dbData.description, raw);

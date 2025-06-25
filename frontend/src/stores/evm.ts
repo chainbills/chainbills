@@ -1,4 +1,14 @@
-import { contracts, megaethtestnet, OnChainSuccess, TokenAndAmount, User, type Token } from '@/schemas';
+import {
+  basecamptestnet,
+  contracts,
+  megaethtestnet,
+  OnChainSuccess,
+  TokenAndAmount,
+  User,
+  type Chain,
+  type ChainName,
+  type Token,
+} from '@/schemas';
 import { abi, erc20Abi, useAnalyticsStore } from '@/stores';
 import {
   createConfig,
@@ -21,8 +31,9 @@ import {
   type ContractEventArgs,
   type ContractEventName,
   type TransactionReceipt,
+  type Chain as ViemChain,
 } from 'viem';
-import { megaethTestnet } from 'viem/chains';
+import { basecampTestnet, megaethTestnet } from 'viem/chains';
 
 interface WriteContractResponse {
   hash: string;
@@ -33,22 +44,39 @@ interface WriteContractResponse {
 export const useEvmStore = defineStore('evm', () => {
   const account = useAccount();
   const analytics = useAnalyticsStore();
-  const config = createConfig({
-    chains: [megaethTestnet],
-    transports: {
-      [megaethTestnet.id]: http(),
-    },
-  });
   const toast = useToast();
 
-  /** Returns UI-Formatted balance (Accounts for Decimals) */
+  /** Call only when a user is signed in */
+  const getConfig = () => {
+    const chain = account.chain.value!;
+    return createConfig({ chains: [chain], transports: { [chain.id]: http() } });
+  };
+
+  const getViemChain = (chainName: ChainName): ViemChain => {
+    if (chainName == 'basecamptestnet') return basecampTestnet;
+    else if (chainName == 'megaethtestnet') return megaethTestnet;
+    else throw new Error(`Unsupported EVM Chain: ${chainName}`);
+  };
+
+  const getCurrentChain = (): Chain | null => {
+    if (!account.chain.value) return null;
+    return {
+      [basecampTestnet.id]: basecamptestnet,
+      [megaethTestnet.id]: megaethtestnet,
+    }[account.chain.value.id]!;
+  };
+
+  /** Returns UI-Formatted balance (Auto-Accounts for Decimals) */
   const balance = async (token: Token): Promise<number | null> => {
     if (!account.address.value) return null;
-    if (!token.details.megaethtestnet) return null;
-    const { address: addr, decimals } = token.details.megaethtestnet;
+    const chain = getCurrentChain();
+    if (!chain) return null;
+    if (!token.details[chain.name]) return null;
+    const { address: addr, decimals } = token.details[chain.name]!;
+    const config = getConfig();
     try {
       const balance =
-        addr == contracts.megaethtestnet
+        addr == contracts[chain.name]
           ? (await getBalance(config, { address: account.address.value })).value
           : await rawReadContract(config, {
               address: addr as `0x${string}`,
@@ -83,6 +111,7 @@ export const useEvmStore = defineStore('evm', () => {
 
     try {
       analytics.recordEvent('initiated_evm_transaction');
+      const config = getConfig();
       const { result, request } = await simulateContract(config, {
         address,
         abi,
@@ -92,10 +121,11 @@ export const useEvmStore = defineStore('evm', () => {
         ...(value ? { value: BigInt(value) } : {}),
       });
       const hash = await createWalletClient({
-        chain: megaethTestnet,
+        chain: account.chain.value,
         transport: custom((window as any).ethereum),
       }).writeContract(request);
       const receipt = await waitForTransactionReceipt(config, { hash });
+      await new Promise((resolve => setTimeout(resolve, 3000))); // Wait more for confirmations
       analytics.recordEvent('completed_evm_transaction');
       return { hash, receipt, result };
     } catch (e: any) {
@@ -126,26 +156,32 @@ export const useEvmStore = defineStore('evm', () => {
     )[idField as any];
 
   const createPayable = async (tokensAndAmounts: TokenAndAmount[]): Promise<OnChainSuccess | null> => {
+    const chain = getCurrentChain();
+    if (!chain) {
+      toastError('Connect EVM Wallet First!');
+      return null;
+    }
+
     const response = await writeContract({
-      address: contracts.megaethtestnet as `0x${string}`,
+      address: contracts[chain.name] as `0x${string}`,
       abi,
       functionName: 'createPayable',
       // default false is for autoWithdraw status as false
-      args: [tokensAndAmounts.map((t) => t.toOnChain(megaethtestnet)), false],
+      args: [tokensAndAmounts.map((t) => t.toOnChain(chain)), false],
     });
     if (!response) return null;
     return new OnChainSuccess({
       created: extractNewId(response.receipt.logs, 'CreatedPayable', 'payableId'),
       txHash: response.hash,
-      chain: megaethtestnet,
+      chain,
     });
   };
 
-  const fetchPayable = async (id: string, ignoreErrors?: boolean) => {
+  const fetchPayable = async (id: string, chainName: ChainName, ignoreErrors?: boolean) => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
-    const raw = await readContract('getPayable', [xId], ignoreErrors);
-    const aTAAs = await readContract('getAllowedTokensAndAmounts', [xId], ignoreErrors);
-    const balances = await readContract('getBalances', [xId], ignoreErrors);
+    const raw = await readContract('getPayable', [xId], chainName, ignoreErrors);
+    const aTAAs = await readContract('getAllowedTokensAndAmounts', [xId], chainName, ignoreErrors);
+    const balances = await readContract('getBalances', [xId], chainName, ignoreErrors);
     if (!raw || !aTAAs || !balances) return null;
     return { allowedTokensAndAmounts: aTAAs, balances, ...raw };
   };
@@ -153,26 +189,31 @@ export const useEvmStore = defineStore('evm', () => {
   const fetchEntity = async (
     entity: 'UserPayment' | 'PayablePayment' | 'Withdrawal',
     id: string,
+    chainName?: ChainName,
     ignoreErrors?: boolean
-  ) => await readContract(`get${entity}`, [id as `0x${string}`], ignoreErrors);
+  ) => await readContract(`get${entity}`, [id as `0x${string}`], chainName, ignoreErrors);
 
   const getCurrentUser = async () => {
     let addr = (account.address.value ?? '').toLowerCase() as `0x${string}`;
     if (!addr) return null;
+
+    const chain = getCurrentChain();
+    if (!chain) return null;
+
     let raw;
     try {
-      raw = await readContract('getUser', [addr], false, true);
+      raw = await readContract('getUser', [addr], chain.name, false, true);
     } catch (e) {
       if (`${e}`.includes('InvalidWalletAddress')) {
         // Is New User, return the default
-        return new User(megaethtestnet, addr, null);
+        return new User(chain, addr, null);
       } else {
         console.error(e);
         toastError(`${e}`);
       }
     }
     if (!raw) return null;
-    return new User(megaethtestnet, addr, raw);
+    return new User(chain, addr, raw);
   };
 
   const getPayablePaymentId = async (payableId: string, count: number): Promise<string | null> => {
@@ -204,19 +245,27 @@ export const useEvmStore = defineStore('evm', () => {
   const getUserWithdrawalId = async (count: number) => getUserEntityId('Withdrawal', count - 1);
 
   const pay = async (payableId: string, { amount, details }: TokenAndAmount): Promise<OnChainSuccess | null> => {
-    if (!details.megaethtestnet) {
-      toastError('Token not supported on EVM for now');
+    const chain = getCurrentChain();
+    if (!chain) {
+      toastError('Connect EVM Wallet First!');
       return null;
     }
 
-    const token = details.megaethtestnet.address as `0x${string}`;
+    if (!details[chain.name]) {
+      toastError(`Token not supported on ${chain.displayName} for now`);
+      return null;
+    }
+
+    const token = details[chain.name]!.address as `0x${string}`;
     // Check if enough allowance
-    if (token != contracts.megaethtestnet) {
+    if (token != contracts[chain.name]) {
+      const viemChain = getViemChain(chain.name);
+      const config = createConfig({ chains: [viemChain], transports: { [viemChain.id]: http() } });
       const allowance = await rawReadContract(config, {
         address: token,
         abi: erc20Abi,
         functionName: 'allowance',
-        args: [account.address.value!, contracts.megaethtestnet as `0x${string}`],
+        args: [account.address.value!, contracts[chain.name] as `0x${string}`],
       });
       // Request Approval if not enough allowance
       if (!allowance || Number(allowance) < amount) {
@@ -224,37 +273,47 @@ export const useEvmStore = defineStore('evm', () => {
           address: token,
           abi: erc20Abi,
           functionName: 'approve',
-          args: [contracts.megaethtestnet, amount],
+          args: [contracts[chain.name], amount],
         });
         if (!approval) return null;
       }
     }
 
     const response = await writeContract({
-      address: contracts.megaethtestnet as `0x${string}`,
+      address: contracts[chain.name] as `0x${string}`,
       abi,
       functionName: 'pay',
       args: [payableId, token, BigInt(amount)],
-      ...(token == contracts.megaethtestnet ? { value: amount } : {}),
+      ...(token == contracts[chain.name] ? { value: amount } : {}),
     });
     if (!response) return null;
     return new OnChainSuccess({
       created: extractNewId(response.receipt.logs, 'UserPaid', 'paymentId'),
       txHash: response.hash,
-      chain: megaethtestnet,
+      chain,
     });
   };
 
   const readContract = async (
     functionName: any,
     args: any,
+    chainName?: ChainName,
     ignoreErrors = false,
     rethrowError = false
   ): Promise<any> => {
+    if (!chainName) chainName = getCurrentChain()?.name;
+    if (!chainName) {
+      toastError('Specify the EVM Chain to read data from');
+      return null;
+    }
+
+    const viemChain = getViemChain(chainName);
+    const config = createConfig({ chains: [viemChain], transports: { [viemChain.id]: http() } });
+
     try {
       // @ts-ignore
       return await rawReadContract(config, {
-        address: contracts.megaethtestnet as `0x${string}`,
+        address: contracts[chainName] as `0x${string}`,
         abi,
         functionName,
         args,
@@ -276,7 +335,7 @@ export const useEvmStore = defineStore('evm', () => {
     }
 
     try {
-      return await signMessage(config, { message });
+      return await signMessage(getConfig(), { message, connector: account.connector.value });
     } catch (e) {
       const detail = `${e}`.toLocaleLowerCase().includes('rejected')
         ? 'Please Sign to Continue'
@@ -289,21 +348,28 @@ export const useEvmStore = defineStore('evm', () => {
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const withdraw = async (payableId: string, { amount, details }: TokenAndAmount): Promise<OnChainSuccess | null> => {
-    if (!details.megaethtestnet) {
-      toastError('Token not supported on EVM for now');
+    const chain = getCurrentChain();
+    if (!chain) {
+      toastError('Connect EVM Wallet First!');
       return null;
     }
+
+    if (!details[chain.name]) {
+      toastError(`Token not supported on ${chain.displayName} for now`);
+      return null;
+    }
+
     const response = await writeContract({
-      address: contracts.megaethtestnet as `0x${string}`,
+      address: contracts[chain.name] as `0x${string}`,
       abi,
       functionName: 'withdraw',
-      args: [payableId, details.megaethtestnet.address, amount],
+      args: [payableId, details[chain.name]!.address, amount],
     });
     if (!response) return null;
     return new OnChainSuccess({
       created: extractNewId(response.receipt.logs, 'Withdrew', 'withdrawalId'),
       txHash: response.hash,
-      chain: megaethtestnet,
+      chain,
     });
   };
 
@@ -318,7 +384,6 @@ export const useEvmStore = defineStore('evm', () => {
     getUserPayableId,
     getUserPaymentId,
     getUserWithdrawalId,
-    readContract,
     pay,
     sign,
     withdraw,

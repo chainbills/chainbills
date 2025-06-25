@@ -23,7 +23,7 @@ export const withdrew = async (withdrawalId: string, chain: Chain) => {
   // Extract On-Chain Data
   let raw: any;
   if (chain.isEvm) {
-    raw = await evmFetch('Withdrawal', withdrawalId);
+    raw = await evmFetch('Withdrawal', withdrawalId, chain.name);
     withdrawalId = withdrawalId.toLowerCase();
   } else if (chain.isSolana)
     raw = await solanaFetch('withdrawal', withdrawalId);

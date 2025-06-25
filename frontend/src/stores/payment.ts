@@ -1,8 +1,8 @@
 import {
-  megaethtestnet,
+  chainNames,
+  chainNamesToChains,
   Payable,
   PayablePayment,
-  solanadevnet,
   TokenAndAmount,
   UserPayment,
   type Chain,
@@ -39,6 +39,7 @@ export const usePaymentStore = defineStore('payment', () => {
     if (!auth.currentUser) return null;
 
     const result = await {
+      basecamptestnet: evm,
       megaethtestnet: evm,
       solanadevnet: solana,
     }[auth.currentUser.chain.name]['pay'](payableId, details);
@@ -68,62 +69,60 @@ export const usePaymentStore = defineStore('payment', () => {
     return result.created;
   };
 
-  const get = async (id: string, chain?: Chain, ignoreErrors?: boolean): Promise<Payment | null> => {
-    // A simple trick to guess the chain based on the ID's format
-    // (if not provided)
-    if (!chain) {
-      chain = solanadevnet;
-      try {
-        new PublicKey(id);
-      } catch (_) {
-        if (encoding.hex.valid(id)) chain = megaethtestnet;
-        // If it's not a valid Solana public key or it is not a hex string,
-        // then it's not a valid ID.
-        else return null;
-      }
-    }
-
+  /** Called by in the onMounted of the ReceiptView page where the chain is not known */
+  const get = async (id: string): Promise<Payment | null> => {
     // Check if the payment is already in the cache and return if so.
-    let payment = await cache.retrieve(cacheKey(chain.name, 'user', id));
-    if (payment) {
-      // Necessary to restore callable methods on retrieved instance
-      payment = Object.setPrototypeOf(payment, UserPayment.prototype);
-      return payment;
-    }
-    payment = await cache.retrieve(cacheKey(chain.name, 'payable', id));
-    if (payment) {
-      // Necessary to restore callable methods on retrieved instance
-      payment = Object.setPrototypeOf(payment, PayablePayment.prototype);
-      return payment;
-    }
-
-    // Otherwise, first try to fetch the payment as if it was a user payment.
-    try {
-      let raw: any;
-      if (chain.isEvm) raw = await evm.fetchEntity('UserPayment', id, ignoreErrors);
-      else if (chain.isSolana) raw = await solana.tryFetchEntity('userPayment', id, ignoreErrors);
-      else throw `Unknown chain: ${chain}`;
-      if (raw) {
-        payment = new UserPayment(id, chain, raw);
-        await cache.save(cacheKey(chain.name, 'user', id), payment);
-      }
-    } catch (_) {}
-
-    // If the payment is not a user payment, try to fetch it as a payable payment.
-    if (!payment) {
-      try {
-        let raw: any;
-        if (chain.isEvm) raw = await evm.fetchEntity('PayablePayment', id, ignoreErrors);
-        else if (chain.isSolana) raw = await solana.tryFetchEntity('payablePayment', id, ignoreErrors);
-        else throw `Unknown chain: ${chain}`;
-        if (raw) {
-          payment = new PayablePayment(id, chain, raw);
-          await cache.save(cacheKey(chain.name, 'payable', id), payment);
+    // Looping through known chain names as the chain is not known (straight from browser URL)
+    for (let chainName of chainNames) {
+      for (let type of ['user', 'payable']) {
+        let payment = await cache.retrieve(cacheKey(chainName, type, id));
+        if (payment) {
+          // Necessary to restore callable methods on retrieved instance
+          const targetClass = type == 'user' ? UserPayment : PayablePayment;
+          payment = Object.setPrototypeOf(payment, targetClass.prototype);
+          return payment;
         }
-      } catch (_) {}
+      }
     }
 
-    return payment;
+    // Determine the kind of chain to use to fetch the payment
+    let isEvm = false;
+    let isSolana = false;
+    try {
+      new PublicKey(id);
+      isSolana = true;
+    } catch (_) {
+      if (encoding.hex.valid(id)) isEvm = true;
+      // If it's not a valid Solana public key or it is not a hex string,
+      // then it's not a valid ID.
+      else return null;
+    }
+    const _chainNames = [
+      ...(isEvm ? ['basecamptestnet', 'megaethtestnet'] : []),
+      ...(isSolana ? ['solanadevnet'] : []),
+    ] as ChainName[];
+
+    // Fetch the Payment directly from the chain
+    for (let chainName of _chainNames) {
+      for (let type of ['user', 'payable']) {
+        let raw: any;
+        if (isEvm) {
+          const fetchKey = type[0].toUpperCase() + type.substring(1) + 'Payment';
+          raw = await evm.fetchEntity(fetchKey as any, id, chainName, true, /* ignoring errors */);
+        }
+        if (isSolana) raw = await solana.tryFetchEntity(`${type}Payment` as any, id, true, /* ignoring errors */);
+        if (raw) {
+          const targetClass = type == 'user' ? UserPayment : PayablePayment;
+          const payment = new targetClass(id, chainNamesToChains[chainName], raw);
+          // Saving to Cache for retrieval at any other future time
+          await cache.save(cacheKey(chainName, type, id), payment);
+          return payment;
+        }
+      }
+    }
+
+    // If nothing was found from cache nor could not fetch from network, then return null
+    return null;
   };
 
   const getForPayable = async (id: string, chain: Chain): Promise<PayablePayment | null> => {
@@ -136,11 +135,12 @@ export const usePaymentStore = defineStore('payment', () => {
 
     try {
       let raw: any;
-      if (chain.isEvm) raw = await evm.fetchEntity('PayablePayment', id);
+      if (chain.isEvm) raw = await evm.fetchEntity('PayablePayment', id, chain.name);
       else if (chain.isSolana) raw = await solana.fetchEntity('payablePayment', id);
       else throw `Unknown chain: ${chain}`;
       if (raw) {
         payment = new PayablePayment(id, chain, raw);
+        // Saving to Cache for retrieval at any other future time
         await cache.save(cacheKey(chain.name, 'payable', id), payment);
         return payment;
       }
@@ -161,11 +161,12 @@ export const usePaymentStore = defineStore('payment', () => {
 
     try {
       let raw: any;
-      if (chain.isEvm) raw = await evm.fetchEntity('UserPayment', id);
+      if (chain.isEvm) raw = await evm.fetchEntity('UserPayment', id, chain.name);
       else if (chain.isSolana) raw = await solana.fetchEntity('userPayment', id);
       else throw `Unknown chain: ${chain.name}`;
       if (raw) {
         payment = new UserPayment(id, chain, raw);
+        // Saving to Cache for retrieval at any other future time
         await cache.save(cacheKey(chain.name, 'user', id), payment);
         return payment;
       }

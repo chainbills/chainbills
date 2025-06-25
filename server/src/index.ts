@@ -10,4 +10,4 @@ app.use(express.urlencoded({ extended: false }));
 app.use(morgan('combined'));
 app.use(router);
 
-export const server = onRequest({ cors: true }, app);
+export const server = onRequest({ cors: true, timeoutSeconds: 200 }, app);

@@ -5,7 +5,7 @@ import './assets/main.css';
 import { definePreset } from '@primevue/themes';
 import Aura from '@primevue/themes/aura';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { megaethTestnet, type AppKitNetwork } from '@reown/appkit/networks';
+import { basecampTestnet, megaethTestnet, type AppKitNetwork } from '@reown/appkit/networks';
 import { createAppKit } from '@reown/appkit/vue';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
@@ -14,14 +14,14 @@ import AOS from 'aos';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Ripple from 'primevue/ripple';
-import ToastService from 'primevue/toastservice';
+import ToastService from 'primevue/toastservice'; 
 import SolanaWallets from 'solana-wallets-vue';
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 
 const projectId = import.meta.env.VITE_WC_PROJECT_ID;
-const networks: [AppKitNetwork] = [megaethTestnet];
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [basecampTestnet, megaethTestnet];
 const wagmiAdapter = new WagmiAdapter({ projectId, networks });
 
 createAppKit({
@@ -37,8 +37,8 @@ createAppKit({
   metadata: {
     name: 'Chainbills',
     description: 'Chainbills',
-    url: 'https://chainbills.xyz',
-    icons: ['https://chainbills.xyz/assets/chainbills-light.png'],
+    url: window.location.origin,
+    icons: [`${window.location.origin}/assets/chainbills-light.png`],
   },
 });
 

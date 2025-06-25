@@ -1,5 +1,5 @@
-export type ChainName = 'megaethtestnet' | 'solanadevnet';
-export const chainNames: ChainName[] = ['megaethtestnet', 'solanadevnet'];
+export type ChainName = 'basecamptestnet' | 'megaethtestnet' | 'solanadevnet';
+export const chainNames: ChainName[] = ['basecamptestnet', 'megaethtestnet', 'solanadevnet'];
 
 export interface Chain {
   name: ChainName;
@@ -9,15 +9,24 @@ export interface Chain {
 }
 
 export const getTxUrl = (txHash: string, chain: Chain) => {
-  if (chain.isEvm) return `https://megaexplorer.xyz/tx/${txHash}`;
-  else if (chain.isSolana) return `https://explorer.solana.com/tx/${txHash}?cluster=devnet`;
-  else throw 'Unhandled Chain Type';
+  if (chain.name === 'basecamptestnet') return `https://basecamp.cloud.blockscout.com/tx/${txHash}`;
+  if (chain.name === 'megaethtestnet') return `https://megaexplorer.xyz/tx/${txHash}`;
+  if (chain.name === 'solanadevnet') return `https://explorer.solana.com/tx/${txHash}?cluster=devnet`;
+  throw 'Unhandled Chain in GetTxUrl';
 };
 
 export const getWalletUrl = (wallet: string, chain: Chain) => {
-  if (chain.isEvm) return `https://megaexplorer.xyz/address/${wallet}`;
-  else if (chain.isSolana) return `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
-  else throw 'Unhandled Chain Type';
+  if (chain.name === 'basecamptestnet') return `https://basecamp.cloud.blockscout.com/address/${wallet}`;
+  if (chain.name === 'megaethtestnet') return `https://megaexplorer.xyz/address/${wallet}`;
+  if (chain.name === 'solanadevnet') return `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
+  throw 'Unhandled Chain in GetWalletUrl';
+};
+
+export const basecamptestnet: Chain = {
+  name: 'basecamptestnet',
+  displayName: 'Camp Testnet',
+  isEvm: true,
+  isSolana: false,
 };
 
 export const megaethtestnet: Chain = {
@@ -35,6 +44,7 @@ export const solanadevnet: Chain = {
 };
 
 export const chainNamesToChains: Record<ChainName, Chain> = {
+  basecamptestnet,
   megaethtestnet,
   solanadevnet,
 };

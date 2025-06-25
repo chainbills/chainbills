@@ -9,8 +9,7 @@ export const useServerStore = defineStore('server', () => {
 
   const call = async (path: string, body?: any, ignoreErrors?: boolean): Promise<any> => {
     return new Promise(async (resolve, _) => {
-      // TODO: Change wh-network to Mainnet when needed
-      const headers: any = { 'wh-network': 'Testnet' };
+      const headers: any = {};
       if (auth.currentUser) {
         headers['chain-name'] = auth.currentUser.chain.name;
         headers['wallet-address'] = auth.currentUser.walletAddress;

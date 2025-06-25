@@ -1,5 +1,9 @@
-export type ChainName = 'megaethtestnet' | 'solanadevnet';
-export const chainNames: ChainName[] = ['megaethtestnet', 'solanadevnet'];
+export type ChainName = 'basecamptestnet' | 'megaethtestnet' | 'solanadevnet';
+export const chainNames: ChainName[] = [
+  'basecamptestnet',
+  'megaethtestnet',
+  'solanadevnet'
+];
 
 export type ChainNetworkType = 'mainnet' | 'testnet';
 export const chainNetworkTypes: ChainNetworkType[] = ['mainnet', 'testnet'];
@@ -11,6 +15,14 @@ export interface Chain {
   isSolana: boolean;
   networkType: ChainNetworkType;
 }
+
+export const basecamptestnet: Chain = {
+  name: 'basecamptestnet',
+  displayName: 'Camp Testnet',
+  isEvm: true,
+  isSolana: false,
+  networkType: 'testnet'
+};
 
 export const megaethtestnet: Chain = {
   name: 'megaethtestnet',
@@ -29,6 +41,7 @@ export const solanadevnet: Chain = {
 };
 
 export const chainNamesToChains: Record<ChainName, Chain> = {
+  basecamptestnet,
   megaethtestnet,
   solanadevnet
 };

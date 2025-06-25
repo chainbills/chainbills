@@ -23,7 +23,7 @@ export const payablePaid = async (paymentId: string, chain: Chain) => {
   // Extract On-Chain Data
   let raw: any;
   if (chain.isEvm) {
-    raw = await evmFetch('PayablePayment', paymentId);
+    raw = await evmFetch('PayablePayment', paymentId, chain.name);
     paymentId = paymentId.toLowerCase();
   } else if (chain.isSolana)
     raw = await solanaFetch('payablePayment', paymentId);

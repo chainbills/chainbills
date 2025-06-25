@@ -25,6 +25,12 @@ export const useAnalyticsStore = defineStore('analytics', () => {
       () => auth.currentUser,
       (user) => {
         setUserId(analytics, user?.walletAddress ?? null);
+        if (user) {
+          recordEvent('user_signin', {
+            walletAddress: user?.walletAddress,
+            chain: user?.chain.name,
+          });
+        }
       }
     );
   });

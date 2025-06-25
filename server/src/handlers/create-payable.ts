@@ -18,7 +18,7 @@ export const createPayable = async (
   if (!description) throw 'Missing required description';
   if (typeof description !== 'string') throw 'Invalid description';
   description = sanitize(description);
-  if (description.length < 10) throw 'Min description length is 15';
+  if (description.length < 3) throw 'Min description length is 3';
   if (description.length > 3000) throw 'Max description length is 3000';
   if (!payableId) throw 'Missing required payableId';
   if (typeof payableId !== 'string') throw 'Invalid payableId';
@@ -38,7 +38,7 @@ export const createPayable = async (
   // Extract On-Chain Data
   let raw: any;
   if (chain.isEvm) {
-    raw = await evmFetch('Payable', payableId);
+    raw = await evmFetch('Payable', payableId, chain.name);
     payableId = payableId.toLowerCase();
   } else if (chain.isSolana) raw = await solanaFetch('payable', payableId);
   else throw `Unsupported Chain ${chain.name}`;

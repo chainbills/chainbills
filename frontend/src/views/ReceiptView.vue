@@ -3,13 +3,21 @@ import ReceiptLoader from '@/components/ReceiptLoader.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import { getTokenLogo, getWalletUrl, PayablePayment, UserPayment, Withdrawal, type Receipt } from '@/schemas';
-import { useAnalyticsStore, useAuthStore, usePaymentStore, useTimeStore, useWithdrawalStore } from '@/stores';
+import {
+  useAnalyticsStore,
+  useAuthStore,
+  usePaymentStore,
+  useServerStore,
+  useTimeStore,
+  useWithdrawalStore,
+} from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
+const server = useServerStore();
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const isLoading = ref(true);
@@ -56,10 +64,8 @@ const copy = (text: string, context: string, eventContext: string) => {
 
 onMounted(async () => {
   const id = route.params.id as string;
-  receipt.value = (await payments.get(id, undefined, true)) as Receipt | null;
-  if (!receipt.value) {
-    receipt.value = await withdrawals.get(id, undefined, true);
-  }
+  receipt.value = (await payments.get(id)) as Receipt | null;
+  if (!receipt.value) receipt.value = await withdrawals.get(id, undefined, true);
   isLoading.value = false;
 });
 </script>

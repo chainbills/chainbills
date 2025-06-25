@@ -1,4 +1,4 @@
-import { type Chain, megaethtestnet, Payable, solanadevnet, TokenAndAmount, Withdrawal } from '@/schemas';
+import { chainNames, chainNamesToChains, Payable, TokenAndAmount, Withdrawal, type ChainName } from '@/schemas';
 import {
   useAnalyticsStore,
   useAuthStore,
@@ -28,10 +28,11 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const exec = async (payableId: string, details: TokenAndAmount): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    const result = await { megaethtestnet: evm, solanadevnet: solana }[auth.currentUser.chain.name]['withdraw'](
-      payableId,
-      details
-    );
+    const result = await {
+      basecamptestnet: evm,
+      megaethtestnet: evm,
+      solanadevnet: solana,
+    }[auth.currentUser.chain.name]['withdraw'](payableId, details);
     if (!result) return null;
     await auth.refreshUser();
 
@@ -50,45 +51,76 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     return result.created;
   };
 
-  const get = async (id: string, chain?: Chain, ignoreErrors?: boolean): Promise<Withdrawal | null> => {
-    // A simple trick to guess the chain based on the ID's format
-    // (if not provided)
-    if (!chain) {
-      chain = solanadevnet;
+  const getFromCache = async (id: string, chainName: ChainName): Promise<Withdrawal | null> => {
+    let withdrawal = await cache.retrieve(cacheKey(chainName, id));
+    if (withdrawal) {
+      // Necessary to restore callable methods on retrieved instance
+      withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
+      return withdrawal;
+    }
+    return null;
+  };
+
+  const getFromOnChain = async (
+    id: string,
+    chainName: ChainName,
+    ignoreErrors: boolean
+  ): Promise<Withdrawal | null> => {
+    const chain = chainNamesToChains[chainName];
+    let raw: any;
+    if (chain.isEvm) raw = await evm.fetchEntity('Withdrawal', id, chainName, ignoreErrors);
+    if (chain.isSolana) raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
+    if (raw) {
+      const withdrawal = new Withdrawal(id, chain, raw);
+      // Saving to Cache for retrieval at any other future time
+      await cache.save(cacheKey(chainName, id), withdrawal);
+      return withdrawal;
+    }
+    return null;
+  };
+
+  const get = async (id: string, chainName?: ChainName, ignoreErrors = false): Promise<Withdrawal | null> => {
+    if (chainName) {
+      // Check if the withdrawal is already in the cache and return if so.
+      let withdrawal = await getFromCache(id, chainName);
+      if (withdrawal) return withdrawal;
+
+      // Fetch from on-chain and return directly
+      return await getFromOnChain(id, chainName, ignoreErrors);
+    } else {
+      // Check if the withdrawal is already in the cache and return if so.
+      // Looping through known chain names as the chain is not known (straight from browser URL)
+      for (let chainName of chainNames) {
+        let withdrawal = await getFromCache(id, chainName);
+        if (withdrawal) return withdrawal;
+      }
+
+      // Determine the kind of chain to use to fetch the payment
+      let isEvm = false;
+      let isSolana = false;
       try {
         new PublicKey(id);
+        isSolana = true;
       } catch (_) {
-        if (encoding.hex.valid(id)) chain = megaethtestnet;
+        if (encoding.hex.valid(id)) isEvm = true;
         // If it's not a valid Solana public key or it is not a hex string,
         // then it's not a valid ID.
         else return null;
       }
-    }
+      const _chainNames = [
+        ...(isEvm ? ['basecamptestnet', 'megaethtestnet'] : []),
+        ...(isSolana ? ['solanadevnet'] : []),
+      ] as ChainName[];
 
-    // Check if the withdrawal is already in the cache and return if so.
-    let withdrawal = await cache.retrieve(cacheKey(chain.name, id));
-    if (withdrawal) {
-      withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
-      return withdrawal;
-    }
-
-    try {
-      let raw: any;
-      if (chain.isEvm) raw = await evm.fetchEntity('Withdrawal', id, ignoreErrors);
-      else if (chain.isSolana) raw = await solana.tryFetchEntity('withdrawal', id, ignoreErrors);
-      else throw `Unknown chain: ${chain}`;
-      if (raw) withdrawal = new Withdrawal(id, chain, raw);
-    } catch (e) {
-      if (!ignoreErrors) {
-        console.error(e);
-        toastError(`${e}`);
+      // Fetch the Payment directly from the chain and return
+      for (let chainName of _chainNames) {
+        const withdrawal = await getFromOnChain(id, chainName, ignoreErrors);
+        if (withdrawal) return withdrawal;
       }
+
+      // If nothing was found from cache nor could not fetch from network, then return null
+      return null;
     }
-
-    // If a withdrawal was found, cache it and return it.
-    if (withdrawal) await cache.save(cacheKey(chain.name, id), withdrawal);
-
-    return withdrawal;
   };
 
   const getManyForCurrentUser = async (page: number, count: number): Promise<Withdrawal[] | null> => {
@@ -104,7 +136,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       for (let i = start; i >= target; i--) {
         const id = await auth.getWithdrawalId(i);
         if (id) {
-          const withdrawal = await get(id, { ...auth.currentUser.chain });
+          const withdrawal = await get(id, auth.currentUser.chain.name);
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;
@@ -129,7 +161,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       for (let i = start; i >= target; i--) {
         const id = await payableStore.getWithdrawalId(payable.id, chain, i);
         if (id) {
-          const withdrawal = await get(id, { ...chain });
+          const withdrawal = await get(id, chain.name);
           if (withdrawal) withdrawals.push(withdrawal);
           else return null;
         } else return null;

@@ -17,7 +17,7 @@ export const userPaid = async (paymentId: string, chain: Chain) => {
   // Extract On-Chain Data
   let raw: any;
   if (chain.isEvm) {
-    raw = await evmFetch('UserPayment', paymentId);
+    raw = await evmFetch('UserPayment', paymentId, chain.name);
     paymentId = paymentId.toLowerCase();
   } else if (chain.isSolana) raw = await solanaFetch('userPayment', paymentId);
   else throw `Unsupported Chain ${chain.name}`;

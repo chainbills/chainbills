@@ -2,6 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 import { Chain, ChainName } from '../utils';
 
 export const contracts: Record<ChainName, string> = {
+  basecamptestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   megaethtestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND'
 };
@@ -21,8 +22,7 @@ export const getTokenDetails = (token: string | PublicKey, chain: Chain) => {
 
   if (chain.isEvm) {
     found = tokens.find(
-      // TODO: Also check other EVM chains when added
-      (t) => t.details.megaethtestnet?.address == `${token}`.toLowerCase()
+      (t) => t.details[chain.name]?.address == `${token}`.toLowerCase()
     );
   } else if (chain.isSolana) {
     if ((token as any) instanceof PublicKey) {
@@ -42,6 +42,15 @@ export const tokens: Token[] = [
       solanadevnet: {
         address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
         decimals: 6
+      }
+    }
+  },
+  {
+    name: 'CAMP',
+    details: {
+      basecamptestnet: {
+        address: contracts.basecamptestnet,
+        decimals: 18
       }
     }
   },

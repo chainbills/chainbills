@@ -1,4 +1,12 @@
-import { chainNames, chainNamesToChains, Payable, TokenAndAmount, Withdrawal, type ChainName } from '@/schemas';
+import {
+  chainNames,
+  chainNamesEvm,
+  chainNamesToChains,
+  Payable,
+  TokenAndAmount,
+  Withdrawal,
+  type ChainName,
+} from '@/schemas';
 import {
   useAnalyticsStore,
   useAuthStore,
@@ -108,10 +116,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
         // then it's not a valid ID.
         else return null;
       }
-      const _chainNames = [
-        ...(isEvm ? ['basecamptestnet', 'megaethtestnet'] : []),
-        ...(isSolana ? ['solanadevnet'] : []),
-      ] as ChainName[];
+      const _chainNames = [...(isEvm ? chainNamesEvm : []), ...(isSolana ? ['solanadevnet'] : [])] as ChainName[];
 
       // Fetch the Payment directly from the chain and return
       for (let chainName of _chainNames) {

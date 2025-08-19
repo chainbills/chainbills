@@ -1,5 +1,6 @@
 import {
   chainNames,
+  chainNamesEvm,
   chainNamesToChains,
   Payable,
   PayablePayment,
@@ -98,10 +99,7 @@ export const usePaymentStore = defineStore('payment', () => {
       // then it's not a valid ID.
       else return null;
     }
-    const _chainNames = [
-      ...(isEvm ? ['basecamptestnet', 'megaethtestnet'] : []),
-      ...(isSolana ? ['solanadevnet'] : []),
-    ] as ChainName[];
+    const _chainNames = [...(isEvm ? chainNamesEvm : []), ...(isSolana ? ['solanadevnet'] : [])] as ChainName[];
 
     // Fetch the Payment directly from the chain
     for (let chainName of _chainNames) {
@@ -109,9 +107,9 @@ export const usePaymentStore = defineStore('payment', () => {
         let raw: any;
         if (isEvm) {
           const fetchKey = type[0].toUpperCase() + type.substring(1) + 'Payment';
-          raw = await evm.fetchEntity(fetchKey as any, id, chainName, true, /* ignoring errors */);
+          raw = await evm.fetchEntity(fetchKey as any, id, chainName, true /* ignoring errors */);
         }
-        if (isSolana) raw = await solana.tryFetchEntity(`${type}Payment` as any, id, true, /* ignoring errors */);
+        if (isSolana) raw = await solana.tryFetchEntity(`${type}Payment` as any, id, true /* ignoring errors */);
         if (raw) {
           const targetClass = type == 'user' ? UserPayment : PayablePayment;
           const payment = new targetClass(id, chainNamesToChains[chainName], raw);

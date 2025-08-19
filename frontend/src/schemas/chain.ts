@@ -1,7 +1,8 @@
 import { defineChain } from 'viem';
 
 export type ChainName = 'basecampmainnet' | 'basecamptestnet' | 'megaethtestnet' | 'solanadevnet';
-export const chainNames: ChainName[] = ['basecampmainnet', 'basecamptestnet', 'megaethtestnet', 'solanadevnet'];
+export const chainNamesEvm: ChainName[] = ['basecampmainnet', 'basecamptestnet', 'megaethtestnet'];
+export const chainNames: ChainName[] = [...chainNamesEvm, 'solanadevnet'];
 
 export const basecampMainnet = defineChain({
   id: 484,

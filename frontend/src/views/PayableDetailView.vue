@@ -28,9 +28,9 @@ import { useRoute } from 'vue-router';
 const payable = ref<Payable | null>(null);
 const route = useRoute();
 
-const fetchPayable = async (ignoreErrors: boolean) => {
+const fetchPayable = async (ignoreErrors: boolean, showLoading = true) => {
   if (!route.params.id) return;
-  isLoading.value = true;
+  isLoading.value = showLoading;
   const fetched = await payableStore.get(route.params.id as string, ignoreErrors);
   if (fetched) payable.value = fetched;
   isLoading.value = false;
@@ -150,6 +150,8 @@ onMounted(async () => {
 
   resetTablePage();
   await getTransactions();
+
+  window.addEventListener('focus', async () => await fetchPayable(true, false))
 
   watch([() => auth.currentUser, () => activeCat.value], (_) => {
     if (!payable.value) return;

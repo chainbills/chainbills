@@ -49,6 +49,10 @@ export const tokens: Token[] = [
   {
     name: 'CAMP',
     details: {
+      basecampmainnet: {
+        address: contracts.basecampmainnet,
+        decimals: 18
+      },
       basecamptestnet: {
         address: contracts.basecamptestnet,
         decimals: 18

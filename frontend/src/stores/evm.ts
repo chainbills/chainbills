@@ -14,6 +14,7 @@ import {
   createConfig,
   getBalance,
   readContract as rawReadContract,
+  writeContract as rawWriteContract,
   signMessage,
   simulateContract,
   waitForTransactionReceipt,
@@ -22,8 +23,6 @@ import { useAccount } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import {
-  createWalletClient,
-  custom,
   http,
   parseEventLogs,
   zeroAddress,
@@ -120,18 +119,19 @@ export const useEvmStore = defineStore('evm', () => {
         account: account.address.value,
         ...(value ? { value: BigInt(value) } : {}),
       });
-      const hash = await createWalletClient({
-        chain: account.chain.value,
-        transport: custom((window as any).ethereum),
-      }).writeContract(request);
+      request.chainId = config.chains[0].id as any;
+      (request as any).connector = account.connector.value;
+      const hash = await rawWriteContract(config, request);
       const receipt = await waitForTransactionReceipt(config, { hash });
-      await new Promise((resolve => setTimeout(resolve, 3000))); // Wait more for confirmations
+      await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait more for confirmations
       analytics.recordEvent('completed_evm_transaction');
       return { hash, receipt, result };
     } catch (e: any) {
       if (!`${e}`.toLowerCase().includes('user rejected')) {
         toastError(
-          `${e}`.toLowerCase().includes('failed to fetch') ? 'Network Error' : (e['details'] ?? `${e}`).split('()')[0] // Message just before the EVM Revert error
+          `${e}`.toLowerCase().includes('failed to fetch')
+            ? 'Network Error'
+            : (e['details'] ?? e['shortMessage'] ?? e['message'] ?? `${e}`).split('()')[0] // Message just before the EVM Revert error
         );
         analytics.recordEvent('failed_evm_transaction');
         console.error(e);

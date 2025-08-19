@@ -9,7 +9,7 @@ import IconSolana from '@/icons/IconSolana.vue';
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
 import IconSync from '@/icons/IconSync.vue';
-import { basecamptestnet, megaethtestnet, type ChainName } from '@/schemas';
+import { basecampMainnet, basecampmainnet, basecamptestnet, megaethtestnet, type ChainName } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useSidebarStore, useThemeStore } from '@/stores';
 import { useAppKit, useAppKitNetwork } from '@reown/appkit/vue';
 import { useAccount } from '@wagmi/vue';
@@ -29,6 +29,7 @@ const { open: openAppKit, close: closeAppKit } = useAppKit();
 const appkitNetwork = useAppKitNetwork();
 const auth = useAuthStore();
 const icons = {
+  basecampmainnet: IconBaseCamp,
   basecamptestnet: IconBaseCamp,
   megaethtestnet: IconMegaETH,
   solanadevnet: IconSolana,
@@ -55,7 +56,8 @@ const onClickEvm = () => {
 
   const chainName = selectedChainName.value;
   let viemChain;
-  if (chainName == 'basecamptestnet') viemChain = basecampTestnet;
+  if (chainName == 'basecampmainnet') viemChain = basecampMainnet;
+  else if (chainName == 'basecamptestnet') viemChain = basecampTestnet;
   else if (chainName == 'megaethtestnet') viemChain = megaethTestnet;
   else throw new Error(`Unsupported EVM Chain: ${chainName}`);
 
@@ -159,7 +161,7 @@ onMounted(() => {
         closeAppKit();
 
         // carrying out this navigation here because the payable detail page in which the user
-        // is will not be available on the new chain 
+        // is will not be available on the new chain
         if (route.name == 'payable') router.push('/dashboard');
       }
     }
@@ -214,7 +216,7 @@ onMounted(() => {
       <p class="mb-4 sm:mb-6">First Select a Blockchain Network</p>
 
       <Button
-        v-for="chain of [basecamptestnet, megaethtestnet]"
+        v-for="chain of [basecampmainnet, basecamptestnet, megaethtestnet]"
         :class="
           'text-current border-none shadow-md dark:shadow-[#ffffff0a] flex items-center px-3 py-2 mb-4 text-lg ' +
           (selectedChainName == chain.name ? 'bg-primary bg-opacity-30' : 'bg-transparent')

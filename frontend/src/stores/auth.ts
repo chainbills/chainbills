@@ -1,4 +1,13 @@
-import { basecamptestnet, type Chain, megaethtestnet, solanadevnet, type Token, User } from '@/schemas';
+import {
+  basecampmainnet,
+  basecampMainnet,
+  basecamptestnet,
+  type Chain,
+  megaethtestnet,
+  solanadevnet,
+  type Token,
+  User,
+} from '@/schemas';
 import { useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { defineStore } from 'pinia';
@@ -34,6 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const getChainStore: any = (chain?: Chain) =>
     ({
+      basecampmainnet: evm,
       basecamptestnet: evm,
       megaethtestnet: evm,
       solanadevnet: solana,
@@ -59,6 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
   const disconnect = async (chain?: Chain): Promise<void> => {
     if (chain || currentUser.value) {
       return await {
+        basecampmainnet: evmDisconnect,
         basecamptestnet: evmDisconnect,
         megaethtestnet: evmDisconnect,
         solanadevnet: solanaWallet.disconnect,
@@ -126,6 +137,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (newEvmAddress) {
       const evmChainId = evmAccount.chain.value?.id;
+      if (evmChainId === basecampMainnet.id) newChain = basecampmainnet;
       if (evmChainId === basecampTestnet.id) newChain = basecamptestnet;
       if (evmChainId === megaethTestnet.id) newChain = megaethtestnet;
     }

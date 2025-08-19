@@ -26,6 +26,7 @@ export const usePayableStore = defineStore('payable', () => {
 
   const getChainStore: any = () =>
     ({
+      basecampmainnet: evm,
       basecamptestnet: evm,
       megaethtestnet: evm,
       solanadevnet: solana,

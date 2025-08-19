@@ -29,6 +29,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     if (!auth.currentUser) return null;
 
     const result = await {
+      basecampmainnet: evm,
       basecamptestnet: evm,
       megaethtestnet: evm,
       solanadevnet: solana,

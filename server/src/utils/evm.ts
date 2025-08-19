@@ -8,13 +8,10 @@ import {
 import { basecampTestnet, megaethTestnet } from 'viem/chains';
 import { contracts } from '../schemas';
 import { abi } from './abi';
-import { ChainName } from './chain';
+import { basecampMainnet, ChainName } from './chain';
 
-export const evmVerify = async (
-  message: string,
-  signature: any,
-  address: any
-) => await verifyMessage({ address, message, signature });
+export const evmVerify = async (message: string, signature: any, address: any) =>
+  await verifyMessage({ address, message, signature });
 
 export type AbiFunctionName = ContractFunctionName<typeof abi, 'pure' | 'view'>;
 
@@ -24,7 +21,8 @@ export const evmReadContract = async (
   chainName: ChainName
 ) => {
   let chain;
-  if (chainName == 'basecamptestnet') chain = basecampTestnet;
+  if (chainName == 'basecampmainnet') chain == basecampMainnet;
+  else if (chainName == 'basecamptestnet') chain = basecampTestnet;
   else if (chainName == 'megaethtestnet') chain = megaethTestnet;
   else throw new Error(`Unsupported chain: ${chainName}`);
 
@@ -42,9 +40,5 @@ export const evmFetch = async (
   id: string,
   chainName: ChainName
 ) => {
-  return await evmReadContract(
-    `get${entity}` as AbiFunctionName,
-    [id as `0x${string}`],
-    chainName
-  );
+  return await evmReadContract(`get${entity}` as AbiFunctionName, [id as `0x${string}`], chainName);
 };

@@ -1,4 +1,6 @@
 import {
+  basecampmainnet,
+  basecampMainnet,
   basecamptestnet,
   contracts,
   megaethtestnet,
@@ -52,7 +54,8 @@ export const useEvmStore = defineStore('evm', () => {
   };
 
   const getViemChain = (chainName: ChainName): ViemChain => {
-    if (chainName == 'basecamptestnet') return basecampTestnet;
+    if (chainName == 'basecampmainnet') return basecampMainnet;
+    else if (chainName == 'basecamptestnet') return basecampTestnet;
     else if (chainName == 'megaethtestnet') return megaethTestnet;
     else throw new Error(`Unsupported EVM Chain: ${chainName}`);
   };
@@ -60,6 +63,7 @@ export const useEvmStore = defineStore('evm', () => {
   const getCurrentChain = (): Chain | null => {
     if (!account.chain.value) return null;
     return {
+      [basecampMainnet.id]: basecampmainnet,
       [basecampTestnet.id]: basecamptestnet,
       [megaethTestnet.id]: megaethtestnet,
     }[account.chain.value.id]!;

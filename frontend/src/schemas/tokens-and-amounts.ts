@@ -9,6 +9,7 @@ export const getTokenLogo = (chain: Chain, token: Token) => {
 };
 
 export const contracts: Record<ChainName, string> = {
+  basecampmainnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   basecamptestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   megaethtestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
@@ -100,6 +101,10 @@ export const tokens: Token[] = [
   {
     name: 'CAMP',
     details: {
+      basecampmainnet: {
+        address: contracts.basecampmainnet,
+        decimals: 18,
+      },
       basecamptestnet: {
         address: contracts.basecamptestnet,
         decimals: 18,

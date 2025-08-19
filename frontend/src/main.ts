@@ -14,14 +14,15 @@ import AOS from 'aos';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Ripple from 'primevue/ripple';
-import ToastService from 'primevue/toastservice'; 
+import ToastService from 'primevue/toastservice';
 import SolanaWallets from 'solana-wallets-vue';
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
+import { basecampMainnet } from './schemas';
 
 const projectId = import.meta.env.VITE_WC_PROJECT_ID;
-const networks: [AppKitNetwork, ...AppKitNetwork[]] = [basecampTestnet, megaethTestnet];
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [basecampMainnet, basecampTestnet, megaethTestnet];
 const wagmiAdapter = new WagmiAdapter({ projectId, networks });
 
 createAppKit({

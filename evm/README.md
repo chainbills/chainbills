@@ -207,7 +207,7 @@ $ forge test
 $ forge fmt
 
 # Deploy the Contract
-$ forge script script/DeployChainbills.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
+$ forge script script/DeployChainbills.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvv
 
 # Run Necessary Scripts
 $ forge script script/AllowPaymentsForToken.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv

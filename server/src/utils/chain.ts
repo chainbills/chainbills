@@ -1,4 +1,4 @@
-import { defineChain } from "viem";
+import { defineChain } from 'viem';
 
 export type ChainName = 'basecamptestnet' | 'basecampmainnet' | 'megaethtestnet' | 'solanadevnet';
 export const chainNames: ChainName[] = [

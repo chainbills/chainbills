@@ -1,5 +1,5 @@
-export type ChainName = 'megaeth' | 'solanadevnet';
-export const chainNames: ChainName[] = ['megaeth', 'solanadevnet'];
+export type ChainName = 'megaeth' | 'solanadevnet' | 'arctestnet';
+export const chainNames: ChainName[] = ['megaeth', 'arctestnet', 'solanadevnet'];
 
 export type ChainNetworkType = 'mainnet' | 'testnet';
 export const chainNetworkTypes: ChainNetworkType[] = ['mainnet', 'testnet'];
@@ -11,6 +11,15 @@ export interface Chain {
   isSolana: boolean;
   networkType: ChainNetworkType;
 }
+
+export const arctestnet: Chain = {
+  name: 'arctestnet',
+  displayName: 'Arc Testnet',
+  isEvm: true,
+  isSolana: false,
+  networkType: 'testnet'
+};
+
 
 export const megaeth: Chain = {
   name: 'megaeth',
@@ -29,6 +38,7 @@ export const solanadevnet: Chain = {
 };
 
 export const chainNamesToChains: Record<ChainName, Chain> = {
+  arctestnet,
   megaeth,
   solanadevnet
 };

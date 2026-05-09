@@ -9,6 +9,7 @@ export const getTokenLogo = (chain: Chain, token: Token) => {
 };
 
 export const contracts: Record<ChainName, string> = {
+  arctestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
 };
@@ -88,9 +89,9 @@ export const tokens: Token[] = [
   {
     name: 'USDC',
     details: {
-      solanadevnet: {
-        address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-        decimals: 6,
+      arctestnet: {
+        address: contracts.arctestnet,
+        decimals: 18,
       },
     },
   },

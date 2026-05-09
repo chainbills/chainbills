@@ -1,5 +1,5 @@
-export type ChainName = 'megaeth' | 'solanadevnet';
-export const chainNamesEvm: ChainName[] = ['megaeth'];
+export type ChainName = 'arctestnet' | 'megaeth' | 'solanadevnet';
+export const chainNamesEvm: ChainName[] = ['megaeth', 'arctestnet'];
 export const chainNames: ChainName[] = [...chainNamesEvm, 'solanadevnet'];
 
 export interface Chain {
@@ -11,12 +11,14 @@ export interface Chain {
 
 export const getTxUrl = (txHash: string, chain: Chain) => {
   if (chain.name === 'megaeth') return `https://megaeth.blockscout.com/tx/${txHash}`;
+  if (chain.name === 'arctestnet') return `https://testnet.arcscan.app/tx/${txHash}`;
   if (chain.name === 'solanadevnet') return `https://explorer.solana.com/tx/${txHash}?cluster=devnet`;
   throw 'Unhandled Chain in GetTxUrl';
 };
 
 export const getWalletUrl = (wallet: string, chain: Chain) => {
   if (chain.name === 'megaeth') return `https://megaexplorer.xyz/address/${wallet}`;
+  if (chain.name === 'arctestnet') return `https://testnet.arcscan.app/address/${wallet}`;
   if (chain.name === 'solanadevnet') return `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
   throw 'Unhandled Chain in GetWalletUrl';
 };
@@ -24,6 +26,13 @@ export const getWalletUrl = (wallet: string, chain: Chain) => {
 export const megaeth: Chain = {
   name: 'megaeth',
   displayName: 'MegaETH',
+  isEvm: true,
+  isSolana: false,
+};
+
+export const arctestnet: Chain = {
+  name: 'arctestnet',
+  displayName: 'Arc Testnet',
   isEvm: true,
   isSolana: false,
 };
@@ -36,7 +45,8 @@ export const solanadevnet: Chain = {
 };
 
 export const chainNamesToChains: Record<ChainName, Chain> = {
-  megaeth: megaeth,
+  arctestnet,
+  megaeth,
   solanadevnet,
 };
 

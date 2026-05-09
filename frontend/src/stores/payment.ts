@@ -1,4 +1,5 @@
 import {
+  arctestnet,
   chainNames,
   chainNamesEvm,
   chainNamesToChains,
@@ -40,6 +41,7 @@ export const usePaymentStore = defineStore('payment', () => {
     if (!auth.currentUser) return null;
 
     const result = await {
+      arctestnet: evm,
       megaeth: evm,
       solanadevnet: solana,
     }[auth.currentUser.chain.name]['pay'](payableId, details);

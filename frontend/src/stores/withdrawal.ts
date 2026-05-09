@@ -38,6 +38,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     if (!auth.currentUser) return null;
 
     const result = await {
+      arctestnet: evm,
       megaeth: evm,
       solanadevnet: solana,
     }[auth.currentUser.chain.name]['withdraw'](payableId, details);

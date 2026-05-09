@@ -1,5 +1,6 @@
 import {
   contracts,
+  arctestnet,
   megaeth as megaethInApp,
   OnChainSuccess,
   TokenAndAmount,
@@ -31,7 +32,7 @@ import {
   type TransactionReceipt,
   type Chain as ViemChain,
 } from 'viem';
-import { megaeth as megaethViem } from 'viem/chains';
+import {arcTestnet, megaeth as megaethViem } from 'viem/chains';
 
 interface WriteContractResponse {
   hash: string;
@@ -52,12 +53,14 @@ export const useEvmStore = defineStore('evm', () => {
 
   const getViemChain = (chainName: ChainName): ViemChain => {
     if (chainName == 'megaeth') return megaethViem;
+    else if (chainName == 'arctestnet') return arcTestnet;
     else throw new Error(`Unsupported EVM Chain: ${chainName}`);
   };
 
   const getCurrentChain = (): Chain | null => {
     if (!account.chain.value) return null;
     return {
+      [arcTestnet.id]: arctestnet,
       [megaethViem.id]: megaethInApp,
     }[account.chain.value.id]!;
   };

@@ -5,7 +5,7 @@ import {
   http,
   verifyMessage
 } from 'viem';
-import { megaeth as megaethViem, Chain as ViemChain } from 'viem/chains';
+import { arcTestnet, megaeth, Chain as ViemChain } from 'viem/chains';
 import { contracts } from '../schemas';
 import { abi } from './abi';
 import { ChainName } from './chain';
@@ -21,7 +21,8 @@ export const evmReadContract = async (
   chainName: ChainName
 ) => {
   let chain: ViemChain;
-  if (chainName == 'megaeth') chain = megaethViem;
+  if (chainName == 'megaeth') chain = megaeth;
+  else if (chainName == 'arctestnet') chain = arcTestnet;
   else throw new Error(`Unsupported chain: ${chainName}`);
 
   // @ts-ignore

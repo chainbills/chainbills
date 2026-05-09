@@ -1,4 +1,4 @@
-import { type Chain, chainNamesToChains, Payable, TokenAndAmount } from '@/schemas';
+import { arctestnet, type Chain, chainNamesToChains, Payable, TokenAndAmount } from '@/schemas';
 import {
   useAnalyticsStore,
   useAuthStore,
@@ -26,6 +26,7 @@ export const usePayableStore = defineStore('payable', () => {
 
   const getChainStore: any = () =>
     ({
+      arctestnet: evm,
       megaeth: evm,
       solanadevnet: solana,
     })[auth.currentUser!.chain.name];

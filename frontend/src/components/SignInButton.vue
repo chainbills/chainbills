@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const { id } = defineProps(['id']);
-import IconBaseCamp from '@/icons/IconBaseCamp.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconLogout from '@/icons/IconLogout.vue';
 import IconMegaETH from '@/icons/IconMegaETH.vue';
@@ -8,8 +7,7 @@ import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import IconSolana from '@/icons/IconSolana.vue';
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
-import IconSync from '@/icons/IconSync.vue';
-import { basecampMainnet, basecampmainnet, basecamptestnet, megaethtestnet, type ChainName } from '@/schemas';
+import { megaeth as megaethInApp, type ChainName } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useSidebarStore, useThemeStore } from '@/stores';
 import { useAppKit, useAppKitNetwork } from '@reown/appkit/vue';
 import { useAccount } from '@wagmi/vue';
@@ -18,7 +16,7 @@ import Dialog from 'primevue/dialog';
 import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet } from 'solana-wallets-vue';
-import { basecampTestnet, megaethTestnet } from 'viem/chains';
+import { megaeth as megaethViem } from 'viem/chains';
 import { onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -29,9 +27,7 @@ const { open: openAppKit, close: closeAppKit } = useAppKit();
 const appkitNetwork = useAppKitNetwork();
 const auth = useAuthStore();
 const icons = {
-  basecampmainnet: IconBaseCamp,
-  basecamptestnet: IconBaseCamp,
-  megaethtestnet: IconMegaETH,
+  megaeth: IconMegaETH,
   solanadevnet: IconSolana,
 };
 const isModalVisible = ref(false);
@@ -56,9 +52,7 @@ const onClickEvm = () => {
 
   const chainName = selectedChainName.value;
   let viemChain;
-  if (chainName == 'basecampmainnet') viemChain = basecampMainnet;
-  else if (chainName == 'basecamptestnet') viemChain = basecampTestnet;
-  else if (chainName == 'megaethtestnet') viemChain = megaethTestnet;
+  if (chainName == 'megaeth') viemChain = megaethViem;
   else throw new Error(`Unsupported EVM Chain: ${chainName}`);
 
   appkitNetwork.value.switchNetwork(viemChain);
@@ -122,15 +116,15 @@ const walletItems = () => [
       sidebar.close();
     },
   },
-  {
-    label: 'Switch Chain',
-    customIcon: IconSync,
-    command: () => {
-      isModalVisible.value = false;
-      sidebar.close();
-      openAppKit({ view: 'Networks' });
-    },
-  },
+  // {
+  //   label: 'Switch Chain',
+  //   customIcon: IconSync,
+  //   command: () => {
+  //     isModalVisible.value = false;
+  //     sidebar.close();
+  //     openAppKit({ view: 'Networks' });
+  //   },
+  // },
   {
     label: 'Disconnect',
     customIcon: IconLogout,
@@ -216,7 +210,7 @@ onMounted(() => {
       <p class="mb-4 sm:mb-6">First Select a Blockchain Network</p>
 
       <Button
-        v-for="chain of [basecampmainnet, basecamptestnet, megaethtestnet]"
+        v-for="chain of [megaethInApp]"
         :class="
           'text-current border-none shadow-md dark:shadow-[#ffffff0a] flex items-center px-3 py-2 mb-4 text-lg ' +
           (selectedChainName == chain.name ? 'bg-primary bg-opacity-30' : 'bg-transparent')

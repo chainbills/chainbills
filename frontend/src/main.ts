@@ -5,7 +5,7 @@ import './assets/main.css';
 import { definePreset } from '@primevue/themes';
 import Aura from '@primevue/themes/aura';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { basecampTestnet, megaethTestnet, type AppKitNetwork } from '@reown/appkit/networks';
+import { megaeth, type AppKitNetwork } from '@reown/appkit/networks';
 import { createAppKit } from '@reown/appkit/vue';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
@@ -19,10 +19,9 @@ import SolanaWallets from 'solana-wallets-vue';
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
-import { basecampMainnet } from './schemas';
 
 const projectId = import.meta.env.VITE_WC_PROJECT_ID;
-const networks: [AppKitNetwork, ...AppKitNetwork[]] = [basecampMainnet, basecampTestnet, megaethTestnet];
+const networks: [AppKitNetwork, ...AppKitNetwork[]] = [megaeth];
 const wagmiAdapter = new WagmiAdapter({ projectId, networks });
 
 createAppKit({

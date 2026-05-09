@@ -40,9 +40,7 @@ export const usePaymentStore = defineStore('payment', () => {
     if (!auth.currentUser) return null;
 
     const result = await {
-      basecampmainnet: evm,
-      basecamptestnet: evm,
-      megaethtestnet: evm,
+      megaeth: evm,
       solanadevnet: solana,
     }[auth.currentUser.chain.name]['pay'](payableId, details);
     if (!result) return null;
@@ -75,8 +73,8 @@ export const usePaymentStore = defineStore('payment', () => {
   const get = async (id: string): Promise<Payment | null> => {
     // Check if the payment is already in the cache and return if so.
     // Looping through known chain names as the chain is not known (straight from browser URL)
-    for (let chainName of chainNames) {
-      for (let type of ['user', 'payable']) {
+    for (const chainName of chainNames) {
+      for (const type of ['user', 'payable']) {
         let payment = await cache.retrieve(cacheKey(chainName, type, id));
         if (payment) {
           // Necessary to restore callable methods on retrieved instance
@@ -102,8 +100,8 @@ export const usePaymentStore = defineStore('payment', () => {
     const _chainNames = [...(isEvm ? chainNamesEvm : []), ...(isSolana ? ['solanadevnet'] : [])] as ChainName[];
 
     // Fetch the Payment directly from the chain
-    for (let chainName of _chainNames) {
-      for (let type of ['user', 'payable']) {
+    for (const chainName of _chainNames) {
+      for (const type of ['user', 'payable']) {
         let raw: any;
         if (isEvm) {
           const fetchKey = type[0].toUpperCase() + type.substring(1) + 'Payment';

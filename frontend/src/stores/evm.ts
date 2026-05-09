@@ -1,9 +1,6 @@
 import {
-  basecampmainnet,
-  basecampMainnet,
-  basecamptestnet,
   contracts,
-  megaethtestnet,
+  megaeth as megaethInApp,
   OnChainSuccess,
   TokenAndAmount,
   User,
@@ -34,7 +31,7 @@ import {
   type TransactionReceipt,
   type Chain as ViemChain,
 } from 'viem';
-import { basecampTestnet, megaethTestnet } from 'viem/chains';
+import { megaeth as megaethViem } from 'viem/chains';
 
 interface WriteContractResponse {
   hash: string;
@@ -54,18 +51,14 @@ export const useEvmStore = defineStore('evm', () => {
   };
 
   const getViemChain = (chainName: ChainName): ViemChain => {
-    if (chainName == 'basecampmainnet') return basecampMainnet;
-    else if (chainName == 'basecamptestnet') return basecampTestnet;
-    else if (chainName == 'megaethtestnet') return megaethTestnet;
+    if (chainName == 'megaeth') return megaethViem;
     else throw new Error(`Unsupported EVM Chain: ${chainName}`);
   };
 
   const getCurrentChain = (): Chain | null => {
     if (!account.chain.value) return null;
     return {
-      [basecampMainnet.id]: basecampmainnet,
-      [basecampTestnet.id]: basecamptestnet,
-      [megaethTestnet.id]: megaethtestnet,
+      [megaethViem.id]: megaethInApp,
     }[account.chain.value.id]!;
   };
 
@@ -198,7 +191,7 @@ export const useEvmStore = defineStore('evm', () => {
   ) => await readContract(`get${entity}`, [id as `0x${string}`], chainName, ignoreErrors);
 
   const getCurrentUser = async () => {
-    let addr = (account.address.value ?? '').toLowerCase() as `0x${string}`;
+    const addr = (account.address.value ?? '').toLowerCase() as `0x${string}`;
     if (!addr) return null;
 
     const chain = getCurrentChain();

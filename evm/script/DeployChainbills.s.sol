@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import 'openzeppelin-foundry-upgrades/Upgrades.sol';
 import 'forge-std/Script.sol';
-import 'src/Chainbills.sol';
+import '../src/Chainbills.sol';
 
 contract DeployChainbills is Script {
   function run() public {

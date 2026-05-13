@@ -1,4 +1,4 @@
-export * from './abi';
+export * from './abis';
 export * from './chain';
 export * from './evm';
 export * from './firebase';

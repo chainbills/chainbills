@@ -211,6 +211,51 @@ export const usePaymentStore = defineStore('payment', () => {
     const target = page * count + 1;
     if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
+      const chain = auth.currentUser.chain;
+      if (chain.isEvm) {
+        const offset = page * count;
+        const ids: string[] | null = await evm.getUserPaymentIdsPaginated(
+          auth.currentUser.walletAddress,
+          offset,
+          count,
+          chain.name
+        );
+        if (!ids || ids.length === 0) return [];
+
+        const payments: UserPayment[] = [];
+        const missingIds: string[] = [];
+
+        // 1. Try to load from cache first
+        for (const id of ids) {
+          let payment = await cache.retrieve(cacheKey(chain.name, 'user', id));
+          if (payment) {
+            payment = Object.setPrototypeOf(payment, UserPayment.prototype);
+            payments.push(payment);
+          } else {
+            missingIds.push(id);
+            payments.push(null as any); // placeholder
+          }
+        }
+
+        // 2. Bulk fetch missing IDs
+        if (missingIds.length > 0) {
+          const rawPayments = await evm.getUserPaymentsBulk(missingIds, chain.name);
+          if (rawPayments) {
+            let missingIndex = 0;
+            for (let i = 0; i < payments.length; i++) {
+              if (payments[i] === null) {
+                const raw = rawPayments[missingIndex];
+                const payment = new UserPayment(ids[i], chain, raw);
+                await cache.save(cacheKey(chain.name, 'user', ids[i]), payment);
+                payments[i] = payment;
+                missingIndex++;
+              }
+            }
+          } else return null;
+        }
+        return payments;
+      }
+
       const payments: UserPayment[] = [];
       for (let i = start; i >= target; i--) {
         const id = await auth.getPaymentId(i);
@@ -236,6 +281,44 @@ export const usePaymentStore = defineStore('payment', () => {
     const target = page * count + 1;
     if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
+      if (chain.isEvm) {
+        const offset = page * count;
+        const xId = (!payable.id.startsWith('0x') ? `0x${payable.id}` : payable.id) as `0x${string}`;
+        const ids: string[] | null = await evm.getPayablePaymentIdsPaginated(xId, offset, count, chain.name);
+        if (!ids || ids.length === 0) return [];
+
+        const payments: PayablePayment[] = [];
+        const missingIds: string[] = [];
+
+        for (const id of ids) {
+          let payment = await cache.retrieve(cacheKey(chain.name, 'payable', id));
+          if (payment) {
+            payment = Object.setPrototypeOf(payment, PayablePayment.prototype);
+            payments.push(payment);
+          } else {
+            missingIds.push(id);
+            payments.push(null as any);
+          }
+        }
+
+        if (missingIds.length > 0) {
+          const rawPayments = await evm.getPayablePaymentsBulk(missingIds, chain.name);
+          if (rawPayments) {
+            let missingIndex = 0;
+            for (let i = 0; i < payments.length; i++) {
+              if (payments[i] === null) {
+                const raw = rawPayments[missingIndex];
+                const payment = new PayablePayment(ids[i], chain, raw);
+                await cache.save(cacheKey(chain.name, 'payable', ids[i]), payment);
+                payments[i] = payment;
+                missingIndex++;
+              }
+            }
+          } else return null;
+        }
+        return payments;
+      }
+
       const payments: PayablePayment[] = [];
       for (let i = start; i >= target; i--) {
         const id = await payableStore.getPaymentId(payable.id, chain, i);

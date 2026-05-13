@@ -20,6 +20,7 @@ Here you will find engineering specifics that apply to this EVM contract.
 - [Creating IDs](#creating-ids)
 - [Upgradeability](#upgradeability)
 - [`delegatecall`](#delegatecall)
+- [State Getters and Pagination](#state-getters-and-pagination)
 - [Tests](#tests)
 - [About Foundry](#about-foundry)
 - [Script Runner](#script-runner)
@@ -97,7 +98,8 @@ The Chainbills contract in EVM is split into multiple files to improve readabili
 - **`CbErrors.sol`**: Contains all the custom errors used in the contract used in `revert` statements across all other files.
 - **`CbEvents.sol`**: Contains all the events emitted by different files and functions in the contract.
 - **`CbStructs.sol`**: Contains all the structs and enum used accross contract files.
-- **`CbState.sol`**: Contains all the top-level state variables (mappings and arrays) used in the contract. It also exposes getters for structs and arrays in mappings.
+- **`CbState.sol`**: Contains all the top-level state variables (mappings and arrays) used in the contract.
+- **`CbGetters.sol`**: A dedicated, read-only contract that wraps the main Chainbills contract to provide safe, paginated, and bulk getters for all state variables.
 - **`CbUtils.sol`**: Contains _internal_ utility functions used across multiple files like `createId`, `initializeUserIfNeedBe`, etc. It extends `CbState` to access state variables.
 - **`CbPayables.sol`**: Contains all the functions related to payables (creating and updating). It extends `CbUtils` to access utility functions and state variables.
 - **`CbTransactions.sol`**: Contains all the functions related to transactions (payments and withdrawals). It also extends `CbUtils` to access utility functions and state variables.
@@ -178,6 +180,19 @@ function pay(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ 
 Notwithstanding, the main Chainbills contract declares its governance methods (`onlyOnwer`) by itself.
 
 Luckily, if there is an update to the internal flow of CbPayables or CbTransactions, we can redeploy new variants and set the new addresses as the logic handlers in the main Chainbills contract without upgrading Chainbills itself. Of course, only the deployer / owner wallet of Chainbills can do the upgrade.
+
+## State Getters and Pagination
+
+To maintain the main Chainbills contract within the EVM 24kb limit, all complex state retrieval and array pagination logic are offloaded to a standalone contract: `CbGetters.sol`.
+
+Instead of bloating the main contract with dozens of struct-returning getters or `for`-loop pagination methods, `CbGetters` acts as a read-only wrapper. It takes the main `Chainbills` contract address in its constructor, casts it to `CbState`, and reads directly from the public state mappings and arrays.
+
+**Key features of `CbGetters`:**
+- **Paginated Arrays**: Exposes paginated endpoints for all global arrays (e.g., `chainActivityIdsPaginated(offset, limit)`) and mapped arrays (e.g., `payableActivityIdsPaginated(payableId, offset, limit)`).
+- **Safe Slicing**: Implements internal pagination helpers that safely slice storage arrays to prevent "Out of Gas" or out-of-bounds errors when fetching massive lists.
+- **Bulk Struct Fetching**: Allows clients to fetch multiple structs in a single RPC call by passing an array of IDs (e.g., `getPayablesBulk(bytes32[] ids)`).
+
+When building frontends or writing tests that need to inspect the contract's state, you should interact with the `CbGetters` contract rather than calling the main `Chainbills` contract directly.
 
 ## Tests
 

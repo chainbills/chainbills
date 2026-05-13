@@ -1,23 +1,24 @@
-import {
-  ContractFunctionArgs,
-  ContractFunctionName,
-  createPublicClient,
-  http,
-  verifyMessage
-} from 'viem';
+import { ContractFunctionArgs, ContractFunctionName, createPublicClient, http, verifyMessage } from 'viem';
 import { arcTestnet, megaeth, Chain as ViemChain } from 'viem/chains';
-import { contracts } from '../schemas';
-import { abi } from './abi';
+import { gettersAbi } from './abis';
 import { ChainName } from './chain';
+
+const getters: Record<ChainName, string> = {
+  arctestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
+  megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
+  // TODO: Update with actual Sepolia deployment address after redeployment
+  sepolia: '0x0000000000000000000000000000000000000000',
+  solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
+};
 
 export const evmVerify = async (message: string, signature: any, address: any) =>
   await verifyMessage({ address, message, signature });
 
-export type AbiFunctionName = ContractFunctionName<typeof abi, 'pure' | 'view'>;
+export type AbiFunctionName = ContractFunctionName<typeof gettersAbi, 'pure' | 'view'>;
 
 export const evmReadContract = async (
   functionName: AbiFunctionName,
-  args: ContractFunctionArgs<typeof abi, 'pure' | 'view', AbiFunctionName> = [],
+  args: ContractFunctionArgs<typeof gettersAbi, 'pure' | 'view', AbiFunctionName> = [],
   chainName: ChainName
 ) => {
   let chain: ViemChain;
@@ -27,10 +28,10 @@ export const evmReadContract = async (
 
   // @ts-ignore
   return await createPublicClient({ chain, transport: http() }).readContract({
-    address: contracts[chainName] as `0x${string}`,
-    abi,
+    address: getters[chainName] as `0x${string}`,
+    abi: gettersAbi,
     functionName,
-    args
+    args,
   });
 };
 

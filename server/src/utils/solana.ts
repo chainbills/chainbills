@@ -6,23 +6,13 @@ import nacl from 'tweetnacl';
 import { contracts } from '../schemas';
 import { IDL, type Chainbills } from './idl';
 
-export const solanaFetch = async (
-  entity: keyof AllAccountsMap<Chainbills>,
-  id: string
-) => await program().account[entity].fetch(new PublicKey(id));
+export const solanaFetch = async (entity: keyof AllAccountsMap<Chainbills>, id: string) =>
+  await program().account[entity].fetch(new PublicKey(id));
 
 export const program = () =>
   new Program<Chainbills>(IDL, contracts.solanadevnet, {
-    connection: new Connection(clusterApiUrl('devnet'))
+    connection: new Connection(clusterApiUrl('devnet')),
   });
 
-export const solanaVerify = (
-  message: string,
-  signature: string,
-  publicKey: string
-) =>
-  nacl.sign.detached.verify(
-    new TextEncoder().encode(message),
-    bs58.decode(signature),
-    bs58.decode(publicKey)
-  );
+export const solanaVerify = (message: string, signature: string, publicKey: string) =>
+  nacl.sign.detached.verify(new TextEncoder().encode(message), bs58.decode(signature), bs58.decode(publicKey));

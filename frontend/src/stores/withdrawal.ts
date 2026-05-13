@@ -138,6 +138,49 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     const target = page * count + 1;
     if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
+      const chain = auth.currentUser.chain;
+      if (chain.isEvm) {
+        const offset = page * count;
+        const ids: string[] | null = await evm.getUserWithdrawalIdsPaginated(
+          auth.currentUser.walletAddress,
+          offset,
+          count,
+          chain.name
+        );
+        if (!ids || ids.length === 0) return [];
+
+        const withdrawals: Withdrawal[] = [];
+        const missingIds: string[] = [];
+
+        for (const id of ids) {
+          let withdrawal = await cache.retrieve(cacheKey(chain.name, id));
+          if (withdrawal) {
+            withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
+            withdrawals.push(withdrawal);
+          } else {
+            missingIds.push(id);
+            withdrawals.push(null as any);
+          }
+        }
+
+        if (missingIds.length > 0) {
+          const rawWithdrawals = await evm.getWithdrawalsBulk(missingIds, chain.name);
+          if (rawWithdrawals) {
+            let missingIndex = 0;
+            for (let i = 0; i < withdrawals.length; i++) {
+              if (withdrawals[i] === null) {
+                const raw = rawWithdrawals[missingIndex];
+                const withdrawal = new Withdrawal(ids[i], chain, raw);
+                await cache.save(cacheKey(chain.name, ids[i]), withdrawal);
+                withdrawals[i] = withdrawal;
+                missingIndex++;
+              }
+            }
+          } else return null;
+        }
+        return withdrawals;
+      }
+
       const withdrawals: Withdrawal[] = [];
       for (let i = start; i >= target; i--) {
         const id = await auth.getWithdrawalId(i);
@@ -163,6 +206,44 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     const target = page * count + 1;
     if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
+      if (chain.isEvm) {
+        const offset = page * count;
+        const xId = (!payable.id.startsWith('0x') ? `0x${payable.id}` : payable.id) as `0x${string}`;
+        const ids: string[] | null = await evm.getPayableWithdrawalIdsPaginated(xId, offset, count, chain.name);
+        if (!ids || ids.length === 0) return [];
+
+        const withdrawals: Withdrawal[] = [];
+        const missingIds: string[] = [];
+
+        for (const id of ids) {
+          let withdrawal = await cache.retrieve(cacheKey(chain.name, id));
+          if (withdrawal) {
+            withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
+            withdrawals.push(withdrawal);
+          } else {
+            missingIds.push(id);
+            withdrawals.push(null as any);
+          }
+        }
+
+        if (missingIds.length > 0) {
+          const rawWithdrawals = await evm.getWithdrawalsBulk(missingIds, chain.name);
+          if (rawWithdrawals) {
+            let missingIndex = 0;
+            for (let i = 0; i < withdrawals.length; i++) {
+              if (withdrawals[i] === null) {
+                const raw = rawWithdrawals[missingIndex];
+                const withdrawal = new Withdrawal(ids[i], chain, raw);
+                await cache.save(cacheKey(chain.name, ids[i]), withdrawal);
+                withdrawals[i] = withdrawal;
+                missingIndex++;
+              }
+            }
+          } else return null;
+        }
+        return withdrawals;
+      }
+
       const withdrawals: Withdrawal[] = [];
       for (let i = start; i >= target; i--) {
         const id = await payableStore.getWithdrawalId(payable.id, chain, i);

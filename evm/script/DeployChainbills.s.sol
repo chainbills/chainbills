@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import 'openzeppelin-foundry-upgrades/Upgrades.sol';
 import 'forge-std/Script.sol';
 import '../src/Chainbills.sol';
+import '../src/CbGetters.sol';
 
 contract DeployChainbills is Script {
   function run() public {
@@ -27,6 +28,9 @@ contract DeployChainbills is Script {
 
     cb.setTransactionsLogic(address(new CbTransactions()));
     console.log('Added Transactions Logic to Chainbills');
+
+    address getters = address(new CbGetters(proxy));
+    console.log('Deployed CbGetters at: ', getters);
 
     vm.stopBroadcast();
   }

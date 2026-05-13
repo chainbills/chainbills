@@ -6,6 +6,7 @@ import '@openzeppelin/contracts/interfaces/draft-IERC6093.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import 'forge-std/Test.sol';
 import 'src/Chainbills.sol';
+import 'src/CbGetters.sol';
 
 contract USDC is ERC20 {
   constructor() ERC20('USDC', 'USDC') {}
@@ -17,6 +18,7 @@ contract USDC is ERC20 {
 
 contract CbUsersTest is CbStructs, Test {
   Chainbills chainbills;
+  CbGetters cbGetters;
   USDC usdc;
 
   address feeCollector = makeAddr('fee-collector');
@@ -44,6 +46,7 @@ contract CbUsersTest is CbStructs, Test {
 
     chainbills.allowPaymentsForToken(address(usdc));
     chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeesUsdc);
+    cbGetters = new CbGetters(address(chainbills));
     vm.stopPrank();
 
     deal(user, ethAmt * 2);
@@ -54,15 +57,15 @@ contract CbUsersTest is CbStructs, Test {
 
   function testUserInitOnCreatePayable() public {
     vm.startPrank(user);
-    ChainStats memory prevChainStats = chainbills.getChainStats();
+    ChainStats memory prevChainStats = cbGetters.getChainStats();
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevChainStats.usersCount + 1);
 
     chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    ChainStats memory newChainStats = chainbills.getChainStats();
-    User memory newUser = chainbills.getUser(user);
+    ChainStats memory newChainStats = cbGetters.getChainStats();
+    User memory newUser = cbGetters.getUser(user);
     vm.stopPrank();
 
     assertEq(prevChainStats.usersCount + 1, newChainStats.usersCount);
@@ -73,13 +76,13 @@ contract CbUsersTest is CbStructs, Test {
     vm.prank(host);
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    ChainStats memory prevChainStats = chainbills.getChainStats();
+    ChainStats memory prevChainStats = cbGetters.getChainStats();
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevChainStats.usersCount + 1);
     vm.prank(user);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
-    ChainStats memory newChainStats = chainbills.getChainStats();
-    User memory newUser = chainbills.getUser(user);
+    ChainStats memory newChainStats = cbGetters.getChainStats();
+    User memory newUser = cbGetters.getUser(user);
 
     assertEq(newUser.chainCount, newChainStats.usersCount);
     assertEq(prevChainStats.usersCount + 1, newChainStats.usersCount);
@@ -87,22 +90,22 @@ contract CbUsersTest is CbStructs, Test {
 
   function testUserInitOnlyOnce() public {
     vm.startPrank(user);
-    ChainStats memory prevChainStats = chainbills.getChainStats();
+    ChainStats memory prevChainStats = cbGetters.getChainStats();
 
     vm.expectEmit(true, false, false, true);
     emit InitializedUser(user, prevChainStats.usersCount + 1);
     chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    ChainStats memory newChainStats = chainbills.getChainStats();
-    User memory newUser = chainbills.getUser(user);
+    ChainStats memory newChainStats = cbGetters.getChainStats();
+    User memory newUser = cbGetters.getUser(user);
 
     // creating multiple payables should not trigger
     // multiple user initializations
     chainbills.createPayable(new TokenAndAmount[](0), false);
     chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    ChainStats memory newerChainStats = chainbills.getChainStats();
-    User memory newerUser = chainbills.getUser(user);
+    ChainStats memory newerChainStats = cbGetters.getChainStats();
+    User memory newerUser = cbGetters.getUser(user);
     vm.stopPrank();
 
     assertEq(prevChainStats.usersCount + 1, newChainStats.usersCount);
@@ -113,25 +116,25 @@ contract CbUsersTest is CbStructs, Test {
 
   function testUserPayableCreation() public {
     vm.startPrank(user);
-    ChainStats memory prevChainStats = chainbills.getChainStats();
+    ChainStats memory prevChainStats = cbGetters.getChainStats();
 
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(bytes32(0), user, prevChainStats.payablesCount + 1, 1);
     (bytes32 payableId1,) = chainbills.createPayable(new TokenAndAmount[](0), false);
     bytes32 fetchedP1Id = chainbills.userPayableIds(user, 0);
-    Payable memory p1 = chainbills.getPayable(payableId1);
+    Payable memory p1 = cbGetters.getPayable(payableId1);
 
-    ChainStats memory newChainStats = chainbills.getChainStats();
+    ChainStats memory newChainStats = cbGetters.getChainStats();
 
     // testing twice to further confirm expected behavior
     vm.expectEmit(false, true, false, true);
     emit CreatedPayable(bytes32(0), user, prevChainStats.payablesCount + 2, 2);
     (bytes32 payableId2,) = chainbills.createPayable(new TokenAndAmount[](0), false);
     bytes32 fetchedP2Id = chainbills.userPayableIds(user, 1);
-    Payable memory p2 = chainbills.getPayable(payableId2);
+    Payable memory p2 = cbGetters.getPayable(payableId2);
 
-    ChainStats memory newerChainStats = chainbills.getChainStats();
-    User memory userDetails = chainbills.getUser(user);
+    ChainStats memory newerChainStats = cbGetters.getChainStats();
+    User memory userDetails = cbGetters.getUser(user);
     vm.stopPrank();
 
     // check stored IDs
@@ -204,9 +207,9 @@ contract CbUsersTest is CbStructs, Test {
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
     vm.startPrank(user);
-    ChainStats memory prevChainStats = chainbills.getChainStats();
-    TokenDetails memory prevEthDetails = chainbills.getTokenDetails(address(chainbills));
-    TokenDetails memory prevUsdcDetails = chainbills.getTokenDetails(address(usdc));
+    ChainStats memory prevChainStats = cbGetters.getChainStats();
+    TokenDetails memory prevEthDetails = cbGetters.getTokenDetails(address(chainbills));
+    TokenDetails memory prevUsdcDetails = cbGetters.getTokenDetails(address(usdc));
 
     // testing successful first payment with native token (ETH)
     uint256 prevCbEthBal = address(chainbills).balance;
@@ -219,8 +222,8 @@ contract CbUsersTest is CbStructs, Test {
     uint256 newCbEthBal = address(chainbills).balance;
     uint256 newUserEthBal = user.balance;
     bytes32 fetchedP1Id = chainbills.userPaymentIds(user, 0);
-    UserPayment memory p1 = chainbills.getUserPayment(paymentId1);
-    ChainStats memory newChainStats = chainbills.getChainStats();
+    UserPayment memory p1 = cbGetters.getUserPayment(paymentId1);
+    ChainStats memory newChainStats = cbGetters.getChainStats();
 
     // testing successful second payment with ERC20 token (USDC)
     uint256 prevCbUsdcBal = usdc.balanceOf(address(chainbills));
@@ -233,12 +236,12 @@ contract CbUsersTest is CbStructs, Test {
     uint256 newCbUsdcBal = usdc.balanceOf(address(chainbills));
     uint256 newUserUsdcBal = usdc.balanceOf(user);
     bytes32 fetchedP2Id = chainbills.userPaymentIds(user, 1);
-    UserPayment memory p2 = chainbills.getUserPayment(paymentId2);
+    UserPayment memory p2 = cbGetters.getUserPayment(paymentId2);
 
-    ChainStats memory newerChainStats = chainbills.getChainStats();
-    User memory userDetails = chainbills.getUser(user);
-    TokenDetails memory newEthDetails = chainbills.getTokenDetails(address(chainbills));
-    TokenDetails memory newUsdcDetails = chainbills.getTokenDetails(address(usdc));
+    ChainStats memory newerChainStats = cbGetters.getChainStats();
+    User memory userDetails = cbGetters.getUser(user);
+    TokenDetails memory newEthDetails = cbGetters.getTokenDetails(address(chainbills));
+    TokenDetails memory newUsdcDetails = cbGetters.getTokenDetails(address(usdc));
     vm.stopPrank();
 
     // check balances
@@ -315,11 +318,11 @@ contract CbUsersTest is CbStructs, Test {
     vm.startPrank(user);
     (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    ChainStats memory prevChainStats = chainbills.getChainStats();
-    User memory prevUser = chainbills.getUser(user);
-    Payable memory prevPayable = chainbills.getPayable(payableId);
-    TokenDetails memory prevEthDetails = chainbills.getTokenDetails(address(chainbills));
-    TokenDetails memory prevUsdcDetails = chainbills.getTokenDetails(address(usdc));
+    ChainStats memory prevChainStats = cbGetters.getChainStats();
+    User memory prevUser = cbGetters.getUser(user);
+    Payable memory prevPayable = cbGetters.getPayable(payableId);
+    TokenDetails memory prevEthDetails = cbGetters.getTokenDetails(address(chainbills));
+    TokenDetails memory prevUsdcDetails = cbGetters.getTokenDetails(address(usdc));
 
     // make a payment in native token to payable
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
@@ -364,10 +367,10 @@ contract CbUsersTest is CbStructs, Test {
     );
     bytes32 wId1 = chainbills.withdraw(payableId, address(chainbills), ethAmt);
     bytes32 fetchedW1Id = chainbills.userWithdrawalIds(user, 0);
-    Withdrawal memory w1 = chainbills.getWithdrawal(wId1);
-    ChainStats memory newChainStats = chainbills.getChainStats();
-    User memory newUser = chainbills.getUser(user);
-    Payable memory newPayable = chainbills.getPayable(payableId);
+    Withdrawal memory w1 = cbGetters.getWithdrawal(wId1);
+    ChainStats memory newChainStats = cbGetters.getChainStats();
+    User memory newUser = cbGetters.getUser(user);
+    Payable memory newPayable = cbGetters.getPayable(payableId);
 
     // testing successful second withdrawal with ERC20 token (USDC)
     vm.expectEmit(true, true, false, true);
@@ -381,7 +384,7 @@ contract CbUsersTest is CbStructs, Test {
     );
     bytes32 wId2 = chainbills.withdraw(payableId, address(usdc), usdcAmt);
     bytes32 fetchedW2Id = chainbills.userWithdrawalIds(user, 1);
-    Withdrawal memory w2 = chainbills.getWithdrawal(wId2);
+    Withdrawal memory w2 = cbGetters.getWithdrawal(wId2);
 
     uint256 newCbEthBal = address(chainbills).balance;
     uint256 newFeeCollectorEthBal = feeCollector.balance;
@@ -390,16 +393,16 @@ contract CbUsersTest is CbStructs, Test {
     uint256 newFeeCollectorUsdcBal = usdc.balanceOf(feeCollector);
     uint256 newUserUsdcBal = usdc.balanceOf(user);
 
-    ChainStats memory newerChainStats = chainbills.getChainStats();
-    User memory newerUser = chainbills.getUser(user);
-    Payable memory newerPayable = chainbills.getPayable(payableId);
-    TokenDetails memory newEthDetails = chainbills.getTokenDetails(address(chainbills));
-    TokenDetails memory newUsdcDetails = chainbills.getTokenDetails(address(usdc));
+    ChainStats memory newerChainStats = cbGetters.getChainStats();
+    User memory newerUser = cbGetters.getUser(user);
+    Payable memory newerPayable = cbGetters.getPayable(payableId);
+    TokenDetails memory newEthDetails = cbGetters.getTokenDetails(address(chainbills));
+    TokenDetails memory newUsdcDetails = cbGetters.getTokenDetails(address(usdc));
 
     vm.stopPrank();
 
     // obtain fees and amount due
-    Config memory config = chainbills.getConfig();
+    Config memory config = cbGetters.getConfig();
     // 10000 means 100 but with 2 decimal places
     uint256 ethPercent = (ethAmt * config.withdrawalFeePercentage) / 10000;
     uint256 ethFee = ethPercent > maxWtdlFeesEth ? maxWtdlFeesEth : ethPercent;

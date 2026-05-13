@@ -105,6 +105,17 @@ export const usePayableStore = defineStore('payable', () => {
     const target = page * count + 1;
     if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
+      if (auth.currentUser.chain.isEvm) {
+        const offset = page * count;
+        const ids = await evm.getUserPayableIdsPaginated(
+          auth.currentUser.walletAddress,
+          offset,
+          count,
+          auth.currentUser.chain.name
+        );
+        return ids ? ids : null;
+      }
+
       const ids = [];
       for (let i = start; i >= target; i--) {
         const id = await auth.getPayableId(i);

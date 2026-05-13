@@ -6,6 +6,7 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import 'forge-std/Test.sol';
 import 'src/Chainbills.sol';
+import 'src/CbGetters.sol';
 
 contract USDC is ERC20 {
   constructor() ERC20('USDC', 'USDC') {}
@@ -17,6 +18,7 @@ contract USDC is ERC20 {
 
 contract CbGovernanceTest is CbStructs, Test {
   Chainbills chainbills;
+  CbGetters cbGetters;
   USDC usdc;
 
   address feeCollectorA = makeAddr('fee-collector-a');
@@ -40,6 +42,7 @@ contract CbGovernanceTest is CbStructs, Test {
     chainbills.initialize(feeCollectorA, feePercentA);
     chainbills.setPayablesLogic(address(new CbPayables()));
     chainbills.setTransactionsLogic(address(new CbTransactions()));
+    cbGetters = new CbGetters(address(chainbills));
     vm.stopPrank();
   }
 
@@ -170,7 +173,7 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify token is supported
-    assertTrue(chainbills.getTokenDetails(address(usdc)).isSupported);
+    assertTrue(cbGetters.getTokenDetails(address(usdc)).isSupported);
 
     // Make successful payment
     vm.startPrank(user);
@@ -187,7 +190,7 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify token is no longer supported
-    assertFalse(chainbills.getTokenDetails(address(usdc)).isSupported);
+    assertFalse(cbGetters.getTokenDetails(address(usdc)).isSupported);
 
     // Try to make payment after token is no longer supported and confirm revert
     vm.startPrank(user);
@@ -227,7 +230,7 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify fee collector is set
-    assertEq(chainbills.getConfig().feeCollector, feeCollectorA);
+    assertEq(cbGetters.getConfig().feeCollector, feeCollectorA);
 
     // Make withdrawal and verify fee collector A balance
     uint256 withdrawalAmt = usdcAmt / 2;
@@ -248,7 +251,7 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify fee collector is updated
-    assertEq(chainbills.getConfig().feeCollector, feeCollectorB);
+    assertEq(cbGetters.getConfig().feeCollector, feeCollectorB);
 
     // Make withdrawal and verify fee collector B balance
     // Re-use the same withdrawal amount as it was half of the payment
@@ -282,7 +285,7 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify fee percentage is set
-    assertEq(chainbills.getConfig().withdrawalFeePercentage, feePercentA);
+    assertEq(cbGetters.getConfig().withdrawalFeePercentage, feePercentA);
 
     // Create payable and make payment
     vm.startPrank(user);
@@ -311,7 +314,7 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify fee percentage is updated
-    assertEq(chainbills.getConfig().withdrawalFeePercentage, feePercentB);
+    assertEq(cbGetters.getConfig().withdrawalFeePercentage, feePercentB);
 
     // make another payment
     vm.startPrank(user);
@@ -349,7 +352,7 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify max withdrawal fees is updated
-    assertEq(chainbills.getTokenDetails(address(usdc)).maxWithdrawalFees, maxWtdlFeesUsdcA);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).maxWithdrawalFees, maxWtdlFeesUsdcA);
 
     // Create payable and make huge payment
     vm.startPrank(user);
@@ -376,7 +379,7 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify max withdrawal fees is updated
-    assertEq(chainbills.getTokenDetails(address(usdc)).maxWithdrawalFees, maxWtdlFeesUsdcB);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).maxWithdrawalFees, maxWtdlFeesUsdcB);
 
     // Make another huge payment
     vm.startPrank(user);

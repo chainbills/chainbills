@@ -6,9 +6,11 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import 'forge-std/Test.sol';
 import 'src/Chainbills.sol';
+import 'src/CbGetters.sol';
 
 contract CbActivitiesTest is CbStructs, Test {
   Chainbills chainbills;
+  CbGetters cbGetters;
   uint256 ethAmt = 1e16; // 0.01 ETH
   uint16 feePercent = 200; // 2% (with 2 decimals)
   uint256 maxWtdlFeeEth = 5e17; // 0.5 ETH
@@ -24,6 +26,7 @@ contract CbActivitiesTest is CbStructs, Test {
     chainbills.setTransactionsLogic(address(new CbTransactions()));
     chainbills.allowPaymentsForToken(address(chainbills));
     chainbills.updateMaxWithdrawalFees(address(chainbills), maxWtdlFeeEth);
+    cbGetters = new CbGetters(address(chainbills));
     vm.stopPrank();
 
     deal(user, ethAmt);
@@ -36,22 +39,22 @@ contract CbActivitiesTest is CbStructs, Test {
     address userAAddr = makeAddr('userA');
     address userBAddr = makeAddr('userB');
 
-    ChainStats memory chainStatsInitial = chainbills.getChainStats();
+    ChainStats memory chainStatsInitial = cbGetters.getChainStats();
 
     // Create a Payable as userA for contract to record initialized user activity
     vm.prank(userAAddr);
     (bytes32 pybleId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    ChainStats memory chainStatsAfterA = chainbills.getChainStats();
+    ChainStats memory chainStatsAfterA = cbGetters.getChainStats();
 
     // Make a payment to the payable as userB for contract to initialize user activity
     deal(userBAddr, ethAmt);
     vm.prank(userBAddr);
     chainbills.pay{value: ethAmt}(pybleId, address(chainbills), ethAmt);
 
-    ChainStats memory chainStatsAfterB = chainbills.getChainStats();
-    User memory userA = chainbills.getUser(userAAddr);
-    User memory userB = chainbills.getUser(userBAddr);
+    ChainStats memory chainStatsAfterB = cbGetters.getChainStats();
+    User memory userA = cbGetters.getUser(userAAddr);
+    User memory userB = cbGetters.getUser(userBAddr);
 
     // Make a payment to the payable as userA (for another activity)
     // but to test that contract won't record another initialized user activity
@@ -59,37 +62,37 @@ contract CbActivitiesTest is CbStructs, Test {
     vm.prank(userAAddr);
     chainbills.pay{value: ethAmt}(pybleId, address(chainbills), ethAmt);
 
-    ChainStats memory chainStatsAfterA2 = chainbills.getChainStats();
-    User memory userA2 = chainbills.getUser(userAAddr);
+    ChainStats memory chainStatsAfterA2 = cbGetters.getChainStats();
+    User memory userA2 = cbGetters.getUser(userAAddr);
 
     // Create a new payable as userB (for another activity)
     // to test that the contract won't record another initialized user activity
     vm.prank(userBAddr);
     chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    ChainStats memory chainStatsAfterB2 = chainbills.getChainStats();
-    User memory userB2 = chainbills.getUser(userBAddr);
+    ChainStats memory chainStatsAfterB2 = cbGetters.getChainStats();
+    User memory userB2 = cbGetters.getUser(userBAddr);
 
     // Fetch initialized user activity IDs
     // subtracting to account for multiple recorded activities:
     //  - initialized user, and either
     //  - just created payable (after A), or
     //  - both user paid and payable received (after B).
-    bytes32 chainActvIdA = chainbills.chainActivityIds(chainStatsAfterA.activitiesCount - 2);
-    bytes32 chainActvIdB = chainbills.chainActivityIds(chainStatsAfterB.activitiesCount - 3);
+    bytes32 chainActvIdA = cbGetters.chainActivityIdsPaginated(chainStatsAfterA.activitiesCount - 2, 1)[0];
+    bytes32 chainActvIdB = cbGetters.chainActivityIdsPaginated(chainStatsAfterB.activitiesCount - 3, 1)[0];
     // payable received is not recorded for user activity so only 2 activities are recorded
     // that is initialized user and either created payable or user paid
-    bytes32 userActvIdA = chainbills.userActivityIds(userAAddr, userA.activitiesCount - 2);
-    bytes32 userActvIdB = chainbills.userActivityIds(userBAddr, userB.activitiesCount - 2);
+    bytes32 userActvIdA = cbGetters.userActivityIdsPaginated(userAAddr, userA.activitiesCount - 2, 1)[0];
+    bytes32 userActvIdB = cbGetters.userActivityIdsPaginated(userBAddr, userB.activitiesCount - 2, 1)[0];
     // substracting to account for just one involved activity
-    bytes32 userActvIdA2 = chainbills.userActivityIds(userAAddr, userA2.activitiesCount - 1);
-    bytes32 userActvIdB2 = chainbills.userActivityIds(userBAddr, userB2.activitiesCount - 1);
+    bytes32 userActvIdA2 = cbGetters.userActivityIdsPaginated(userAAddr, userA2.activitiesCount - 1, 1)[0];
+    bytes32 userActvIdB2 = cbGetters.userActivityIdsPaginated(userBAddr, userB2.activitiesCount - 1, 1)[0];
 
     // Fetch activity records
-    ActivityRecord memory actvA = chainbills.getActivityRecord(chainActvIdA);
-    ActivityRecord memory actvB = chainbills.getActivityRecord(chainActvIdB);
-    ActivityRecord memory actvA2 = chainbills.getActivityRecord(userActvIdA2);
-    ActivityRecord memory actvB2 = chainbills.getActivityRecord(userActvIdB2);
+    ActivityRecord memory actvA = cbGetters.getActivityRecord(chainActvIdA);
+    ActivityRecord memory actvB = cbGetters.getActivityRecord(chainActvIdB);
+    ActivityRecord memory actvA2 = cbGetters.getActivityRecord(userActvIdA2);
+    ActivityRecord memory actvB2 = cbGetters.getActivityRecord(userActvIdB2);
 
     // Check the counts of activities
     // 2 because of init user and created payable
@@ -139,25 +142,25 @@ contract CbActivitiesTest is CbStructs, Test {
   }
 
   function testRecordCreatedPayable() public {
-    ChainStats memory chainStatsInitial = chainbills.getChainStats();
-    User memory userInitial = chainbills.getUser(user);
+    ChainStats memory chainStatsInitial = cbGetters.getChainStats();
+    User memory userInitial = cbGetters.getUser(user);
 
     // Create a Payable to record CreatedPayable activity
     vm.prank(user);
     (bytes32 pybleId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    ChainStats memory chainStatsAfter = chainbills.getChainStats();
-    User memory userAfter = chainbills.getUser(user);
-    Payable memory pyble = chainbills.getPayable(pybleId);
+    ChainStats memory chainStatsAfter = cbGetters.getChainStats();
+    User memory userAfter = cbGetters.getUser(user);
+    Payable memory pyble = cbGetters.getPayable(pybleId);
 
     // Fetch CreatedPayable activity ID
     // subtracting 1 because of 0-based array indexing
-    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
-    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
-    bytes32 payableActvId = chainbills.payableActivityIds(pybleId, pyble.activitiesCount - 1);
+    bytes32 chainActvId = cbGetters.chainActivityIdsPaginated(chainStatsAfter.activitiesCount - 1, 1)[0];
+    bytes32 userActvId = cbGetters.userActivityIdsPaginated(user, userAfter.activitiesCount - 1, 1)[0];
+    bytes32 payableActvId = cbGetters.payableActivityIdsPaginated(pybleId, pyble.activitiesCount - 1, 1)[0];
 
     // Fetch activity record
-    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+    ActivityRecord memory activity = cbGetters.getActivityRecord(chainActvId);
 
     // Check the counts of activities
     assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
@@ -181,28 +184,28 @@ contract CbActivitiesTest is CbStructs, Test {
   }
 
   function testRecordPayment() public {
-    ChainStats memory chainStatsInitial = chainbills.getChainStats();
-    User memory userInitial = chainbills.getUser(user);
-    Payable memory pybleInitial = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsInitial = cbGetters.getChainStats();
+    User memory userInitial = cbGetters.getUser(user);
+    Payable memory pybleInitial = cbGetters.getPayable(payableId);
 
     // Make a payment to the payable
     vm.prank(user);
     (bytes32 userPaymentId, bytes32 payablePaymentId) =
       chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
-    ChainStats memory chainStatsAfter = chainbills.getChainStats();
-    User memory userAfter = chainbills.getUser(user);
-    Payable memory pybleAfter = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsAfter = cbGetters.getChainStats();
+    User memory userAfter = cbGetters.getUser(user);
+    Payable memory pybleAfter = cbGetters.getPayable(payableId);
 
     // Fetch activity IDs
-    bytes32 chainActvIdUser = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 2);
-    bytes32 chainActvIdPayable = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
-    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
-    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+    bytes32 chainActvIdUser = cbGetters.chainActivityIdsPaginated(chainStatsAfter.activitiesCount - 2, 1)[0];
+    bytes32 chainActvIdPayable = cbGetters.chainActivityIdsPaginated(chainStatsAfter.activitiesCount - 1, 1)[0];
+    bytes32 userActvId = cbGetters.userActivityIdsPaginated(user, userAfter.activitiesCount - 1, 1)[0];
+    bytes32 payableActvId = cbGetters.payableActivityIdsPaginated(payableId, pybleAfter.activitiesCount - 1, 1)[0];
 
     // Fetch activity records
-    ActivityRecord memory activityUser = chainbills.getActivityRecord(chainActvIdUser);
-    ActivityRecord memory activityPayable = chainbills.getActivityRecord(chainActvIdPayable);
+    ActivityRecord memory activityUser = cbGetters.getActivityRecord(chainActvIdUser);
+    ActivityRecord memory activityPayable = cbGetters.getActivityRecord(chainActvIdPayable);
 
     // Check the counts of activities
     // 2 for chain because of UserPaid and PayableReceived
@@ -245,26 +248,26 @@ contract CbActivitiesTest is CbStructs, Test {
     vm.prank(user);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
-    ChainStats memory chainStatsInitial = chainbills.getChainStats();
-    User memory userInitial = chainbills.getUser(user);
-    Payable memory pybleInitial = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsInitial = cbGetters.getChainStats();
+    User memory userInitial = cbGetters.getUser(user);
+    Payable memory pybleInitial = cbGetters.getPayable(payableId);
 
     // Withdraw
     vm.prank(user);
     (bytes32 withdrawalId) = chainbills.withdraw(payableId, address(chainbills), ethAmt);
 
-    ChainStats memory chainStatsAfter = chainbills.getChainStats();
-    User memory userAfter = chainbills.getUser(user);
-    Payable memory pybleAfter = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsAfter = cbGetters.getChainStats();
+    User memory userAfter = cbGetters.getUser(user);
+    Payable memory pybleAfter = cbGetters.getPayable(payableId);
 
     // Fetch activity IDs
     // subtracting 1 because of 0-based array indexing
-    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
-    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
-    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+    bytes32 chainActvId = cbGetters.chainActivityIdsPaginated(chainStatsAfter.activitiesCount - 1, 1)[0];
+    bytes32 userActvId = cbGetters.userActivityIdsPaginated(user, userAfter.activitiesCount - 1, 1)[0];
+    bytes32 payableActvId = cbGetters.payableActivityIdsPaginated(payableId, pybleAfter.activitiesCount - 1, 1)[0];
 
     // Fetch activity record
-    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+    ActivityRecord memory activity = cbGetters.getActivityRecord(chainActvId);
 
     // Check the counts of activities
     assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
@@ -288,25 +291,25 @@ contract CbActivitiesTest is CbStructs, Test {
   }
 
   function testRecordClosedPayable() public {
-    ChainStats memory chainStatsInitial = chainbills.getChainStats();
-    User memory userInitial = chainbills.getUser(user);
-    Payable memory pybleInitial = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsInitial = cbGetters.getChainStats();
+    User memory userInitial = cbGetters.getUser(user);
+    Payable memory pybleInitial = cbGetters.getPayable(payableId);
 
     // Close the payable
     vm.prank(user);
     chainbills.closePayable(payableId);
 
-    ChainStats memory chainStatsAfter = chainbills.getChainStats();
-    User memory userAfter = chainbills.getUser(user);
-    Payable memory pybleAfter = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsAfter = cbGetters.getChainStats();
+    User memory userAfter = cbGetters.getUser(user);
+    Payable memory pybleAfter = cbGetters.getPayable(payableId);
 
     // Fetch activity IDs
-    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
-    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
-    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+    bytes32 chainActvId = cbGetters.chainActivityIdsPaginated(chainStatsAfter.activitiesCount - 1, 1)[0];
+    bytes32 userActvId = cbGetters.userActivityIdsPaginated(user, userAfter.activitiesCount - 1, 1)[0];
+    bytes32 payableActvId = cbGetters.payableActivityIdsPaginated(payableId, pybleAfter.activitiesCount - 1, 1)[0];
 
     // Fetch activity record
-    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+    ActivityRecord memory activity = cbGetters.getActivityRecord(chainActvId);
 
     // Check the counts of activities
     assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
@@ -334,25 +337,25 @@ contract CbActivitiesTest is CbStructs, Test {
     vm.prank(user);
     chainbills.closePayable(payableId);
 
-    ChainStats memory chainStatsInitial = chainbills.getChainStats();
-    User memory userInitial = chainbills.getUser(user);
-    Payable memory pybleInitial = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsInitial = cbGetters.getChainStats();
+    User memory userInitial = cbGetters.getUser(user);
+    Payable memory pybleInitial = cbGetters.getPayable(payableId);
 
     // Reopen the payable
     vm.prank(user);
     chainbills.reopenPayable(payableId);
 
-    ChainStats memory chainStatsAfter = chainbills.getChainStats();
-    User memory userAfter = chainbills.getUser(user);
-    Payable memory pybleAfter = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsAfter = cbGetters.getChainStats();
+    User memory userAfter = cbGetters.getUser(user);
+    Payable memory pybleAfter = cbGetters.getPayable(payableId);
 
     // Fetch activity IDs
-    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
-    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
-    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+    bytes32 chainActvId = cbGetters.chainActivityIdsPaginated(chainStatsAfter.activitiesCount - 1, 1)[0];
+    bytes32 userActvId = cbGetters.userActivityIdsPaginated(user, userAfter.activitiesCount - 1, 1)[0];
+    bytes32 payableActvId = cbGetters.payableActivityIdsPaginated(payableId, pybleAfter.activitiesCount - 1, 1)[0];
 
     // Fetch activity record
-    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+    ActivityRecord memory activity = cbGetters.getActivityRecord(chainActvId);
 
     // Check the counts of activities
     assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
@@ -376,25 +379,25 @@ contract CbActivitiesTest is CbStructs, Test {
   }
 
   function testRecordUpdatedPayableAllowedTokensAndAmounts() public {
-    ChainStats memory chainStatsInitial = chainbills.getChainStats();
-    User memory userInitial = chainbills.getUser(user);
-    Payable memory pybleInitial = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsInitial = cbGetters.getChainStats();
+    User memory userInitial = cbGetters.getUser(user);
+    Payable memory pybleInitial = cbGetters.getPayable(payableId);
 
     // Update the payable to test the activity
     vm.prank(user);
     chainbills.updatePayableAllowedTokensAndAmounts(payableId, new TokenAndAmount[](0));
 
-    ChainStats memory chainStatsAfter = chainbills.getChainStats();
-    User memory userAfter = chainbills.getUser(user);
-    Payable memory pybleAfter = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsAfter = cbGetters.getChainStats();
+    User memory userAfter = cbGetters.getUser(user);
+    Payable memory pybleAfter = cbGetters.getPayable(payableId);
 
     // Fetch activity IDs
-    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
-    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
-    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+    bytes32 chainActvId = cbGetters.chainActivityIdsPaginated(chainStatsAfter.activitiesCount - 1, 1)[0];
+    bytes32 userActvId = cbGetters.userActivityIdsPaginated(user, userAfter.activitiesCount - 1, 1)[0];
+    bytes32 payableActvId = cbGetters.payableActivityIdsPaginated(payableId, pybleAfter.activitiesCount - 1, 1)[0];
 
     // Fetch activity record
-    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+    ActivityRecord memory activity = cbGetters.getActivityRecord(chainActvId);
 
     // Check the counts of activities
     assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);
@@ -418,25 +421,25 @@ contract CbActivitiesTest is CbStructs, Test {
   }
 
   function testRecordUpdatedPayableAutoWithdrawStatus() public {
-    ChainStats memory chainStatsInitial = chainbills.getChainStats();
-    User memory userInitial = chainbills.getUser(user);
-    Payable memory pybleInitial = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsInitial = cbGetters.getChainStats();
+    User memory userInitial = cbGetters.getUser(user);
+    Payable memory pybleInitial = cbGetters.getPayable(payableId);
 
     // Update the payable to test the activity
     vm.prank(user);
     chainbills.updatePayableAutoWithdraw(payableId, false);
 
-    ChainStats memory chainStatsAfter = chainbills.getChainStats();
-    User memory userAfter = chainbills.getUser(user);
-    Payable memory pybleAfter = chainbills.getPayable(payableId);
+    ChainStats memory chainStatsAfter = cbGetters.getChainStats();
+    User memory userAfter = cbGetters.getUser(user);
+    Payable memory pybleAfter = cbGetters.getPayable(payableId);
 
     // Fetch activity IDs
-    bytes32 chainActvId = chainbills.chainActivityIds(chainStatsAfter.activitiesCount - 1);
-    bytes32 userActvId = chainbills.userActivityIds(user, userAfter.activitiesCount - 1);
-    bytes32 payableActvId = chainbills.payableActivityIds(payableId, pybleAfter.activitiesCount - 1);
+    bytes32 chainActvId = cbGetters.chainActivityIdsPaginated(chainStatsAfter.activitiesCount - 1, 1)[0];
+    bytes32 userActvId = cbGetters.userActivityIdsPaginated(user, userAfter.activitiesCount - 1, 1)[0];
+    bytes32 payableActvId = cbGetters.payableActivityIdsPaginated(payableId, pybleAfter.activitiesCount - 1, 1)[0];
 
     // Fetch activity record
-    ActivityRecord memory activity = chainbills.getActivityRecord(chainActvId);
+    ActivityRecord memory activity = cbGetters.getActivityRecord(chainActvId);
 
     // Check the counts of activities
     assertEq(chainStatsAfter.activitiesCount, chainStatsInitial.activitiesCount + 1);

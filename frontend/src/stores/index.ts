@@ -1,4 +1,4 @@
-export * from './abi';
+export * from './abis';
 export * from './analytics';
 export * from './auth';
 export * from './cache';

@@ -10,7 +10,7 @@ import {
   type ChainName,
   type Token,
 } from '@/schemas';
-import { abi, erc20Abi, useAnalyticsStore } from '@/stores';
+import { erc20Abi, gettersAbi, mainAbi, useAnalyticsStore } from '@/stores';
 import {
   createConfig,
   getBalance,
@@ -26,7 +26,6 @@ import { useToast } from 'primevue/usetoast';
 import {
   http,
   parseEventLogs,
-  zeroAddress,
   type Abi,
   type ContractEventArgs,
   type ContractEventName,
@@ -40,6 +39,14 @@ interface WriteContractResponse {
   receipt: TransactionReceipt;
   result: any;
 }
+
+const getters: Record<ChainName, string> = {
+  arctestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
+  megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
+  // TODO: Update with actual Sepolia deployment address after redeployment
+  sepolia: '0x0000000000000000000000000000000000000000',
+  solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
+};
 
 export const useEvmStore = defineStore('evm', () => {
   const account = useAccount();
@@ -147,13 +154,13 @@ export const useEvmStore = defineStore('evm', () => {
 
   const extractNewId = (
     logs: any[],
-    eventName: ContractEventName<typeof abi>,
-    idField: ContractEventArgs<typeof abi>
+    eventName: ContractEventName<typeof mainAbi>,
+    idField: ContractEventArgs<typeof mainAbi>
   ) =>
     (
       parseEventLogs({
         logs,
-        abi,
+        abi: mainAbi,
         eventName: [eventName],
       })[0].args as any
     )[idField as any];
@@ -167,7 +174,7 @@ export const useEvmStore = defineStore('evm', () => {
 
     const response = await writeContract({
       address: contracts[chain.name] as `0x${string}`,
-      abi,
+      abi: mainAbi,
       functionName: 'createPayable',
       // default false is for autoWithdraw status as false
       args: [tokensAndAmounts.map((t) => t.toOnChain(chain)), false],
@@ -219,33 +226,62 @@ export const useEvmStore = defineStore('evm', () => {
     return new User(chain, addr, raw);
   };
 
-  const getPayablePaymentId = async (payableId: string, count: number): Promise<string | null> => {
-    if (!payableId.startsWith('0x')) payableId = `0x${payableId}`;
-    const id = await readContract('payablePaymentIds', [payableId as `0x${string}`, count - 1]);
-    if (!id || id === zeroAddress) return null;
-    return id;
+  const getUserPayableIdsPaginated = async (
+    walletAddress: string,
+    offset: number,
+    count: number,
+    chainName: ChainName
+  ): Promise<string[] | null> => {
+    return await readContract('userPayableIdsPaginated', [walletAddress, offset, count], chainName);
   };
 
-  const getPayableWithdrawalId = async (payableId: string, count: number): Promise<string | null> => {
-    if (!payableId.startsWith('0x')) payableId = `0x${payableId}`;
-    const id = await readContract('payableWithdrawalIds', [payableId as `0x${string}`, count - 1]);
-    if (!id || id === zeroAddress) return null;
-    return id;
+  const getUserPaymentIdsPaginated = async (
+    walletAddress: string,
+    offset: number,
+    count: number,
+    chainName: ChainName
+  ): Promise<string[] | null> => {
+    return await readContract('userPaymentIdsPaginated', [walletAddress, offset, count], chainName);
   };
 
-  const getUserEntityId = async (entity: string, count: number): Promise<string | null> => {
-    if (!account.address.value) return null;
-    const setNames = `user${entity}Ids`;
-    const id = await readContract(setNames, [account.address.value, count]);
-    if (!id || id === zeroAddress) return null;
-    return id;
+  const getPayablePaymentIdsPaginated = async (
+    payableId: string,
+    offset: number,
+    count: number,
+    chainName: ChainName
+  ): Promise<string[] | null> => {
+    return await readContract('payablePaymentIdsPaginated', [payableId as `0x${string}`, offset, count], chainName);
   };
 
-  const getUserPayableId = async (count: number) => getUserEntityId('Payable', count - 1);
+  const getUserPaymentsBulk = async (ids: string[], chainName: ChainName): Promise<any[] | null> => {
+    return await readContract('getUserPaymentsBulk', [ids], chainName);
+  };
 
-  const getUserPaymentId = async (count: number) => getUserEntityId('Payment', count - 1);
+  const getPayablePaymentsBulk = async (ids: string[], chainName: ChainName): Promise<any[] | null> => {
+    return await readContract('getPayablePaymentsBulk', [ids], chainName);
+  };
 
-  const getUserWithdrawalId = async (count: number) => getUserEntityId('Withdrawal', count - 1);
+  const getUserWithdrawalIdsPaginated = async (
+    walletAddress: string,
+    offset: number,
+    count: number,
+    chainName: ChainName
+  ): Promise<string[] | null> => {
+    return await readContract('userWithdrawalIdsPaginated', [walletAddress, offset, count], chainName);
+  };
+
+  const getPayableWithdrawalIdsPaginated = async (
+    payableId: string,
+    offset: number,
+    count: number,
+    chainName: ChainName
+  ): Promise<string[] | null> => {
+    return await readContract('payableWithdrawalIdsPaginated', [payableId as `0x${string}`, offset, count], chainName);
+  };
+
+  const getWithdrawalsBulk = async (ids: string[], chainName: ChainName): Promise<any[] | null> => {
+    return await readContract('getWithdrawalsBulk', [ids], chainName);
+  };
 
   const pay = async (payableId: string, { amount, details }: TokenAndAmount): Promise<OnChainSuccess | null> => {
     const chain = getCurrentChain();
@@ -284,7 +320,7 @@ export const useEvmStore = defineStore('evm', () => {
 
     const response = await writeContract({
       address: contracts[chain.name] as `0x${string}`,
-      abi,
+      abi: mainAbi,
       functionName: 'pay',
       args: [payableId, token, BigInt(amount)],
       ...(token == contracts[chain.name] ? { value: BigInt(amount) } : {}),
@@ -315,7 +351,14 @@ export const useEvmStore = defineStore('evm', () => {
     const token = details[chain.name]!.address as `0x${string}`;
 
     // Fetch the Wormhole message fee that must be sent as msg.value
-    const wormholeFee = await readContract('getWormholeMessageFee', [], chain.name);
+    const viemChain = getViemChain(chain.name);
+    const config = createConfig({ chains: [viemChain], transports: { [viemChain.id]: http() } });
+    const wormholeFee = await rawReadContract(config, {
+      address: contracts[chain.name] as `0x${string}`,
+      abi: mainAbi,
+      functionName: 'getWormholeMessageFee',
+      args: [],
+    });
     if (wormholeFee === null) {
       toastError('Could not fetch Wormhole message fee');
       return null;
@@ -323,8 +366,6 @@ export const useEvmStore = defineStore('evm', () => {
     const feeBigInt = BigInt(wormholeFee);
 
     // Check / request ERC-20 approval for the payment token
-    const viemChain = getViemChain(chain.name);
-    const config = createConfig({ chains: [viemChain], transports: { [viemChain.id]: http() } });
     const allowance = await rawReadContract(config, {
       address: token,
       abi: erc20Abi,
@@ -343,7 +384,7 @@ export const useEvmStore = defineStore('evm', () => {
 
     const response = await writeContract({
       address: contracts[chain.name] as `0x${string}`,
-      abi,
+      abi: mainAbi,
       functionName: 'payForeignWithCircle',
       args: [payableId, token, BigInt(amount)],
       // Wormhole fee is required as msg.value
@@ -376,8 +417,8 @@ export const useEvmStore = defineStore('evm', () => {
     try {
       // @ts-ignore
       return await rawReadContract(config, {
-        address: contracts[chainName] as `0x${string}`,
-        abi,
+        address: getters[chainName] as `0x${string}`,
+        abi: gettersAbi,
         functionName,
         args,
       });
@@ -424,7 +465,7 @@ export const useEvmStore = defineStore('evm', () => {
 
     const response = await writeContract({
       address: contracts[chain.name] as `0x${string}`,
-      abi,
+      abi: mainAbi,
       functionName: 'withdraw',
       args: [payableId, details[chain.name]!.address, amount],
     });
@@ -442,11 +483,14 @@ export const useEvmStore = defineStore('evm', () => {
     fetchPayable,
     fetchEntity,
     getCurrentUser,
-    getPayablePaymentId,
-    getPayableWithdrawalId,
-    getUserPayableId,
-    getUserPaymentId,
-    getUserWithdrawalId,
+    getPayablePaymentIdsPaginated,
+    getPayablePaymentsBulk,
+    getPayableWithdrawalIdsPaginated,
+    getUserPayableIdsPaginated,
+    getUserPaymentIdsPaginated,
+    getUserPaymentsBulk,
+    getUserWithdrawalIdsPaginated,
+    getWithdrawalsBulk,
     pay,
     payForeignWithCircle,
     sign,

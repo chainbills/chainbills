@@ -6,6 +6,7 @@ import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import 'forge-std/Test.sol';
 import 'src/Chainbills.sol';
+import 'src/CbGetters.sol';
 
 contract USDC is ERC20 {
   constructor() ERC20('USDC', 'USDC') {}
@@ -17,6 +18,7 @@ contract USDC is ERC20 {
 
 contract CbPayablesManagementTest is CbStructs, Test {
   Chainbills chainbills;
+  CbGetters cbGetters;
   USDC usdc;
 
   address owner = makeAddr('owner');
@@ -43,6 +45,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
 
     chainbills.allowPaymentsForToken(address(usdc));
     chainbills.updateMaxWithdrawalFees(address(usdc), maxWtdlFeeUsdc);
+    cbGetters = new CbGetters(address(chainbills));
     vm.stopPrank();
 
     deal(user, ethAmt * 5);
@@ -92,7 +95,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
     vm.stopPrank();
 
     // Verify payable data
-    Payable memory p1 = chainbills.getPayable(payableId1);
+    Payable memory p1 = cbGetters.getPayable(payableId1);
     assertEq(p1.host, user);
     assertEq(p1.chainCount, 1);
     assertEq(p1.hostCount, 1);
@@ -104,7 +107,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
     assertEq(p1.withdrawalsCount, 0);
     assertEq(p1.activitiesCount, 1);
 
-    Payable memory p2 = chainbills.getPayable(payableId2);
+    Payable memory p2 = cbGetters.getPayable(payableId2);
     assertEq(p2.host, user);
     assertEq(p2.chainCount, 2);
     assertEq(p2.hostCount, 2);
@@ -185,7 +188,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
     chainbills.closePayable(payableId);
 
     // Verify payable is closed
-    assertTrue(chainbills.getPayable(payableId).isClosed);
+    assertTrue(cbGetters.getPayable(payableId).isClosed);
 
     // Try to make payment with native token when closed and confirm revert
     vm.expectRevert(PayableIsClosed.selector);
@@ -201,7 +204,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
     chainbills.reopenPayable(payableId);
 
     // Verify payable is open
-    assertFalse(chainbills.getPayable(payableId).isClosed);
+    assertFalse(cbGetters.getPayable(payableId).isClosed);
 
     // Make payment with ERC20 and confirm success
     vm.expectEmit(true, true, false, true);
@@ -234,7 +237,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
     chainbills.updatePayableAllowedTokensAndAmounts(payableId, ataa);
 
     // Verify payable data
-    assertEq(chainbills.getPayable(payableId).allowedTokensAndAmountsCount, 2);
+    assertEq(cbGetters.getPayable(payableId).allowedTokensAndAmountsCount, 2);
 
     // Try to make payments with unmatching amounts and confirm reverts
     vm.expectRevert(MatchingTokenAndAmountNotFound.selector);
@@ -258,7 +261,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
     chainbills.updatePayableAllowedTokensAndAmounts(payableId, new TokenAndAmount[](0));
 
     // Verify payable data
-    assertEq(chainbills.getPayable(payableId).allowedTokensAndAmountsCount, 0);
+    assertEq(cbGetters.getPayable(payableId).allowedTokensAndAmountsCount, 0);
 
     // Make payments with any amounts and confirm success
     vm.expectEmit(true, true, false, true);
@@ -312,7 +315,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
     chainbills.updatePayableAutoWithdraw(payableId, false);
 
     // Verify payable data
-    assertFalse(chainbills.getPayable(payableId).isAutoWithdraw);
+    assertFalse(cbGetters.getPayable(payableId).isAutoWithdraw);
 
     // Make payments with auto withdraw off
     vm.startPrank(user);
@@ -340,7 +343,7 @@ contract CbPayablesManagementTest is CbStructs, Test {
     chainbills.updatePayableAutoWithdraw(payableId, true);
 
     // Verify payable data
-    assertTrue(chainbills.getPayable(payableId).isAutoWithdraw);
+    assertTrue(cbGetters.getPayable(payableId).isAutoWithdraw);
 
     // Make payments with auto withdraw on
     vm.startPrank(user);

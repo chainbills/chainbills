@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
-import 'openzeppelin-foundry-upgrades/Upgrades.sol';
-import 'forge-std/Script.sol';
-import '../src/Chainbills.sol';
-import '../src/CbGetters.sol';
+import {Upgrades} from 'openzeppelin-foundry-upgrades/Upgrades.sol';
+import {Script, console} from 'forge-std/Script.sol';
+import {Chainbills} from '../src/Chainbills.sol';
+import {CbGetters} from '../src/CbGetters.sol';
+import {CbPayables} from '../src/CbPayables.sol';
+import {CbTransactions} from '../src/CbTransactions.sol';
 
 contract DeployChainbills is Script {
   function run() public {
@@ -14,10 +16,8 @@ contract DeployChainbills is Script {
     uint256 ownerPrivateKey = vm.envUint('PRIVATE_KEY');
     vm.startBroadcast(ownerPrivateKey);
 
-    address proxy = Upgrades.deployUUPSProxy(
-      'Chainbills.sol',
-      abi.encodeCall(Chainbills.initialize, (feeCollector, feePercent))
-    );
+    address proxy =
+      Upgrades.deployUUPSProxy('Chainbills.sol', abi.encodeCall(Chainbills.initialize, (feeCollector, feePercent)));
 
     console.log('Deployed Chainbills at: ', proxy);
 

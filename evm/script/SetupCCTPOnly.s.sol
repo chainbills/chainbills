@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
-import 'forge-std/Script.sol';
-import 'src/Chainbills.sol';
+import {Script, console} from 'forge-std/Script.sol';
+import {Chainbills} from 'src/Chainbills.sol';
 
 contract SetupCCTPOnly is Script {
   function run() public {
@@ -17,7 +17,7 @@ contract SetupCCTPOnly is Script {
     vm.startBroadcast(ownerPrivateKey);
 
     console.log('Setting up CCTP-only on Chainbills ...');
-    chainbills.setupCCTPOnly(circleTransmitter, circleDomain, cbChainId);
+    chainbills.setupCctpOnly(circleTransmitter, circleDomain, cbChainId);
     console.log('Done. Circle Domain:', circleDomain);
     console.logBytes32(cbChainId);
 

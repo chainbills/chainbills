@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/interfaces/draft-IERC6093.sol';
-import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
-import 'forge-std/Test.sol';
-import 'src/Chainbills.sol';
-import 'src/CbGetters.sol';
+import {ERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import {IERC20Errors} from '@openzeppelin/contracts/interfaces/draft-IERC6093.sol';
+import {ERC1967Proxy} from '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
+import {Test} from 'forge-std/Test.sol';
+import {Chainbills} from 'src/Chainbills.sol';
+import {CbGetters} from 'src/CbGetters.sol';
+import {CbStructs} from 'src/CbStructs.sol';
+import {CbPayables} from 'src/CbPayables.sol';
+import {CbTransactions} from 'src/CbTransactions.sol';
 
 contract USDC is ERC20 {
   constructor() ERC20('USDC', 'USDC') {}

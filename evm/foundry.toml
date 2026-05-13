@@ -16,4 +16,7 @@ line_length = 120
 quote_style = "single"
 tab_width = 2
 
+[lint]
+exclude_lints = ["asm-keccak256"]
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

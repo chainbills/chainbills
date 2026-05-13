@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import 'wormhole/interfaces/IWormhole.sol';
-import 'wormhole/Utils.sol';
-import './CbState.sol';
+import {IWormhole} from 'wormhole/interfaces/IWormhole.sol';
+import {toWormholeFormat} from 'wormhole/Utils.sol';
+import {CbState} from './CbState.sol';
 
 contract CbUtils is CbState {
   /// Stores a Wormhole Message and mark it as consumed.

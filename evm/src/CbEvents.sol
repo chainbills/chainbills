@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import './CbErrors.sol';
+import {CbErrors} from './CbErrors.sol';
 
 /// Stores all emitted events in Chainbills
 contract CbEvents is CbErrors {

@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import 'forge-std/Test.sol';
-import 'wormhole/Utils.sol';
-import 'src/CbStructs.sol';
-import 'src/CbPayloadMessages.sol';
+import {Test} from 'forge-std/Test.sol';
+import {CbStructs} from 'src/CbStructs.sol';
+import {CbDecodePayload, CbEncodePayablePayload, CbEncodePaymentPayload} from 'src/CbPayloadMessages.sol';
 
 contract CbPayloadMessagesTest is CbStructs, Test {
   using CbDecodePayload for bytes;

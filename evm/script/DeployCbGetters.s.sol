@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
-import 'forge-std/Script.sol';
-import '../src/CbGetters.sol';
+import {Script, console} from 'forge-std/Script.sol';
+import {CbGetters} from '../src/CbGetters.sol';
 
 contract DeployCbGetters is Script {
   function run() public {

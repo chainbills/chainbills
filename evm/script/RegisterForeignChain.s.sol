@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
-import 'forge-std/Script.sol';
-import 'src/Chainbills.sol';
+import {Script, console} from 'forge-std/Script.sol';
+import {Chainbills} from 'src/Chainbills.sol';
 
 /// Registers a foreign (peer) chain on this deployed Chainbills contract.
 /// Bundles registerChainCircleDomain, registerChainWormholeId, and

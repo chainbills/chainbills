@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import './CbErrors.sol';
-import './CbState.sol';
-import './CbStructs.sol';
+import {CbErrors} from './CbErrors.sol';
+import {CbState} from './CbState.sol';
+import {CbStructs} from './CbStructs.sol';
 
 /// Dedicated getter contract for improved reads from the main Chainbills contract.
 contract CbGetters is CbErrors, CbStructs {
   /// Reference to the main Chainbills contract (that inherits CbState)
-  CbState public immutable state;
+  CbState public immutable STATE;
   /// Address of the main Chainbills contract
-  address public immutable cb;
+  address public immutable CHAINBILLS_CONTRACT_ADDRESS;
 
   constructor(address cb_) {
     if (cb_ == address(0)) revert InvalidAddress();
-    cb = cb_;
-    state = CbState(cb_);
+    CHAINBILLS_CONTRACT_ADDRESS = cb_;
+    STATE = CbState(cb_);
   }
 
   error InvalidAddress();
@@ -26,74 +26,129 @@ contract CbGetters is CbErrors, CbStructs {
 
   function getConfig() external view returns (Config memory config) {
     (uint8 a, uint16 b, uint16 c, uint32 d, address e, address f, address g, address h, address i, bytes32 j) =
-      state.config();
-    config = Config(a, b, c, d, e, f, g, h, i, j);
+      STATE.config();
+    config = Config({
+      wormholeFinality: a,
+      wormholeChainId: b,
+      withdrawalFeePercentage: c,
+      circleDomain: d,
+      feeCollector: e,
+      wormhole: f,
+      circleBridge: g,
+      circleTokenMinter: h,
+      circleTransmitter: i,
+      cbChainId: j
+    });
   }
 
   function getChainStats() external view returns (ChainStats memory stats) {
     (uint256 a, uint256 b, uint256 c, uint256 d, uint256 e, uint256 f, uint256 g, uint256 h, uint256 i) =
-      state.chainStats();
-    stats = ChainStats(a, b, c, d, e, f, g, h, i);
+      STATE.chainStats();
+    stats = ChainStats({
+      usersCount: a,
+      payablesCount: b,
+      foreignPayablesCount: c,
+      userPaymentsCount: d,
+      payablePaymentsCount: e,
+      withdrawalsCount: f,
+      activitiesCount: g,
+      publishedWormholeMessagesCount: h,
+      consumedWormholeMessagesCount: i
+    });
   }
 
   function getTokenDetails(address token) public view returns (TokenDetails memory details) {
     if (token == address(0)) revert InvalidTokenAddress();
-    (bool a, address b, uint256 c, uint256 d, uint256 e, uint256 f, uint256 g) = state.tokenDetails(token);
+    (bool a, address b, uint256 c, uint256 d, uint256 e, uint256 f, uint256 g) = STATE.tokenDetails(token);
     if (b != token) revert InvalidTokenAddress();
-    details = TokenDetails(a, b, c, d, e, f, g);
+    details = TokenDetails({
+      isSupported: a,
+      token: b,
+      maxWithdrawalFees: c,
+      totalUserPaid: d,
+      totalPayableReceived: e,
+      totalWithdrawn: f,
+      totalWithdrawalFeesCollected: g
+    });
   }
 
   function getActivityRecord(bytes32 activityId) public view returns (ActivityRecord memory record) {
     if (activityId == bytes32(0)) revert InvalidActivityId();
-    (uint256 a, uint256 b, uint256 c, uint256 d, bytes32 e, ActivityType f) = state.activities(activityId);
+    (uint256 a, uint256 b, uint256 c, uint256 d, bytes32 e, ActivityType f) = STATE.activities(activityId);
     if (d == 0) revert InvalidActivityId();
-    record = ActivityRecord(a, b, c, d, e, f);
+    record = ActivityRecord({chainCount: a, userCount: b, payableCount: c, timestamp: d, entity: e, activityType: f});
   }
 
   function getUser(address wallet) public view returns (User memory user) {
     if (wallet == address(0)) revert InvalidWalletAddress();
-    (uint256 a, uint256 b, uint256 c, uint256 d, uint256 e) = state.users(wallet);
+    (uint256 a, uint256 b, uint256 c, uint256 d, uint256 e) = STATE.users(wallet);
     if (a == 0) revert InvalidWalletAddress();
-    user = User(a, b, c, d, e);
+    user = User({chainCount: a, payablesCount: b, paymentsCount: c, withdrawalsCount: d, activitiesCount: e});
   }
 
   function getPayable(bytes32 payableId) public view returns (Payable memory p) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     (address a, uint256 b, uint256 c, uint256 d, uint256 e, uint256 f, uint256 g, uint8 h, uint8 i, bool j, bool k) =
-      state.payables(payableId);
+      STATE.payables(payableId);
     if (a == address(0)) revert InvalidPayableId();
-    p = Payable(a, b, c, d, e, f, g, h, i, j, k);
+    p = Payable({
+      host: a,
+      chainCount: b,
+      hostCount: c,
+      createdAt: d,
+      paymentsCount: e,
+      withdrawalsCount: f,
+      activitiesCount: g,
+      allowedTokensAndAmountsCount: h,
+      balancesCount: i,
+      isClosed: j,
+      isAutoWithdraw: k
+    });
   }
 
   function getForeignPayable(bytes32 payableId) public view returns (PayableForeign memory p) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
-    (bytes32 a, uint8 b, bool c) = state.foreignPayables(payableId);
+    (bytes32 a, uint8 b, bool c) = STATE.foreignPayables(payableId);
     if (a == bytes32(0)) revert InvalidPayableId();
-    p = PayableForeign(a, b, c);
+    p = PayableForeign({chainId: a, allowedTokensAndAmountsCount: b, isClosed: c});
   }
 
   function getUserPayment(bytes32 paymentId) public view returns (UserPayment memory p) {
     if (paymentId == bytes32(0)) revert InvalidPaymentId();
     (bytes32 a, address b, address c, bytes32 d, uint256 e, uint256 f, uint256 g, uint256 h) =
-      state.userPayments(paymentId);
+      STATE.userPayments(paymentId);
     if (b == address(0)) revert InvalidPaymentId();
-    p = UserPayment(a, b, c, d, e, f, g, h);
+    p = UserPayment({
+      payableId: a, payer: b, token: c, payableChainId: d, chainCount: e, payerCount: f, timestamp: g, amount: h
+    });
   }
 
   function getPayablePayment(bytes32 paymentId) public view returns (PayablePayment memory p) {
     if (paymentId == bytes32(0)) revert InvalidPaymentId();
     (bytes32 a, bytes32 b, address c, uint256 d, bytes32 e, uint256 f, uint256 g, uint256 h, uint256 i) =
-      state.payablePayments(paymentId);
+      STATE.payablePayments(paymentId);
     if (a == bytes32(0)) revert InvalidPaymentId();
-    p = PayablePayment(a, b, c, d, e, f, g, h, i);
+    p = PayablePayment({
+      payableId: a,
+      payer: b,
+      token: c,
+      chainCount: d,
+      payerChainId: e,
+      localChainCount: f,
+      payableCount: g,
+      timestamp: h,
+      amount: i
+    });
   }
 
   function getWithdrawal(bytes32 withdrawalId) public view returns (Withdrawal memory w) {
     if (withdrawalId == bytes32(0)) revert InvalidWithdrawalId();
     (bytes32 a, address b, address c, uint256 d, uint256 e, uint256 f, uint256 g, uint256 h) =
-      state.withdrawals(withdrawalId);
+      STATE.withdrawals(withdrawalId);
     if (b == address(0)) revert InvalidWithdrawalId();
-    w = Withdrawal(a, b, c, d, e, f, g, h);
+    w = Withdrawal({
+      payableId: a, host: b, token: c, chainCount: d, hostCount: e, payableCount: f, timestamp: g, amount: h
+    });
   }
 
   // ------------------------------------------------------------------------
@@ -101,14 +156,14 @@ contract CbGetters is CbErrors, CbStructs {
   // ------------------------------------------------------------------------
 
   // Note: For mappings returning arrays of structs, we cannot just index the public getter.
-  // Wait, if state has `payableAllowedTokensAndAmounts(bytes32, uint256)`, it returns (address, uint256).
+  // Wait, if STATE has `payableAllowedTokensAndAmounts(bytes32, uint256)`, it returns (address, uint256).
 
   function getAllowedTokensAndAmounts(bytes32 payableId) external view returns (TokenAndAmount[] memory items) {
     Payable memory p = getPayable(payableId);
     items = new TokenAndAmount[](p.allowedTokensAndAmountsCount);
     for (uint256 i = 0; i < p.allowedTokensAndAmountsCount; i++) {
-      (address token, uint256 amount) = state.payableAllowedTokensAndAmounts(payableId, i);
-      items[i] = TokenAndAmount(token, amount);
+      (address token, uint256 amount) = STATE.payableAllowedTokensAndAmounts(payableId, i);
+      items[i] = TokenAndAmount({token: token, amount: amount});
     }
   }
 
@@ -116,8 +171,8 @@ contract CbGetters is CbErrors, CbStructs {
     Payable memory p = getPayable(payableId);
     items = new TokenAndAmount[](p.balancesCount);
     for (uint256 i = 0; i < p.balancesCount; i++) {
-      (address token, uint256 amount) = state.payableBalances(payableId, i);
-      items[i] = TokenAndAmount(token, amount);
+      (address token, uint256 amount) = STATE.payableBalances(payableId, i);
+      items[i] = TokenAndAmount({token: token, amount: amount});
     }
   }
 
@@ -129,14 +184,14 @@ contract CbGetters is CbErrors, CbStructs {
     PayableForeign memory p = getForeignPayable(payableId);
     items = new TokenAndAmountForeign[](p.allowedTokensAndAmountsCount);
     for (uint256 i = 0; i < p.allowedTokensAndAmountsCount; i++) {
-      (bytes32 token, uint64 amount) = state.foreignPayableAllowedTokensAndAmounts(payableId, i);
-      items[i] = TokenAndAmountForeign(token, amount);
+      (bytes32 token, uint64 amount) = STATE.foreignPayableAllowedTokensAndAmounts(payableId, i);
+      items[i] = TokenAndAmountForeign({token: token, amount: amount});
     }
   }
 
   function getPayableChainPaymentsCount(bytes32 payableId, bytes32 cbChainId) external view returns (uint256) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
-    return state.payableChainPaymentsCount(payableId, cbChainId);
+    return STATE.payableChainPaymentsCount(payableId, cbChainId);
   }
 
   function getForForeignChainMatchingTokenAddress(bytes32 cbChainId, bytes32 foreignToken)
@@ -144,7 +199,7 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (address token)
   {
-    token = state.forForeignChainMatchingTokenAddresses(cbChainId, foreignToken);
+    token = STATE.forForeignChainMatchingTokenAddresses(cbChainId, foreignToken);
     if (token == address(0)) revert InvalidChainIdOrForeignToken();
   }
 
@@ -153,7 +208,7 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32 foreignToken)
   {
-    foreignToken = state.forTokenAddressMatchingForeignChainTokens(token, cbChainId);
+    foreignToken = STATE.forTokenAddressMatchingForeignChainTokens(token, cbChainId);
     if (foreignToken == bytes32(0)) revert InvalidChainIdOrForeignToken();
   }
 
@@ -307,13 +362,13 @@ contract CbGetters is CbErrors, CbStructs {
   // ------------------------------------------------------------------------
 
   function chainUserAddressesPaginated(uint256 offset, uint256 limit) external view returns (address[] memory items) {
-    (uint256 total,,,,,,,,) = state.chainStats();
-    return _paginateAddressArray(state.chainUserAddresses, total, offset, limit);
+    (uint256 total,,,,,,,,) = STATE.chainStats();
+    return _paginateAddressArray(STATE.chainUserAddresses, total, offset, limit);
   }
 
   function chainPayableIdsPaginated(uint256 offset, uint256 limit) external view returns (bytes32[] memory items) {
-    (,uint256 total,,,,,,,) = state.chainStats();
-    return _paginateBytes32Array(state.chainPayableIds, total, offset, limit);
+    (, uint256 total,,,,,,,) = STATE.chainStats();
+    return _paginateBytes32Array(STATE.chainPayableIds, total, offset, limit);
   }
 
   function chainForeignPayableIdsPaginated(uint256 offset, uint256 limit)
@@ -321,13 +376,13 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32[] memory items)
   {
-    (,,uint256 total,,,,,,) = state.chainStats();
-    return _paginateBytes32Array(state.chainForeignPayableIds, total, offset, limit);
+    (,, uint256 total,,,,,,) = STATE.chainStats();
+    return _paginateBytes32Array(STATE.chainForeignPayableIds, total, offset, limit);
   }
 
   function chainUserPaymentIdsPaginated(uint256 offset, uint256 limit) external view returns (bytes32[] memory items) {
-    (,,,uint256 total,,,,,) = state.chainStats();
-    return _paginateBytes32Array(state.chainUserPaymentIds, total, offset, limit);
+    (,,, uint256 total,,,,,) = STATE.chainStats();
+    return _paginateBytes32Array(STATE.chainUserPaymentIds, total, offset, limit);
   }
 
   function chainPayablePaymentIdsPaginated(uint256 offset, uint256 limit)
@@ -335,18 +390,18 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32[] memory items)
   {
-    (,,,,uint256 total,,,,) = state.chainStats();
-    return _paginateBytes32Array(state.chainPayablePaymentIds, total, offset, limit);
+    (,,,, uint256 total,,,,) = STATE.chainStats();
+    return _paginateBytes32Array(STATE.chainPayablePaymentIds, total, offset, limit);
   }
 
   function chainWithdrawalIdsPaginated(uint256 offset, uint256 limit) external view returns (bytes32[] memory items) {
-    (,,,,,uint256 total,,,) = state.chainStats();
-    return _paginateBytes32Array(state.chainWithdrawalIds, total, offset, limit);
+    (,,,,, uint256 total,,,) = STATE.chainStats();
+    return _paginateBytes32Array(STATE.chainWithdrawalIds, total, offset, limit);
   }
 
   function chainActivityIdsPaginated(uint256 offset, uint256 limit) external view returns (bytes32[] memory items) {
-    (,,,,,,uint256 total,,) = state.chainStats();
-    return _paginateBytes32Array(state.chainActivityIds, total, offset, limit);
+    (,,,,,, uint256 total,,) = STATE.chainStats();
+    return _paginateBytes32Array(STATE.chainActivityIds, total, offset, limit);
   }
 
   function consumedWormholeMessagesPaginated(uint256 offset, uint256 limit)
@@ -354,8 +409,8 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32[] memory items)
   {
-    (,,,,,,,,uint256 total) = state.chainStats();
-    return _paginateBytes32Array(state.consumedWormholeMessages, total, offset, limit);
+    (,,,,,,,, uint256 total) = STATE.chainStats();
+    return _paginateBytes32Array(STATE.consumedWormholeMessages, total, offset, limit);
   }
 
   // Note: registeredCbChainIds is dynamic, we don't track its length in chainStats.
@@ -371,7 +426,7 @@ contract CbGetters is CbErrors, CbStructs {
     returns (bytes32[] memory items)
   {
     uint256 total = getUser(userWallet).payablesCount;
-    return _paginateBytes32ArrayForAddress(state.userPayableIds, userWallet, total, offset, limit);
+    return _paginateBytes32ArrayForAddress(STATE.userPayableIds, userWallet, total, offset, limit);
   }
 
   function userPaymentIdsPaginated(address userWallet, uint256 offset, uint256 limit)
@@ -380,7 +435,7 @@ contract CbGetters is CbErrors, CbStructs {
     returns (bytes32[] memory items)
   {
     uint256 total = getUser(userWallet).paymentsCount;
-    return _paginateBytes32ArrayForAddress(state.userPaymentIds, userWallet, total, offset, limit);
+    return _paginateBytes32ArrayForAddress(STATE.userPaymentIds, userWallet, total, offset, limit);
   }
 
   function userActivityIdsPaginated(address userWallet, uint256 offset, uint256 limit)
@@ -389,7 +444,7 @@ contract CbGetters is CbErrors, CbStructs {
     returns (bytes32[] memory items)
   {
     uint256 total = getUser(userWallet).activitiesCount;
-    return _paginateBytes32ArrayForAddress(state.userActivityIds, userWallet, total, offset, limit);
+    return _paginateBytes32ArrayForAddress(STATE.userActivityIds, userWallet, total, offset, limit);
   }
 
   function userWithdrawalIdsPaginated(address userWallet, uint256 offset, uint256 limit)
@@ -398,7 +453,7 @@ contract CbGetters is CbErrors, CbStructs {
     returns (bytes32[] memory items)
   {
     uint256 total = getUser(userWallet).withdrawalsCount;
-    return _paginateBytes32ArrayForAddress(state.userWithdrawalIds, userWallet, total, offset, limit);
+    return _paginateBytes32ArrayForAddress(STATE.userWithdrawalIds, userWallet, total, offset, limit);
   }
 
   function payablePaymentIdsPaginated(bytes32 payableId, uint256 offset, uint256 limit)
@@ -407,7 +462,7 @@ contract CbGetters is CbErrors, CbStructs {
     returns (bytes32[] memory items)
   {
     uint256 total = getPayable(payableId).paymentsCount;
-    return _paginateBytes32ArrayForBytes32(state.payablePaymentIds, payableId, total, offset, limit);
+    return _paginateBytes32ArrayForBytes32(STATE.payablePaymentIds, payableId, total, offset, limit);
   }
 
   function payableActivityIdsPaginated(bytes32 payableId, uint256 offset, uint256 limit)
@@ -416,7 +471,7 @@ contract CbGetters is CbErrors, CbStructs {
     returns (bytes32[] memory items)
   {
     uint256 total = getPayable(payableId).activitiesCount;
-    return _paginateBytes32ArrayForBytes32(state.payableActivityIds, payableId, total, offset, limit);
+    return _paginateBytes32ArrayForBytes32(STATE.payableActivityIds, payableId, total, offset, limit);
   }
 
   function payableWithdrawalIdsPaginated(bytes32 payableId, uint256 offset, uint256 limit)
@@ -425,7 +480,7 @@ contract CbGetters is CbErrors, CbStructs {
     returns (bytes32[] memory items)
   {
     uint256 total = getPayable(payableId).withdrawalsCount;
-    return _paginateBytes32ArrayForBytes32(state.payableWithdrawalIds, payableId, total, offset, limit);
+    return _paginateBytes32ArrayForBytes32(STATE.payableWithdrawalIds, payableId, total, offset, limit);
   }
 
   function payableChainPaymentIdsPaginated(bytes32 payableId, bytes32 cbChainId, uint256 offset, uint256 limit)
@@ -433,10 +488,10 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32[] memory items)
   {
-    uint256 total = state.payableChainPaymentsCount(payableId, cbChainId);
+    uint256 total = STATE.payableChainPaymentsCount(payableId, cbChainId);
     return
       _paginateBytes32ArrayForBytes32AndBytes32(
-        state.payableChainPaymentIds, payableId, cbChainId, total, offset, limit
+        STATE.payableChainPaymentIds, payableId, cbChainId, total, offset, limit
       );
   }
 
@@ -445,7 +500,7 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32[] memory items)
   {
-    uint256 total = state.perChainConsumedWormholeMessagesCount(wormholeChainId);
-    return _paginateBytes32ArrayForUint16(state.perChainConsumedWormholeMessages, wormholeChainId, total, offset, limit);
+    uint256 total = STATE.perChainConsumedWormholeMessagesCount(wormholeChainId);
+    return _paginateBytes32ArrayForUint16(STATE.perChainConsumedWormholeMessages, wormholeChainId, total, offset, limit);
   }
 }

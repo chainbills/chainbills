@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import 'wormhole/interfaces/IWormhole.sol';
-import './circle/ICircleBridge.sol';
-import './circle/IMessageTransmitter.sol';
-import './circle/ITokenMinter.sol';
-import './CbStructs.sol';
+import {IWormhole} from 'wormhole/interfaces/IWormhole.sol';
+import {ICircleBridge} from './circle/ICircleBridge.sol';
+import {IMessageTransmitter} from './circle/IMessageTransmitter.sol';
+import {ITokenMinter} from './circle/ITokenMinter.sol';
+import {CbStructs} from './CbStructs.sol';
 
 contract CbState is CbStructs {
   /// Configuration of this chain.
@@ -115,13 +115,13 @@ contract CbState is CbStructs {
   /// emitter chain to its cbChainId for registeredForeignContracts lookup.
   mapping(uint16 => bytes32) public wormholeChainIdToCbChainId;
   /// storage gap for additional state variables in future versions
-  uint256[50] __gap;
+  uint256[50] _gap;
 
   function hasWormhole() public view returns (bool) {
     return config.wormhole != address(0);
   }
 
-  function hasCCTP() public view returns (bool) {
+  function hasCctp() public view returns (bool) {
     return config.circleTransmitter != address(0);
   }
 
@@ -129,7 +129,7 @@ contract CbState is CbStructs {
     return chainDataMessagingProtocol[cbChainId] == DataMessagingProtocol.WORMHOLE;
   }
 
-  function supportsCCTP(bytes32 cbChainId) public view returns (bool) {
+  function supportsCctp(bytes32 cbChainId) public view returns (bool) {
     return chainDataMessagingProtocol[cbChainId] == DataMessagingProtocol.CCTP;
   }
 

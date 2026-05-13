@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import 'wormhole/interfaces/IWormhole.sol';
-import 'wormhole/Utils.sol';
-import './CbPayloadMessages.sol';
-import './CbUtils.sol';
+import {IWormhole} from 'wormhole/interfaces/IWormhole.sol';
+import {toWormholeFormat} from 'wormhole/Utils.sol';
+import {CbDecodePayload, CbEncodePayablePayload} from './CbPayloadMessages.sol';
+import {CbUtils} from './CbUtils.sol';
+import {SafeCast} from '@openzeppelin/contracts/utils/math/SafeCast.sol';
 
 contract CbPayables is CbUtils {
   using CbDecodePayload for bytes;
@@ -72,10 +73,10 @@ contract CbPayables is CbUtils {
       uint256 amount = allowedTokensAndAmounts[i].amount;
 
       // Set the local allowedTokenAndAmount directly
-      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount(token, amount));
+      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount({token: token, amount: amount}));
 
       // Set the foreign allowedTokensAndAmounts.
-      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: uint64(amount)});
+      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: SafeCast.toUint64(amount)});
     }
 
     // Record the Activity.
@@ -266,10 +267,10 @@ contract CbPayables is CbUtils {
       uint256 amount = allowedTokensAndAmounts[i].amount;
 
       // Set the local allowedTokenAndAmount directly
-      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount(token, amount));
+      payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount({token: token, amount: amount}));
 
       // Set the foreign allowedTokensAndAmounts.
-      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: uint64(amount)});
+      foreignAtaa[i] = TokenAndAmountForeign({token: toWormholeFormat(token), amount: SafeCast.toUint64(amount)});
     }
 
     // Record the Activity.
@@ -329,7 +330,7 @@ contract CbPayables is CbUtils {
       // Set the foreign allowedTokensAndAmounts.
       foreignAtaa[i] = TokenAndAmountForeign({
         token: toWormholeFormat(payableAllowedTokensAndAmounts[payableId][i].token),
-        amount: uint64(payableAllowedTokensAndAmounts[payableId][i].amount)
+        amount: SafeCast.toUint64(payableAllowedTokensAndAmounts[payableId][i].amount)
       });
     }
 
@@ -503,7 +504,7 @@ contract CbPayables is CbUtils {
       uint8 ataaLength = uint8(payload.allowedTokensAndAmounts.length);
       for (uint8 i = 0; i < ataaLength; i++) {
         foreignPayableAllowedTokensAndAmounts[payableId].push(
-          TokenAndAmountForeign(payload.allowedTokensAndAmounts[i].token, payload.allowedTokensAndAmounts[i].amount)
+          TokenAndAmountForeign({ token: payload.allowedTokensAndAmounts[i].token, amount: payload.allowedTokensAndAmounts[i].amount })
         );
       }
       foreignPayable.allowedTokensAndAmountsCount = ataaLength;
@@ -545,11 +546,11 @@ contract CbPayables is CbUtils {
 
     // CCTP: iterate registered chains and send one message per CCTP chain.
     // WORMHOLE chains are already covered by the single Wormhole broadcast above.
-    if (hasCCTP()) {
+    if (hasCctp()) {
       uint256 len = registeredCbChainIds.length;
       for (uint256 i = 0; i < len; i++) {
         bytes32 chainId = registeredCbChainIds[i];
-        if (supportsCCTP(chainId)) {
+        if (supportsCctp(chainId)) {
           uint32 domain = cbChainIdToCircleDomain[chainId];
           bytes32 recipient = registeredForeignContracts[chainId];
           // Skip if admin hasn't configured the Circle domain or registered

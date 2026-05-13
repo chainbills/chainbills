@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
-import 'wormhole/interfaces/IWormhole.sol';
-import 'wormhole/Utils.sol';
-import './circle/ICircleBridge.sol';
-import './circle/IMessageTransmitter.sol';
-import './circle/ITokenMinter.sol';
-import './CbUtils.sol';
-import './CbPayables.sol';
-import './CbTransactions.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import {AccessControlUpgradeable} from '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
+import {OwnableUpgradeable} from '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
+import {Initializable} from '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
+import {ReentrancyGuardUpgradeable} from '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
+import {PausableUpgradeable} from '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
+import {UUPSUpgradeable} from '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
+import {toWormholeFormat} from 'wormhole/Utils.sol';
+import {ICircleBridge} from './circle/ICircleBridge.sol';
+import {IMessageTransmitter} from './circle/IMessageTransmitter.sol';
+import {ITokenMinter} from './circle/ITokenMinter.sol';
+import {CbUtils} from './CbUtils.sol';
 
 /// A Cross-Chain Payment Gateway.
 /// @custom:oz-upgrades-unsafe-allow delegatecall
@@ -28,6 +26,8 @@ contract Chainbills is
   PausableUpgradeable,
   UUPSUpgradeable
 {
+  using SafeERC20 for IERC20;
+
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
@@ -127,7 +127,7 @@ contract Chainbills is
   /// @param cbChainId CAIP-2 chain identifier for this chain
   ///        (keccak256 of "namespace:reference", e.g. keccak256("eip155:8453")).
   /// @dev Only the deployer (owner) can invoke this method.
-  function setupCCTPOnly(address circleTransmitterAddr, uint32 circleDomain, bytes32 cbChainId) public onlyOwner {
+  function setupCctpOnly(address circleTransmitterAddr, uint32 circleDomain, bytes32 cbChainId) public onlyOwner {
     if (circleTransmitterAddr == address(0)) revert InvalidCircleTransmitter();
     if (circleDomain == 0) revert InvalidLocalCircleDomain();
     if (cbChainId == bytes32(0)) revert InvalidChainId();
@@ -161,8 +161,11 @@ contract Chainbills is
   function ownerWithdraw(address token, uint256 amount) public onlyOwner nonReentrant {
     require(amount > 0);
     require(token != address(0));
-    if (token == address(this)) (payable(owner()).call{value: amount}(''));
-    else IERC20(token).transfer(owner(), amount);
+    if (token == address(this)) {
+      (payable(owner()).call{value: amount}(''));
+    } else {
+      IERC20(token).safeTransfer(owner(), amount);
+    }
     emit OwnerWithdrew(token, amount);
   }
 

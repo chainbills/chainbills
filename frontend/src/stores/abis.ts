@@ -1772,7 +1772,7 @@ export const mainAbi = [
   },
   {
     type: 'function',
-    name: 'hasCCTP',
+    name: 'hasCctp',
     inputs: [],
     outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
     stateMutability: 'view',

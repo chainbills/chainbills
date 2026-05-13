@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import './CbEvents.sol';
+import {CbEvents} from './CbEvents.sol';
 
 /// Stores all data structures in EVM in Chainbills
 contract CbStructs is CbEvents {

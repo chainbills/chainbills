@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import 'wormhole/libraries/BytesParsing.sol';
-import 'wormhole/interfaces/IWormhole.sol';
-import 'wormhole/Utils.sol';
-import './CbUtils.sol';
-import './CbPayloadMessages.sol';
+import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
+import {SafeCast} from '@openzeppelin/contracts/utils/math/SafeCast.sol';
+import {BytesParsing} from 'wormhole/libraries/BytesParsing.sol';
+import {IWormhole} from 'wormhole/interfaces/IWormhole.sol';
+import {toWormholeFormat, fromWormholeFormat} from 'wormhole/Utils.sol';
+import {CbUtils} from './CbUtils.sol';
+import {CbDecodePayload, CbEncodePaymentPayload} from './CbPayloadMessages.sol';
 
 contract CbTransactions is CbUtils {
+  using SafeERC20 for IERC20;
   using BytesParsing for bytes;
   using CbDecodePayload for bytes;
   using CbEncodePaymentPayload for PaymentPayload;
@@ -122,7 +124,7 @@ contract CbTransactions is CbUtils {
       }
     }
     if (!wasMatchingBalanceUpdated) {
-      payableBalances[payableId].push(TokenAndAmount(token, amount));
+      payableBalances[payableId].push(TokenAndAmount({token: token, amount: amount}));
       _payable.balancesCount++;
     }
 
@@ -184,22 +186,20 @@ contract CbTransactions is CbUtils {
 
     // Transfer the amount minus fees to the owner.
     Payable storage _payable = payables[payableId];
-    bool isWtdlSuccess = false;
     if (token == address(this)) {
-      (isWtdlSuccess,) = payable(_payable.host).call{value: amtDue}('');
+      (bool isWtdlSuccess,) = payable(_payable.host).call{value: amtDue}('');
+      if (!isWtdlSuccess) revert UnsuccessfulWithdrawal();
     } else {
-      isWtdlSuccess = IERC20(token).transfer(_payable.host, amtDue);
+      IERC20(token).safeTransfer(_payable.host, amtDue);
     }
-    if (!isWtdlSuccess) revert UnsuccessfulWithdrawal();
 
     // Transfer the fees to the fees collector.
-    bool isFeesSuccess = false;
     if (token == address(this)) {
-      (isFeesSuccess,) = payable(config.feeCollector).call{value: fees}('');
+      (bool isFeesSuccess,) = payable(config.feeCollector).call{value: fees}('');
+      if (!isFeesSuccess) revert UnsuccessfulFeesWithdrawal();
     } else {
-      isFeesSuccess = IERC20(token).transfer(config.feeCollector, fees);
+      IERC20(token).safeTransfer(config.feeCollector, fees);
     }
-    if (!isFeesSuccess) revert UnsuccessfulFeesWithdrawal();
 
     /* STATE CHANGES */
     // Increment the chainStats for withdrawalsCount and activitiesCount.
@@ -293,12 +293,12 @@ contract CbTransactions is CbUtils {
 
     // If this payable specified the tokens and amounts it can accept, ensure
     // that the token and amount are matching.
-    uint8 aTAALength = _payable.allowedTokensAndAmountsCount;
-    if (aTAALength > 0) {
-      for (uint8 i = 0; i < aTAALength; i++) {
+    uint8 aTaaLength = _payable.allowedTokensAndAmountsCount;
+    if (aTaaLength > 0) {
+      for (uint8 i = 0; i < aTaaLength; i++) {
         TokenAndAmount storage ataa = payableAllowedTokensAndAmounts[payableId][i];
         if (ataa.token == token && ataa.amount == amount) break;
-        if (i == aTAALength - 1) revert MatchingTokenAndAmountNotFound();
+        if (i == aTaaLength - 1) revert MatchingTokenAndAmountNotFound();
       }
     }
 
@@ -309,9 +309,7 @@ contract CbTransactions is CbUtils {
       if (msg.value < amount) revert InsufficientPaymentValue();
       if (msg.value > amount) revert IncorrectPaymentValue();
     } else {
-      if (!IERC20(token).transferFrom(msg.sender, address(this), amount)) {
-        revert UnsuccessfulPayment();
-      }
+      IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
     }
 
     /* STATE CHANGES */
@@ -355,21 +353,19 @@ contract CbTransactions is CbUtils {
 
     // If this payable specified the tokens and amounts it can accept, ensure
     // that the token and amount are matching.
-    uint8 aTAALength = _payable.allowedTokensAndAmountsCount;
-    if (aTAALength > 0) {
-      for (uint8 i = 0; i < aTAALength; i++) {
+    uint8 aTaaLength = _payable.allowedTokensAndAmountsCount;
+    if (aTaaLength > 0) {
+      for (uint8 i = 0; i < aTaaLength; i++) {
         TokenAndAmountForeign storage ataa = foreignPayableAllowedTokensAndAmounts[payableId][i];
         address matchingToken = forForeignChainMatchingTokenAddresses[_payable.chainId][ataa.token];
-        if (matchingToken == token && ataa.amount == uint64(amount)) break;
-        if (i == aTAALength - 1) revert MatchingTokenAndAmountNotFound();
+        if (matchingToken == token && ataa.amount == SafeCast.toUint64(amount)) break;
+        if (i == aTaaLength - 1) revert MatchingTokenAndAmountNotFound();
       }
     }
 
     /* TRANSFER */
     // Transfer the tokens from the sender into this contract first.
-    if (!IERC20(token).transferFrom(msg.sender, address(this), amount)) {
-      revert UnsuccessfulPayment();
-    }
+    IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 
     // Approve the Circle Bridge to spend tokens
     SafeERC20.safeIncreaseAllowance(IERC20(token), config.circleBridge, amount);
@@ -395,7 +391,7 @@ contract CbTransactions is CbUtils {
           payer: toWormholeFormat(msg.sender),
           payerChainToken: foreignTokenAddr,
           payerChainId: config.cbChainId,
-          amount: uint64(amount),
+          amount: SafeCast.toUint64(amount),
           circleNonce: circleNonce
         }).encode()
     );

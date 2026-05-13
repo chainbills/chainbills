@@ -4,6 +4,7 @@ pragma solidity ^0.8.30;
 import {Script, console} from 'forge-std/Script.sol';
 import {CbGetters} from '../src/CbGetters.sol';
 
+/// @notice Deploys the CbGetters view contract, pointing to an existing Chainbills proxy.
 contract DeployCbGetters is Script {
   function run() public {
     address cb = vm.envAddress('CB_ADDRESS');

@@ -55,14 +55,19 @@ contract Chainbills is
     _grantRole(ADMIN_ROLE, owner());
   }
 
+  /// @notice Authorizes an upgrade to a new implementation.
+  /// @dev Required by UUPSUpgradeable.
+  /// @param newImpl The address of the new implementation contract.
   function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
 
-  /// Pauses contract operations to prevent new interactions
+  /// @notice Pauses contract operations to prevent new interactions.
+  /// @dev Only the deployer (owner) can invoke this method.
   function pause() external onlyOwner nonReentrant whenNotPaused {
     _pause();
   }
 
-  /// Unpauses contract operations to resume normal functionality
+  /// @notice Unpauses contract operations to resume normal functionality.
+  /// @dev Only the deployer (owner) can invoke this method.
   function unpause() external onlyOwner nonReentrant whenPaused {
     _unpause();
   }
@@ -283,6 +288,11 @@ contract Chainbills is
     emit SetFeeCollectorAddress(feeCollector);
   }
 
+  /// @notice Create a Payable.
+  /// - Parameter allowedTokensAndAmounts: Array of tokens and amounts allowed for payments.
+  /// - Parameter isAutoWithdraw: Whether the payable should auto-withdraw to the host.
+  /// @return payableId The ID of the created payable.
+  /// @return wormholeMessageSequence The sequence number of the published Wormhole message.
   function createPayable(
     TokenAndAmount[] calldata,
     /* allowedTokensAndAmounts */
@@ -304,6 +314,9 @@ contract Chainbills is
     }
   }
 
+  /// @notice Stop a payable from accepting payments.
+  /// - Parameter payableId: The ID of the payable to close.
+  /// @return wormholeMessageSequence The sequence number of the published Wormhole message.
   function closePayable(
     bytes32 /* payableId */
   )
@@ -323,6 +336,9 @@ contract Chainbills is
     }
   }
 
+  /// @notice Allow a closed payable to continue accepting payments.
+  /// - Parameter payableId: The ID of the payable to reopen.
+  /// @return wormholeMessageSequence The sequence number of the published Wormhole message.
   function reopenPayable(
     bytes32 /* payableId */
   )
@@ -342,6 +358,10 @@ contract Chainbills is
     }
   }
 
+  /// @notice Updates the allowed tokens and amounts for a payable.
+  /// - Parameter payableId: The ID of the payable.
+  /// - Parameter allowedTokensAndAmounts: The new tokens and amounts array.
+  /// @return wormholeMessageSequence The sequence number of the published Wormhole message.
   function updatePayableAllowedTokensAndAmounts(
     bytes32, /* payableId */
     TokenAndAmount[] calldata /* allowedTokensAndAmounts */
@@ -362,6 +382,9 @@ contract Chainbills is
     }
   }
 
+  /// @notice Updates the auto-withdraw status for a payable.
+  /// - Parameter payableId: The ID of the payable.
+  /// - Parameter isAutoWithdraw: The new auto-withdraw status.
   function updatePayableAutoWithdraw(
     bytes32,
     /* payableId */
@@ -379,6 +402,9 @@ contract Chainbills is
     }
   }
 
+  /// @notice Publishes a payable's details to Wormhole.
+  /// - Parameter payableId: The ID of the payable to publish.
+  /// @return wormholeMessageSequence The sequence number of the published Wormhole message.
   function publishPayableDetails(
     bytes32 /* payableId */
   )
@@ -397,6 +423,8 @@ contract Chainbills is
     }
   }
 
+  /// @notice Receives a payable update from another chain via Wormhole.
+  /// - Parameter wormholeEncoded: The encoded VAA from Wormhole.
   function receivePayableUpdateViaWormhole(
     bytes memory /* wormholeEncoded */
   )
@@ -412,6 +440,9 @@ contract Chainbills is
     }
   }
 
+  /// @notice Receives a payable update from another chain via Circle CCTP manually.
+  /// - Parameter message: The Circle message bytes.
+  /// - Parameter attestation: The Circle attestation bytes.
   function receivePayableUpdateViaCircle(
     bytes calldata,
     /* message */
@@ -429,9 +460,11 @@ contract Chainbills is
     }
   }
 
-  /// Circle CCTP IMessageHandler callback. Called by Circle's MessageTransmitter
-  /// after verifying the attestation when a payable-update message arrives from
-  /// another chain. Delegates to CbPayables for nonce dedup and state updates.
+  /// @notice Circle CCTP IMessageHandler callback. Called by Circle's MessageTransmitter.
+  /// - Parameter sourceDomain: Circle domain of the source chain.
+  /// - Parameter sender: Sender address of the message.
+  /// - Parameter message:Body The actual message body.
+  /// @return True if the message was successfully processed.
   function handleReceiveMessage(
     uint32,
     /* sourceDomain */
@@ -453,6 +486,13 @@ contract Chainbills is
     return abi.decode(result, (bool));
   }
 
+  /// @notice Syncs a foreign payable's state by an admin.
+  /// - Parameter payableId: The ID of the payable.
+  /// - Parameter cbChainId: The CAIP-2 chain ID.
+  /// - Parameter nonce: The nonce of the payable update.
+  /// - Parameter actionType: The action type (1: Create, 2: Close, 3: Reopen, 4: Update ATAA).
+  /// - Parameter isClosed: Whether the payable is closed.
+  /// - Parameter ataa: The allowed tokens and amounts array.
   function adminSyncForeignPayable(
     bytes32, /* payableId */
     bytes32, /* cbChainId */
@@ -474,6 +514,12 @@ contract Chainbills is
     }
   }
 
+  /// @notice Make a payment to a payable.
+  /// - Parameter payableId: The ID of the payable.
+  /// - Parameter token: The address of the token being paid.
+  /// - Parameter amount: The amount of the token being paid.
+  /// @return userPaymentId The ID of the user payment.
+  /// @return payablePaymentId The ID of the payable payment.
   function pay(
     bytes32,
     /* payableId */
@@ -497,6 +543,12 @@ contract Chainbills is
     }
   }
 
+  /// @notice Make a cross-chain payment to a foreign payable using Circle CCTP.
+  /// - Parameter payableId: The ID of the foreign payable.
+  /// - Parameter token: The address of the local token being paid.
+  /// - Parameter amount: The amount of the token being paid.
+  /// @return userPaymentId The ID of the user payment.
+  /// @return wormholeMessageSequence The sequence number of the published Wormhole message.
   function payForeignWithCircle(
     bytes32,
     /* payableId */
@@ -520,6 +572,9 @@ contract Chainbills is
     }
   }
 
+  /// @notice Receives a cross-chain payment via Circle CCTP and Wormhole.
+  /// - Parameter params: The parameters for redeeming the payment.
+  /// @return payablePaymentId The ID of the payable payment.
   function receiveForeignPaymentWithCircle(
     RedeemCirclePaymentParameters memory /* params */
   )
@@ -538,6 +593,11 @@ contract Chainbills is
     }
   }
 
+  /// @notice Withdraw funds from a payable.
+  /// - Parameter payableId: The ID of the payable.
+  /// - Parameter token: The address of the token to withdraw.
+  /// - Parameter amount: The amount of the token to withdraw.
+  /// @return withdrawalId The ID of the withdrawal.
   function withdraw(
     bytes32,
     /* payableId */

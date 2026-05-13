@@ -8,6 +8,7 @@ import {CbGetters} from '../src/CbGetters.sol';
 import {CbPayables} from '../src/CbPayables.sol';
 import {CbTransactions} from '../src/CbTransactions.sol';
 
+/// @notice Deploys the proxy and all underlying components for Chainbills.
 contract DeployChainbills is Script {
   function run() public {
     address feeCollector = vm.envAddress('FEE_COLLECTOR');

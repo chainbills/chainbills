@@ -4,6 +4,7 @@ pragma solidity ^0.8.30;
 import {Script, console} from 'forge-std/Script.sol';
 import {Chainbills} from 'src/Chainbills.sol';
 
+/// @notice Script to allow a token to be used for payments in Chainbills.
 contract AllowPaymentsForToken is Script {
   function run() public {
     address cbAddr = 0x92e67Bfe49466b18ccDF2A3A28B234AB68374c60;

@@ -45,22 +45,19 @@ if (token == address(this)) {
   if (msg.value < amount) revert InsufficientPaymentValue();
   if (msg.value > amount) revert IncorrectPaymentValue();
 } else {
-  if (!IERC20(token).transferFrom(msg.sender, address(this), amount)) {
-    revert UnsuccessfulPayment();
-  }
+  IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
 }
 ```
 
 When a user makes a withdrawal in native tokens, we use the `call` function to send the funds to the host. For ERC20 tokens, we use the `transfer` function of the token contract to move the tokens from the Chainbills contract to the host.
 
 ```solidity
-bool isWtdlSuccess = false;
 if (token == address(this)) {
-  (isWtdlSuccess,) = payable(_payable.host).call{value: amtDue}('');
+  (bool isWtdlSuccess,) = payable(_payable.host).call{value: amtDue}('');
+  if (!isWtdlSuccess) revert UnsuccessfulWithdrawal();
 } else {
-  isWtdlSuccess = IERC20(token).transfer(_payable.host, amtDue);
+  IERC20(token).safeTransfer(_payable.host, amtDue);
 }
-if (!isWtdlSuccess) revert UnsuccessfulWithdrawal();
 ```
 
 ## Invalid Inputs

@@ -185,6 +185,8 @@ contract CbTransactions is CbUtils {
     uint256 amtDue = amount - fees;
 
     // Transfer the amount minus fees to the owner.
+    // NOTE: Since this executes via delegatecall from Chainbills.sol,
+    // the native `.call` transfers funds directly from the proxy's balance.
     Payable storage _payable = payables[payableId];
     if (token == address(this)) {
       (bool isWtdlSuccess,) = payable(_payable.host).call{value: amtDue}('');
@@ -324,6 +326,8 @@ contract CbTransactions is CbUtils {
     // If the Payable is an auto-withdraw, then make transfer of just-paid
     // amount to the payable's owner and update state immediately by calling
     // helper function.
+    // NOTE: This triggers an external call. This is safe from reentrancy
+    // because the `pay` function on the Chainbills proxy has a `nonReentrant` modifier.
     if (_payable.isAutoWithdraw) _actualizeWithdrawal(payableId, token, amount);
   }
 

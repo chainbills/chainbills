@@ -4,6 +4,7 @@ pragma solidity ^0.8.30;
 import {Script, console} from 'forge-std/Script.sol';
 import {Chainbills} from 'src/Chainbills.sol';
 
+/// @notice Setup script for configuring CCTP on chains that do not support Wormhole.
 contract SetupCCTPOnly is Script {
   function run() public {
     address cbAddr = vm.envAddress('CB_ADDRESS');

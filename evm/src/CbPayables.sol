@@ -234,6 +234,7 @@ contract CbPayables is CbUtils {
     if (_payable.host != msg.sender) revert NotYourPayable();
 
     // Clear the currently stored allowedTokensAndAmounts for the payable
+    // NOTE: Loop is bounded safely by uint8 (max 255), so no out-of-gas risk here.
     for (uint8 i = _payable.allowedTokensAndAmountsCount; i > 0; i--) {
       // Remove all previously set ATAAs in storage by popping
       payableAllowedTokensAndAmounts[payableId].pop();
@@ -504,7 +505,9 @@ contract CbPayables is CbUtils {
       uint8 ataaLength = uint8(payload.allowedTokensAndAmounts.length);
       for (uint8 i = 0; i < ataaLength; i++) {
         foreignPayableAllowedTokensAndAmounts[payableId].push(
-          TokenAndAmountForeign({ token: payload.allowedTokensAndAmounts[i].token, amount: payload.allowedTokensAndAmounts[i].amount })
+          TokenAndAmountForeign({
+            token: payload.allowedTokensAndAmounts[i].token, amount: payload.allowedTokensAndAmounts[i].amount
+          })
         );
       }
       foreignPayable.allowedTokensAndAmountsCount = ataaLength;

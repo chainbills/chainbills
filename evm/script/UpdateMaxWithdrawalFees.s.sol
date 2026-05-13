@@ -4,6 +4,7 @@ pragma solidity ^0.8.30;
 import {Script, console} from 'forge-std/Script.sol';
 import {Chainbills} from 'src/Chainbills.sol';
 
+/// @notice Script to update the maximum withdrawal fees for a supported token.
 contract UpdateMaxWithdrawalFees is Script {
   function run() public {
     address cbAddr = 0x92e67Bfe49466b18ccDF2A3A28B234AB68374c60;

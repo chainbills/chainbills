@@ -4,6 +4,7 @@ pragma solidity ^0.8.30;
 import {Upgrades} from 'openzeppelin-foundry-upgrades/Upgrades.sol';
 import {Script, console} from 'forge-std/Script.sol';
 
+/// @notice Upgrades the Chainbills proxy to a new implementation.
 contract UpgradeChainbills is Script {
   // TODO: Set the proxy's address before upgrading or on new deployments
   // to other chains

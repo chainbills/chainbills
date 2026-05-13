@@ -117,34 +117,52 @@ contract CbState is CbStructs {
   /// storage gap for additional state variables in future versions
   uint256[50] _gap;
 
+  /// @notice Checks if Wormhole is configured on this chain.
+  /// @return True if Wormhole is configured.
   function hasWormhole() public view returns (bool) {
     return config.wormhole != address(0);
   }
 
+  /// @notice Checks if Circle CCTP is configured on this chain.
+  /// @return True if Circle CCTP is configured.
   function hasCctp() public view returns (bool) {
     return config.circleTransmitter != address(0);
   }
 
+  /// @notice Checks if the given chain ID uses Wormhole for data messaging.
+  /// @param cbChainId The CAIP-2 chain ID.
+  /// @return True if the chain uses Wormhole.
   function supportsWormhole(bytes32 cbChainId) public view returns (bool) {
     return chainDataMessagingProtocol[cbChainId] == DataMessagingProtocol.WORMHOLE;
   }
 
+  /// @notice Checks if the given chain ID uses Circle CCTP for data messaging.
+  /// @param cbChainId The CAIP-2 chain ID.
+  /// @return True if the chain uses CCTP.
   function supportsCctp(bytes32 cbChainId) public view returns (bool) {
     return chainDataMessagingProtocol[cbChainId] == DataMessagingProtocol.CCTP;
   }
 
+  /// @notice Returns the Wormhole core contract instance.
+  /// @return The IWormhole instance.
   function wormhole() public view returns (IWormhole) {
     return IWormhole(config.wormhole);
   }
 
+  /// @notice Returns the Circle Bridge contract instance.
+  /// @return The ICircleBridge instance.
   function circleBridge() public view returns (ICircleBridge) {
     return ICircleBridge(config.circleBridge);
   }
 
+  /// @notice Returns the Circle Message Transmitter contract instance.
+  /// @return The IMessageTransmitter instance.
   function circleTransmitter() public view returns (IMessageTransmitter) {
     return IMessageTransmitter(config.circleTransmitter);
   }
 
+  /// @notice Returns the Circle Token Minter contract instance.
+  /// @return The ITokenMinter instance.
   function circleTokenMinter() public view returns (ITokenMinter) {
     return ITokenMinter(config.circleTokenMinter);
   }

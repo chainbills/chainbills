@@ -20,7 +20,6 @@ import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import * as encoding from './encoding';
-import { megaeth } from 'viem/chains';
 
 export const useWithdrawalStore = defineStore('withdrawal', () => {
   const analytics = useAnalyticsStore();
@@ -40,6 +39,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     const result = await {
       arctestnet: evm,
       megaeth: evm,
+      sepolia: evm,
       solanadevnet: solana,
     }[auth.currentUser.chain.name]['withdraw'](payableId, details);
     if (!result) return null;

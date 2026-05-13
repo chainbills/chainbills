@@ -2,6 +2,7 @@
 const { id } = defineProps(['id']);
 import IconArc from '@/icons/IconArc.vue';
 import IconCopy from '@/icons/IconCopy.vue';
+import IconEthereum from '@/icons/IconEthereum.vue';
 import IconLogout from '@/icons/IconLogout.vue';
 import IconMegaETH from '@/icons/IconMegaETH.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
@@ -9,7 +10,7 @@ import IconSolana from '@/icons/IconSolana.vue';
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
 import IconSync from '@/icons/IconSync.vue';
-import { arctestnet, megaeth as megaethInApp, type ChainName } from '@/schemas';
+import { arctestnet, megaeth as megaethInApp, sepolia as sepoliaInApp, type ChainName } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useSidebarStore, useThemeStore } from '@/stores';
 import { useAppKit, useAppKitNetwork } from '@reown/appkit/vue';
 import { useAccount } from '@wagmi/vue';
@@ -18,7 +19,7 @@ import Dialog from 'primevue/dialog';
 import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet } from 'solana-wallets-vue';
-import { arcTestnet, megaeth as megaethViem } from 'viem/chains';
+import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
 import { onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -29,8 +30,10 @@ const { open: openAppKit, close: closeAppKit } = useAppKit();
 const appkitNetwork = useAppKitNetwork();
 const auth = useAuthStore();
 const icons = {
-  arctestnet: IconArc,
+  arctestnet,
+  sepoliaInApp: IconArc,
   megaeth: IconMegaETH,
+  sepolia: IconEthereum,
   solanadevnet: IconSolana,
 };
 const isModalVisible = ref(false);
@@ -57,6 +60,7 @@ const onClickEvm = () => {
   let viemChain;
   if (chainName == 'megaeth') viemChain = megaethViem;
   else if (chainName == 'arctestnet') viemChain = arcTestnet;
+  else if (chainName == 'sepolia') viemChain = sepoliaViem;
   else throw new Error(`Unsupported EVM Chain: ${chainName}`);
 
   appkitNetwork.value.switchNetwork(viemChain);
@@ -214,7 +218,7 @@ onMounted(() => {
       <p class="mb-4 sm:mb-6">First Select a Blockchain Network</p>
 
       <Button
-        v-for="chain of [megaethInApp, arctestnet]"
+        v-for="chain of [megaethInApp, arctestnet, sepoliaInApp]"
         :class="
           'text-current border-none shadow-md dark:shadow-[#ffffff0a] flex items-center px-3 py-2 mb-4 text-lg ' +
           (selectedChainName == chain.name ? 'bg-primary bg-opacity-30' : 'bg-transparent')

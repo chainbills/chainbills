@@ -1,4 +1,4 @@
-import { type Chain, getTokenDetails, type Payment, type Token } from '@/schemas';
+import { cbChainIdToChain, getTokenDetails, type Chain, type Payment, type Token } from '@/schemas';
 import { denormalizeBytes } from '@/stores';
 
 export class PayablePayment implements Payment {
@@ -21,15 +21,16 @@ export class PayablePayment implements Payment {
     else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
     else this.payableId = onChainData.payableId;
 
-    if (onChainData.payerChainId == 0) this.payerChain = chain;
-    else throw `Unhandled payerChain: ${onChainData.payerChainId}`;
+    const payerChain = cbChainIdToChain[onChainData.payerChainId];
+    if (!payerChain) throw new Error(`Unknown cbChainId: ${onChainData.payerChainId}`);
 
-    if (chain.isEvm && this.chain.name == this.payerChain.name) {
-      // This because of the "toWormholeFormat" conversion in EVM contract
+    if (chain.isEvm && chain.name == payerChain.name) {
       this.payer = '0x' + onChainData.payer.split('0x')[1].replace(/^0+/, '');
     } else {
-      this.payer = denormalizeBytes(onChainData.payer, this.payerChain);
+      this.payer = denormalizeBytes(onChainData.payer, payerChain);
     }
+
+    this.payerChain = payerChain;
 
     this.payableCount = Number(onChainData.payableCount);
     this.localChainCount = Number(onChainData.localChainCount);

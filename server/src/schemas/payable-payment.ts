@@ -1,5 +1,5 @@
 import { Timestamp } from 'firebase-admin/firestore';
-import { Chain, ChainName, ChainNetworkType, denormalizeBytes } from '../utils';
+import { Chain, ChainName, ChainNetworkType, cbChainIdToChain, denormalizeBytes } from '../utils';
 import { getTokenDetails } from './tokens-and-amounts';
 
 export class PayablePayment {
@@ -24,23 +24,23 @@ export class PayablePayment {
     else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
     else this.payableId = onChainData.payableId;
 
-    if (onChainData.payerChainId == 0) this.payerChainName = chain.name;
-    else throw `Unhandled payerChain: ${onChainData.payerChainId}`;
+    const payerChain: Chain = cbChainIdToChain[onChainData.payerChainId];
+    if (!payerChain) throw new Error(`Unknown cbChainId: ${onChainData.payerChainId}`);
+    this.payerChainName = payerChain.name;
 
-    if (chain.isEvm && this.chainName == this.payerChainName) {
+    if (chain.isEvm && chain.name == payerChain.name) {
       // This because of the "toWormholeFormat" conversion in EVM contract
       this.payer = '0x' + onChainData.payer.split('0x')[1].replace(/^0+/, '');
     } else {
-      // TODO: Change chain here to payerChain when doing cross-chain
-      this.payer = denormalizeBytes(onChainData.payer, chain);
+      // Use payerChain for denormalization when cross-chain
+      this.payer = denormalizeBytes(onChainData.payer, payerChain);
     }
 
     this.payableCount = Number(onChainData.payableCount);
     this.localChainCount = Number(onChainData.localChainCount);
     const { name: token, details } = getTokenDetails(onChainData.token, chain);
     this.token = token;
-    this.amount =
-      Number(onChainData.amount) / 10 ** (details[chain.name]?.decimals ?? 0);
+    this.amount = Number(onChainData.amount) / 10 ** (details[chain.name]?.decimals ?? 0);
     this.timestamp = Timestamp.fromMillis(Number(onChainData.timestamp) * 1000);
   }
 }

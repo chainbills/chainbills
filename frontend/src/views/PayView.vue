@@ -107,7 +107,7 @@ const pay = async () => {
   }
 
   isPaying.value = true;
-  const id = await payment.exec(payable.value.id, selectedConfig.value!);
+  const id = await payment.exec(payable.value.id, selectedConfig.value!, payable.value.chain);
 
   if (id) router.push(`/receipt/${id}`);
   else isPaying.value = false;
@@ -290,10 +290,69 @@ onMounted(async () => {
               <span class="font-bold text-2xl">{{ selectedConfig.display(auth.currentUser.chain) }}</span>
             </p>
 
-            <p class="mt-8 mb-24 text-right" v-if="auth.currentUser.chain == payable.chain">
-              <Button type="submit" class="text-xl px-6 py-2"> Pay Now </Button>
-              <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
-            </p>
+            <!-- Same-chain payment: show Pay Now button normally -->
+            <template v-if="auth.currentUser.chain.name === payable.chain.name">
+              <p class="mt-8 mb-24 text-right">
+                <Button type="submit" class="text-xl px-6 py-2"> Pay Now </Button>
+                <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
+              </p>
+            </template>
+
+            <!-- Cross-chain EVM payment: same network type (both testnet or both mainnet) -->
+            <template
+              v-else-if="
+                auth.currentUser.chain.isEvm &&
+                payable.chain.isEvm &&
+                auth.currentUser.chain.networkType === payable.chain.networkType
+              "
+            >
+              <div
+                class="mt-6 mb-4 rounded-lg bg-primary bg-opacity-10 dark:bg-opacity-5 border border-primary border-opacity-30 px-4 py-3 text-sm"
+              >
+                <p class="font-semibold mb-1">⚡ Cross-Chain Payment</p>
+                <p class="text-gray-600 dark:text-gray-400 leading-snug">
+                  This payable is on <strong>{{ payable.chain.displayName }}</strong
+                  >. Your payment will be bridged via <strong>Circle CCTP</strong> and will arrive after a relayer
+                  confirms it on the destination chain.
+                </p>
+              </div>
+              <p class="mt-4 mb-24 text-right">
+                <Button type="submit" class="text-xl px-6 py-2"> Pay via CCTP </Button>
+                <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
+              </p>
+            </template>
+
+            <!-- Mainnet / Testnet mismatch: hard block with info message -->
+            <template
+              v-else-if="
+                auth.currentUser.chain.isEvm &&
+                payable.chain.isEvm &&
+                auth.currentUser.chain.networkType !== payable.chain.networkType
+              "
+            >
+              <div class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400">
+                <p class="mb-4">
+                  This payable is on <strong>{{ payable.chain.displayName }}</strong> ({{ payable.chain.networkType }}),
+                  but you're connected to
+                  <strong>{{ auth.currentUser.chain.displayName }}</strong>
+                  ({{ auth.currentUser.chain.networkType }}). Mainnet and testnet networks are not compatible — please
+                  switch to a <strong>{{ payable.chain.networkType }}</strong> network to continue.
+                </p>
+                <SignInButton />
+              </div>
+            </template>
+
+            <!-- Cross-chain involving Solana: not yet supported -->
+            <template v-else>
+              <div class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400">
+                <p>
+                  Cross-Chain Payments are on the way. As for now, as this Payable was created on
+                  {{ payable.chain.displayName }}, you can only pay while connected on {{ payable.chain.displayName }}.
+                  Please Switch Chain to continue.
+                </p>
+                <SignInButton class="mt-4" />
+              </div>
+            </template>
           </template>
         </form>
       </div>
@@ -305,17 +364,6 @@ onMounted(async () => {
         <SignInButton @click="analytics.recordEvent('clicked_signin', { from: 'payment_page' })" />
       </p>
     </template>
-
-    <div
-      class="mt-12 mb-6 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400"
-      v-if="auth.currentUser && auth.currentUser.chain != payable.chain"
-    >
-      <p class="mb-8">
-        Cross-Chain Payments are on the way. As for now, as this Payable was created on
-        {{ payable.chain.displayName }}, you can only pay while connected on {{ payable.chain.displayName }}. Please Switch Chain to continue.
-      </p>
-      <SignInButton />
-    </div>
   </section>
 </template>
 

@@ -1,4 +1,4 @@
-import { type Chain, getTokenDetails, type Payment, type Token } from '@/schemas';
+import { cbChainIdToChain, getTokenDetails, type Chain, type Payment, type Token } from '@/schemas';
 
 export class UserPayment implements Payment {
   id: string;
@@ -21,8 +21,8 @@ export class UserPayment implements Payment {
     else if (chain.isSolana) this.payer = onChainData.payer.toBase58();
     else this.payer = onChainData.payer;
 
-    if (onChainData.payableChainId == 0) this.payableChain = chain;
-    else throw `Unhandled payableChain: ${onChainData.payableChainId}`;
+    this.payableChain = cbChainIdToChain[onChainData.payableChainId];
+    if (!this.payableChain) throw new Error(`Unknown cbChainId: ${onChainData.payableChainId}`);
 
     if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
     else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();

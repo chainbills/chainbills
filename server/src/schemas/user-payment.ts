@@ -1,5 +1,5 @@
 import { Timestamp } from 'firebase-admin/firestore';
-import { Chain, ChainName, ChainNetworkType } from '../utils';
+import { Chain, ChainName, ChainNetworkType, cbChainIdToChain } from '../utils';
 import { getTokenDetails } from './tokens-and-amounts';
 
 export class UserPayment {
@@ -10,7 +10,7 @@ export class UserPayment {
   payer: string;
   payerCount: number;
   payableId: string;
-  payableChain: Chain;
+  payableChainName: ChainName;
   timestamp: Timestamp;
   token: string;
   amount: number;
@@ -25,8 +25,9 @@ export class UserPayment {
     else if (chain.isSolana) this.payer = onChainData.payer.toBase58();
     else this.payer = onChainData.payer;
 
-    if (onChainData.payableChainId == 0) this.payableChain = chain;
-    else throw `Unhandled payableChain: ${onChainData.payableChainId}`;
+    const payableChain = cbChainIdToChain[onChainData.payableChainId];
+    if (!payableChain) throw new Error(`Unknown cbChainId: ${onChainData.payableChainId}`);
+    this.payableChainName = payableChain.name;
 
     if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
     else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
@@ -35,8 +36,7 @@ export class UserPayment {
     this.payerCount = Number(onChainData.payerCount);
     const { name: token, details } = getTokenDetails(onChainData.token, chain);
     this.token = token;
-    this.amount =
-      Number(onChainData.amount) / 10 ** (details[chain.name]?.decimals ?? 0);
+    this.amount = Number(onChainData.amount) / 10 ** (details[chain.name]?.decimals ?? 0);
     this.timestamp = Timestamp.fromMillis(Number(onChainData.timestamp) * 1000);
   }
 }

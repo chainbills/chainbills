@@ -1,5 +1,4 @@
 import {
-  arctestnet,
   chainNames,
   chainNamesEvm,
   chainNamesToChains,
@@ -37,14 +36,34 @@ export const usePaymentStore = defineStore('payment', () => {
 
   const cacheKey = (chainName: ChainName, type: string, id: string) => `${chainName}::payment::${type}::${id}`;
 
-  const exec = async (payableId: string, details: TokenAndAmount): Promise<string | null> => {
+  /**
+   * Execute a payment. Automatically routes to:
+   * - `evm.pay()` when user and payable are on the same EVM chain
+   * - `evm.payForeignWithCircle()` when user and payable are on different EVM chains
+   * - `solana.pay()` when user is on Solana
+   *
+   * @param payableId  The target payable's ID
+   * @param details    The token and amount to pay
+   * @param payableChain  The chain the payable lives on (needed for cross-chain routing)
+   */
+  const exec = async (payableId: string, details: TokenAndAmount, payableChain: Chain): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    const result = await {
-      arctestnet: evm,
-      megaeth: evm,
-      solanadevnet: solana,
-    }[auth.currentUser.chain.name]['pay'](payableId, details);
+    const userChain = auth.currentUser.chain;
+    const isSameChain = userChain.name === payableChain.name;
+
+    let result;
+    if (userChain.isSolana) {
+      result = await solana['pay'](payableId, details);
+    } else if (userChain.isEvm && isSameChain) {
+      result = await evm.pay(payableId, details);
+    } else if (userChain.isEvm && !isSameChain) {
+      result = await evm.payForeignWithCircle(payableId, details);
+    } else {
+      toastError('Unsupported chain combination for payment');
+      return null;
+    }
+
     if (!result) return null;
     await auth.refreshUser();
 
@@ -52,21 +71,28 @@ export const usePaymentStore = defineStore('payment', () => {
     await server.userPaid(result.created);
 
     // TODO: Move this payablePaid call to the relayer or a different process
-    const payable = await payableStore.get(payableId);
-    if (payable) {
-      const payablePaymentId = await payableStore.getPaymentId(payableId, payable.chain, payable.paymentsCount);
-      if (payablePaymentId) await server.payablePaid(payablePaymentId);
+    // For cross-chain payments, the payable record is created on the destination
+    // chain by the relayer — not immediately available here.
+    if (isSameChain) {
+      const payable = await payableStore.get(payableId);
+      if (payable) {
+        const payablePaymentId = await payableStore.getPaymentId(payableId, payable.chain, payable.paymentsCount);
+        if (payablePaymentId) await server.payablePaid(payablePaymentId);
+      }
     }
 
     toast.add({
       severity: 'success',
       summary: 'Successfully Paid',
-      detail: 'You have successfully made a Payment.',
+      detail: isSameChain
+        ? 'You have successfully made a Payment.'
+        : 'Cross-chain payment initiated! Funds will arrive on the destination chain after relaying.',
       life: 12000,
     });
     analytics.recordEvent('made_payment', {
       user_payment_id: result.created,
       chain: result.chain.name,
+      is_cross_chain: !isSameChain,
     });
     return result.created;
   };

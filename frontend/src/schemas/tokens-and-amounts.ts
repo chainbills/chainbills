@@ -11,6 +11,8 @@ export const getTokenLogo = (chain: Chain, token: Token) => {
 export const contracts: Record<ChainName, string> = {
   arctestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
+  // TODO: Update with actual Sepolia deployment address after redeployment
+  sepolia: '0x0000000000000000000000000000000000000000',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
 };
 
@@ -90,8 +92,12 @@ export const tokens: Token[] = [
     name: 'USDC',
     details: {
       arctestnet: {
-        address: contracts.arctestnet,
-        decimals: 18,
+        address: '0x3600000000000000000000000000000000000000',
+        decimals: 6,
+      },
+      sepolia: {
+        address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
+        decimals: 6,
       },
     },
   },

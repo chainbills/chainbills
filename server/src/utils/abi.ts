@@ -6,7 +6,7 @@ export const abi = [
     name: 'UPGRADE_INTERFACE_VERSION',
     inputs: [],
     outputs: [{ name: '', type: 'string', internalType: 'string' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -21,45 +21,87 @@ export const abi = [
       {
         name: 'activityType',
         type: 'uint8',
-        internalType: 'enum CbStructs.ActivityType'
-      }
+        internalType: 'enum CbStructs.ActivityType',
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'adminSyncForeignPayable',
+    inputs: [
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'uint64', internalType: 'uint64' },
+      { name: '', type: 'uint8', internalType: 'uint8' },
+      { name: '', type: 'bool', internalType: 'bool' },
+      {
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct CbStructs.TokenAndAmountForeign[]',
+        components: [
+          { name: 'token', type: 'bytes32', internalType: 'bytes32' },
+          { name: 'amount', type: 'uint64', internalType: 'uint64' },
+        ],
+      },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'allowPaymentsForToken',
     inputs: [{ name: 'token', type: 'address', internalType: 'address' }],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'cbChainIdToCircleDomain',
+    inputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [{ name: '', type: 'uint32', internalType: 'uint32' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'chainActivityIds',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'chainDataMessagingProtocol',
+    inputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [
+      {
+        name: '',
+        type: 'uint8',
+        internalType: 'enum CbStructs.DataMessagingProtocol',
+      },
+    ],
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'chainForeignPayableIds',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'chainPayableIds',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'chainPayablePaymentIds',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -71,67 +113,70 @@ export const abi = [
       {
         name: 'foreignPayablesCount',
         type: 'uint256',
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       { name: 'userPaymentsCount', type: 'uint256', internalType: 'uint256' },
       {
         name: 'payablePaymentsCount',
         type: 'uint256',
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       { name: 'withdrawalsCount', type: 'uint256', internalType: 'uint256' },
       { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
       {
         name: 'publishedWormholeMessagesCount',
         type: 'uint256',
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       {
         name: 'consumedWormholeMessagesCount',
         type: 'uint256',
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'chainUserAddresses',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'chainUserPaymentIds',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'chainWithdrawalIds',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'circleBridge',
     inputs: [],
-    outputs: [
-      { name: '', type: 'address', internalType: 'contract ICircleBridge' }
-    ],
-    stateMutability: 'view'
+    outputs: [{ name: '', type: 'address', internalType: 'contract ICircleBridge' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'circleDomainToCbChainId',
+    inputs: [{ name: '', type: 'uint32', internalType: 'uint32' }],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'circleTokenMinter',
     inputs: [],
-    outputs: [
-      { name: '', type: 'address', internalType: 'contract ITokenMinter' }
-    ],
-    stateMutability: 'view'
+    outputs: [{ name: '', type: 'address', internalType: 'contract ITokenMinter' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -141,10 +186,10 @@ export const abi = [
       {
         name: '',
         type: 'address',
-        internalType: 'contract IMessageTransmitter'
-      }
+        internalType: 'contract IMessageTransmitter',
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -154,10 +199,10 @@ export const abi = [
       {
         name: 'wormholeMessageSequence',
         type: 'uint64',
-        internalType: 'uint64'
-      }
+        internalType: 'uint64',
+      },
     ],
-    stateMutability: 'payable'
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -169,23 +214,24 @@ export const abi = [
       {
         name: 'withdrawalFeePercentage',
         type: 'uint16',
-        internalType: 'uint16'
+        internalType: 'uint16',
       },
       { name: 'circleDomain', type: 'uint32', internalType: 'uint32' },
       { name: 'feeCollector', type: 'address', internalType: 'address' },
       { name: 'wormhole', type: 'address', internalType: 'address' },
       { name: 'circleBridge', type: 'address', internalType: 'address' },
       { name: 'circleTokenMinter', type: 'address', internalType: 'address' },
-      { name: 'circleTransmitter', type: 'address', internalType: 'address' }
+      { name: 'circleTransmitter', type: 'address', internalType: 'address' },
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'consumedWormholeMessages',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -197,68 +243,68 @@ export const abi = [
         internalType: 'struct CbStructs.TokenAndAmount[]',
         components: [
           { name: 'token', type: 'address', internalType: 'address' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+        ],
       },
-      { name: '', type: 'bool', internalType: 'bool' }
+      { name: '', type: 'bool', internalType: 'bool' },
     ],
     outputs: [
       { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
       {
         name: 'wormholeMessageSequence',
         type: 'uint64',
-        internalType: 'uint64'
-      }
+        internalType: 'uint64',
+      },
     ],
-    stateMutability: 'payable'
+    stateMutability: 'payable',
   },
   {
     type: 'function',
     name: 'forForeignChainMatchingTokenAddresses',
     inputs: [
-      { name: '', type: 'uint16', internalType: 'uint16' },
-      { name: '', type: 'bytes32', internalType: 'bytes32' }
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'forTokenAddressMatchingForeignChainTokens',
     inputs: [
       { name: '', type: 'address', internalType: 'address' },
-      { name: '', type: 'uint16', internalType: 'uint16' }
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'foreignPayableAllowedTokensAndAmounts',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [
       { name: 'token', type: 'bytes32', internalType: 'bytes32' },
-      { name: 'amount', type: 'uint64', internalType: 'uint64' }
+      { name: 'amount', type: 'uint64', internalType: 'uint64' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'foreignPayables',
     inputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
     outputs: [
-      { name: 'chainId', type: 'uint16', internalType: 'uint16' },
+      { name: 'chainId', type: 'bytes32', internalType: 'bytes32' },
       {
         name: 'allowedTokensAndAmountsCount',
         type: 'uint8',
-        internalType: 'uint8'
+        internalType: 'uint8',
       },
-      { name: 'isClosed', type: 'bool', internalType: 'bool' }
+      { name: 'isClosed', type: 'bool', internalType: 'bool' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -278,12 +324,12 @@ export const abi = [
           {
             name: 'activityType',
             type: 'uint8',
-            internalType: 'enum CbStructs.ActivityType'
-          }
-        ]
-      }
+            internalType: 'enum CbStructs.ActivityType',
+          },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -296,11 +342,11 @@ export const abi = [
         internalType: 'struct CbStructs.TokenAndAmount[]',
         components: [
           { name: 'token', type: 'address', internalType: 'address' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -313,11 +359,11 @@ export const abi = [
         internalType: 'struct CbStructs.TokenAndAmount[]',
         components: [
           { name: 'token', type: 'address', internalType: 'address' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -334,38 +380,38 @@ export const abi = [
           {
             name: 'foreignPayablesCount',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
           {
             name: 'userPaymentsCount',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
           {
             name: 'payablePaymentsCount',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
           {
             name: 'withdrawalsCount',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
           { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
           {
             name: 'publishedWormholeMessagesCount',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
           {
             name: 'consumedWormholeMessagesCount',
             type: 'uint256',
-            internalType: 'uint256'
-          }
-        ]
-      }
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -382,7 +428,7 @@ export const abi = [
           {
             name: 'withdrawalFeePercentage',
             type: 'uint16',
-            internalType: 'uint16'
+            internalType: 'uint16',
           },
           { name: 'circleDomain', type: 'uint32', internalType: 'uint32' },
           { name: 'feeCollector', type: 'address', internalType: 'address' },
@@ -391,39 +437,38 @@ export const abi = [
           {
             name: 'circleTokenMinter',
             type: 'address',
-            internalType: 'address'
+            internalType: 'address',
           },
           {
             name: 'circleTransmitter',
             type: 'address',
-            internalType: 'address'
-          }
-        ]
-      }
+            internalType: 'address',
+          },
+          { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getForForeignChainMatchingTokenAddress',
     inputs: [
-      { name: 'chainId', type: 'uint16', internalType: 'uint16' },
-      { name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' }
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [{ name: 'token', type: 'address', internalType: 'address' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getForTokenAddressMatchingForeignChainToken',
     inputs: [
       { name: 'token', type: 'address', internalType: 'address' },
-      { name: 'chainId', type: 'uint16', internalType: 'uint16' }
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
     ],
-    outputs: [
-      { name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' }
-    ],
-    stateMutability: 'view'
+    outputs: [{ name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -435,17 +480,17 @@ export const abi = [
         type: 'tuple',
         internalType: 'struct CbStructs.PayableForeign',
         components: [
-          { name: 'chainId', type: 'uint16', internalType: 'uint16' },
+          { name: 'chainId', type: 'bytes32', internalType: 'bytes32' },
           {
             name: 'allowedTokensAndAmountsCount',
             type: 'uint8',
-            internalType: 'uint8'
+            internalType: 'uint8',
           },
-          { name: 'isClosed', type: 'bool', internalType: 'bool' }
-        ]
-      }
+          { name: 'isClosed', type: 'bool', internalType: 'bool' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -458,11 +503,11 @@ export const abi = [
         internalType: 'struct CbStructs.TokenAndAmountForeign[]',
         components: [
           { name: 'token', type: 'bytes32', internalType: 'bytes32' },
-          { name: 'amount', type: 'uint64', internalType: 'uint64' }
-        ]
-      }
+          { name: 'amount', type: 'uint64', internalType: 'uint64' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -482,41 +527,41 @@ export const abi = [
           {
             name: 'withdrawalsCount',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
           { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
           {
             name: 'allowedTokensAndAmountsCount',
             type: 'uint8',
-            internalType: 'uint8'
+            internalType: 'uint8',
           },
           { name: 'balancesCount', type: 'uint8', internalType: 'uint8' },
           { name: 'isClosed', type: 'bool', internalType: 'bool' },
-          { name: 'isAutoWithdraw', type: 'bool', internalType: 'bool' }
-        ]
-      }
+          { name: 'isAutoWithdraw', type: 'bool', internalType: 'bool' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getPayableChainPaymentIds',
     inputs: [
       { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
-      { name: 'chainId_', type: 'uint16', internalType: 'uint16' }
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [{ name: '', type: 'bytes32[]', internalType: 'bytes32[]' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getPayableChainPaymentsCount',
     inputs: [
       { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
-      { name: 'chainId_', type: 'uint16', internalType: 'uint16' }
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -532,15 +577,15 @@ export const abi = [
           { name: 'payer', type: 'bytes32', internalType: 'bytes32' },
           { name: 'token', type: 'address', internalType: 'address' },
           { name: 'chainCount', type: 'uint256', internalType: 'uint256' },
-          { name: 'payerChainId', type: 'uint16', internalType: 'uint16' },
+          { name: 'payerChainId', type: 'bytes32', internalType: 'bytes32' },
           { name: 'localChainCount', type: 'uint256', internalType: 'uint256' },
           { name: 'payableCount', type: 'uint256', internalType: 'uint256' },
           { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -557,24 +602,24 @@ export const abi = [
           {
             name: 'maxWithdrawalFees',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
           { name: 'totalUserPaid', type: 'uint256', internalType: 'uint256' },
           {
             name: 'totalPayableReceived',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
           { name: 'totalWithdrawn', type: 'uint256', internalType: 'uint256' },
           {
             name: 'totalWithdrawalFeesCollected',
             type: 'uint256',
-            internalType: 'uint256'
-          }
-        ]
-      }
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -592,13 +637,13 @@ export const abi = [
           {
             name: 'withdrawalsCount',
             type: 'uint256',
-            internalType: 'uint256'
+            internalType: 'uint256',
           },
-          { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+          { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -613,22 +658,20 @@ export const abi = [
           { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
           { name: 'payer', type: 'address', internalType: 'address' },
           { name: 'token', type: 'address', internalType: 'address' },
-          { name: 'payableChainId', type: 'uint16', internalType: 'uint16' },
+          { name: 'payableChainId', type: 'bytes32', internalType: 'bytes32' },
           { name: 'chainCount', type: 'uint256', internalType: 'uint256' },
           { name: 'payerCount', type: 'uint256', internalType: 'uint256' },
           { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getWithdrawal',
-    inputs: [
-      { name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' }
-    ],
+    inputs: [{ name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' }],
     outputs: [
       {
         name: '',
@@ -642,52 +685,70 @@ export const abi = [
           { name: 'hostCount', type: 'uint256', internalType: 'uint256' },
           { name: 'payableCount', type: 'uint256', internalType: 'uint256' },
           { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'getWormholeMessageFee',
     inputs: [],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'handleReceiveMessage',
+    inputs: [
+      { name: '', type: 'uint32', internalType: 'uint32' },
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'hasCCTP',
+    inputs: [],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'hasWormhole',
     inputs: [],
     outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'initialize',
     inputs: [
       { name: 'feeCollector', type: 'address', internalType: 'address' },
-      { name: 'feePercent', type: 'uint16', internalType: 'uint16' }
+      { name: 'feePercent', type: 'uint16', internalType: 'uint16' },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'owner',
     inputs: [],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'ownerWithdraw',
     inputs: [
       { name: 'token', type: 'address', internalType: 'address' },
-      { name: 'amount', type: 'uint256', internalType: 'uint256' }
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -695,13 +756,13 @@ export const abi = [
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
       { name: '', type: 'address', internalType: 'address' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [
       { name: 'userPaymentId', type: 'bytes32', internalType: 'bytes32' },
-      { name: 'payablePaymentId', type: 'bytes32', internalType: 'bytes32' }
+      { name: 'payablePaymentId', type: 'bytes32', internalType: 'bytes32' },
     ],
-    stateMutability: 'payable'
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -709,84 +770,84 @@ export const abi = [
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
       { name: '', type: 'address', internalType: 'address' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [
       { name: 'userPaymentId', type: 'bytes32', internalType: 'bytes32' },
       {
         name: 'wormholeMessageSequence',
         type: 'uint64',
-        internalType: 'uint64'
-      }
+        internalType: 'uint64',
+      },
     ],
-    stateMutability: 'payable'
+    stateMutability: 'payable',
   },
   {
     type: 'function',
     name: 'payableActivityIds',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'payableAllowedTokensAndAmounts',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [
       { name: 'token', type: 'address', internalType: 'address' },
-      { name: 'amount', type: 'uint256', internalType: 'uint256' }
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'payableBalances',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [
       { name: 'token', type: 'address', internalType: 'address' },
-      { name: 'amount', type: 'uint256', internalType: 'uint256' }
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'payableChainPaymentIds',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'uint16', internalType: 'uint16' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'payableChainPaymentsCount',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'uint16', internalType: 'uint16' }
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'payablePaymentIds',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -797,23 +858,33 @@ export const abi = [
       { name: 'payer', type: 'bytes32', internalType: 'bytes32' },
       { name: 'token', type: 'address', internalType: 'address' },
       { name: 'chainCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'payerChainId', type: 'uint16', internalType: 'uint16' },
+      { name: 'payerChainId', type: 'bytes32', internalType: 'bytes32' },
       { name: 'localChainCount', type: 'uint256', internalType: 'uint256' },
       { name: 'payableCount', type: 'uint256', internalType: 'uint256' },
       { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-      { name: 'amount', type: 'uint256', internalType: 'uint256' }
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'payableUpdateNonces',
+    inputs: [
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+    ],
+    outputs: [{ name: '', type: 'uint64', internalType: 'uint64' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'payableWithdrawalIds',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -830,44 +901,44 @@ export const abi = [
       {
         name: 'allowedTokensAndAmountsCount',
         type: 'uint8',
-        internalType: 'uint8'
+        internalType: 'uint8',
       },
       { name: 'balancesCount', type: 'uint8', internalType: 'uint8' },
       { name: 'isClosed', type: 'bool', internalType: 'bool' },
-      { name: 'isAutoWithdraw', type: 'bool', internalType: 'bool' }
+      { name: 'isAutoWithdraw', type: 'bool', internalType: 'bool' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'payablesLogic',
     inputs: [],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'perChainConsumedWormholeMessages',
     inputs: [
       { name: '', type: 'uint16', internalType: 'uint16' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'perChainConsumedWormholeMessagesCount',
     inputs: [{ name: '', type: 'uint16', internalType: 'uint16' }],
     outputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'proxiableUUID',
     inputs: [],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -877,10 +948,10 @@ export const abi = [
       {
         name: 'wormholeMessageSequence',
         type: 'uint64',
-        internalType: 'uint64'
-      }
+        internalType: 'uint64',
+      },
     ],
-    stateMutability: 'payable'
+    stateMutability: 'payable',
   },
   {
     type: 'function',
@@ -893,66 +964,91 @@ export const abi = [
         components: [
           { name: 'wormholeEncoded', type: 'bytes', internalType: 'bytes' },
           { name: 'circleBridgeMessage', type: 'bytes', internalType: 'bytes' },
-          { name: 'circleAttestation', type: 'bytes', internalType: 'bytes' }
-        ]
-      }
+          { name: 'circleAttestation', type: 'bytes', internalType: 'bytes' },
+        ],
+      },
     ],
-    outputs: [
-      { name: 'payablePaymentId', type: 'bytes32', internalType: 'bytes32' }
-    ],
-    stateMutability: 'nonpayable'
+    outputs: [{ name: 'payablePaymentId', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    name: 'recordForeignPayableUpdate',
+    name: 'receivePayableUpdateViaCircle',
+    inputs: [
+      { name: '', type: 'bytes', internalType: 'bytes' },
+      { name: '', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'receivePayableUpdateViaWormhole',
     inputs: [{ name: '', type: 'bytes', internalType: 'bytes' }],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    name: 'registerCircleDomainToWormholeChainId',
+    name: 'registerChainCircleDomain',
     inputs: [
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
       { name: 'circleDomain', type: 'uint32', internalType: 'uint32' },
-      { name: 'chainId', type: 'uint16', internalType: 'uint16' }
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'registerChainWormholeId',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'wormholeChainId', type: 'uint16', internalType: 'uint16' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'registerForeignContract',
     inputs: [
-      { name: 'emitterChainId', type: 'uint16', internalType: 'uint16' },
-      { name: 'emitterAddress', type: 'bytes32', internalType: 'bytes32' }
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'emitterAddress', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'registerMatchingTokenForForeignChain',
     inputs: [
-      { name: 'chainId', type: 'uint16', internalType: 'uint16' },
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
       { name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' },
-      { name: 'token', type: 'address', internalType: 'address' }
+      { name: 'token', type: 'address', internalType: 'address' },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'registeredCbChainIds',
+    inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'registeredForeignContracts',
-    inputs: [{ name: '', type: 'uint16', internalType: 'uint16' }],
+    inputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'renounceOwnership',
     inputs: [],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -962,28 +1058,40 @@ export const abi = [
       {
         name: 'wormholeMessageSequence',
         type: 'uint64',
-        internalType: 'uint64'
-      }
+        internalType: 'uint64',
+      },
     ],
-    stateMutability: 'payable'
+    stateMutability: 'payable',
+  },
+  {
+    type: 'function',
+    name: 'setChainDataMessagingProtocol',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'protocol', type: 'uint8', internalType: 'uint8' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'setFeeCollectorAddress',
-    inputs: [
-      { name: 'feeCollector', type: 'address', internalType: 'address' }
-    ],
+    inputs: [{ name: 'feeCollector', type: 'address', internalType: 'address' }],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'setPayablesLogic',
     inputs: [
-      { name: 'payablesLogicAddress', type: 'address', internalType: 'address' }
+      {
+        name: 'payablesLogicAddress',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -992,18 +1100,33 @@ export const abi = [
       {
         name: 'transactionsLogicAddress',
         type: 'address',
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'setWithdrawalFeePercentage',
     inputs: [{ name: 'feePercent', type: 'uint16', internalType: 'uint16' }],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'setupCCTPOnly',
+    inputs: [
+      {
+        name: 'circleTransmitterAddr',
+        type: 'address',
+        internalType: 'address',
+      },
+      { name: 'circleDomain', type: 'uint32', internalType: 'uint32' },
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -1012,17 +1135,32 @@ export const abi = [
       { name: 'wormhole', type: 'address', internalType: 'address' },
       { name: 'circleBridge', type: 'address', internalType: 'address' },
       { name: 'wormholeChainId', type: 'uint16', internalType: 'uint16' },
-      { name: 'wormholeFinality', type: 'uint8', internalType: 'uint8' }
+      { name: 'wormholeFinality', type: 'uint8', internalType: 'uint8' },
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'stopPaymentsForToken',
     inputs: [{ name: 'token', type: 'address', internalType: 'address' }],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'supportsCCTP',
+    inputs: [{ name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'supportsWormhole',
+    inputs: [{ name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -1036,40 +1174,40 @@ export const abi = [
       {
         name: 'totalPayableReceived',
         type: 'uint256',
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       { name: 'totalWithdrawn', type: 'uint256', internalType: 'uint256' },
       {
         name: 'totalWithdrawalFeesCollected',
         type: 'uint256',
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'transactionsLogic',
     inputs: [],
     outputs: [{ name: '', type: 'address', internalType: 'address' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'transferOwnership',
     inputs: [{ name: 'newOwner', type: 'address', internalType: 'address' }],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'updateMaxWithdrawalFees',
     inputs: [
       { name: 'token', type: 'address', internalType: 'address' },
-      { name: 'maxWithdrawalFees', type: 'uint256', internalType: 'uint256' }
+      { name: 'maxWithdrawalFees', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -1082,68 +1220,68 @@ export const abi = [
         internalType: 'struct CbStructs.TokenAndAmount[]',
         components: [
           { name: 'token', type: 'address', internalType: 'address' },
-          { name: 'amount', type: 'uint256', internalType: 'uint256' }
-        ]
-      }
+          { name: 'amount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
     ],
     outputs: [
       {
         name: 'wormholeMessageSequence',
         type: 'uint64',
-        internalType: 'uint64'
-      }
+        internalType: 'uint64',
+      },
     ],
-    stateMutability: 'payable'
+    stateMutability: 'payable',
   },
   {
     type: 'function',
     name: 'updatePayableAutoWithdraw',
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
-      { name: '', type: 'bool', internalType: 'bool' }
+      { name: '', type: 'bool', internalType: 'bool' },
     ],
     outputs: [],
-    stateMutability: 'nonpayable'
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
     name: 'upgradeToAndCall',
     inputs: [
       { name: 'newImplementation', type: 'address', internalType: 'address' },
-      { name: 'data', type: 'bytes', internalType: 'bytes' }
+      { name: 'data', type: 'bytes', internalType: 'bytes' },
     ],
     outputs: [],
-    stateMutability: 'payable'
+    stateMutability: 'payable',
   },
   {
     type: 'function',
     name: 'userActivityIds',
     inputs: [
       { name: '', type: 'address', internalType: 'address' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'userPayableIds',
     inputs: [
       { name: '', type: 'address', internalType: 'address' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'userPaymentIds',
     inputs: [
       { name: '', type: 'address', internalType: 'address' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -1153,23 +1291,23 @@ export const abi = [
       { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
       { name: 'payer', type: 'address', internalType: 'address' },
       { name: 'token', type: 'address', internalType: 'address' },
-      { name: 'payableChainId', type: 'uint16', internalType: 'uint16' },
+      { name: 'payableChainId', type: 'bytes32', internalType: 'bytes32' },
       { name: 'chainCount', type: 'uint256', internalType: 'uint256' },
       { name: 'payerCount', type: 'uint256', internalType: 'uint256' },
       { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-      { name: 'amount', type: 'uint256', internalType: 'uint256' }
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'userWithdrawalIds',
     inputs: [
       { name: '', type: 'address', internalType: 'address' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -1180,9 +1318,9 @@ export const abi = [
       { name: 'payablesCount', type: 'uint256', internalType: 'uint256' },
       { name: 'paymentsCount', type: 'uint256', internalType: 'uint256' },
       { name: 'withdrawalsCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' }
+      { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -1190,12 +1328,10 @@ export const abi = [
     inputs: [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
       { name: '', type: 'address', internalType: 'address' },
-      { name: '', type: 'uint256', internalType: 'uint256' }
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
-    outputs: [
-      { name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' }
-    ],
-    stateMutability: 'nonpayable'
+    outputs: [{ name: 'withdrawalId', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -1209,18 +1345,23 @@ export const abi = [
       { name: 'hostCount', type: 'uint256', internalType: 'uint256' },
       { name: 'payableCount', type: 'uint256', internalType: 'uint256' },
       { name: 'timestamp', type: 'uint256', internalType: 'uint256' },
-      { name: 'amount', type: 'uint256', internalType: 'uint256' }
+      { name: 'amount', type: 'uint256', internalType: 'uint256' },
     ],
-    stateMutability: 'view'
+    stateMutability: 'view',
   },
   {
     type: 'function',
     name: 'wormhole',
     inputs: [],
-    outputs: [
-      { name: '', type: 'address', internalType: 'contract IWormhole' }
-    ],
-    stateMutability: 'view'
+    outputs: [{ name: '', type: 'address', internalType: 'contract IWormhole' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'wormholeChainIdToCbChainId',
+    inputs: [{ name: '', type: 'uint16', internalType: 'uint16' }],
+    outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
+    stateMutability: 'view',
   },
   {
     type: 'event',
@@ -1230,10 +1371,10 @@ export const abi = [
         name: 'token',
         type: 'address',
         indexed: false,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1243,16 +1384,16 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'hostWallet',
         type: 'address',
         indexed: true,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1262,22 +1403,22 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
-        name: 'chainId',
-        type: 'uint16',
+        name: 'cbChainId',
+        type: 'bytes32',
         indexed: true,
-        internalType: 'uint16'
+        internalType: 'bytes32',
       },
       {
         name: 'vaaHash',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
-      }
+        internalType: 'bytes32',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1287,22 +1428,22 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
-        name: 'chainId',
-        type: 'uint16',
+        name: 'cbChainId',
+        type: 'bytes32',
         indexed: true,
-        internalType: 'uint16'
+        internalType: 'bytes32',
       },
       {
         name: 'vaaHash',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
-      }
+        internalType: 'bytes32',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1312,28 +1453,28 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'hostWallet',
         type: 'address',
         indexed: true,
-        internalType: 'address'
+        internalType: 'address',
       },
       {
         name: 'chainCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       {
         name: 'hostCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1343,10 +1484,10 @@ export const abi = [
         name: 'version',
         type: 'uint64',
         indexed: false,
-        internalType: 'uint64'
-      }
+        internalType: 'uint64',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1356,16 +1497,16 @@ export const abi = [
         name: 'wallet',
         type: 'address',
         indexed: true,
-        internalType: 'address'
+        internalType: 'address',
       },
       {
         name: 'chainCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1375,16 +1516,16 @@ export const abi = [
         name: 'token',
         type: 'address',
         indexed: false,
-        internalType: 'address'
+        internalType: 'address',
       },
       {
         name: 'amount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1394,16 +1535,16 @@ export const abi = [
         name: 'previousOwner',
         type: 'address',
         indexed: true,
-        internalType: 'address'
+        internalType: 'address',
       },
       {
         name: 'newOwner',
         type: 'address',
         indexed: true,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1413,103 +1554,202 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'payerWallet',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'paymentId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'payerChainId',
-        type: 'uint16',
+        type: 'bytes32',
         indexed: false,
-        internalType: 'uint16'
+        internalType: 'bytes32',
       },
       {
         name: 'chainCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       {
         name: 'payableCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
-    name: 'RegisteredCircleDomainToWormholeChainId',
+    name: 'PayableUpdateBroadcasted',
     inputs: [
+      {
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
+      { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      {
+        name: 'actionType',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'ReceivedPayableUpdateViaAdminSync',
+    inputs: [
+      {
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
+      {
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
+      { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'ReceivedPayableUpdateViaCircle',
+    inputs: [
+      {
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
+      {
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
+      { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'ReceivedPayableUpdateViaWormhole',
+    inputs: [
+      {
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
+      {
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
+      { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'RegisteredChainCircleDomain',
+    inputs: [
+      {
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
       {
         name: 'circleDomain',
         type: 'uint32',
         indexed: false,
-        internalType: 'uint32'
+        internalType: 'uint32',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'RegisteredChainWormholeId',
+    inputs: [
+      {
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        name: 'chainId',
+        name: 'wormholeChainId',
         type: 'uint16',
         indexed: false,
-        internalType: 'uint16'
-      }
+        internalType: 'uint16',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
     name: 'RegisteredForeignContract',
     inputs: [
       {
-        name: 'chainId',
-        type: 'uint16',
+        name: 'cbChainId',
+        type: 'bytes32',
         indexed: false,
-        internalType: 'uint16'
+        internalType: 'bytes32',
       },
       {
         name: 'emitterAddress',
         type: 'bytes32',
         indexed: false,
-        internalType: 'bytes32'
-      }
+        internalType: 'bytes32',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
     name: 'RegisteredMatchingTokenForForeignChain',
     inputs: [
       {
-        name: 'chainId',
-        type: 'uint16',
+        name: 'cbChainId',
+        type: 'bytes32',
         indexed: false,
-        internalType: 'uint16'
+        internalType: 'bytes32',
       },
       {
         name: 'foreignToken',
         type: 'bytes32',
         indexed: false,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'token',
         type: 'address',
         indexed: false,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1519,16 +1759,35 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'hostWallet',
         type: 'address',
         indexed: true,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'SetChainDataMessagingProtocol',
+    inputs: [
+      {
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
+      {
+        name: 'protocol',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
+    ],
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1538,10 +1797,10 @@ export const abi = [
         name: 'feeCollector',
         type: 'address',
         indexed: false,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1551,10 +1810,10 @@ export const abi = [
         name: 'payablesLogicContract',
         type: 'address',
         indexed: false,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1564,10 +1823,10 @@ export const abi = [
         name: 'transactionsLogicContract',
         type: 'address',
         indexed: false,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1577,16 +1836,17 @@ export const abi = [
         name: 'feePercent',
         type: 'uint16',
         indexed: false,
-        internalType: 'uint16'
-      }
+        internalType: 'uint16',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
+  { type: 'event', name: 'SetupCCTPOnly', inputs: [], anonymous: false },
   {
     type: 'event',
     name: 'SetupWormholeAndCircle',
     inputs: [],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1596,10 +1856,10 @@ export const abi = [
         name: 'token',
         type: 'address',
         indexed: false,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1609,16 +1869,16 @@ export const abi = [
         name: 'token',
         type: 'address',
         indexed: false,
-        internalType: 'address'
+        internalType: 'address',
       },
       {
         name: 'maxWithdrawalFees',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1628,16 +1888,16 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'hostWallet',
         type: 'address',
         indexed: true,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1647,22 +1907,22 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'hostWallet',
         type: 'address',
         indexed: true,
-        internalType: 'address'
+        internalType: 'address',
       },
       {
         name: 'isAutoWithdraw',
         type: 'bool',
         indexed: false,
-        internalType: 'bool'
-      }
+        internalType: 'bool',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1672,10 +1932,10 @@ export const abi = [
         name: 'implementation',
         type: 'address',
         indexed: true,
-        internalType: 'address'
-      }
+        internalType: 'address',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1685,40 +1945,40 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'payerWallet',
         type: 'address',
         indexed: true,
-        internalType: 'address'
+        internalType: 'address',
       },
       {
         name: 'paymentId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'payableChainId',
-        type: 'uint16',
+        type: 'bytes32',
         indexed: false,
-        internalType: 'uint16'
+        internalType: 'bytes32',
       },
       {
         name: 'chainCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       {
         name: 'payerCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'event',
@@ -1728,45 +1988,45 @@ export const abi = [
         name: 'payableId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'hostWallet',
         type: 'address',
         indexed: true,
-        internalType: 'address'
+        internalType: 'address',
       },
       {
         name: 'withdrawalId',
         type: 'bytes32',
         indexed: true,
-        internalType: 'bytes32'
+        internalType: 'bytes32',
       },
       {
         name: 'chainCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       {
         name: 'hostCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
+        internalType: 'uint256',
       },
       {
         name: 'payableCount',
         type: 'uint256',
         indexed: false,
-        internalType: 'uint256'
-      }
+        internalType: 'uint256',
+      },
     ],
-    anonymous: false
+    anonymous: false,
   },
   {
     type: 'error',
     name: 'AddressEmptyCode',
-    inputs: [{ name: 'target', type: 'address', internalType: 'address' }]
+    inputs: [{ name: 'target', type: 'address', internalType: 'address' }],
   },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
   { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
@@ -1775,12 +2035,11 @@ export const abi = [
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },
   { type: 'error', name: 'CircleTargetDomainMismatch', inputs: [] },
   { type: 'error', name: 'CircleTokenMismatch', inputs: [] },
+  { type: 'error', name: 'CircleTransmitterOnly', inputs: [] },
   {
     type: 'error',
     name: 'ERC1967InvalidImplementation',
-    inputs: [
-      { name: 'implementation', type: 'address', internalType: 'address' }
-    ]
+    inputs: [{ name: 'implementation', type: 'address', internalType: 'address' }],
   },
   { type: 'error', name: 'ERC1967NonPayable', inputs: [] },
   { type: 'error', name: 'EmitterNotRegistered', inputs: [] },
@@ -1795,6 +2054,7 @@ export const abi = [
   { type: 'error', name: 'InvalidChainId', inputs: [] },
   { type: 'error', name: 'InvalidChainIdOrForeignToken', inputs: [] },
   { type: 'error', name: 'InvalidCircleBridge', inputs: [] },
+  { type: 'error', name: 'InvalidCircleDomain', inputs: [] },
   { type: 'error', name: 'InvalidCircleTokenMinter', inputs: [] },
   { type: 'error', name: 'InvalidCircleTransmitter', inputs: [] },
   { type: 'error', name: 'InvalidFeeCollector', inputs: [] },
@@ -1822,26 +2082,27 @@ export const abi = [
   {
     type: 'error',
     name: 'OwnableInvalidOwner',
-    inputs: [{ name: 'owner', type: 'address', internalType: 'address' }]
+    inputs: [{ name: 'owner', type: 'address', internalType: 'address' }],
   },
   {
     type: 'error',
     name: 'OwnableUnauthorizedAccount',
-    inputs: [{ name: 'account', type: 'address', internalType: 'address' }]
+    inputs: [{ name: 'account', type: 'address', internalType: 'address' }],
   },
   { type: 'error', name: 'PayableIsAlreadyClosed', inputs: [] },
   { type: 'error', name: 'PayableIsClosed', inputs: [] },
   { type: 'error', name: 'PayableIsNotClosed', inputs: [] },
   { type: 'error', name: 'ReentrancyGuardReentrantCall', inputs: [] },
+  { type: 'error', name: 'StalePayableUpdateNonce', inputs: [] },
   { type: 'error', name: 'UUPSUnauthorizedCallContext', inputs: [] },
   {
     type: 'error',
     name: 'UUPSUnsupportedProxiableUUID',
-    inputs: [{ name: 'slot', type: 'bytes32', internalType: 'bytes32' }]
+    inputs: [{ name: 'slot', type: 'bytes32', internalType: 'bytes32' }],
   },
   { type: 'error', name: 'UnsuccessfulFeesWithdrawal', inputs: [] },
   { type: 'error', name: 'UnsuccessfulPayment', inputs: [] },
   { type: 'error', name: 'UnsuccessfulWithdrawal', inputs: [] },
   { type: 'error', name: 'UnsupportedToken', inputs: [] },
-  { type: 'error', name: 'ZeroAmountSpecified', inputs: [] }
+  { type: 'error', name: 'ZeroAmountSpecified', inputs: [] },
 ] as const;

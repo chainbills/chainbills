@@ -1,8 +1,9 @@
 import {
-  contracts,
   arctestnet,
+  contracts,
   megaeth as megaethInApp,
   OnChainSuccess,
+  sepolia as sepoliaInApp,
   TokenAndAmount,
   User,
   type Chain,
@@ -32,7 +33,7 @@ import {
   type TransactionReceipt,
   type Chain as ViemChain,
 } from 'viem';
-import {arcTestnet, megaeth as megaethViem } from 'viem/chains';
+import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
 
 interface WriteContractResponse {
   hash: string;
@@ -54,6 +55,7 @@ export const useEvmStore = defineStore('evm', () => {
   const getViemChain = (chainName: ChainName): ViemChain => {
     if (chainName == 'megaeth') return megaethViem;
     else if (chainName == 'arctestnet') return arcTestnet;
+    else if (chainName == 'sepolia') return sepoliaViem;
     else throw new Error(`Unsupported EVM Chain: ${chainName}`);
   };
 
@@ -62,6 +64,7 @@ export const useEvmStore = defineStore('evm', () => {
     return {
       [arcTestnet.id]: arctestnet,
       [megaethViem.id]: megaethInApp,
+      [sepoliaViem.id]: sepoliaInApp,
     }[account.chain.value.id]!;
   };
 
@@ -101,7 +104,7 @@ export const useEvmStore = defineStore('evm', () => {
     abi: Abi;
     functionName: any;
     args: any;
-    value?: number;
+    value?: bigint;
   }): Promise<WriteContractResponse | null> => {
     if (!account.address.value) {
       toastError('Connect EVM Wallet First!');
@@ -117,7 +120,7 @@ export const useEvmStore = defineStore('evm', () => {
         functionName,
         args,
         account: account.address.value,
-        ...(value ? { value: BigInt(value) } : {}),
+        ...(value ? { value } : {}),
       });
       request.chainId = config.chains[0].id as any;
       (request as any).connector = account.connector.value;
@@ -284,7 +287,67 @@ export const useEvmStore = defineStore('evm', () => {
       abi,
       functionName: 'pay',
       args: [payableId, token, BigInt(amount)],
-      ...(token == contracts[chain.name] ? { value: amount } : {}),
+      ...(token == contracts[chain.name] ? { value: BigInt(amount) } : {}),
+    });
+    if (!response) return null;
+    return new OnChainSuccess({
+      created: extractNewId(response.receipt.logs, 'UserPaid', 'paymentId'),
+      txHash: response.hash,
+      chain,
+    });
+  };
+
+  const payForeignWithCircle = async (
+    payableId: string,
+    { amount, details }: TokenAndAmount
+  ): Promise<OnChainSuccess | null> => {
+    const chain = getCurrentChain();
+    if (!chain) {
+      toastError('Connect EVM Wallet First!');
+      return null;
+    }
+
+    if (!details[chain.name]) {
+      toastError(`Token not supported on ${chain.displayName} for cross-chain payments`);
+      return null;
+    }
+
+    const token = details[chain.name]!.address as `0x${string}`;
+
+    // Fetch the Wormhole message fee that must be sent as msg.value
+    const wormholeFee = await readContract('getWormholeMessageFee', [], chain.name);
+    if (wormholeFee === null) {
+      toastError('Could not fetch Wormhole message fee');
+      return null;
+    }
+    const feeBigInt = BigInt(wormholeFee);
+
+    // Check / request ERC-20 approval for the payment token
+    const viemChain = getViemChain(chain.name);
+    const config = createConfig({ chains: [viemChain], transports: { [viemChain.id]: http() } });
+    const allowance = await rawReadContract(config, {
+      address: token,
+      abi: erc20Abi,
+      functionName: 'allowance',
+      args: [account.address.value!, contracts[chain.name] as `0x${string}`],
+    });
+    if (!allowance || Number(allowance) < amount) {
+      const approval = await writeContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [contracts[chain.name], amount],
+      });
+      if (!approval) return null;
+    }
+
+    const response = await writeContract({
+      address: contracts[chain.name] as `0x${string}`,
+      abi,
+      functionName: 'payForeignWithCircle',
+      args: [payableId, token, BigInt(amount)],
+      // Wormhole fee is required as msg.value
+      value: feeBigInt,
     });
     if (!response) return null;
     return new OnChainSuccess({
@@ -385,6 +448,7 @@ export const useEvmStore = defineStore('evm', () => {
     getUserPaymentId,
     getUserWithdrawalId,
     pay,
+    payForeignWithCircle,
     sign,
     withdraw,
   };

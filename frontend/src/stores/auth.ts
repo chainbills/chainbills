@@ -1,10 +1,10 @@
-import { type Chain, arctestnet, megaeth as megaethInApp, solanadevnet, type Token, User } from '@/schemas';
+import { type Chain, arctestnet, megaeth as megaethInApp, sepolia as sepoliaInApp, solanadevnet, type Token, User } from '@/schemas';
 import { useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet, useWallet as useSolanaWallet } from 'solana-wallets-vue';
-import { arcTestnet, megaeth as megaethViem } from 'viem/chains';
+import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
 import { onMounted, ref, watch } from 'vue';
 import * as encoding from './encoding';
 
@@ -36,6 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
     ({
       arctestnet: evm,
       megaeth: evm,
+      sepolia: evm,
       solanadevnet: solana,
     })[(chain ?? currentUser.value!.chain).name];
 
@@ -61,6 +62,7 @@ export const useAuthStore = defineStore('auth', () => {
       return await {
         arctestnet: evmDisconnect,
         megaeth: evmDisconnect,
+        sepolia: evmDisconnect,
         solanadevnet: solanaWallet.disconnect,
       }[(chain ?? currentUser.value!.chain).name]();
     }
@@ -128,6 +130,7 @@ export const useAuthStore = defineStore('auth', () => {
       const evmChainId = evmAccount.chain.value?.id;
       if (evmChainId === megaethViem.id) newChain = megaethInApp;
       else if (evmChainId === arcTestnet.id) newChain = arctestnet;
+      else if (evmChainId === sepoliaViem.id) newChain = sepoliaInApp;
     }
     if (newAnchorWallet) newChain = solanadevnet;
 

@@ -115,7 +115,8 @@ contract CbState is CbStructs {
   /// emitter chain to its cbChainId for registeredForeignContracts lookup.
   mapping(uint16 => bytes32) public wormholeChainIdToCbChainId;
   /// storage gap for additional state variables in future versions
-  uint256[50] _gap;
+  // forge-lint: disable-next-line(mixed-case-variable)
+  uint256[50] __gap;
 
   /// @notice Checks if Wormhole is configured on this chain.
   /// @return True if Wormhole is configured.

@@ -2,9 +2,11 @@
 pragma solidity ^0.8.20;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
 import '@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol';
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
@@ -17,10 +19,19 @@ import './CbTransactions.sol';
 
 /// A Cross-Chain Payment Gateway.
 /// @custom:oz-upgrades-unsafe-allow delegatecall
-contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
-  fallback() external payable {}
-
-  receive() external payable {}
+contract Chainbills is
+  CbUtils,
+  Initializable,
+  OwnableUpgradeable,
+  AccessControlUpgradeable,
+  ReentrancyGuardUpgradeable,
+  PausableUpgradeable,
+  UUPSUpgradeable
+{
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
+  }
 
   /// Sets up this smart contract when it is deployed.
   /// @param feeCollector The address that will collect withdrawal fees.
@@ -35,11 +46,40 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     emit SetWithdrawalFeePercentage(feePercent);
 
     __Ownable_init(msg.sender);
+    __AccessControl_init();
     __ReentrancyGuard_init();
+    __Pausable_init();
     __UUPSUpgradeable_init();
+
+    _grantRole(DEFAULT_ADMIN_ROLE, owner());
+    _grantRole(ADMIN_ROLE, owner());
   }
 
   function _authorizeUpgrade(address newImpl) internal override onlyOwner {}
+
+  /// Pauses contract operations to prevent new interactions
+  function pause() external onlyOwner nonReentrant whenNotPaused {
+    _pause();
+  }
+
+  /// Unpauses contract operations to resume normal functionality
+  function unpause() external onlyOwner nonReentrant whenPaused {
+    _unpause();
+  }
+
+  /// Grants admin role for syncing foreign payables and other admin operations
+  /// @param admin Address to receive admin privileges
+  function grantAdminRole(address admin) external onlyOwner {
+    if (admin == address(0)) revert InvalidWalletAddress();
+    _grantRole(ADMIN_ROLE, admin);
+  }
+
+  /// Revokes admin role from an address
+  /// @param admin Address to remove admin privileges from
+  function revokeAdminRole(address admin) external onlyOwner {
+    if (admin == address(0)) revert InvalidWalletAddress();
+    _revokeRole(ADMIN_ROLE, admin);
+  }
 
   /// Sets up Wormhole and Circle Bridge contracts.
   /// @param wormhole The address of the Wormhole contract.
@@ -254,10 +294,15 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     emit SetFeeCollectorAddress(feeCollector);
   }
 
-  function createPayable(TokenAndAmount[] calldata, /* allowedTokensAndAmounts */ bool /* isAutoWithdraw */ )
+  function createPayable(
+    TokenAndAmount[] calldata,
+    /* allowedTokensAndAmounts */
+    bool /* isAutoWithdraw */
+  )
     public
     payable
     nonReentrant
+    whenNotPaused
     returns (bytes32 payableId, uint64 wormholeMessageSequence)
   {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
@@ -270,7 +315,15 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function closePayable(bytes32 /* payableId */ ) public payable nonReentrant returns (uint64 wormholeMessageSequence) {
+  function closePayable(
+    bytes32 /* payableId */
+  )
+    public
+    payable
+    nonReentrant
+    whenNotPaused
+    returns (uint64 wormholeMessageSequence)
+  {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -281,7 +334,15 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function reopenPayable(bytes32 /* payableId */ ) public payable nonReentrant returns (uint64 wormholeMessageSequence) {
+  function reopenPayable(
+    bytes32 /* payableId */
+  )
+    public
+    payable
+    nonReentrant
+    whenNotPaused
+    returns (uint64 wormholeMessageSequence)
+  {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -295,7 +356,13 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
   function updatePayableAllowedTokensAndAmounts(
     bytes32, /* payableId */
     TokenAndAmount[] calldata /* allowedTokensAndAmounts */
-  ) public payable nonReentrant returns (uint64 wormholeMessageSequence) {
+  )
+    public
+    payable
+    nonReentrant
+    whenNotPaused
+    returns (uint64 wormholeMessageSequence)
+  {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -306,7 +373,15 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function updatePayableAutoWithdraw(bytes32, /* payableId */ bool /* isAutoWithdraw */ ) public nonReentrant {
+  function updatePayableAutoWithdraw(
+    bytes32,
+    /* payableId */
+    bool /* isAutoWithdraw */
+  )
+    public
+    nonReentrant
+    whenNotPaused
+  {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -315,7 +390,9 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function publishPayableDetails(bytes32 /* payableId */ )
+  function publishPayableDetails(
+    bytes32 /* payableId */
+  )
     public
     payable
     nonReentrant
@@ -331,7 +408,13 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function receivePayableUpdateViaWormhole(bytes memory /* wormholeEncoded */ ) public {
+  function receivePayableUpdateViaWormhole(
+    bytes memory /* wormholeEncoded */
+  )
+    public
+    nonReentrant
+    whenNotPaused
+  {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -340,9 +423,14 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function receivePayableUpdateViaCircle(bytes calldata, /* message */ bytes calldata /* attestation */ )
+  function receivePayableUpdateViaCircle(
+    bytes calldata,
+    /* message */
+    bytes calldata /* attestation */
+  )
     public
     nonReentrant
+    whenNotPaused
   {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
@@ -355,8 +443,16 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
   /// Circle CCTP IMessageHandler callback. Called by Circle's MessageTransmitter
   /// after verifying the attestation when a payable-update message arrives from
   /// another chain. Delegates to CbPayables for nonce dedup and state updates.
-  function handleReceiveMessage(uint32, /* sourceDomain */ bytes32, /* sender */ bytes calldata /* messageBody */ )
+  function handleReceiveMessage(
+    uint32,
+    /* sourceDomain */
+    bytes32,
+    /* sender */
+    bytes calldata /* messageBody */
+  )
     external
+    nonReentrant
+    whenNotPaused
     returns (bool)
   {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
@@ -375,7 +471,12 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     uint8, /* actionType */
     bool, /* isClosed */
     TokenAndAmountForeign[] calldata /* ataa */
-  ) public onlyOwner {
+  )
+    public
+    onlyRole(ADMIN_ROLE)
+    nonReentrant
+    whenNotPaused
+  {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {
@@ -384,10 +485,17 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function pay(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ )
+  function pay(
+    bytes32,
+    /* payableId */
+    address,
+    /* token */
+    uint256 /* amount */
+  )
     public
     payable
     nonReentrant
+    whenNotPaused
     returns (bytes32 userPaymentId, bytes32 payablePaymentId)
   {
     (bool success, bytes memory result) = transactionsLogic.delegatecall(msg.data);
@@ -400,10 +508,17 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function payForeignWithCircle(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ )
+  function payForeignWithCircle(
+    bytes32,
+    /* payableId */
+    address,
+    /* token */
+    uint256 /* amount */
+  )
     public
     payable
     nonReentrant
+    whenNotPaused
     returns (bytes32 userPaymentId, uint64 wormholeMessageSequence)
   {
     (bool success, bytes memory result) = transactionsLogic.delegatecall(msg.data);
@@ -416,8 +531,12 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function receiveForeignPaymentWithCircle(RedeemCirclePaymentParameters memory /* params */ )
+  function receiveForeignPaymentWithCircle(
+    RedeemCirclePaymentParameters memory /* params */
+  )
     public
+    nonReentrant
+    whenNotPaused
     returns (bytes32 payablePaymentId)
   {
     (bool success, bytes memory result) = transactionsLogic.delegatecall(msg.data);
@@ -430,9 +549,16 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function withdraw(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ )
+  function withdraw(
+    bytes32,
+    /* payableId */
+    address,
+    /* token */
+    uint256 /* amount */
+  )
     public
     nonReentrant
+    whenNotPaused
     returns (bytes32 withdrawalId)
   {
     (bool success, bytes memory result) = transactionsLogic.delegatecall(msg.data);

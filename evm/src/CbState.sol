@@ -12,6 +12,8 @@ contract CbState is CbStructs {
   Config public config;
   /// Counter for activities on this chain.
   ChainStats public chainStats;
+  /// Role identifier for addresses authorized to sync foreign payables.
+  bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
   /// Array of Wallet Addresses of Users on this chain.
   address[] public chainUserAddresses;
   /// Array of Payable IDs on this chain.

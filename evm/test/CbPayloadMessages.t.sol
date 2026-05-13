@@ -20,6 +20,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
       version: 1,
       actionType: 1,
       payableId: bytes32(0),
+      nonce: 7,
       isClosed: false,
       allowedTokensAndAmounts: ataa
     }).encode();
@@ -27,19 +28,22 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     assert(parsed.version == 1);
     assert(parsed.actionType == 1);
     assert(parsed.payableId == bytes32(0));
+    assert(parsed.nonce == 7);
     assert(parsed.isClosed == false);
     assert(parsed.allowedTokensAndAmounts.length == 2);
   }
 
   function testEncodeDecodePaymentPayload() public pure {
+    bytes32 payableChainId = keccak256(abi.encodePacked('eip155:2'));
+    bytes32 payerChainId = keccak256(abi.encodePacked('eip155:4'));
     bytes memory encoded = PaymentPayload({
       version: 1,
       payableId: bytes32(0),
       payableChainToken: bytes32(0),
-      payableChainId: 2,
+      payableChainId: payableChainId,
       payer: bytes32(0),
       payerChainToken: bytes32(0),
-      payerChainId: 4,
+      payerChainId: payerChainId,
       amount: 100,
       circleNonce: 2
     }).encode();
@@ -47,10 +51,10 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     assert(parsed.version == 1);
     assert(parsed.payableId == bytes32(0));
     assert(parsed.payableChainToken == bytes32(0));
-    assert(parsed.payableChainId == 2);
+    assert(parsed.payableChainId == payableChainId);
     assert(parsed.payer == bytes32(0));
     assert(parsed.payerChainToken == bytes32(0));
-    assert(parsed.payerChainId == 4);
+    assert(parsed.payerChainId == payerChainId);
     assert(parsed.amount == 100);
     assert(parsed.circleNonce == 2);
   }

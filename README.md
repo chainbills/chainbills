@@ -16,6 +16,7 @@ Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receiv
   - [CosmWasm](#cosmwasm)
 - [Server](#server)
 - [Frontend](#frontend)
+- [Deployed Contracts](#deployed-contracts)
 - [Roadmap](#roadmap)
 - [Community](#community)
 
@@ -61,17 +62,17 @@ After a successful payment, Chainbills generates a receipt with the payment's de
 
 Chainbills permits the same activity set across multiple chains.
 
-For now MegaETH (EVM), Solana Devnet (Solana) are supported. More chains will be added.
+For now MegaETH (EVM mainnet), Arc Testnet, and Ethereum Sepolia (EVM testnets) are supported. More chains will be added.
 
 Our mission is to provide a seamless payment-receiving experience to content creators, merchants, and foundations. To enable them receive money for donations, products, and services from a large user base (across multiple chains). Chainbills also makes money easy by providing all these payments in one dashboard.
 
 Chainbills does this by allowing users to create payables and make payments and withdrawals on all chain networks (supported ones for now). So a payable can be created on any chain. Withdrawals are on the same chain in which the Payable was created. However, with payments, a payment can be done from the same or different chain as that of the Payable.
 
-When the blockchain networks of the payable and the payer are the same, no cross-chain activity is needed and payment proceeds directly. However, in the case of different chains, we need to reconcile money and data across the invovled chains. This is powered by Wormhole and Circle.
+When the blockchain networks of the payable and the payer are the same, no cross-chain activity is needed and payment proceeds directly. However, in the case of different chains, we need to reconcile money and data across the involved chains. This is powered by Wormhole and Circle CCTP.
 
 [Wormhole](https://wormhole.com) is an open source blockchain development platform connecting the decentralized web. Wormhole powers Chainbills by enabling [cross-chain messaging](https://wormhole.com/messaging/) for data transfers. [Circle](https://www.circle.com/) mints and maintains [USDC](https://www.circle.com/usdc) across multiple blockchain networks through [CCTP (Cross-Chain Transfer Protocol)](https://www.circle.com/cross-chain-transfer-protocol). CCTP also powers Chainbills by enabling USDC transfers across chains.
 
-Currently the cross-chain features are in active development and testing. Stay tuned for when they will be rolled out.
+A critical part of this architecture is that Chainbills uses **CAIP-2 chain identifiers** (`cbChainId`) as the universal key for all cross-chain chain references — rather than depending on Wormhole's `uint16` IDs or Circle's `uint32` domains. Each chain's `cbChainId` is `keccak256("namespace:reference")`, e.g. `keccak256("eip155:11155111")` for Ethereum Sepolia. This keeps Chainbills protocol-agnostic. Read more in the [Architecture doc](./ARCHITECTURE.md#caip-2-chain-identifiers-cbchainid).
 
 Asides from the cross-chain features, the overall data architecture of Chainbills is consistent across all parts of the code (various smart contract formats, frontend, and server). Read more about [Chainbills' architecture here](./ARCHITECTURE.md).
 
@@ -120,6 +121,10 @@ Find out more information at the [`server` subdirectory](./server).
 ## Frontend
 
 Chainbills' frontend is built with [Vue](https://vuejs.org), [TailwindCSS](https://tailwindcss.com), and [PrimeVue](https://primevue.org) components. It is user-friendly well-responsive web app that suits your payable, payments, and withdrawal needs. Find out more at the [`frontend` subdirectory](./frontend).
+
+## Deployed Contracts
+
+All deployed EVM contract addresses, computed `cbChainId` values, Wormhole chain IDs, and Circle domains are tracked in [`evm/DEPLOYED.md`](./evm/DEPLOYED.md). Update that file after every deployment or admin setup call.
 
 ## Roadmap
 

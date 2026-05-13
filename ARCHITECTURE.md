@@ -16,6 +16,9 @@ The core of Chainbills is about facilitating movement of money. We make it easy 
 - [Config](#config)
 - [TokenDetails](#tokendetails)
 - [Cross-Chain](#cross-chain)
+  - [CAIP-2 Chain Identifiers (cbChainId)](#caip-2-chain-identifiers-cbchainid)
+  - [Payable Synchronization](#payable-synchronization)
+  - [Cross-Chain Payments](#cross-chain-payments)
 
 ## Synchronized Data Structures
 
@@ -110,32 +113,32 @@ Payments are receipts of money movement. They are public and permanent (their pr
 
 A `UserPayment` is a record of a payment made by a user to a payable. It is a user's receipt of a payment made on their chain to a Payable on any blockchain network (source-chain inclusive). It contains the following properties:
 
-| Field            | Type     | Description                                                                                           |
-| ---------------- | -------- | ----------------------------------------------------------------------------------------------------- |
-| `payableId`      | 32 bytes | The ID of the Payable to which this Payment was made.                                                 |
-| `payer`          | wallet   | The address of the User account that made this Payment.                                               |
-| `token`          | token    | The address of the associated token that was paid.                                                    |
-| `payableChainId` | number   | The Wormhole Chain ID of the chain into which the payment was made. 0 (zero) if same as source chain. |
-| `chainCount`     | number   | The nth count of payments on this chain at the point this payment was made.                           |
-| `payerCount`     | number   | The nth count of payments that the payer has made at the point of payment.                            |
-| `timestamp`      | number   | When this payment was made.                                                                           |
-| `amount`         | number   | The amount of the token that was paid.                                                                |
+| Field            | Type     | Description                                                                                                                                                |
+| ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `payableId`      | 32 bytes | The ID of the Payable to which this Payment was made.                                                                                                      |
+| `payer`          | wallet   | The address of the User account that made this Payment.                                                                                                    |
+| `token`          | token    | The address of the associated token that was paid.                                                                                                         |
+| `payableChainId` | bytes32  | CAIP-2 cbChainId of the chain into which the payment was made (`keccak256("namespace:reference")`). Equals this chain's cbChainId for same-chain payments. |
+| `chainCount`     | number   | The nth count of payments on this chain at the point this payment was made.                                                                                |
+| `payerCount`     | number   | The nth count of payments that the payer has made at the point of payment.                                                                                 |
+| `timestamp`      | number   | When this payment was made.                                                                                                                                |
+| `amount`         | number   | The amount of the token that was paid.                                                                                                                     |
 
 ### PayablePayments
 
 A `PayablePayment` is a record of a payment made to a payable. It is a Payable's receipt of a payment made from any blockchain network (recipient-chain inclusive). It contains the following properties:
 
-| Field             | Type     | Description                                                                                                     |
-| ----------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| `payableId`       | 32 bytes | The ID of the Payable to which this Payment was made.                                                           |
-| `payer`           | 32 bytes | The address of the User account that made this Payment.                                                         |
-| `token`           | token    | The address of the associated token that was received.                                                          |
-| `chainCount`      | number   | The nth count of payable payments on this chain at the point this payment was received.                         |
-| `payerChainId`    | number   | The Wormhole Chain ID of the chain from which the payment was made. 0 (zero) if same as recipient chain.        |
-| `localChainCount` | number   | The nth count of payments to this payable from the payment source chain at the point this payment was recorded. |
-| `payableCount`    | number   | The nth count of payments that the payable has received at the point when this payment was made.                |
-| `timestamp`       | number   | When this payment was made.                                                                                     |
-| `amount`          | number   | The amount of the token that was received.                                                                      |
+| Field             | Type     | Description                                                                                                                                                |
+| ----------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `payableId`       | 32 bytes | The ID of the Payable to which this Payment was made.                                                                                                      |
+| `payer`           | 32 bytes | The address of the User account that made this Payment.                                                                                                    |
+| `token`           | token    | The address of the associated token that was received.                                                                                                     |
+| `chainCount`      | number   | The nth count of payable payments on this chain at the point this payment was received.                                                                    |
+| `payerChainId`    | bytes32  | CAIP-2 cbChainId of the chain from which the payment was made (`keccak256("namespace:reference")`). Equals this chain's cbChainId for same-chain payments. |
+| `localChainCount` | number   | The nth count of payments to this payable from the payment source chain at the point this payment was recorded.                                            |
+| `payableCount`    | number   | The nth count of payments that the payable has received at the point when this payment was made.                                                           |
+| `timestamp`       | number   | When this payment was made.                                                                                                                                |
+| `amount`          | number   | The amount of the token that was received.                                                                                                                 |
 
 The `payer` is 32 bytes type of the payer's wallet address. This synchronises the different wallet types across different block chain networks. [The 32 bytes is gotten from the wallet address depending on the blockchain network and based on how Wormhole formats addresses for cross-chain activity](https://wormhole.com/docs/build/reference/wormhole-formatted-addresses/).
 
@@ -255,15 +258,16 @@ In Solana, it is stored in the PDA whose seeds is just "chain". Additionally, th
 
 This data structure is mainly used for storing contract settings and cross-chain entities. Across all chains, it contains the following properties:
 
-| Field                   | Type   | Description                                                                          |
-| ----------------------- | ------ | ------------------------------------------------------------------------------------ |
-| feeCollector            | wallet | The address that receives withdrawal fees                                            |
-| withdrawalFeePercentage | number | The withdrawal fee percentage with 2 decimals. 200 means 2%.                         |
-| wormholeChainId         | number | The chain ID that Wormhole assigned for the chain in which the contract is deployed. |
+| Field                   | Type    | Description                                                                                                                                                                                                                                                                |
+| ----------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| feeCollector            | wallet  | The address that receives withdrawal fees                                                                                                                                                                                                                                  |
+| withdrawalFeePercentage | number  | The withdrawal fee percentage with 2 decimals. 200 means 2%.                                                                                                                                                                                                               |
+| wormholeChainId         | number  | The chain ID that Wormhole assigned for the chain in which the contract is deployed (kept for protocol-level use).                                                                                                                                                         |
+| cbChainId               | bytes32 | Protocol-agnostic CAIP-2 chain identifier: `keccak256(abi.encodePacked("namespace:reference"))`, e.g. `keccak256("eip155:1")` for Ethereum mainnet. Used as the universal key for all cross-chain chain references in Chainbills — no single bridge protocol is sovereign. |
 
-In addition to the above, the `Config` struct could contain different properties depending on the chain of context (EVM or Solana) to help with achieving cross-chain with Wormhole. 
+In addition to the above, the `Config` struct could contain different properties depending on the chain of context (EVM or Solana) to help with achieving cross-chain activity.
 
-For example, in EVM, the other properties include: `wormhole` address, `wormholeFinality`, and other [circle](https://www.circle.com/en/usdc) properties. In Solana, the other properties are wormhole PDA accounts. 
+For example, in EVM, the other properties include: `wormhole` address, `wormholeFinality`, and other [circle](https://www.circle.com/en/usdc) properties. In Solana, the other properties are wormhole PDA accounts.
 
 Notwithstanding, only the owner / deployer wallet address of each contract can make changes to the `Config` data struct depending on the method being called. Also, these properties are overall rarely updated.
 
@@ -271,30 +275,58 @@ Just like `ChainStats` above, `Config` is globally available in the contracts an
 
 ## TokenDetails
 
-There are multiple `TokenDetails` struct in each contract for every token that is used for transactions in Chainbills. `TokenDetails` keeps track of supported tokens. 
+There are multiple `TokenDetails` struct in each contract for every token that is used for transactions in Chainbills. `TokenDetails` keeps track of supported tokens.
 
 It allows us to stop or allow payments in a given token at a point in time for security purposes. It holds the maximum withdrawal fees of a token and counters for the token. The counters help with easily fetching the total value processed per token in our contracts and continuously increase per involved transaction.
 
 The properties of `TokenDetails` are as follows:
 
-| Field                          | Type     | Description                                                                                   |
-| ------------------------------ | -------- | --------------------------------------------------------------------------------------------- |
-| `isSupported`                  | bool     | Tells whether payments are currently accepted in this token.                                  |
-| `token`                        | token | Tells that this token was at least ever supported on this chain.                              |
-| `maxWithdrawalFees`            | number  | The maximum fees for withdrawal (with its decimals).                                          |
-| `totalUserPaid`                | number  | The total amount of user payments in this token.                                              |
-| `totalPayableReceived`         | number  | The total amount of payable payments in this token.                                           |
-| `totalWithdrawn`               | number  | The total amount of withdrawals in this token.                                                |
-| `totalWithdrawalFeesCollected` | number  | The total amount of fees collected from withdrawals in this token.                            |
+| Field                          | Type   | Description                                                        |
+| ------------------------------ | ------ | ------------------------------------------------------------------ |
+| `isSupported`                  | bool   | Tells whether payments are currently accepted in this token.       |
+| `token`                        | token  | Tells that this token was at least ever supported on this chain.   |
+| `maxWithdrawalFees`            | number | The maximum fees for withdrawal (with its decimals).               |
+| `totalUserPaid`                | number | The total amount of user payments in this token.                   |
+| `totalPayableReceived`         | number | The total amount of payable payments in this token.                |
+| `totalWithdrawn`               | number | The total amount of withdrawals in this token.                     |
+| `totalWithdrawalFeesCollected` | number | The total amount of fees collected from withdrawals in this token. |
 
 Toggling `isSupported` for a given token and setting the `maxWithdrawalFees` are obviously _owner-only_ methods in the contracts. In EVM, `TokenDetails` per token are stored in the involved mapping. In Solana, they are stored in the PDA whose seeds comprises of "token" and the token address.
 
 ## Cross-Chain
 
-[Wormhole](https://wormhole.com) powers Chainbills by enabling [cross-chain messaging](https://wormhole.com/messaging/) for data transfers. [Circle](https://www.circle.com/) mints and maintains [USDC](https://www.circle.com/usdc) across multiple blockchain networks through [CCTP (Cross-Chain Transfer Protocol)](https://www.circle.com/cross-chain-transfer-protocol). CCTP also powers Chainbills by enabling USDC transfers across chains.
+[Wormhole](https://wormhole.com) powers Chainbills by enabling [cross-chain messaging](https://wormhole.com/messaging/) for data transfers. [Circle](https://www.circle.com/) mints and maintains [USDC](https://www.circle.com/usdc) across multiple blockchain networks through [CCTP (Cross-Chain Transfer Protocol)](https://www.circle.com/cross-chain-transfer-protocol). Chainbills uses both protocols simultaneously — Wormhole for data messaging, CCTP for value transfers — and supports chains that only have CCTP.
 
-With Wormhole messages, Chainbills contracts publish `bytes` payloads of info about payables and payments when they occur. For payables, once a payable is created or one of its payment-related settings are updated, we publish a custom `PayablePayload` through Wormhole. When the message is relayed to Chainbills' contracts in other chains, they record the involved payable as a `ForeignPayable`. They only record the bare minimum (`payableID`, `isClosed` status, and `allowedTokensAndAmounts`) necessary for cross-chain payments.
+### CAIP-2 Chain Identifiers (cbChainId)
 
-For cross-chain payments, it is always a payment from a user (on their source chain) to a payable (on a target chain). Also, the target chain payable should have its data existing in the source chain as a `ForeignPayable` before the payment can go through.
+A core design decision in Chainbills is the use of **CAIP-2 chain identifiers** (`cbChainId`) as the universal, protocol-agnostic key for all cross-chain chain references. This is important because Chainbills supports multiple bridging protocols (Wormhole, Circle CCTP), each of which uses its own chain ID scheme — Wormhole uses `uint16` IDs, Circle uses `uint32` domain numbers, and raw EVM chains use `uint256` `block.chainid`. None of these are interchangeable.
 
-When a user makes a payment to a payable living in a different chain, we verify the `ForeignPayable` details on the source chain first, then pay the sending USDC through CCTP. In the same blockchain transaction, we  record a `UserPayment` in the source chain and publish a custom `PaymentPayload` through Wormhole messaging. In the target chain, our contract receives and verifies the payload and funds and also records a `PayablePayment` in the target chain. This effectively makes the flow of funds seamless when in different chains, that is, with reference to how funds move and how data recording takes place.
+Instead of depending on any bridge's chain numbering, Chainbills derives its own chain identifier:
+
+```solidity
+bytes32 cbChainId = keccak256(abi.encodePacked("eip155:11155111")); // Ethereum Sepolia
+```
+
+This follows the [CAIP-2 standard](https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md), where chain identifiers are formatted as `namespace:reference`. The `keccak256` hash produces a compact `bytes32` that is unique per chain and independent of any bridge.
+
+All cross-chain fields in Chainbills data structures — `payableChainId` in `UserPayment`, `payerChainId` in `PayablePayment`, and the `config.cbChainId` of each deployed contract — store this value. The separate Wormhole and Circle IDs are registered alongside it as protocol-specific lookups (`wormholeChainIdToCbChainId`, `cbChainIdToCircleDomain`) so the contract can translate between them as needed, while the `cbChainId` remains the single source of truth.
+
+The frontend and server maintain a reverse map (`cbChainIdToChain`) built from the known chain definitions so that any `cbChainId` received from the contract can be resolved back to a full chain object. If a `cbChainId` is not in the map, parsing throws immediately — this acts as a forcing function to keep the chain registry up to date when new chains are added.
+
+To compute the `cbChainId` for any chain, run:
+
+```shell
+CAIP2=eip155:11155111 forge script script/ComputeCbChainId.s.sol -vvv
+```
+
+### Payable Synchronization
+
+Once a payable is created or its settings are updated, Chainbills broadcasts a `PayablePayload` to all registered foreign chains. Depending on which protocols a destination chain supports (configured via `DataMessagingProtocol`), the broadcast goes via Wormhole VAA, Circle CCTP message, or both. When a message is received on a foreign chain, it records the payable as a `PayableForeign`, storing only the bare minimum (`payableId`, `isClosed` status, `allowedTokensAndAmounts`) necessary for cross-chain payments. A monotonically increasing nonce in each `PayablePayload` prevents double-application when both Wormhole and CCTP deliver the same update.
+
+Three receive paths exist on each chain: `receivePayableUpdateViaWormhole(bytes)` for Wormhole VAAs, `receivePayableUpdateViaCircle(bytes, bytes)` for CCTP attestations, and `adminSyncForeignPayable(...)` as an owner-only escape hatch for chains with no common protocol.
+
+### Cross-Chain Payments
+
+For cross-chain payments, it is always a payment from a user (on their source chain) to a payable (on a target chain). The target chain payable must already exist in the source chain as a `PayableForeign` before the payment can go through.
+
+When a user makes a payment to a payable on a different chain, Chainbills verifies the `PayableForeign` details on the source chain first, then transfers USDC through CCTP to the destination chain. In the same transaction, it records a `UserPayment` on the source chain and publishes a `PaymentPayload` via Wormhole. The destination chain receives both the CCTP funds and the Wormhole message, verifies them, and records a `PayablePayment`. This makes the flow of funds seamless when payer and payable are on different chains.

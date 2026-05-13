@@ -16,7 +16,7 @@ contract CbEvents is CbErrors {
     bytes32 indexed payableId,
     address indexed payerWallet,
     bytes32 indexed paymentId,
-    uint16 payableChainId,
+    bytes32 payableChainId,
     uint256 chainCount,
     uint256 payerCount
   );
@@ -27,7 +27,7 @@ contract CbEvents is CbErrors {
     bytes32 indexed payableId,
     bytes32 indexed payerWallet,
     bytes32 indexed paymentId,
-    uint16 payerChainId,
+    bytes32 payerChainId,
     uint256 chainCount,
     uint256 payableCount
   );
@@ -58,10 +58,10 @@ contract CbEvents is CbErrors {
   event UpdatedPayableAutoWithdrawStatus(bytes32 indexed payableId, address indexed hostWallet, bool isAutoWithdraw);
 
   /// Emitted when a Wormhole Message is consumed for payable update.
-  event ConsumedWormholePayableMessage(bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash);
+  event ConsumedWormholePayableMessage(bytes32 indexed payableId, bytes32 indexed cbChainId, bytes32 indexed vaaHash);
 
   /// Emitted when a Wormhole Message is consumed for receiving payments.
-  event ConsumedWormholePaymentMessage(bytes32 indexed payableId, uint16 indexed chainId, bytes32 indexed vaaHash);
+  event ConsumedWormholePaymentMessage(bytes32 indexed payableId, bytes32 indexed cbChainId, bytes32 indexed vaaHash);
 
   /// Emitted when owner (deployer) updates the `maxWithdrawalFees` of `token`.
   event UpdatedMaxWithdrawalFees(address token, uint256 maxWithdrawalFees);
@@ -70,14 +70,16 @@ contract CbEvents is CbErrors {
   event OwnerWithdrew(address token, uint256 amount);
 
   /// Emitted when owner (deployer) registers/updates an emitter contract.
-  event RegisteredForeignContract(uint16 chainId, bytes32 emitterAddress);
+  event RegisteredForeignContract(bytes32 cbChainId, bytes32 emitterAddress);
 
   /// Emitted when owner (deployer) registers/updates a foreign token.
-  event RegisteredMatchingTokenForForeignChain(uint16 chainId, bytes32 foreignToken, address token);
+  event RegisteredMatchingTokenForForeignChain(bytes32 cbChainId, bytes32 foreignToken, address token);
 
-  /// Emitted when owner (deployer) registers/updates a Circle Domain to Wormhole
-  /// Chain ID.
-  event RegisteredCircleDomainToWormholeChainId(uint32 circleDomain, uint16 chainId);
+  /// Emitted when owner registers the Circle Domain for a foreign chain.
+  event RegisteredChainCircleDomain(bytes32 indexed cbChainId, uint32 circleDomain);
+
+  /// Emitted when owner registers the Wormhole Chain ID for a foreign chain.
+  event RegisteredChainWormholeId(bytes32 indexed cbChainId, uint16 wormholeChainId);
 
   /// Emitted when owner (deployer) updates the `payablesLogicContract` address.
   event SetPayablesLogic(address payablesLogicContract);
@@ -99,4 +101,22 @@ contract CbEvents is CbErrors {
 
   /// Emitted when owner (deployer) sets Wormhole and Circle related config
   event SetupWormholeAndCircle();
+
+  /// Emitted when owner sets up Circle CCTP only (no Wormhole) on this chain
+  event SetupCCTPOnly();
+
+  /// Emitted when a payable update is broadcast to foreign chains via all available protocols
+  event PayableUpdateBroadcasted(bytes32 indexed payableId, uint64 nonce, uint8 actionType);
+
+  /// Emitted when a payable update is received and applied via Wormhole
+  event ReceivedPayableUpdateViaWormhole(bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce);
+
+  /// Emitted when a payable update is received and applied via Circle CCTP
+  event ReceivedPayableUpdateViaCircle(bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce);
+
+  /// Emitted when a payable update is synced by admin (for chains without a common protocol)
+  event ReceivedPayableUpdateViaAdminSync(bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce);
+
+  /// Emitted when owner configures the data messaging protocol for a foreign chain
+  event SetChainDataMessagingProtocol(bytes32 indexed cbChainId, uint8 protocol);
 }

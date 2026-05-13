@@ -5,6 +5,17 @@ interface IMessageTransmitter {
   event MessageSent(bytes message);
 
   /**
+   * @notice Sends an outgoing message from the source domain.
+   * @param destinationDomain Domain of destination chain
+   * @param recipient Address of message recipient on destination domain as bytes32
+   * @param messageBody Raw bytes content of message
+   * @return nonce reserved by message
+   */
+  function sendMessage(uint32 destinationDomain, bytes32 recipient, bytes calldata messageBody)
+    external
+    returns (uint64);
+
+  /**
    * @notice Emitted when tokens are minted
    * @param _mintRecipient recipient address of minted tokens
    * @param _amount amount of minted tokens

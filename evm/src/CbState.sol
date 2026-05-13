@@ -28,9 +28,9 @@ contract CbState is CbStructs {
   bytes32[] public chainActivityIds;
   /// Array of Consumed Wormhole messages.
   bytes32[] public consumedWormholeMessages;
-  /// Wormhole Chain IDs against their corresponding Emitter
-  /// Contract Addresses on those chains, that is, trusted caller contracts.
-  mapping(uint16 => bytes32) public registeredForeignContracts;
+  /// CAIP-2 cbChainIds against their corresponding Emitter Contract Addresses
+  /// on those chains, that is, trusted caller contracts.
+  mapping(bytes32 => bytes32) public registeredForeignContracts;
   /// Details of Supported Tokens on this chain.
   mapping(address => TokenDetails) public tokenDetails;
   /// Activities on this chain.
@@ -62,11 +62,11 @@ contract CbState is CbStructs {
   /// IDs of Payments to Payables, from all chains.
   mapping(bytes32 => bytes32[]) public payablePaymentIds;
   /// Total Number of payments made to this payable, from each chain by
-  /// their Wormhole Chain IDs, indexed by 0 (zero) if in this chain.
-  mapping(bytes32 => mapping(uint16 => uint256)) public payableChainPaymentsCount;
+  /// their CAIP-2 cbChainIds, indexed by config.cbChainId if in this chain.
+  mapping(bytes32 => mapping(bytes32 => uint256)) public payableChainPaymentsCount;
   /// Payment IDs of payments made to this payable, from each chain by
-  /// their Wormhole Chain IDs, indexed by 0 (zero) if in this chain.
-  mapping(bytes32 => mapping(uint16 => bytes32[])) public payableChainPaymentIds;
+  /// their CAIP-2 cbChainIds, indexed by config.cbChainId if in this chain.
+  mapping(bytes32 => mapping(bytes32 => bytes32[])) public payableChainPaymentIds;
   /// Array of IDs of Activities of payables.
   mapping(bytes32 => bytes32[]) public payableActivityIds;
   /// Withdrawals on this chain by their IDs
@@ -76,28 +76,59 @@ contract CbState is CbStructs {
   /// Array of IDs of Withdrawals made in a payable.
   mapping(bytes32 => bytes32[]) public payableWithdrawalIds;
   /// Tells the token address to be used for a foreign payable's payment.
-  mapping(uint16 => mapping(bytes32 => address)) public forForeignChainMatchingTokenAddresses;
-  /// Tells the foreign chain token address for a given token and chain ID.
-  mapping(address => mapping(uint16 => bytes32)) public forTokenAddressMatchingForeignChainTokens;
-  /// Wormhole Chain ID to Circle Chain Domain Mapping
-  mapping(uint16 => uint32) chainIdToCircleDomain;
-  /// Circle Chain Domain to Wormhole Chain ID mapping
-  mapping(uint32 => uint16) circleDomainToChainId;
+  mapping(bytes32 => mapping(bytes32 => address)) public forForeignChainMatchingTokenAddresses;
+  /// Tells the foreign chain token address for a given token and cbChainId.
+  mapping(address => mapping(bytes32 => bytes32)) public forTokenAddressMatchingForeignChainTokens;
+  /// CAIP-2 cbChainId to Circle Chain Domain Mapping
+  mapping(bytes32 => uint32) public cbChainIdToCircleDomain;
+  /// Circle Chain Domain to CAIP-2 cbChainId mapping
+  mapping(uint32 => bytes32) public circleDomainToCbChainId;
   /// Whether a Wormhole message has been consumed.
   mapping(bytes32 => bool) hasConsumedWormholeMessage;
-  /// Array of Consumed Wormhole messages by their Chain IDs.
+  /// Array of Consumed Wormhole messages by their Wormhole Chain IDs.
   mapping(uint16 => bytes32[]) public perChainConsumedWormholeMessages;
-  /// Counts for consumed Wormhole messages by their Chain IDs.
+  /// Counts for consumed Wormhole messages by their Wormhole Chain IDs.
   mapping(uint16 => uint256) public perChainConsumedWormholeMessagesCount;
   /// Address of Payables Logic Contract
   address public payablesLogic;
   /// Address of Transactions Logic Contract
   address public transactionsLogic;
+  /// Data messaging protocol configured per foreign CAIP-2 cbChainId.
+  /// Determines whether payable update broadcasts use Wormhole or CCTP.
+  mapping(bytes32 => DataMessagingProtocol) public chainDataMessagingProtocol;
+  /// Tracks the highest nonce seen per (payableId, cbChainId).
+  /// Used to deduplicate payable updates delivered by multiple protocols
+  /// (Wormhole and CCTP). Only nonces strictly greater than the stored value
+  /// are accepted; stale or duplicate deliveries revert.
+  mapping(bytes32 => mapping(bytes32 => uint64)) public payableUpdateNonces;
+  /// Ordered list of registered foreign CAIP-2 cbChainIds.
+  /// Iterated in _broadcastPayableUpdate to send CCTP messages to CCTP-capable
+  /// chains. Populated by registerForeignContract.
+  bytes32[] public registeredCbChainIds;
+  /// Monotonically increasing counter for generating payable update nonces.
+  /// Incremented on every _broadcastPayableUpdate call. Internal only.
+  uint64 internal _payableUpdateCounter;
+  /// Wormhole Chain ID to CAIP-2 cbChainId reverse lookup.
+  /// Set by registerChainWormholeId. Used in VAA verification to resolve the
+  /// emitter chain to its cbChainId for registeredForeignContracts lookup.
+  mapping(uint16 => bytes32) public wormholeChainIdToCbChainId;
   /// storage gap for additional state variables in future versions
   uint256[50] __gap;
 
   function hasWormhole() public view returns (bool) {
     return config.wormhole != address(0);
+  }
+
+  function hasCCTP() public view returns (bool) {
+    return config.circleTransmitter != address(0);
+  }
+
+  function supportsWormhole(bytes32 cbChainId) public view returns (bool) {
+    return chainDataMessagingProtocol[cbChainId] == DataMessagingProtocol.WORMHOLE;
+  }
+
+  function supportsCCTP(bytes32 cbChainId) public view returns (bool) {
+    return chainDataMessagingProtocol[cbChainId] == DataMessagingProtocol.CCTP;
   }
 
   function wormhole() public view returns (IWormhole) {
@@ -164,7 +195,7 @@ contract CbState is CbStructs {
   }
 
   function getForeignPayable(bytes32 payableId) external view returns (PayableForeign memory) {
-    if (payableId == bytes32(0) || foreignPayables[payableId].chainId == 0) {
+    if (payableId == bytes32(0) || foreignPayables[payableId].chainId == bytes32(0)) {
       revert InvalidPayableId();
     }
     return foreignPayables[payableId];
@@ -175,7 +206,7 @@ contract CbState is CbStructs {
     view
     returns (TokenAndAmountForeign[] memory)
   {
-    if (payableId == bytes32(0) || foreignPayables[payableId].chainId == 0) {
+    if (payableId == bytes32(0) || foreignPayables[payableId].chainId == bytes32(0)) {
       revert InvalidPayableId();
     }
     return foreignPayableAllowedTokensAndAmounts[payableId];
@@ -203,33 +234,33 @@ contract CbState is CbStructs {
     return withdrawals[withdrawalId];
   }
 
-  function getPayableChainPaymentsCount(bytes32 payableId, uint16 chainId_) external view returns (uint256) {
+  function getPayableChainPaymentsCount(bytes32 payableId, bytes32 cbChainId) external view returns (uint256) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
-    return payableChainPaymentsCount[payableId][chainId_];
+    return payableChainPaymentsCount[payableId][cbChainId];
   }
 
-  function getPayableChainPaymentIds(bytes32 payableId, uint16 chainId_) external view returns (bytes32[] memory) {
+  function getPayableChainPaymentIds(bytes32 payableId, bytes32 cbChainId) external view returns (bytes32[] memory) {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (payables[payableId].host == address(0)) revert InvalidPayableId();
-    return payableChainPaymentIds[payableId][chainId_];
+    return payableChainPaymentIds[payableId][cbChainId];
   }
 
-  function getForForeignChainMatchingTokenAddress(uint16 chainId, bytes32 foreignToken)
+  function getForForeignChainMatchingTokenAddress(bytes32 cbChainId, bytes32 foreignToken)
     external
     view
     returns (address token)
   {
-    token = forForeignChainMatchingTokenAddresses[chainId][foreignToken];
+    token = forForeignChainMatchingTokenAddresses[cbChainId][foreignToken];
     if (token == address(0)) revert InvalidChainIdOrForeignToken();
   }
 
-  function getForTokenAddressMatchingForeignChainToken(address token, uint16 chainId)
+  function getForTokenAddressMatchingForeignChainToken(address token, bytes32 cbChainId)
     external
     view
     returns (bytes32 foreignToken)
   {
-    foreignToken = forTokenAddressMatchingForeignChainTokens[token][chainId];
+    foreignToken = forTokenAddressMatchingForeignChainTokens[token][cbChainId];
     if (foreignToken == bytes32(0)) revert InvalidChainIdOrForeignToken();
   }
 }

@@ -1,6 +1,6 @@
 # Chainbills - EVM
 
-Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive any amount of cryptocurrency from everybody (payers), powered by WormHole. Chainbills deducts 2% from all withdrawals for fees and maintenance.
+Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive any amount of cryptocurrency from everybody (payers), powered by [Wormhole](https://wormhole.com) and [Circle CCTP](https://www.circle.com/cross-chain-transfer-protocol). Chainbills deducts 2% from all withdrawals for fees and maintenance.
 
 This subdirectory contains the development environment used for building the smart contracts that work in Ethereum Virtual Machine (EVM) compatible networks.
 
@@ -22,6 +22,8 @@ Here you will find engineering specifics that apply to this EVM contract.
 - [`delegatecall`](#delegatecall)
 - [Tests](#tests)
 - [About Foundry](#about-foundry)
+- [Script Runner](#script-runner)
+- [Deployed Parameters](#deployed-parameters)
 
 ## Native and ERC20 Tokens
 
@@ -209,12 +211,105 @@ $ forge fmt
 # Deploy the Contract
 $ forge script script/DeployChainbills.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvv
 
-# Run Necessary Scripts
+# --- Post-deploy: chain setup (run once per chain) ---
+
+# Set up Wormhole + Circle CCTP (most EVM chains)
+$ forge script script/SetupWormholeAndCircle.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
+
+# Or, for chains without Wormhole (CCTP-only)
+$ forge script script/SetupCCTPOnly.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
+
+# --- Cross-chain registration (run per foreign chain pair) ---
+
+# Register a foreign peer chain (Circle domain + Wormhole ID + contract address)
+$ forge script script/RegisterForeignChain.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
+
+# Register matching token addresses across chains (e.g. USDC ↔ USDC)
+$ forge script script/RegisterMatchingToken.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
+
+# --- Token / fee configuration ---
+
 $ forge script script/AllowPaymentsForToken.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
 $ forge script script/UpdateMaxWithdrawalFees.s.sol --chain $CHAIN --rpc-url $RPC_URL --broadcast -vvvv
+
+# --- Utility (no --broadcast needed) ---
+
+# Compute the cbChainId for a CAIP-2 string
+$ CAIP2=eip155:11155111 forge script script/ComputeCbChainId.s.sol -vvv
 
 # More info on the commands
 $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+## Script Runner
+
+Instead of manually exporting env vars and copying addresses before every `forge script` call, use the provided runner:
+
+```shell
+# Syntax
+$ ./script/run.sh <chain> <ScriptName> [--dry-run]
+```
+
+The runner loads `script/env/<chain>.env`, which has all known protocol addresses pre-filled. You only need to supply your `PRIVATE_KEY` — put it in a gitignored local override file:
+
+```shell
+# One-time setup per chain — this file is gitignored
+$ echo 'PRIVATE_KEY=0xYOUR_KEY' > script/env/sepolia.env.local
+$ echo 'PRIVATE_KEY=0xYOUR_KEY' > script/env/arc.env.local
+```
+
+Then run any script with a single command:
+
+```shell
+# Post-deploy setup (once per chain)
+$ ./script/run.sh arc    SetupCCTPOnly
+$ ./script/run.sh sepolia SetupWormholeAndCircle
+
+# Cross-chain registration — pass the target chain as a 3rd argument.
+# run.sh derives all FOREIGN_* variables automatically from that chain's env file.
+# Both directions must be run (each chain teaches itself about the other).
+
+$ ./script/run.sh sepolia RegisterForeignChain  arc      # Sepolia learns about Arc
+$ ./script/run.sh arc    RegisterForeignChain  sepolia  # Arc learns about Sepolia
+$ ./script/run.sh sepolia RegisterMatchingToken arc      # "Arc USDC → my Sepolia USDC"
+$ ./script/run.sh arc    RegisterMatchingToken sepolia  # "Sepolia USDC → my Arc USDC"
+
+# Adding a new chain? For each existing chain <c>, run 4 commands:
+# $ ./script/run.sh <c>       RegisterForeignChain  <new>
+# $ ./script/run.sh <c>       RegisterMatchingToken <new>
+# $ ./script/run.sh <new>     RegisterForeignChain  <c>
+# $ ./script/run.sh <new>     RegisterMatchingToken <c>
+
+# Token config
+$ ./script/run.sh sepolia AllowPaymentsForToken
+
+# Compute cbChainId (no PRIVATE_KEY needed, no broadcast)
+$ ./script/run.sh megaeth ComputeCbChainId
+
+# Dry-run any script without broadcasting
+$ ./script/run.sh sepolia RegisterForeignChain arc --dry-run
+```
+
+Before running a script, open the matching `script/env/<chain>.env` and fill in any blank fields (e.g., `CB_ADDRESS`, `FOREIGN_CB_ADDRESS`, `CB_CHAIN_ID` after you compute it). Each field has a comment explaining what it is.
+
+```shell
+# Build the contract(s)
+$ forge build
+
+# Run the tests
+$ forge test
+
+# Format the code
+$ forge fmt
+
+# More info on the Foundry toolchain
+$ forge --help
+$ anvil --help
+$ cast --help
+```
+
+## Deployed Parameters
+
+All deployed contract addresses, cbChainIds, Circle domains, and Wormhole IDs are tracked in [DEPLOYED.md](./DEPLOYED.md). Update that file after every deployment or admin setup call.

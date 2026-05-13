@@ -30,11 +30,11 @@ contract CbTransactions is CbUtils {
 
   /// Records successful payments and activity from a payer.
   /// @param payableId The ID of the payable that was paid into.
-  /// @param payableChainId The Chain ID of the payable.
+  /// @param payableChainId CAIP-2 cbChainId of the payable's chain.
   /// @param token The address of the token that was paid.
   /// @param amount The amount paid.
   /// @return userPaymentId The ID of the recorded payment from the user.
-  function _recordUserPayment(bytes32 payableId, uint16 payableChainId, address token, uint256 amount)
+  function _recordUserPayment(bytes32 payableId, bytes32 payableChainId, address token, uint256 amount)
     internal
     returns (bytes32 userPaymentId)
   {
@@ -93,11 +93,11 @@ contract CbTransactions is CbUtils {
   /// Records successful payments and activity to a payable.
   /// @param payableId The ID of the payable that was paid into.
   /// @param payer Payer address in Wormhole format.
-  /// @param payerChainId The Chain ID of the payable.
+  /// @param payerChainId CAIP-2 cbChainId of the payer's chain.
   /// @param token The address of the token that was paid.
   /// @param amount The amount paid.
   /// @return payablePaymentId The ID of the recorded payment from the user.
-  function _recordPayablePayment(bytes32 payableId, bytes32 payer, uint16 payerChainId, address token, uint256 amount)
+  function _recordPayablePayment(bytes32 payableId, bytes32 payer, bytes32 payerChainId, address token, uint256 amount)
     internal
     returns (bytes32 payablePaymentId)
   {
@@ -316,14 +316,12 @@ contract CbTransactions is CbUtils {
 
     /* STATE CHANGES */
     // Record successful payment and activity from the payer.
-    // Use 0 (zero) as the chain ID for this chain. Using zero instead of
-    // config.wormholeChainId to account for chains that don't yet have Wormhole.
-    userPaymentId = _recordUserPayment(payableId, 0, token, amount);
+    // Use config.cbChainId as the payable chain ID (this chain).
+    userPaymentId = _recordUserPayment(payableId, config.cbChainId, token, amount);
 
     // Record successful payment and activity to the payable.
-    // Use 0 (zero) as the chain ID for this chain. Using zero instead of
-    // config.wormholeChainId to account for chains that don't yet have Wormhole.
-    payablePaymentId = _recordPayablePayment(payableId, toWormholeFormat(msg.sender), 0, token, amount);
+    // Use config.cbChainId as the payer chain ID (this chain).
+    payablePaymentId = _recordPayablePayment(payableId, toWormholeFormat(msg.sender), config.cbChainId, token, amount);
 
     // If the Payable is an auto-withdraw, then make transfer of just-paid
     // amount to the payable's owner and update state immediately by calling
@@ -352,7 +350,7 @@ contract CbTransactions is CbUtils {
 
     // Ensure that the foreign payable exists and it is not closed
     PayableForeign storage _payable = foreignPayables[payableId];
-    if (_payable.chainId == 0) revert InvalidPayableId();
+    if (_payable.chainId == bytes32(0)) revert InvalidPayableId();
     if (_payable.isClosed) revert PayableIsClosed();
 
     // If this payable specified the tokens and amounts it can accept, ensure
@@ -378,7 +376,7 @@ contract CbTransactions is CbUtils {
 
     // Burn tokens with CircleBridge
     uint64 circleNonce = circleBridge().depositForBurn(
-      amount, chainIdToCircleDomain[_payable.chainId], registeredForeignContracts[_payable.chainId], token
+      amount, cbChainIdToCircleDomain[_payable.chainId], registeredForeignContracts[_payable.chainId], token
     );
 
     /* STATE CHANGES */
@@ -395,7 +393,7 @@ contract CbTransactions is CbUtils {
         payableChainId: _payable.chainId,
         payer: toWormholeFormat(msg.sender),
         payerChainToken: foreignTokenAddr,
-        payerChainId: config.wormholeChainId,
+        payerChainId: config.cbChainId,
         amount: uint64(amount),
         circleNonce: circleNonce
       }).encode()
@@ -426,15 +424,15 @@ contract CbTransactions is CbUtils {
     if (_payable.host == address(0)) revert InvalidPayableId();
 
     // Verify Circle Message for Matching Domains, Nonce, and our Contract
-    /// Addresses.
+    // Addresses.
     uint256 index = 4;
     uint32 circleParsedSourceDomain;
     uint32 circleParsedTargetDomain;
     uint64 circleNonce;
     bytes32 circleSender;
     bytes32 circleRecipient;
-    uint32 payloadSourceDomain = chainIdToCircleDomain[payload.payerChainId];
-    uint32 payloadTargetDomain = chainIdToCircleDomain[payload.payableChainId];
+    uint32 payloadSourceDomain = cbChainIdToCircleDomain[payload.payerChainId];
+    uint32 payloadTargetDomain = cbChainIdToCircleDomain[payload.payableChainId];
     (circleParsedSourceDomain, index) = params.circleBridgeMessage.asUint32(index);
     (circleParsedTargetDomain, index) = params.circleBridgeMessage.asUint32(index);
     (circleNonce, index) = params.circleBridgeMessage.asUint64(index);
@@ -458,7 +456,7 @@ contract CbTransactions is CbUtils {
     // Obtain the token that Circle will mint from Circle.
     bytes32 localCircleToken = toWormholeFormat(
       circleTokenMinter().remoteTokensToLocalTokens(
-        keccak256(abi.encodePacked(chainIdToCircleDomain[payload.payerChainId], payload.payerChainToken))
+        keccak256(abi.encodePacked(cbChainIdToCircleDomain[payload.payerChainId], payload.payerChainToken))
       )
     );
 
@@ -481,8 +479,11 @@ contract CbTransactions is CbUtils {
     /// Store and consume the Wormhole message.
     consumeWormholeMessage(wormholeMessage);
 
+    // Resolve emitter chain to cbChainId for the event.
+    bytes32 srcCbChainId = wormholeChainIdToCbChainId[wormholeMessage.emitterChainId];
+
     // Emit Event.
-    emit ConsumedWormholePaymentMessage(payableId, payload.payerChainId, wormholeMessage.hash);
+    emit ConsumedWormholePaymentMessage(payableId, srcCbChainId, wormholeMessage.hash);
 
     // If the Payable is an auto-withdraw, then make transfer of just-redeemed
     // amount to the payable's owner and update state immediately by calling

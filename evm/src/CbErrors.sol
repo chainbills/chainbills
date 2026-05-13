@@ -5,6 +5,8 @@ pragma solidity ^0.8.20;
 contract CbErrors {
   error CircleMintingFailed();
   error CircleNonceMismatch();
+  error CircleTransmitterOnly();
+  error InvalidCircleDomain();
   error CircleRecipientMismatch();
   error CircleSenderMismatch();
   error CircleSourceDomainMismatch();
@@ -46,6 +48,7 @@ contract CbErrors {
   error PayableIsAlreadyClosed();
   error PayableIsClosed();
   error PayableIsNotClosed();
+  error StalePayableUpdateNonce();
   error UnsuccessfulFeesWithdrawal();
   error UnsuccessfulPayment();
   error UnsuccessfulWithdrawal();

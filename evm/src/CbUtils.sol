@@ -66,7 +66,8 @@ contract CbUtils is CbState {
   }
 
   /// Parses the encoded Wormhole input into a Message and carry-out
-  /// the necessary checks.
+  /// the necessary checks. Also resolves the emitter chain to its
+  /// CAIP-2 cbChainId via wormholeChainIdToCbChainId.
   /// @param wormholeEncoded Encoded Wormhole message.
   /// @return parsedAndChecked The parsed Wormhole message.
   function _parseAndCheckWormholeMessage(bytes memory wormholeEncoded)
@@ -81,8 +82,12 @@ contract CbUtils is CbState {
     // Confirm that the Wormhole core contract verified the message
     require(valid, reason);
 
+    // Resolve Wormhole emitter chain ID to CAIP-2 cbChainId.
+    bytes32 srcCbChainId = wormholeChainIdToCbChainId[wormholeMessage.emitterChainId];
+    if (srcCbChainId == bytes32(0)) revert EmitterNotRegistered();
+
     // Verify that this message was emitted by a registered emitter
-    if (registeredForeignContracts[wormholeMessage.emitterChainId] != wormholeMessage.emitterAddress) {
+    if (registeredForeignContracts[srcCbChainId] != wormholeMessage.emitterAddress) {
       revert EmitterNotRegistered();
     }
 

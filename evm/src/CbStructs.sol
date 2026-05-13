@@ -26,6 +26,10 @@ contract CbStructs is CbEvents {
     address circleTokenMinter;
     /// The address of the Circle Transmitter contract on this chain.
     address circleTransmitter;
+    /// CAIP-2 chain identifier for this chain (keccak256 of "namespace:reference",
+    /// e.g. keccak256("eip155:1") for Ethereum mainnet). Protocol-agnostic and
+    /// used as the universal key for all cross-chain chain references.
+    bytes32 cbChainId;
   }
 
   /// Keeps track of all activities on this chain. Counters for the
@@ -141,8 +145,8 @@ contract CbStructs is CbEvents {
     /// The nth count of payable payments on this chain at the point this payment
     /// was received.
     uint256 chainCount;
-    /// The Wormhole Chain ID of the chain from which the payment was made.
-    uint16 payerChainId;
+    /// CAIP-2 cbChainId of the chain from which the payment was made.
+    bytes32 payerChainId;
     /// The nth count of payments to this payable from the payment source
     /// chain at the point this payment was recorded.
     uint256 localChainCount;
@@ -164,8 +168,8 @@ contract CbStructs is CbEvents {
     address payer;
     /// The address of the associated token that was paid.
     address token;
-    /// The Wormhole Chain ID of the chain into which the payment was made.
-    uint16 payableChainId;
+    /// CAIP-2 cbChainId of the chain into which the payment was made.
+    bytes32 payableChainId;
     /// The nth count of payments on this chain at the point this payment
     /// was made.
     uint256 chainCount;
@@ -255,7 +259,19 @@ contract CbStructs is CbEvents {
     Activity
   }
 
-  /// Emitted when a payable is created.
+  /// Data messaging protocol used for cross-chain payable update delivery.
+  /// Per foreign chain, admin configures which protocol this chain uses to
+  /// broadcast payable updates. Receiving is always open on all configured paths.
+  enum DataMessagingProtocol {
+    /// No cross-chain data messaging configured for this chain.
+    NONE,
+    /// Wormhole VAA broadcast covers this chain.
+    WORMHOLE,
+    /// Circle CCTP sendMessage() used — no Wormhole on this chain.
+    CCTP
+  }
+
+  /// Emitted when a payable is created or updated. 
   struct PayablePayload {
     /// Version of the payload.
     uint8 version;
@@ -268,6 +284,10 @@ contract CbStructs is CbEvents {
     uint8 actionType;
     /// The Payable's ID.
     bytes32 payableId;
+    /// Monotonically increasing counter for this payable on the source chain.
+    /// Receiving chains reject updates with nonce <= last seen nonce, preventing
+    /// double-application when both Wormhole and CCTP deliver the same update.
+    uint64 nonce;
     /// Whether the payable is closed or not.
     bool isClosed;
     /// The allowed tokens and their amounts.
@@ -285,15 +305,15 @@ contract CbStructs is CbEvents {
     /// The Wormhole-normalized address of the involved token on the payable
     /// (destination) chain.
     bytes32 payableChainToken;
-    /// Wormhole Chain ID of where the Payable was created.
-    uint16 payableChainId;
+    /// CAIP-2 cbChainId of where the Payable was created.
+    bytes32 payableChainId;
     /// Who made the payment.
     bytes32 payer;
     /// The Wormhole-normalized address of the involved token on the payer
     /// (source) chain.
     bytes32 payerChainToken;
-    /// Wormhole Chain ID of where the User made the payment.
-    uint16 payerChainId;
+    /// CAIP-2 cbChainId of where the User made the payment.
+    bytes32 payerChainId;
     /// The amount paid on for the transaction.
     uint64 amount;
     /// Circle Nonce of the payment.
@@ -310,8 +330,8 @@ contract CbStructs is CbEvents {
 
   /// A Payable that exists on another chain.
   struct PayableForeign {
-    /// The Wormhole Chain ID of the chain on which this Payable exists.
-    uint16 chainId;
+    /// CAIP-2 cbChainId of the chain on which this Payable exists.
+    bytes32 chainId;
     /// The number of the allowedTokensAndAmounts of this Payable.
     uint8 allowedTokensAndAmountsCount;
     /// Whether this payable is currently accepting payments.

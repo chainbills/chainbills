@@ -46,25 +46,26 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
   /// @param circleBridge The address of the Circle Bridge contract.
   /// @param wormholeChainId The Wormhole Chain ID of the chain.
   /// @param wormholeFinality Confirmed/Finalized for Wormhole messages.
+  /// @param cbChainId CAIP-2 chain identifier for this chain
+  ///        (keccak256 of "namespace:reference", e.g. keccak256("eip155:1")).
   /// @dev Only the deployer (owner) can invoke this method
   function setupWormholeAndCircle(
     address wormhole,
     address circleBridge,
     uint16 wormholeChainId,
-    uint8 wormholeFinality
+    uint8 wormholeFinality,
+    bytes32 cbChainId
   ) public onlyOwner {
     if (wormhole == address(0)) revert InvalidWormholeAddress();
     else if (wormholeChainId == 0) revert InvalidWormholeChainId();
     else if (wormholeFinality == 0) revert InvalidWormholeFinality();
     else if (circleBridge == address(0)) revert InvalidCircleBridge();
+    else if (cbChainId == bytes32(0)) revert InvalidChainId();
 
     IMessageTransmitter circleTransmitter = ICircleBridge(circleBridge).localMessageTransmitter();
     uint32 circleDomain = circleTransmitter.localDomain();
     ITokenMinter circleTokenMinter = ICircleBridge(circleBridge).localMinter();
 
-    // Set necessary config variables like feeCollector, wormhole, chainId, and
-    // wormholeFinality, circleDomain, circleBridge, circleTransmitter, and
-    // circleTokenMinter.
     config.wormholeFinality = wormholeFinality;
     config.wormholeChainId = wormholeChainId;
     config.circleDomain = circleDomain;
@@ -72,9 +73,46 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     config.circleBridge = circleBridge;
     config.circleTransmitter = address(circleTransmitter);
     config.circleTokenMinter = address(circleTokenMinter);
+    config.cbChainId = cbChainId;
 
     // Emit event.
     emit SetupWormholeAndCircle();
+  }
+
+  /// Sets up Circle CCTP on chains where Wormhole is not deployed.
+  /// Allows this contract to send and receive payable-update messages via CCTP
+  /// without requiring Wormhole.
+  /// @param circleTransmitterAddr Address of Circle's MessageTransmitter on this chain.
+  /// @param circleDomain Circle domain ID of this chain.
+  /// @param cbChainId CAIP-2 chain identifier for this chain
+  ///        (keccak256 of "namespace:reference", e.g. keccak256("eip155:8453")).
+  /// @dev Only the deployer (owner) can invoke this method.
+  function setupCCTPOnly(address circleTransmitterAddr, uint32 circleDomain, bytes32 cbChainId) public onlyOwner {
+    if (circleTransmitterAddr == address(0)) revert InvalidCircleTransmitter();
+    if (circleDomain == 0) revert InvalidLocalCircleDomain();
+    if (cbChainId == bytes32(0)) revert InvalidChainId();
+    config.circleTransmitter = circleTransmitterAddr;
+    config.circleDomain = circleDomain;
+    config.cbChainId = cbChainId;
+    emit SetupCCTPOnly();
+  }
+
+  /// Configures the data messaging protocol for a registered foreign chain.
+  /// This determines how payable updates are broadcast to that chain.
+  ///
+  /// Protocol values:
+  ///   0 = NONE     — no cross-chain data messaging (chain skipped in broadcast)
+  ///   1 = WORMHOLE — Wormhole VAA covers this chain; no CCTP needed
+  ///   2 = CCTP     — no Wormhole; CCTP message sent per broadcast
+  ///
+  /// @param cbChainId CAIP-2 cbChainId of the foreign chain.
+  /// @param protocol DataMessagingProtocol enum value (0–2).
+  /// @dev Only the deployer (owner) can invoke this method.
+  function setChainDataMessagingProtocol(bytes32 cbChainId, uint8 protocol) public onlyOwner {
+    if (cbChainId == bytes32(0)) revert InvalidChainId();
+    if (protocol > 2) revert InvalidChainId();
+    chainDataMessagingProtocol[cbChainId] = DataMessagingProtocol(protocol);
+    emit SetChainDataMessagingProtocol(cbChainId, protocol);
   }
 
   /// Withdraws the specified `amount` of `token` to the {owner}.
@@ -88,47 +126,66 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     emit OwnerWithdrew(token, amount);
   }
 
-  /// Registers a Circle Chain Domain and its matching Wormhole Chain ID.
+  /// Registers the Circle Domain for a foreign chain.
   /// @dev Only the deployer (owner) can invoke this method
-  /// @param circleDomain The Circle Chain Domain.
-  /// @param chainId The Wormhole Chain ID.
-  function registerCircleDomainToWormholeChainId(uint32 circleDomain, uint16 chainId) public onlyOwner {
-    if (circleDomain == 0 || chainId == 0) revert InvalidChainId();
-    chainIdToCircleDomain[chainId] = circleDomain;
-    circleDomainToChainId[circleDomain] = chainId;
-    emit RegisteredCircleDomainToWormholeChainId(circleDomain, chainId);
+  /// @param cbChainId CAIP-2 cbChainId of the foreign chain.
+  /// @param circleDomain The Circle Domain of that chain.
+  function registerChainCircleDomain(bytes32 cbChainId, uint32 circleDomain) public onlyOwner {
+    if (cbChainId == bytes32(0) || circleDomain == 0) revert InvalidChainId();
+    cbChainIdToCircleDomain[cbChainId] = circleDomain;
+    circleDomainToCbChainId[circleDomain] = cbChainId;
+    emit RegisteredChainCircleDomain(cbChainId, circleDomain);
+  }
+
+  /// Registers the Wormhole Chain ID for a foreign chain.
+  /// Required for Wormhole VAA emitter verification: when a VAA arrives,
+  /// the emitterChainId (uint16) is resolved to a cbChainId via this mapping.
+  /// @dev Only the deployer (owner) can invoke this method
+  /// @param cbChainId CAIP-2 cbChainId of the foreign chain.
+  /// @param wormholeChainId Wormhole Chain ID of that chain.
+  function registerChainWormholeId(bytes32 cbChainId, uint16 wormholeChainId) public onlyOwner {
+    if (cbChainId == bytes32(0) || wormholeChainId == 0) revert InvalidChainId();
+    wormholeChainIdToCbChainId[wormholeChainId] = cbChainId;
+    emit RegisteredChainWormholeId(cbChainId, wormholeChainId);
   }
 
   /// Registers foreign emitters (trusted contracts).
   /// @dev Only the deployer (owner) can invoke this method
-  /// @param emitterChainId Wormhole ChainId of the contract being registered.
+  /// @param cbChainId CAIP-2 cbChainId of the chain being registered.
   /// @param emitterAddress Wormhole-normalized address of the contract being
   /// registered. For EVM, contracts' first 12 bytes should be zeros.
-  function registerForeignContract(uint16 emitterChainId, bytes32 emitterAddress) public onlyOwner {
-    if (emitterChainId == 0 || emitterChainId == config.wormholeChainId) {
-      revert InvalidWormholeChainId();
+  function registerForeignContract(bytes32 cbChainId, bytes32 emitterAddress) public onlyOwner {
+    if (cbChainId == bytes32(0) || cbChainId == config.cbChainId) {
+      revert InvalidChainId();
     } else if (emitterAddress == bytes32(0) || emitterAddress == toWormholeFormat(address(this))) {
       revert InvalidWormholeEmitterAddress();
     }
-    // update the registeredForeignContracts state variable
-    registeredForeignContracts[emitterChainId] = emitterAddress;
-    emit RegisteredForeignContract(emitterChainId, emitterAddress);
+    // Track cbChainId for CCTP iteration in _broadcastPayableUpdate.
+    // Only push if this is a genuinely new registration (not an update).
+    if (registeredForeignContracts[cbChainId] == bytes32(0)) {
+      registeredCbChainIds.push(cbChainId);
+    }
+    registeredForeignContracts[cbChainId] = emitterAddress;
+    emit RegisteredForeignContract(cbChainId, emitterAddress);
   }
 
   /// Registers a matching token address for a foreign token.
   /// @dev Only the deployer (owner) can invoke this method
-  /// @param chainId The chainId of the foreign chain.
+  /// @param cbChainId CAIP-2 cbChainId of the foreign chain.
   /// @param foreignToken The address of the token in the foreign chain.
   /// @param token The address of corresponding token in this chain.
-  function registerMatchingTokenForForeignChain(uint16 chainId, bytes32 foreignToken, address token) public onlyOwner {
-    if (chainId == 0 || chainId == config.wormholeChainId) {
-      revert InvalidWormholeChainId();
+  function registerMatchingTokenForForeignChain(bytes32 cbChainId, bytes32 foreignToken, address token)
+    public
+    onlyOwner
+  {
+    if (cbChainId == bytes32(0) || cbChainId == config.cbChainId) {
+      revert InvalidChainId();
     } else if (token == address(0) || foreignToken == bytes32(0)) {
       revert InvalidTokenAddress();
     }
-    forForeignChainMatchingTokenAddresses[chainId][foreignToken] = token;
-    forTokenAddressMatchingForeignChainTokens[token][chainId] = foreignToken;
-    emit RegisteredMatchingTokenForForeignChain(chainId, foreignToken, token);
+    forForeignChainMatchingTokenAddresses[cbChainId][foreignToken] = token;
+    forTokenAddressMatchingForeignChainTokens[token][cbChainId] = foreignToken;
+    emit RegisteredMatchingTokenForForeignChain(cbChainId, foreignToken, token);
   }
 
   /// Sets the Payables Logic Contract address.
@@ -274,7 +331,51 @@ contract Chainbills is CbUtils, Initializable, OwnableUpgradeable, ReentrancyGua
     }
   }
 
-  function recordForeignPayableUpdate(bytes memory /* wormholeEncoded */ ) public {
+  function receivePayableUpdateViaWormhole(bytes memory /* wormholeEncoded */ ) public {
+    (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
+    if (!success) {
+      assembly {
+        revert(add(result, 32), mload(result))
+      }
+    }
+  }
+
+  function receivePayableUpdateViaCircle(bytes calldata, /* message */ bytes calldata /* attestation */ )
+    public
+    nonReentrant
+  {
+    (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
+    if (!success) {
+      assembly {
+        revert(add(result, 32), mload(result))
+      }
+    }
+  }
+
+  /// Circle CCTP IMessageHandler callback. Called by Circle's MessageTransmitter
+  /// after verifying the attestation when a payable-update message arrives from
+  /// another chain. Delegates to CbPayables for nonce dedup and state updates.
+  function handleReceiveMessage(uint32, /* sourceDomain */ bytes32, /* sender */ bytes calldata /* messageBody */ )
+    external
+    returns (bool)
+  {
+    (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
+    if (!success) {
+      assembly {
+        revert(add(result, 32), mload(result))
+      }
+    }
+    return abi.decode(result, (bool));
+  }
+
+  function adminSyncForeignPayable(
+    bytes32, /* payableId */
+    bytes32, /* cbChainId */
+    uint64, /* nonce */
+    uint8, /* actionType */
+    bool, /* isClosed */
+    TokenAndAmountForeign[] calldata /* ataa */
+  ) public onlyOwner {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
     if (!success) {
       assembly {

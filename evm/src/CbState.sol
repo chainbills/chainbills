@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import 'wormhole/interfaces/IWormhole.sol';
 import './circle/ICircleBridge.sol';

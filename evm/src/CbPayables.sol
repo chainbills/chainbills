@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
@@ -281,12 +281,7 @@ contract CbPayables is CbUtils {
     // Broadcast ATAA update to all registered foreign chains.
     wormholeMessageSequence = _broadcastPayableUpdate(
       PayablePayload({
-        version: 1,
-        actionType: 4,
-        payableId: payableId,
-        nonce: 0,
-        isClosed: false,
-        allowedTokensAndAmounts: foreignAtaa
+        version: 1, actionType: 4, payableId: payableId, nonce: 0, isClosed: false, allowedTokensAndAmounts: foreignAtaa
       })
     );
   }
@@ -409,10 +404,7 @@ contract CbPayables is CbUtils {
   /// @param sender Wormhole-formatted address of the sending contract.
   /// @param messageBody Encoded PayablePayload (version 2).
   /// @return true on success (required by IMessageHandler interface).
-  function handleReceiveMessage(uint32 sourceDomain, bytes32 sender, bytes calldata messageBody)
-    public
-    returns (bool)
-  {
+  function handleReceiveMessage(uint32 sourceDomain, bytes32 sender, bytes calldata messageBody) public returns (bool) {
     // Only Circle's MessageTransmitter may call this function.
     if (msg.sender != config.circleTransmitter) revert CircleTransmitterOnly();
 

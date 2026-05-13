@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import 'wormhole/libraries/BytesParsing.sol';
 import './CbErrors.sol';
@@ -24,8 +24,9 @@ library CbEncodePayablePayload {
       uint8 ataaLength = uint8(payload.allowedTokensAndAmounts.length);
       encoded = abi.encodePacked(encoded, ataaLength);
       for (uint8 i = 0; i < ataaLength; i++) {
-        encoded =
-          abi.encodePacked(encoded, payload.allowedTokensAndAmounts[i].token, payload.allowedTokensAndAmounts[i].amount);
+        encoded = abi.encodePacked(
+          encoded, payload.allowedTokensAndAmounts[i].token, payload.allowedTokensAndAmounts[i].amount
+        );
       }
     } else if (payload.actionType == 2 || payload.actionType == 3) {
       encoded = abi.encodePacked(encoded, payload.isClosed);

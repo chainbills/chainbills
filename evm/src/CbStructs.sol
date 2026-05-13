@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import './CbEvents.sol';
 
@@ -271,7 +271,7 @@ contract CbStructs is CbEvents {
     CCTP
   }
 
-  /// Emitted when a payable is created or updated. 
+  /// Emitted when a payable is created or updated.
   struct PayablePayload {
     /// Version of the payload.
     uint8 version;

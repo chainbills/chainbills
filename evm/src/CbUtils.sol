@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import 'wormhole/interfaces/IWormhole.sol';
 import 'wormhole/Utils.sol';
@@ -103,11 +103,8 @@ contract CbUtils is CbState {
   /// Publishes a message to Wormhole and returns the message sequence.
   function _publishPayloadMessage(bytes memory payload) internal returns (uint64 sequence) {
     // Publish the message to Wormhole.
-    sequence = wormhole().publishMessage{value: getWormholeMessageFee()}(
-      /* No Batching */
-      0,
-      payload,
-      config.wormholeFinality
+    sequence = wormhole().publishMessage{value: getWormholeMessageFee()}(/* No Batching */
+      0, payload, config.wormholeFinality
     );
 
     // Increment the chainStats for publishedWormholeMessagesCount.

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/interfaces/draft-IERC6093.sol';
 import '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';

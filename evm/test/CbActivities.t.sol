@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
@@ -329,7 +329,7 @@ contract CbActivitiesTest is CbStructs, Test {
     assertEq(activity.entity, payableId);
   }
 
-  function testRecordReopenedPayable() public { 
+  function testRecordReopenedPayable() public {
     // Close the payable to reopen it for activity testing
     vm.prank(user);
     chainbills.closePayable(payableId);

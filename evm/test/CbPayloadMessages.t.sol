@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import 'forge-std/Test.sol';
 import 'wormhole/Utils.sol';
@@ -17,13 +17,8 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     ataa[0] = TokenAndAmountForeign({token: bytes32(0), amount: 100});
     ataa[1] = TokenAndAmountForeign({token: bytes32(0), amount: 200});
     bytes memory encoded = PayablePayload({
-      version: 1,
-      actionType: 1,
-      payableId: bytes32(0),
-      nonce: 7,
-      isClosed: false,
-      allowedTokensAndAmounts: ataa
-    }).encode();
+        version: 1, actionType: 1, payableId: bytes32(0), nonce: 7, isClosed: false, allowedTokensAndAmounts: ataa
+      }).encode();
     PayablePayload memory parsed = encoded.decodePayablePayload();
     assert(parsed.version == 1);
     assert(parsed.actionType == 1);
@@ -37,16 +32,16 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     bytes32 payableChainId = keccak256(abi.encodePacked('eip155:2'));
     bytes32 payerChainId = keccak256(abi.encodePacked('eip155:4'));
     bytes memory encoded = PaymentPayload({
-      version: 1,
-      payableId: bytes32(0),
-      payableChainToken: bytes32(0),
-      payableChainId: payableChainId,
-      payer: bytes32(0),
-      payerChainToken: bytes32(0),
-      payerChainId: payerChainId,
-      amount: 100,
-      circleNonce: 2
-    }).encode();
+        version: 1,
+        payableId: bytes32(0),
+        payableChainToken: bytes32(0),
+        payableChainId: payableChainId,
+        payer: bytes32(0),
+        payerChainToken: bytes32(0),
+        payerChainId: payerChainId,
+        amount: 100,
+        circleNonce: 2
+      }).encode();
     PaymentPayload memory parsed = encoded.decodePaymentPayload();
     assert(parsed.version == 1);
     assert(parsed.payableId == bytes32(0));

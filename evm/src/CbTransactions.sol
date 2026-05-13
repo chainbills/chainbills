@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache 2
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
@@ -375,9 +375,10 @@ contract CbTransactions is CbUtils {
     SafeERC20.safeIncreaseAllowance(IERC20(token), config.circleBridge, amount);
 
     // Burn tokens with CircleBridge
-    uint64 circleNonce = circleBridge().depositForBurn(
-      amount, cbChainIdToCircleDomain[_payable.chainId], registeredForeignContracts[_payable.chainId], token
-    );
+    uint64 circleNonce = circleBridge()
+      .depositForBurn(
+        amount, cbChainIdToCircleDomain[_payable.chainId], registeredForeignContracts[_payable.chainId], token
+      );
 
     /* STATE CHANGES */
     // Record successful payment and activity from the payer.
@@ -387,16 +388,16 @@ contract CbTransactions is CbUtils {
     bytes32 foreignTokenAddr = forTokenAddressMatchingForeignChainTokens[token][_payable.chainId];
     wormholeMessageSequence = _publishPayloadMessage(
       PaymentPayload({
-        version: 1,
-        payableId: payableId,
-        payableChainToken: toWormholeFormat(token),
-        payableChainId: _payable.chainId,
-        payer: toWormholeFormat(msg.sender),
-        payerChainToken: foreignTokenAddr,
-        payerChainId: config.cbChainId,
-        amount: uint64(amount),
-        circleNonce: circleNonce
-      }).encode()
+          version: 1,
+          payableId: payableId,
+          payableChainToken: toWormholeFormat(token),
+          payableChainId: _payable.chainId,
+          payer: toWormholeFormat(msg.sender),
+          payerChainToken: foreignTokenAddr,
+          payerChainId: config.cbChainId,
+          amount: uint64(amount),
+          circleNonce: circleNonce
+        }).encode()
     );
   }
 
@@ -455,9 +456,10 @@ contract CbTransactions is CbUtils {
 
     // Obtain the token that Circle will mint from Circle.
     bytes32 localCircleToken = toWormholeFormat(
-      circleTokenMinter().remoteTokensToLocalTokens(
-        keccak256(abi.encodePacked(cbChainIdToCircleDomain[payload.payerChainId], payload.payerChainToken))
-      )
+      circleTokenMinter()
+        .remoteTokensToLocalTokens(
+          keccak256(abi.encodePacked(cbChainIdToCircleDomain[payload.payerChainId], payload.payerChainToken))
+        )
     );
 
     // Ensure that the to-be-minted token is what is expected.

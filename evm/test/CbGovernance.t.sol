@@ -49,35 +49,6 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
   }
 
-  function testOwnerWithdraw() public {
-    // Send funds to contract (both native and erc20)
-    deal(address(chainbills), ethAmt);
-    deal(address(usdc), address(chainbills), usdcAmt);
-
-    // Call owner withdraw with non-contract owner and confirm revert
-    vm.startPrank(nonOwner);
-    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
-    chainbills.ownerWithdraw(address(chainbills), ethAmt);
-    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
-    chainbills.ownerWithdraw(address(usdc), usdcAmt);
-    vm.stopPrank();
-
-    // Call owner withdraw successfully and confirm emitted events
-    vm.startPrank(owner);
-    vm.expectEmit(true, true, true, true);
-    emit OwnerWithdrew(address(chainbills), ethAmt);
-    chainbills.ownerWithdraw(address(chainbills), ethAmt);
-
-    vm.expectEmit(true, true, true, true);
-    emit OwnerWithdrew(address(usdc), usdcAmt);
-    chainbills.ownerWithdraw(address(usdc), usdcAmt);
-    vm.stopPrank();
-
-    // Verify balances
-    assertEq(owner.balance, ethAmt);
-    assertEq(usdc.balanceOf(owner), usdcAmt);
-  }
-
   function testSetPayablesLogic() public {
     // Create new payables logic contracts
     CbPayables payablesLogic1 = new CbPayables();

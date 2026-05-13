@@ -155,20 +155,6 @@ contract Chainbills is
     emit SetChainDataMessagingProtocol(cbChainId, protocol);
   }
 
-  /// Withdraws the specified `amount` of `token` to the {owner}.
-  /// If token is the same as this deployed contract's address, the
-  /// native token is transferred.
-  function ownerWithdraw(address token, uint256 amount) public onlyOwner nonReentrant {
-    require(amount > 0);
-    require(token != address(0));
-    if (token == address(this)) {
-      (payable(owner()).call{value: amount}(''));
-    } else {
-      IERC20(token).safeTransfer(owner(), amount);
-    }
-    emit OwnerWithdrew(token, amount);
-  }
-
   /// Registers the Circle Domain for a foreign chain.
   /// @dev Only the deployer (owner) can invoke this method
   /// @param cbChainId CAIP-2 cbChainId of the foreign chain.

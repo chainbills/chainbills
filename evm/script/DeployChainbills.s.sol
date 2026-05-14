@@ -12,7 +12,10 @@ import {CbTransactions} from '../src/CbTransactions.sol';
 contract DeployChainbills is Script {
   function run() public {
     address feeCollector = vm.envAddress('FEE_COLLECTOR');
-    uint16 feePercent = 200; // 200 is 2%. Zeros are for decimals
+    uint16 feePercent = uint16(vm.envUint('FEE_PERCENT'));
+
+    if (feeCollector == address(0)) revert('FEE_COLLECTOR not set');
+    if (feePercent == 0) revert('FEE_PERCENT not set');
 
     uint256 ownerPrivateKey = vm.envUint('PRIVATE_KEY');
     vm.startBroadcast(ownerPrivateKey);

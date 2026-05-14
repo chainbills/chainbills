@@ -185,6 +185,7 @@ To maintain the main Chainbills contract within the EVM 24kb limit, all complex 
 Instead of bloating the main contract with dozens of struct-returning getters or `for`-loop pagination methods, `CbGetters` acts as a read-only wrapper. It takes the main `Chainbills` contract address in its constructor, casts it to `CbState`, and reads directly from the public state mappings and arrays.
 
 **Key features of `CbGetters`:**
+
 - **Paginated Arrays**: Exposes paginated endpoints for all global arrays (e.g., `chainActivityIdsPaginated(offset, limit)`) and mapped arrays (e.g., `payableActivityIdsPaginated(payableId, offset, limit)`).
 - **Safe Slicing**: Implements internal pagination helpers that safely slice storage arrays to prevent "Out of Gas" or out-of-bounds errors when fetching massive lists.
 - **Bulk Struct Fetching**: Allows clients to fetch multiple structs in a single RPC call by passing an array of IDs (e.g., `getPayablesBulk(bytes32[] ids)`).
@@ -261,32 +262,55 @@ Instead of manually exporting env vars and copying addresses before every `forge
 
 ```shell
 # Syntax
-$ ./script/run.sh <chain> <ScriptName> [--dry-run]
+$ ./script/run.sh <chain> <ScriptName> [<target-chain>] [--dry-run]
 ```
 
-The runner loads `script/env/<chain>.env`, which has all known protocol addresses pre-filled. You only need to supply your `PRIVATE_KEY` — put it in a gitignored local override file:
+The runner loads `script/env/<chain>.env`, which has all known protocol addresses and chain-specific configurations.
+
+### 1. Environment Setup
+
+Each chain has its own `.env` file in `script/env/`. **Private keys and sensitive overrides should go in `<chain>.env.local` (gitignored).**
 
 ```shell
-# One-time setup per chain — this file is gitignored
-$ echo 'PRIVATE_KEY=0xYOUR_KEY' > script/env/sepolia.env.local
-$ echo 'PRIVATE_KEY=0xYOUR_KEY' > script/env/arc.env.local
+# Example: One-time setup for Sepolia
+$ cp .env.sample script/env/sepolia.env.local
+# Edit script/env/sepolia.env.local to add PRIVATE_KEY and ETHERSCAN_API_KEY
 ```
 
-Then run any script with a single command:
+### 2. Compulsory Deployment Config
+
+For `DeployChainbills`, the following must be set in your chain's `.env` or `.env.local`:
+
+- `FEE_COLLECTOR`: The address that receives protocol fees.
+- `FEE_PERCENT`: Fee in basis points (e.g., `200` for 2%).
+
+### 3. Auto-Verification
+
+The runner supports automatic contract verification. Set these in your chain's `.env`:
+
+- `VERIFY=true`: Enables verification on broadcast.
+- `VERIFIER`: `etherscan` or `blockscout`.
+- `VERIFIER_URL`: Required for `blockscout` (e.g., `https://testnet.arcscan.app/api/`).
+- `ETHERSCAN_API_KEY`: Required for `etherscan` (put this in `.env.local`).
+
+### 4. Examples
 
 ```shell
-# Post-deploy setup (once per chain)
-$ ./script/run.sh arc    SetupCCTPOnly
+# Deploy and auto-verify on Arc Testnet
+$ ./script/run.sh arctestnet DeployChainbills
+
+# Post-deploy setup
+$ ./script/run.sh arctestnet     SetupCCTPOnly
 $ ./script/run.sh sepolia SetupWormholeAndCircle
 
 # Cross-chain registration — pass the target chain as a 3rd argument.
 # run.sh derives all FOREIGN_* variables automatically from that chain's env file.
 # Both directions must be run (each chain teaches itself about the other).
 
-$ ./script/run.sh sepolia RegisterForeignChain  arc      # Sepolia learns about Arc
-$ ./script/run.sh arc    RegisterForeignChain  sepolia  # Arc learns about Sepolia
-$ ./script/run.sh sepolia RegisterMatchingToken arc      # "Arc USDC → my Sepolia USDC"
-$ ./script/run.sh arc    RegisterMatchingToken sepolia  # "Sepolia USDC → my Arc USDC"
+$ ./script/run.sh sepolia RegisterForeignChain  arctestnet      # Sepolia learns about Arc
+$ ./script/run.sh arctestnet    RegisterForeignChain  sepolia  # Arc learns about Sepolia
+$ ./script/run.sh sepolia RegisterMatchingToken arctestnet      # "Arc USDC → my Sepolia USDC"
+$ ./script/run.sh arctestnet    RegisterMatchingToken sepolia  # "Sepolia USDC → my Arc USDC"
 
 # Adding a new chain? For each existing chain <c>, run 4 commands:
 # $ ./script/run.sh <c>       RegisterForeignChain  <new>
@@ -294,14 +318,21 @@ $ ./script/run.sh arc    RegisterMatchingToken sepolia  # "Sepolia USDC → my A
 # $ ./script/run.sh <new>     RegisterForeignChain  <c>
 # $ ./script/run.sh <new>     RegisterMatchingToken <c>
 
-# Token config
-$ ./script/run.sh sepolia AllowPaymentsForToken
+# Token & Admin config
+$ TOKEN_NAME=USDC ./script/run.sh sepolia AllowPaymentsForToken
+$ TOKEN_NAME=USDC ./script/run.sh sepolia StopPaymentsForToken
+
+# Grant Admin role
+$ ./script/run.sh arctestnet GrantAdminRole
+
+# Unregister cross-chain token mapping
+$ TOKEN_NAME=USDC ./script/run.sh sepolia UnregisterMatchingToken arctestnet
 
 # Compute cbChainId (no PRIVATE_KEY needed, no broadcast)
 $ ./script/run.sh megaeth ComputeCbChainId
 
 # Dry-run any script without broadcasting
-$ ./script/run.sh sepolia RegisterForeignChain arc --dry-run
+$ ./script/run.sh sepolia RegisterForeignChain arctestnet --dry-run
 ```
 
 Before running a script, open the matching `script/env/<chain>.env` and fill in any blank fields (e.g., `CB_ADDRESS`, `FOREIGN_CB_ADDRESS`, `CB_CHAIN_ID` after you compute it). Each field has a comment explaining what it is.

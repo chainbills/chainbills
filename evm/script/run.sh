@@ -50,6 +50,8 @@ else
   DRY_RUN="$ARG4"
 fi
 
+export TARGET_CHAIN="$TARGET_CHAIN"
+
 if [[ -z "$CHAIN" || -z "$SCRIPT_NAME" ]]; then
   echo "Usage: $0 <chain> <ScriptName> [<target-chain>] [--dry-run]"
   echo "  chain: sepolia | arc | megaeth"
@@ -113,6 +115,7 @@ if [[ -n "$TARGET_CHAIN" ]]; then
 
   # LOCAL_TOKEN = this chain's USDC
   export LOCAL_TOKEN="${USDC_ADDRESS:-}"
+  export CHAIN_NAME="$CHAIN"
 
   echo ">>> Target chain : $TARGET_CHAIN"
   echo ">>> FOREIGN_CB_CHAIN_ID  : ${FOREIGN_CB_CHAIN_ID:-not set}"
@@ -121,9 +124,13 @@ if [[ -n "$TARGET_CHAIN" ]]; then
   echo ">>> FOREIGN_CB_ADDRESS   : ${FOREIGN_CB_ADDRESS:-not set}"
   echo ">>> FOREIGN_TOKEN        : ${FOREIGN_TOKEN:-not set}"
   echo ">>> LOCAL_TOKEN          : ${LOCAL_TOKEN:-not set}"
+  echo ">>> CHAIN_NAME           : ${CHAIN_NAME}"
 fi
 
-# --- Validate ---------------------------------------------------------------
+# Always export CHAIN_NAME for the source chain context
+export CHAIN_NAME="$CHAIN"
+
+# --- Validation ---------------------------------------------------------------
 SCRIPT_FILE="script/${SCRIPT_NAME}.s.sol"
 
 if [[ ! -f "$SCRIPT_FILE" ]]; then
@@ -137,20 +144,60 @@ if [[ "$SCRIPT_NAME" != "ComputeCbChainId" && -z "${PRIVATE_KEY:-}" ]]; then
   exit 1
 fi
 
-# --- Broadcast mode ---------------------------------------------------------
+# Compulsory for DeployChainbills
+if [[ "$SCRIPT_NAME" == "DeployChainbills" ]]; then
+  if [[ -z "${FEE_COLLECTOR:-}" || -z "${FEE_PERCENT:-}" ]]; then
+    echo "Error: FEE_COLLECTOR and FEE_PERCENT must be set in env for deployment."
+    exit 1
+  fi
+fi
+
+# --- Broadcast & Verify flags -----------------------------------------------
+EXTRA_FLAGS=""
+
 if [[ "$DRY_RUN" == "--dry-run" || "$SCRIPT_NAME" == "ComputeCbChainId" ]]; then
-  BROADCAST_FLAG=""
   echo ">>> Dry run (no broadcast): $SCRIPT_NAME on $CHAIN"
 else
-  BROADCAST_FLAG="--broadcast"
+  EXTRA_FLAGS="--broadcast"
   echo ">>> Broadcasting: $SCRIPT_NAME on $CHAIN"
+  
+  if [[ "${VERIFY:-}" == "true" ]]; then
+    echo ">>> Verification enabled"
+    EXTRA_FLAGS="$EXTRA_FLAGS --verify"
+    
+    if [[ -n "${VERIFIER:-}" ]]; then
+      EXTRA_FLAGS="$EXTRA_FLAGS --verifier ${VERIFIER}"
+    fi
+    
+    if [[ -n "${VERIFIER_URL:-}" ]]; then
+      EXTRA_FLAGS="$EXTRA_FLAGS --verifier-url ${VERIFIER_URL}"
+    fi
+
+    # Handle API keys based on verifier
+    if [[ "${VERIFIER:-}" == "etherscan" ]]; then
+      if [[ -n "${ETHERSCAN_API_KEY:-}" ]]; then
+        EXTRA_FLAGS="$EXTRA_FLAGS --etherscan-api-key ${ETHERSCAN_API_KEY}"
+      else
+        echo "Warning: VERIFIER is etherscan but ETHERSCAN_API_KEY is not set."
+      fi
+    elif [[ -n "${VERIFIER_API_KEY:-}" ]]; then
+      EXTRA_FLAGS="$EXTRA_FLAGS --verifier-api-key ${VERIFIER_API_KEY}"
+    fi
+  fi
+
+  if [[ "${SKIP_SIMULATION:-}" == "true" ]]; then
+    echo ">>> Skipping simulation"
+    EXTRA_FLAGS="$EXTRA_FLAGS --skip-simulation"
+  fi
 fi
 
 echo ">>> Env: $ENV_FILE"
 echo ">>> RPC: ${RPC_URL:-not set}"
+echo ">>> Extra Flags: $EXTRA_FLAGS"
 echo ""
 
+# shellcheck disable=SC2086
 forge script "$SCRIPT_FILE" \
   --rpc-url "${RPC_URL}" \
-  $BROADCAST_FLAG \
+  $EXTRA_FLAGS \
   -vvvv

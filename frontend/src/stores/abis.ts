@@ -959,6 +959,7 @@ export const gettersAbi = [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      { name: 'syncedBy', type: 'address', indexed: true, internalType: 'address' },
     ],
     anonymous: false,
   },
@@ -1071,6 +1072,15 @@ export const gettersAbi = [
   },
   {
     type: 'event',
+    name: 'UnregisteredMatchingTokenForForeignChain',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'foreignToken', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'UpdatedMaxWithdrawalFees',
     inputs: [
       { name: 'token', type: 'address', indexed: false, internalType: 'address' },
@@ -1156,6 +1166,7 @@ export const gettersAbi = [
   { type: 'error', name: 'InvalidTokenAddress', inputs: [] },
   { type: 'error', name: 'InvalidTransactionsLogic', inputs: [] },
   { type: 'error', name: 'InvalidWalletAddress', inputs: [] },
+  { type: 'error', name: 'InvalidWithdrawalFeePercentage', inputs: [] },
   { type: 'error', name: 'InvalidWithdrawalId', inputs: [] },
   { type: 'error', name: 'InvalidWormholeAddress', inputs: [] },
   { type: 'error', name: 'InvalidWormholeChainId', inputs: [] },
@@ -1913,6 +1924,7 @@ export const gettersAbi = [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      { name: 'syncedBy', type: 'address', indexed: true, internalType: 'address' },
     ],
     anonymous: false,
   },
@@ -2025,6 +2037,15 @@ export const gettersAbi = [
   },
   {
     type: 'event',
+    name: 'UnregisteredMatchingTokenForForeignChain',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'foreignToken', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'UpdatedMaxWithdrawalFees',
     inputs: [
       { name: 'token', type: 'address', indexed: false, internalType: 'address' },
@@ -2110,6 +2131,7 @@ export const gettersAbi = [
   { type: 'error', name: 'InvalidTokenAddress', inputs: [] },
   { type: 'error', name: 'InvalidTransactionsLogic', inputs: [] },
   { type: 'error', name: 'InvalidWalletAddress', inputs: [] },
+  { type: 'error', name: 'InvalidWithdrawalFeePercentage', inputs: [] },
   { type: 'error', name: 'InvalidWithdrawalId', inputs: [] },
   { type: 'error', name: 'InvalidWormholeAddress', inputs: [] },
   { type: 'error', name: 'InvalidWormholeChainId', inputs: [] },
@@ -2929,6 +2951,16 @@ export const mainAbi = [
   { type: 'function', name: 'unpause', inputs: [], outputs: [], stateMutability: 'nonpayable' },
   {
     type: 'function',
+    name: 'unregisterMatchingTokenForForeignChain',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'updateMaxWithdrawalFees',
     inputs: [
       { name: 'token', type: 'address', internalType: 'address' },
@@ -3200,6 +3232,7 @@ export const mainAbi = [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      { name: 'syncedBy', type: 'address', indexed: true, internalType: 'address' },
     ],
     anonymous: false,
   },
@@ -3348,6 +3381,15 @@ export const mainAbi = [
   },
   {
     type: 'event',
+    name: 'UnregisteredMatchingTokenForForeignChain',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'foreignToken', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'UpdatedMaxWithdrawalFees',
     inputs: [
       { name: 'token', type: 'address', indexed: false, internalType: 'address' },
@@ -3458,6 +3500,7 @@ export const mainAbi = [
   { type: 'error', name: 'InvalidTokenAddress', inputs: [] },
   { type: 'error', name: 'InvalidTransactionsLogic', inputs: [] },
   { type: 'error', name: 'InvalidWalletAddress', inputs: [] },
+  { type: 'error', name: 'InvalidWithdrawalFeePercentage', inputs: [] },
   { type: 'error', name: 'InvalidWithdrawalId', inputs: [] },
   { type: 'error', name: 'InvalidWormholeAddress', inputs: [] },
   { type: 'error', name: 'InvalidWormholeChainId', inputs: [] },
@@ -4289,6 +4332,16 @@ export const mainAbi = [
   { type: 'function', name: 'unpause', inputs: [], outputs: [], stateMutability: 'nonpayable' },
   {
     type: 'function',
+    name: 'unregisterMatchingTokenForForeignChain',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'foreignToken', type: 'bytes32', internalType: 'bytes32' },
+    ],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
     name: 'updateMaxWithdrawalFees',
     inputs: [
       { name: 'token', type: 'address', internalType: 'address' },
@@ -4560,6 +4613,7 @@ export const mainAbi = [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      { name: 'syncedBy', type: 'address', indexed: true, internalType: 'address' },
     ],
     anonymous: false,
   },
@@ -4708,6 +4762,15 @@ export const mainAbi = [
   },
   {
     type: 'event',
+    name: 'UnregisteredMatchingTokenForForeignChain',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'foreignToken', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'UpdatedMaxWithdrawalFees',
     inputs: [
       { name: 'token', type: 'address', indexed: false, internalType: 'address' },
@@ -4818,6 +4881,7 @@ export const mainAbi = [
   { type: 'error', name: 'InvalidTokenAddress', inputs: [] },
   { type: 'error', name: 'InvalidTransactionsLogic', inputs: [] },
   { type: 'error', name: 'InvalidWalletAddress', inputs: [] },
+  { type: 'error', name: 'InvalidWithdrawalFeePercentage', inputs: [] },
   { type: 'error', name: 'InvalidWithdrawalId', inputs: [] },
   { type: 'error', name: 'InvalidWormholeAddress', inputs: [] },
   { type: 'error', name: 'InvalidWormholeChainId', inputs: [] },

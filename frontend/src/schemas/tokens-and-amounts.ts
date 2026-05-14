@@ -11,8 +11,7 @@ export const getTokenLogo = (chain: Chain, token: Token) => {
 export const contracts: Record<ChainName, string> = {
   arctestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
-  // TODO: Update with actual Sepolia deployment address after redeployment
-  sepolia: '0x0000000000000000000000000000000000000000',
+  sepolia: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
 };
 

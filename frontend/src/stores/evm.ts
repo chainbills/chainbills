@@ -43,8 +43,7 @@ interface WriteContractResponse {
 const getters: Record<ChainName, string> = {
   arctestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
-  // TODO: Update with actual Sepolia deployment address after redeployment
-  sepolia: '0x0000000000000000000000000000000000000000',
+  sepolia: '0xC4d4fcB77230FE1eB1ad3d257673FC9Dca707feD',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
 };
 

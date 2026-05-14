@@ -20,6 +20,9 @@ contract CbActivitiesTest is CbStructs, Test {
   bytes32 payableId;
   address user = makeAddr('user');
 
+  // Blank Test Function to exclude this Test contract itself from test coverage reports.
+  function test() public {}
+
   function setUp() public {
     vm.startPrank(owner);
     chainbills = Chainbills(payable(address(new ERC1967Proxy(address(new Chainbills()), ''))));

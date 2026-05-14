@@ -19,4 +19,7 @@ contract UpgradeChainbills is Script {
     console.log('Upgraded Chainbills to: ', proxy);
     vm.stopBroadcast();
   }
+
+  // Blank Test Function to exclude this Script from test coverage reports.
+  function test() public {}
 }

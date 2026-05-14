@@ -320,9 +320,9 @@ contract CbPayables is CbUtils {
   /// message.
   function publishPayableDetails(bytes32 payableId) public payable returns (uint64 wormholeMessageSequence) {
     /* CHECKS */
-    // Ensure that the caller owns the payable.
+    // Anyone (e.g. a relayer) may call this — only require the payable exists.
     Payable storage _payable = payables[payableId];
-    if (_payable.host != msg.sender) revert NotYourPayable();
+    if (_payable.host == address(0)) revert InvalidPayableId();
 
     // Prepare the foreign allowedTokensAndAmounts.
     uint8 ataaLength = _payable.allowedTokensAndAmountsCount;

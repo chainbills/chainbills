@@ -24,4 +24,7 @@ contract SetupCCTPOnly is Script {
 
     vm.stopBroadcast();
   }
+
+  // Blank Test Function to exclude this Script from test coverage reports.
+  function test() public {}
 }

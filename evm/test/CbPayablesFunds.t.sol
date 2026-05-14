@@ -3,7 +3,6 @@ pragma solidity ^0.8.30;
 
 import {IERC20Errors} from '@openzeppelin/contracts/interfaces/draft-IERC6093.sol';
 import {ERC1967Proxy} from '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
-import {ERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import {Test} from 'forge-std/Test.sol';
 import {Chainbills} from 'src/Chainbills.sol';
 import {CbGetters} from 'src/CbGetters.sol';
@@ -11,14 +10,7 @@ import {CbStructs} from 'src/CbStructs.sol';
 import {CbPayables} from 'src/CbPayables.sol';
 import {CbTransactions} from 'src/CbTransactions.sol';
 import {toWormholeFormat} from 'wormhole/Utils.sol';
-
-contract USDC is ERC20 {
-  constructor() ERC20('USDC', 'USDC') {}
-
-  function decimals() public view virtual override returns (uint8) {
-    return 6;
-  }
-}
+import {USDC} from './mocks/MockUSDC.sol';
 
 contract CbPayablesFundsTest is CbStructs, Test {
   Chainbills chainbills;
@@ -35,6 +27,9 @@ contract CbPayablesFundsTest is CbStructs, Test {
   uint256 maxWtdlFeesEth = 5e17; // 0.5 ETH
   uint256 maxWtdlFeesUsdc = 2e8; // 200 USDC
   uint256 usdcAmt = 1e8; // 100 USDC
+
+  // Blank Test Function to exclude this Test contract itself from test coverage reports.
+  function test() public {}
 
   function setUp() public {
     vm.startPrank(owner);

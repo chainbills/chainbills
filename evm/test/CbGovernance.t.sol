@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import {ERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import {OwnableUpgradeable} from '@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol';
 import {ERC1967Proxy} from '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
 import {Test} from 'forge-std/Test.sol';
@@ -10,14 +9,7 @@ import {CbGetters} from 'src/CbGetters.sol';
 import {CbStructs} from 'src/CbStructs.sol';
 import {CbPayables} from 'src/CbPayables.sol';
 import {CbTransactions} from 'src/CbTransactions.sol';
-
-contract USDC is ERC20 {
-  constructor() ERC20('USDC', 'USDC') {}
-
-  function decimals() public view virtual override returns (uint8) {
-    return 6;
-  }
-}
+import {USDC} from './mocks/MockUSDC.sol';
 
 contract CbGovernanceTest is CbStructs, Test {
   Chainbills chainbills;
@@ -36,6 +28,9 @@ contract CbGovernanceTest is CbStructs, Test {
   uint256 maxWtdlFeesUsdcB = 25e7; // 250 USDC
   uint256 ethAmt = 1e16; // 0.01 ETH
   uint256 usdcAmt = 1e8; // 100 USDC
+
+  // Blank Test Function to exclude this Test contract itself from test coverage reports.
+  function test() public {}
 
   function setUp() public {
     vm.startPrank(owner);

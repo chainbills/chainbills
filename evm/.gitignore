@@ -16,3 +16,6 @@ docs/
 # Personal overrides for env files (e.g. with PRIVATE_KEY filled in).
 # Create script/env/sepolia.env.local etc. for local secrets — never commit.
 script/env/*.env.local
+
+# Coverage Reports
+lcov.info

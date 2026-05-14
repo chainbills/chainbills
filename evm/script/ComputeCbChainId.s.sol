@@ -22,4 +22,7 @@ contract ComputeCbChainId is Script {
     console.log('cbChainId      :');
     console.logBytes32(cbChainId);
   }
+
+  // Blank Test Function to exclude this Script from test coverage reports.
+  function test() public {}
 }

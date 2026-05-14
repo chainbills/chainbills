@@ -18,17 +18,18 @@ contract UnregisterMatchingToken is Script {
     // Read foreign token address from central JSON
     string memory root = vm.projectRoot();
     string memory path = string.concat(root, '/script/env/tokens.json');
+    // forge-lint: disable-next-line(unsafe-cheatcode)
     string memory json = vm.readFile(path);
-    
+
     bytes memory data = vm.parseJson(json, string.concat('.', targetChain, '.', tokenName));
     address foreignTokenAddr = abi.decode(data, (address));
 
     // Handle "NATIVE" placeholder (though matching tokens are usually ERC20)
-    if (keccak256(abi.encodePacked(tokenName)) == keccak256(abi.encodePacked("NATIVE"))) {
-       // On foreign chain, NATIVE is represented by their CB_ADDRESS
-       // But we need to get their CB_ADDRESS. For now, we'll assume the user passes it if needed.
-       // However, FOREIGN_CB_ADDRESS is usually available in run.sh if TARGET_CHAIN is provided.
-       foreignTokenAddr = vm.envAddress('FOREIGN_CB_ADDRESS');
+    if (keccak256(abi.encodePacked(tokenName)) == keccak256(abi.encodePacked('NATIVE'))) {
+      // On foreign chain, NATIVE is represented by their CB_ADDRESS
+      // But we need to get their CB_ADDRESS. For now, we'll assume the user passes it if needed.
+      // However, FOREIGN_CB_ADDRESS is usually available in run.sh if TARGET_CHAIN is provided.
+      foreignTokenAddr = vm.envAddress('FOREIGN_CB_ADDRESS');
     }
 
     // Wormhole format (left-padded with zeros)
@@ -51,4 +52,7 @@ contract UnregisterMatchingToken is Script {
 
     vm.stopBroadcast();
   }
+
+  // Blank Test Function to exclude this Script from test coverage reports.
+  function test() public {}
 }

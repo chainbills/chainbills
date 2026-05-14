@@ -250,12 +250,6 @@ contract CbSetupTest is CbStructs, Test {
     chainbills.setupCctpOnly(address(0), 6, thisCbChainId);
   }
 
-  function testSetupCctpOnlyRevertsOnZeroDomain() public {
-    vm.prank(owner);
-    vm.expectRevert(InvalidLocalCircleDomain.selector);
-    chainbills.setupCctpOnly(address(mockCircleTransmitter), 0, thisCbChainId);
-  }
-
   function testSetupCctpOnlyRevertsOnZeroChainId() public {
     vm.prank(owner);
     vm.expectRevert(InvalidChainId.selector);
@@ -320,12 +314,6 @@ contract CbSetupTest is CbStructs, Test {
     vm.prank(owner);
     vm.expectRevert(InvalidChainId.selector);
     chainbills.registerChainCircleDomain(bytes32(0), foreignCircleDomain);
-  }
-
-  function testRegisterChainCircleDomainRevertsOnZeroDomain() public {
-    vm.prank(owner);
-    vm.expectRevert(InvalidChainId.selector);
-    chainbills.registerChainCircleDomain(foreignCbChainId, 0);
   }
 
   function testRegisterChainCircleDomainRevertsForNonOwner() public {

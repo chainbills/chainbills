@@ -132,6 +132,14 @@ When writing tests, we bare the above in mind when creating the `Chainbills` con
 chainbills = Chainbills(payable(address(new ERC1967Proxy(address(new Chainbills()), ''))));
 ```
 
+### Storage Layout Validation
+
+To ensure storage layout compatibility across upgrades, we leverage OpenZeppelin's storage validation tooling. This prevents accidental storage collisions that could corrupt the contract state.
+
+The contract uses the `/// @custom:oz-upgrades-from prev-deploy:Chainbills` annotation to tell the compiler which previous version to validate against. We store the `build-info` JSON from previous deployments in an intuitive tree per chain and version in a `deploys` directory. These JSONs contains the storage layout map and contract reference required for verification by OpenZeppelin's Upgrade tools when upgrading.
+
+For more technical details on this workflow, see [this answer in a GitHub Issue](https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades/issues/56#issuecomment-2575701595) in the OpenZeppelin Foundry Upgrades repo.
+
 ## `delegatecall`
 
 In the EVM, a smart contract can call another with either `call`, `delegatecall`, or `staticcall`. The difference between them is how the context of the call is handled.
@@ -293,7 +301,20 @@ The runner supports automatic contract verification. Set these in your chain's `
 - `VERIFIER_URL`: Required for `blockscout` (e.g., `https://testnet.arcscan.app/api/`).
 - `ETHERSCAN_API_KEY`: Required for `etherscan` (put this in `.env.local`).
 
-### 4. Examples
+### 4. Upgrading (Manual Preliminaries)
+
+After deploying or previously upgrading, copy out the created JSON(s) from `out/build-info/` to the respective `deploys/v??...` folder and store for future purposes.
+
+When needing to upgrade, before running the `UpgradeChainbills` script, you must prepare the storage validation state:
+
+1. **Prepare Reference Directory**: Locate the build-info JSON previously saved from deploys folder.
+2. **Setup Directory**: Create a `prev-deploy/` directory at the root of this `evm` directory and copy that JSON file into it.
+3. **Configure Script**: In `script/UpgradeChainbills.s.sol`, uncomment the `opts.referenceBuildInfoDir = "prev-deploy";` line.
+4. **Verify Annotation**: Ensure `Chainbills.sol` has the `/// @custom:oz-upgrades-from prev-deploy:Chainbills` annotation.
+
+Then run the upgrade command as shown in the examples.
+
+### 5. Examples
 
 ```shell
 # Deploy and auto-verify on Arc Testnet
@@ -324,6 +345,9 @@ $ TOKEN_NAME=USDC ./script/run.sh sepolia StopPaymentsForToken
 
 # Grant Admin role
 $ ./script/run.sh arctestnet GrantAdminRole
+
+# Upgrade contract implementation
+$ ./script/run.sh arctestnet UpgradeChainbills
 
 # Unregister cross-chain token mapping
 $ TOKEN_NAME=USDC ./script/run.sh sepolia UnregisterMatchingToken arctestnet

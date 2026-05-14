@@ -17,6 +17,7 @@ import {CbUtils} from './CbUtils.sol';
 
 /// A Cross-Chain Payment Gateway.
 /// @custom:oz-upgrades-unsafe-allow delegatecall
+/// @custom:oz-upgrades-from prev-deploy:Chainbills
 contract Chainbills is
   CbUtils,
   Initializable,
@@ -134,7 +135,6 @@ contract Chainbills is
   /// @dev Only the deployer (owner) can invoke this method.
   function setupCctpOnly(address circleTransmitterAddr, uint32 circleDomain, bytes32 cbChainId) public onlyOwner {
     if (circleTransmitterAddr == address(0)) revert InvalidCircleTransmitter();
-    if (circleDomain == 0) revert InvalidLocalCircleDomain();
     if (cbChainId == bytes32(0)) revert InvalidChainId();
     config.circleTransmitter = circleTransmitterAddr;
     config.circleDomain = circleDomain;
@@ -165,7 +165,7 @@ contract Chainbills is
   /// @param cbChainId CAIP-2 cbChainId of the foreign chain.
   /// @param circleDomain The Circle Domain of that chain.
   function registerChainCircleDomain(bytes32 cbChainId, uint32 circleDomain) public onlyOwner {
-    if (cbChainId == bytes32(0) || circleDomain == 0) revert InvalidChainId();
+    if (cbChainId == bytes32(0)) revert InvalidChainId();
     cbChainIdToCircleDomain[cbChainId] = circleDomain;
     circleDomainToCbChainId[circleDomain] = cbChainId;
     emit RegisteredChainCircleDomain(cbChainId, circleDomain);

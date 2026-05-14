@@ -190,7 +190,9 @@ contract CbEvents is CbErrors {
   /// @param payableId The ID of the payable that was synced.
   /// @param cbChainId The CAIP-2 chain ID from which the update originated.
   /// @param nonce The cross-protocol update deduplication nonce.
-  event ReceivedPayableUpdateViaAdminSync(bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce, address indexed syncedBy);
+  event ReceivedPayableUpdateViaAdminSync(
+    bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce, address indexed syncedBy
+  );
 
   /// Emitted when owner configures the data messaging protocol for a foreign chain
   /// @param cbChainId The CAIP-2 chain ID of the foreign chain.

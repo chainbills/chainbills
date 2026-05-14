@@ -19,3 +19,6 @@ script/env/*.env.local
 
 # Coverage Reports
 lcov.info
+
+# Holds temporary copied out build-info json to use in upgrade
+prev-deploy

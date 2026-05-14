@@ -30,9 +30,17 @@ contract MockCircleBridge {
     return 0;
   }
 
-  function owner() external pure returns (address) { return address(0); }
-  function handleReceiveMessage(uint32, bytes32, bytes memory) external pure returns (bool) { return true; }
-  function remoteCircleBridges(uint32) external pure returns (bytes32) { return bytes32(0); }
+  function owner() external pure returns (address) {
+    return address(0);
+  }
+
+  function handleReceiveMessage(uint32, bytes32, bytes memory) external pure returns (bool) {
+    return true;
+  }
+
+  function remoteCircleBridges(uint32) external pure returns (bytes32) {
+    return bytes32(0);
+  }
   function transferOwnership(address) external {}
 
   // Blank Test Function to exclude this Mock from test coverage reports.

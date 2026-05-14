@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
+import {Strings} from '@openzeppelin/contracts/utils/Strings.sol';
 import {Script, console} from 'forge-std/Script.sol';
 import {Chainbills} from '../src/Chainbills.sol';
 
@@ -15,13 +16,14 @@ contract StopPaymentsForToken is Script {
     // Read token address from central JSON
     string memory root = vm.projectRoot();
     string memory path = string.concat(root, '/script/env/tokens.json');
+    // forge-lint: disable-next-line(unsafe-cheatcode)
     string memory json = vm.readFile(path);
-    
+
     bytes memory data = vm.parseJson(json, string.concat('.', chain, '.', tokenName));
     address tokenAddr = abi.decode(data, (address));
 
     // Handle "NATIVE" placeholder
-    if (tokenAddr == address(0) || keccak256(abi.encodePacked(tokenName)) == keccak256(abi.encodePacked("NATIVE"))) {
+    if (tokenAddr == address(0) || keccak256(abi.encodePacked(tokenName)) == keccak256(abi.encodePacked('NATIVE'))) {
       tokenAddr = cbAddr;
     }
 
@@ -30,10 +32,13 @@ contract StopPaymentsForToken is Script {
     uint256 ownerPrivateKey = vm.envUint('PRIVATE_KEY');
     vm.startBroadcast(ownerPrivateKey);
 
-    console.log('Stopping payments for token:', tokenName, '(', tokenAddr, ')');
+    console.log(string.concat('Stopping payments for token:', tokenName, ' (', Strings.toHexString(tokenAddr), ')'));
     cb.stopPaymentsForToken(tokenAddr);
     console.log('Successfully stopped payments for token');
 
     vm.stopBroadcast();
   }
+
+  // Blank Test Function to exclude this Script from test coverage reports.
+  function test() public {}
 }

@@ -10,8 +10,8 @@ This file is the reference for every value used during contract setup across all
 
 | Chain            | CAIP-2 String     | cbChainId (bytes32)                                                | Wormhole Chain ID       | Circle Domain           |
 | ---------------- | ----------------- | ------------------------------------------------------------------ | ----------------------- | ----------------------- |
-| MegaETH Mainnet  | `eip155:4326`     | _(run ComputeCbChainId)_                                           | 64                      | — (CCTP not on MegaETH) |
-| Arc Testnet      | `eip155:5042002`  | 0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd | — (Wormhole not on Arc) | 10                      |
+| MegaETH Mainnet  | `eip155:4326`     | 0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a | 64                      | — (CCTP not on MegaETH) |
+| Arc Testnet      | `eip155:5042002`  | 0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd | — (Wormhole not on Arc) | 26                      |
 | Ethereum Sepolia | `eip155:11155111` | 0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7 | 10002                   | 0                       |
 
 > Compute any cbChainId with:
@@ -26,11 +26,11 @@ This file is the reference for every value used during contract setup across all
 
 ## Wormhole Contracts
 
-| Chain            | Core Contract                                | Wormhole Chain ID           | Finality  |
-| ---------------- | -------------------------------------------- | --------------------------- | --------- |
-| MegaETH Mainnet  | `0x3D5c2c2BEA15Af5D45F084834c535628C48c42A4` | _(verify in Wormhole docs)_ | Finalized |
-| Ethereum Sepolia | `0xD0fb39f5a3361F21457653cB70F9D0C9bD86B66B` | `10002`                     | Finalized |
-| Arc Testnet      | — (not deployed)                             | —                           | —         |
+| Chain            | Core Contract                                | Wormhole Chain ID | Finality  |
+| ---------------- | -------------------------------------------- | ----------------- | --------- |
+| MegaETH Mainnet  | `0xaBf89de706B583424328B54dD05a8fC986750Da8` | `64`              | Finalized |
+| Ethereum Sepolia | `0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78` | `10002`           | Finalized |
+| Arc Testnet      | — (not deployed)                             | —                 | —         |
 
 > Wormhole reference: https://wormhole.com/docs/products/reference/contract-addresses/
 
@@ -42,13 +42,13 @@ This file is the reference for every value used during contract setup across all
 
 ### Ethereum Sepolia (Circle Domain: 0)
 
-| Contract                | Address                                      |
-| ----------------------- | -------------------------------------------- |
-| TokenMessenger (V2)     | `0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d` |
-| MessageTransmitter (V2) | `0x81D40F21F12A8F0E3252Bccb954D722d4c464B64` |
-| USDC                    | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
+| Contract           | Address                                      |
+| ------------------ | -------------------------------------------- |
+| TokenMessenger     | `0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA` |
+| MessageTransmitter | `0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275` |
+| USDC               | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
 
-### Arc Testnet (Circle Domain: 10)
+### Arc Testnet (Circle Domain: 26)
 
 | Contract                        | Address                                      |
 | ------------------------------- | -------------------------------------------- |
@@ -65,8 +65,8 @@ This file is the reference for every value used during contract setup across all
 
 | Chain            | Proxy Address                                |
 | ---------------- | -------------------------------------------- |
-| Ethereum Sepolia | _(fill after deploy)_                        |
-| Arc Testnet      | `0x92e67Bfe49466b18ccDF2A3A28B234AB68374c60` |
+| Ethereum Sepolia | `0x875D3FBf298CF2E7537BbBb3213aB990C35655e8` |
+| Arc Testnet      | `0xc38d1681d34DA821E46508C084D673477E455570` |
 | MegaETH Mainnet  | _(fill after deploy)_                        |
 
 ---

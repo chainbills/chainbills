@@ -16,13 +16,14 @@ contract AllowPaymentsForToken is Script {
     // Read token address from central JSON
     string memory root = vm.projectRoot();
     string memory path = string.concat(root, '/script/env/tokens.json');
+    // forge-lint: disable-next-line(unsafe-cheatcode)
     string memory json = vm.readFile(path);
-    
+
     bytes memory data = vm.parseJson(json, string.concat('.', chain, '.', tokenName));
     address tokenAddr = abi.decode(data, (address));
 
     // Handle "NATIVE" placeholder
-    if (tokenAddr == address(0) || keccak256(abi.encodePacked(tokenName)) == keccak256(abi.encodePacked("NATIVE"))) {
+    if (tokenAddr == address(0) || keccak256(abi.encodePacked(tokenName)) == keccak256(abi.encodePacked('NATIVE'))) {
       tokenAddr = cbAddr;
     }
 

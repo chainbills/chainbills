@@ -84,9 +84,8 @@ contract CbTransactions is CbUtils {
   /// reverts with CircleTokenMismatch if it does not match `payableChainToken`.
   function _checkCircleToken(bytes32 payerChainId, bytes32 payerChainToken, bytes32 payableChainToken) internal view {
     bytes32 localToken = toWormholeFormat(
-      circleTokenMinter().remoteTokensToLocalTokens(
-        keccak256(abi.encodePacked(cbChainIdToCircleDomain[payerChainId], payerChainToken))
-      )
+      circleTokenMinter()
+        .remoteTokensToLocalTokens(keccak256(abi.encodePacked(cbChainIdToCircleDomain[payerChainId], payerChainToken)))
     );
     if (localToken != payableChainToken) revert CircleTokenMismatch();
   }

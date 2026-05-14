@@ -23,13 +23,8 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     ataa[1] = TokenAndAmountForeign({token: bytes32(0), amount: 200});
 
     bytes memory encoded = PayablePayload({
-      version: 1,
-      actionType: 1,
-      payableId: bytes32(0),
-      nonce: 7,
-      isClosed: false,
-      allowedTokensAndAmounts: ataa
-    }).encode();
+        version: 1, actionType: 1, payableId: bytes32(0), nonce: 7, isClosed: false, allowedTokensAndAmounts: ataa
+      }).encode();
 
     PayablePayload memory parsed = encoded.decodePayablePayload();
     assertEq(parsed.version, 1);
@@ -44,13 +39,13 @@ contract CbPayloadMessagesTest is CbStructs, Test {
 
   function testEncodeDecodePayablePayloadActionType1WithNoAtaa() public pure {
     bytes memory encoded = PayablePayload({
-      version: 1,
-      actionType: 1,
-      payableId: keccak256('payable'),
-      nonce: 42,
-      isClosed: false,
-      allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-    }).encode();
+        version: 1,
+        actionType: 1,
+        payableId: keccak256('payable'),
+        nonce: 42,
+        isClosed: false,
+        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+      }).encode();
 
     PayablePayload memory parsed = encoded.decodePayablePayload();
     assertEq(parsed.nonce, 42);
@@ -64,13 +59,13 @@ contract CbPayloadMessagesTest is CbStructs, Test {
   function testEncodeDecodePayablePayloadActionType2() public pure {
     bytes32 pid = keccak256('payable-x');
     bytes memory encoded = PayablePayload({
-      version: 1,
-      actionType: 2,
-      payableId: pid,
-      nonce: 13,
-      isClosed: true,
-      allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-    }).encode();
+        version: 1,
+        actionType: 2,
+        payableId: pid,
+        nonce: 13,
+        isClosed: true,
+        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+      }).encode();
 
     PayablePayload memory parsed = encoded.decodePayablePayload();
     assertEq(parsed.version, 1);
@@ -87,13 +82,13 @@ contract CbPayloadMessagesTest is CbStructs, Test {
   function testEncodeDecodePayablePayloadActionType3() public pure {
     bytes32 pid = keccak256('payable-y');
     bytes memory encoded = PayablePayload({
-      version: 1,
-      actionType: 3,
-      payableId: pid,
-      nonce: 99,
-      isClosed: false,
-      allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-    }).encode();
+        version: 1,
+        actionType: 3,
+        payableId: pid,
+        nonce: 99,
+        isClosed: false,
+        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+      }).encode();
 
     PayablePayload memory parsed = encoded.decodePayablePayload();
     assertEq(parsed.actionType, 3);
@@ -112,13 +107,13 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     }
 
     bytes memory encoded = PayablePayload({
-      version: 1,
-      actionType: 4,
-      payableId: bytes32(uint256(0xABC)),
-      nonce: 5,
-      isClosed: false,
-      allowedTokensAndAmounts: ataa
-    }).encode();
+        version: 1,
+        actionType: 4,
+        payableId: bytes32(uint256(0xABC)),
+        nonce: 5,
+        isClosed: false,
+        allowedTokensAndAmounts: ataa
+      }).encode();
 
     PayablePayload memory parsed = encoded.decodePayablePayload();
     assertEq(parsed.actionType, 4);
@@ -134,25 +129,25 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     // Action type 0 is invalid.
     vm.expectRevert(InvalidPayablePayloadActionType.selector);
     PayablePayload({
-      version: 1,
-      actionType: 0,
-      payableId: bytes32(0),
-      nonce: 1,
-      isClosed: false,
-      allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-    }).encode();
+        version: 1,
+        actionType: 0,
+        payableId: bytes32(0),
+        nonce: 1,
+        isClosed: false,
+        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+      }).encode();
   }
 
   function testEncodePayablePayloadActionType5Reverts() public {
     vm.expectRevert(InvalidPayablePayloadActionType.selector);
     PayablePayload({
-      version: 1,
-      actionType: 5,
-      payableId: bytes32(0),
-      nonce: 1,
-      isClosed: false,
-      allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-    }).encode();
+        version: 1,
+        actionType: 5,
+        payableId: bytes32(0),
+        nonce: 1,
+        isClosed: false,
+        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+      }).encode();
   }
 
   function testDecodePayablePayloadInvalidActionTypeReverts() public {
@@ -169,13 +164,13 @@ contract CbPayloadMessagesTest is CbStructs, Test {
   function testDecodePayablePayloadTrailingBytesReverts() public {
     // Encode a valid close payload, then append an extra byte.
     bytes memory valid = PayablePayload({
-      version: 1,
-      actionType: 2,
-      payableId: bytes32(0),
-      nonce: 1,
-      isClosed: true,
-      allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
-    }).encode();
+        version: 1,
+        actionType: 2,
+        payableId: bytes32(0),
+        nonce: 1,
+        isClosed: true,
+        allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
+      }).encode();
 
     bytes memory withTrailing = abi.encodePacked(valid, uint8(0xFF));
     vm.expectRevert(InvalidPayload.selector);
@@ -191,16 +186,16 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     bytes32 payerChainId = keccak256(abi.encodePacked('eip155:4'));
 
     bytes memory encoded = PaymentPayload({
-      version: 1,
-      payableId: bytes32(0),
-      payableChainToken: bytes32(0),
-      payableChainId: payableChainId,
-      payer: bytes32(0),
-      payerChainToken: bytes32(0),
-      payerChainId: payerChainId,
-      amount: 100,
-      circleNonce: 2
-    }).encode();
+        version: 1,
+        payableId: bytes32(0),
+        payableChainToken: bytes32(0),
+        payableChainId: payableChainId,
+        payer: bytes32(0),
+        payerChainToken: bytes32(0),
+        payerChainId: payerChainId,
+        amount: 100,
+        circleNonce: 2
+      }).encode();
 
     PaymentPayload memory parsed = encoded.decodePaymentPayload();
     assertEq(parsed.version, 1);
@@ -223,16 +218,16 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     bytes32 payerChainId = keccak256('eip155:10');
 
     bytes memory encoded = PaymentPayload({
-      version: 1,
-      payableId: payableId,
-      payableChainToken: payableChainToken,
-      payableChainId: payableChainId,
-      payer: payer,
-      payerChainToken: payerChainToken,
-      payerChainId: payerChainId,
-      amount: 5e6,
-      circleNonce: 999
-    }).encode();
+        version: 1,
+        payableId: payableId,
+        payableChainToken: payableChainToken,
+        payableChainId: payableChainId,
+        payer: payer,
+        payerChainToken: payerChainToken,
+        payerChainId: payerChainId,
+        amount: 5e6,
+        circleNonce: 999
+      }).encode();
 
     PaymentPayload memory parsed = encoded.decodePaymentPayload();
     assertEq(parsed.payableId, payableId);
@@ -247,16 +242,16 @@ contract CbPayloadMessagesTest is CbStructs, Test {
 
   function testDecodePaymentPayloadTrailingBytesReverts() public {
     bytes memory valid = PaymentPayload({
-      version: 1,
-      payableId: bytes32(0),
-      payableChainToken: bytes32(0),
-      payableChainId: keccak256('eip155:1'),
-      payer: bytes32(0),
-      payerChainToken: bytes32(0),
-      payerChainId: keccak256('eip155:2'),
-      amount: 100,
-      circleNonce: 1
-    }).encode();
+        version: 1,
+        payableId: bytes32(0),
+        payableChainToken: bytes32(0),
+        payableChainId: keccak256('eip155:1'),
+        payer: bytes32(0),
+        payerChainToken: bytes32(0),
+        payerChainId: keccak256('eip155:2'),
+        amount: 100,
+        circleNonce: 1
+      }).encode();
     bytes memory withTrailing = abi.encodePacked(valid, uint8(0xFF));
     vm.expectRevert(InvalidPayload.selector);
     withTrailing.decodePaymentPayload();

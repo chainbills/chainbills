@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { Chain, ChainName, ChainNetworkType } from '../utils';
-import { getTokenDetails } from './tokens-and-amounts';
+import { getTokenDetails } from './tokens';
 
 export class Withdrawal {
   id: string;
@@ -34,8 +34,7 @@ export class Withdrawal {
     this.payableCount = Number(onChainData.payableCount);
     const { name: token, details } = getTokenDetails(onChainData.token, chain);
     this.token = token;
-    this.amount =
-      Number(onChainData.amount) / 10 ** (details[chain.name]?.decimals ?? 0);
+    this.amount = Number(onChainData.amount) / 10 ** (details[chain.name]?.decimals ?? 0);
     this.timestamp = Timestamp.fromMillis(Number(onChainData.timestamp) * 1000);
   }
 }

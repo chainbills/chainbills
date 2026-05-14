@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase-admin/firestore';
 import { Chain, ChainName, ChainNetworkType, cbChainIdToChain, denormalizeBytes } from '../utils';
-import { getTokenDetails } from './tokens-and-amounts';
+import { getTokenDetails } from './tokens';
 
 export class PayablePayment {
   id: string;

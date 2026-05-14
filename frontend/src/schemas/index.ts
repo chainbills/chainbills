@@ -3,7 +3,7 @@ export * from './payable';
 export * from './payable-payment';
 export * from './payment';
 export * from './receipt';
-export * from './tokens-and-amounts';
+export * from './tokens';
 export * from './user';
 export * from './user-payment';
 export * from './withdrawal';

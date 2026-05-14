@@ -2,7 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 import { Chain, ChainName } from '../utils';
 
 export const contracts: Record<ChainName, string> = {
-  arctestnet: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
+  arctestnet: '0xc38d1681d34DA821E46508C084D673477E455570',
   megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
   sepolia: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',

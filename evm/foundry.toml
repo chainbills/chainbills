@@ -10,7 +10,10 @@ extra_output = ["storageLayout"]
 evm_version = "paris" # prevent use of PUSH0 opcode until it is widely supported
 optimizer = true
 optimizer_runs = 200
-fs_permissions = [{ access = "read", path = "./script/env/tokens.json" }]
+fs_permissions = [
+  { access = "read", path = "./out" },
+  { access = "read", path = "./script/env/tokens.json" }
+]
 
 [fmt]
 line_length = 120

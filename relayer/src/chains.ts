@@ -112,8 +112,8 @@ export const arcTestnet: ChainConfig = {
   viemChain: viemArcTestnet,
   rpcUrl: '', // filled from RPC_ARC_TESTNET at startup
   // Arc testnet proxy address (deployed)
-  contractAddress: '0x92e67Bfe49466b18ccDF2A3A28B234AB68374c60',
-  gettersAddress: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60', // same addr for now
+  contractAddress: '0xc38d1681d34DA821E46508C084D673477E455570',
+  gettersAddress: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
   cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
   wormholeNetwork: 'Testnet',
   hasWormhole: false, // Wormhole NOT deployed on Arc Testnet
@@ -130,9 +130,8 @@ export const sepolia: ChainConfig = {
   displayName: 'Ethereum Sepolia',
   viemChain: viemSepolia,
   rpcUrl: '', // filled from RPC_SEPOLIA at startup
-  // TODO: Update to actual Sepolia proxy address after deployment
-  contractAddress: '0x0000000000000000000000000000000000000000',
-  gettersAddress: '0x0000000000000000000000000000000000000000',
+  contractAddress: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
+  gettersAddress: '0xC4d4fcB77230FE1eB1ad3d257673FC9Dca707feD',
   cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
   wormholeNetwork: 'Testnet',
   hasWormhole: true,

@@ -69,35 +69,20 @@ export const useServerStore = defineStore('server', () => {
     return await call(`/payable/${payableId}`, null, ignoreErrors);
   };
 
-  const payablePaid = async (paymentId: string): Promise<boolean> => {
-    return await call(`/payment/payable/${paymentId}`);
-  };
-
   const saveNotificationToken = async (fcmToken: string): Promise<boolean> => {
     return await call('/notifications', { fcmToken });
   };
 
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  const userPaid = async (paymentId: string): Promise<boolean> => {
-    return await call(`/payment/user/${paymentId}`);
-  };
-
   const volumes = async (): Promise<any> => {
     return await call('/volumes');
-  };
-
-  const withdrew = async (withdrawalId: string): Promise<boolean> => {
-    return await call(`/withdrawal/${withdrawalId}`);
   };
 
   return {
     createPayable,
     getPayable,
-    payablePaid,
     saveNotificationToken,
-    userPaid,
     volumes,
-    withdrew,
   };
 });

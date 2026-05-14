@@ -7,15 +7,7 @@ import {
   Withdrawal,
   type ChainName,
 } from '@/schemas';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  useCacheStore,
-  useEvmStore,
-  usePayableStore,
-  useServerStore,
-  useSolanaStore,
-} from '@/stores';
+import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -26,8 +18,6 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const auth = useAuthStore();
   const cache = useCacheStore();
   const evm = useEvmStore();
-  const payableStore = usePayableStore();
-  const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
 
@@ -46,7 +36,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     await auth.refreshUser();
 
     console.log(`Made Withdrawal Transaction Details: ${result.explorerUrl}`);
-    await server.withdrew(result.created);
+
     toast.add({
       severity: 'success',
       summary: 'Successfully Withdrew',

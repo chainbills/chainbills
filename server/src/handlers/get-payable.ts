@@ -1,7 +1,7 @@
-import { defaultDb } from '../utils';
+import { db } from '../utils';
 
 export const getPayable = async (id: string) => {
-  const payableSnap = await defaultDb.doc(`/payables/${id}`).get();
+  const payableSnap = await db.doc(`/payables/${id}`).get();
   if (!payableSnap.exists) throw 'Payable Not Found';
 
   let { chainName, description } = payableSnap.data()!;

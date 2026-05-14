@@ -1,5 +1,5 @@
 import { FieldValue } from 'firebase-admin/firestore';
-import { defaultDb, messaging } from './firebase';
+import { db, messaging } from './firebase';
 
 export interface NotifyHostInputs {
   id: string;
@@ -12,14 +12,14 @@ export interface NotifyHostInputs {
 export const notifyHost = async (inputs: NotifyHostInputs) => {
   const { activity, token: txToken, amount, id, payableId } = inputs;
 
-  const payableSnap = await defaultDb.doc(`/payables/${payableId}`).get();
+  const payableSnap = await db.doc(`/payables/${payableId}`).get();
   if (!payableSnap.exists) {
     // TODO: Alert developers in some way
     return;
   }
 
   const { email, host } = payableSnap.data()!;
-  const hostSnap = await defaultDb.doc(`/users/${host}`).get();
+  const hostSnap = await db.doc(`/users/${host}`).get();
   if (!hostSnap.exists) {
     // TODO: Alert developers in some way
     return;
@@ -42,25 +42,20 @@ export const notifyHost = async (inputs: NotifyHostInputs) => {
             token: fcmToken,
             notification: {
               title: `You just got paid ${amount} ${txToken}`,
-              body: 'Click to View the Payment Receipt'
+              body: 'Click to View the Payment Receipt',
               // image: 'https://chainbills.xyz/assets/chainbills-light.png'
             },
             data: { id },
             webpush: {
               fcmOptions: {
-                link: `https://chainbills.xyz/receipt/${id}`
-              }
-            }
+                link: `https://chainbills.xyz/receipt/${id}`,
+              },
+            },
           })
         );
       } catch (e) {
         if (`${e}`.toLowerCase().includes('not found')) {
-          await defaultDb
-            .doc(`/users/${host}`)
-            .set(
-              { fcmTokens: FieldValue.arrayRemove(fcmToken) },
-              { merge: true }
-            );
+          await db.doc(`/users/${host}`).set({ fcmTokens: FieldValue.arrayRemove(fcmToken) }, { merge: true });
         } else {
           // not re-throwing any error because the flow should not be affected
           console.error(e);

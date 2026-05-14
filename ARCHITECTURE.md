@@ -19,6 +19,10 @@ The core of Chainbills is about facilitating movement of money. We make it easy 
   - [CAIP-2 Chain Identifiers (cbChainId)](#caip-2-chain-identifiers-cbchainid)
   - [Payable Synchronization](#payable-synchronization)
   - [Cross-Chain Payments](#cross-chain-payments)
+- [Relayer Service](#relayer-service)
+  - [Event Indexing](#event-indexing)
+  - [Relay Job Queue](#relay-job-queue)
+  - [Firestore Data Layout](#firestore-data-layout)
 
 ## Synchronized Data Structures
 
@@ -330,3 +334,91 @@ Three receive paths exist on each chain: `receivePayableUpdateViaWormhole(bytes)
 For cross-chain payments, it is always a payment from a user (on their source chain) to a payable (on a target chain). The target chain payable must already exist in the source chain as a `PayableForeign` before the payment can go through.
 
 When a user makes a payment to a payable on a different chain, Chainbills verifies the `PayableForeign` details on the source chain first, then transfers USDC through CCTP to the destination chain. In the same transaction, it records a `UserPayment` on the source chain and publishes a `PaymentPayload` via Wormhole. The destination chain receives both the CCTP funds and the Wormhole message, verifies them, and records a `PayablePayment`. This makes the flow of funds seamless when payer and payable are on different chains.
+
+## Relayer Service
+
+The Relayer is a standalone, always-on Node.js process (`chainbills/relayer/`) that replaces the previous frontend-triggered, pull-based indexing pattern with a push-based, event-driven architecture. The frontend and server no longer need to call indexing endpoints after transactions — the relayer handles everything automatically.
+
+The relayer connects to all registered EVM chains simultaneously and performs two distinct roles: **indexing** (reading events and writing Firestore records) and **relaying** (fetching cross-chain proofs and submitting on-chain transactions).
+
+### Event Indexing
+
+The relayer uses `viem`'s `getLogs` polling on each chain rather than WebSocket subscriptions. This is intentional:
+
+- **Crash safety** — a Firestore document at `/relayerCursors/{chainName}` stores the last indexed block number. On restart, the watcher resumes from that cursor with zero missed events.
+- **Reliability** — WebSocket connections from public RPC providers drop silently after ~1 hour. Polling avoids this entirely.
+- **Tunable latency** — each chain has a configurable `pollIntervalMs` (2 seconds for fast chains like Arc Testnet and MegaETH, 12 seconds for Sepolia's 12-second blocks).
+
+Four contract events are indexed per chain:
+
+| Event | Triggers |
+|---|---|
+| `CreatedPayable` | `indexPayable()` — writes payable on-chain data to Firestore |
+| `UserPaid` | `indexUserPayment()` — writes payer receipt; if cross-chain, queues a relay job |
+| `PayableReceived` | `indexPayablePayment()` — writes payable receipt; sends FCM push notification to host |
+| `Withdrew` | `indexWithdrawal()` — writes withdrawal receipt |
+| `PayableUpdateBroadcasted` | Creates relay jobs for each registered foreign chain |
+
+On-chain data is fetched from the `CbGetters` read-only contract (`getPayable`, `getUserPayment`, `getPayablePayment`, `getWithdrawal`) immediately after each event is detected.
+
+### Relay Job Queue
+
+Every cross-chain relay action is persisted in Firestore at `/relayerJobs/{jobId}` **before** any on-chain transaction is attempted. This decouples event detection from transaction submission and provides crash-safe retries.
+
+**Job types:**
+
+| Type | Source event | Action |
+|---|---|---|
+| `PAYABLE_UPDATE_VIA_WORMHOLE` | `PayableUpdateBroadcasted` | Fetch VAA → `receivePayableUpdateViaWormhole()` on dest |
+| `PAYABLE_UPDATE_VIA_CCTP` | `PayableUpdateBroadcasted` | Poll Circle Iris API → `receivePayableUpdateViaCircle()` on dest |
+| `PAYMENT_VIA_CIRCLE` | `UserPaid` (cross-chain) | Fetch VAA + attestation in parallel → `receiveForeignPaymentWithCircle()` on dest |
+
+**Job lifecycle:**
+```
+PENDING → PROCESSING → DONE
+                    ↘ FAILED (after 5 attempts)
+```
+
+The job processor runs on a 30-second interval. Failed jobs (after max retries) remain in Firestore for manual inspection and replay.
+
+**Protocol selection for payable updates** is based on which protocols the source and destination chain both support:
+
+```
+both have Wormhole → PAYABLE_UPDATE_VIA_WORMHOLE
+both have CCTP     → PAYABLE_UPDATE_VIA_CCTP
+no common protocol → warning logged (manual adminSyncForeignPayable required)
+```
+
+A chain can be registered as `hasWormhole: false, hasCctp: true` (like Arc Testnet) or vice versa, and the relayer routes accordingly.
+
+### Firestore Data Layout
+
+All Firestore writes use `{ merge: true }` throughout the system. This allows the relayer and the server (`POST /payable`) to collaborate on the same documents without conflict — each writes only the fields it owns.
+
+**Collections written by the relayer:**
+
+```
+/payables/{payableId}                         — on-chain fields (host, chainCount, etc.)
+/chains/{chainName}/payables/{payableId}      — chain-scoped mirror
+
+/userPayments/{paymentId}
+/chains/{chainName}/userPayments/{paymentId}
+
+/payablePayments/{paymentId}
+/chains/{chainName}/payablePayments/{paymentId}
+
+/withdrawals/{withdrawalId}
+/chains/{chainName}/withdrawals/{withdrawalId}
+
+/relayerCursors/{chainName}                   — { lastIndexedBlock: string }
+/relayerJobs/{jobId}                          — relay job with full lifecycle fields
+```
+
+**Collections written by the server only:**
+
+```
+/payables/{payableId}   — adds description field (merge: true)
+/users/{walletAddress}  — FCM token management
+```
+
+The top-level collections (e.g. `/payables`) store the `chainName` field so the frontend can discover which chain a payable belongs to without knowing it upfront. The `/chains/{chainName}/...` subcollections enable efficient per-chain queries (e.g. "all payments on Arc Testnet") without a composite index on `chainName`.

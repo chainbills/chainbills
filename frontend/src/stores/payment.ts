@@ -10,15 +10,7 @@ import {
   type ChainName,
   type Payment,
 } from '@/schemas';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  useCacheStore,
-  useEvmStore,
-  usePayableStore,
-  useServerStore,
-  useSolanaStore,
-} from '@/stores';
+import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -29,8 +21,6 @@ export const usePaymentStore = defineStore('payment', () => {
   const auth = useAuthStore();
   const cache = useCacheStore();
   const evm = useEvmStore();
-  const payableStore = usePayableStore();
-  const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
 
@@ -68,18 +58,6 @@ export const usePaymentStore = defineStore('payment', () => {
     await auth.refreshUser();
 
     console.log(`Made Payment Transaction Details: ${result.explorerUrl}`);
-    await server.userPaid(result.created);
-
-    // TODO: Move this payablePaid call to the relayer or a different process
-    // For cross-chain payments, the payable record is created on the destination
-    // chain by the relayer — not immediately available here.
-    if (isSameChain) {
-      const payable = await payableStore.get(payableId);
-      if (payable) {
-        const payablePaymentId = await payableStore.getPaymentId(payableId, payable.chain, payable.paymentsCount);
-        if (payablePaymentId) await server.payablePaid(payablePaymentId);
-      }
-    }
 
     toast.add({
       severity: 'success',

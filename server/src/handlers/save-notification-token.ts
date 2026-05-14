@@ -1,11 +1,8 @@
 import { FieldValue } from 'firebase-admin/firestore';
 
-import { defaultDb, messaging } from '../utils';
+import { db, messaging } from '../utils';
 
-export const saveNotificationToken = async (
-  walletAddress: string,
-  body: any
-) => {
+export const saveNotificationToken = async (walletAddress: string, body: any) => {
   const { fcmToken } = body;
   if (!fcmToken) throw 'Missing required fcmToken';
 
@@ -14,10 +11,7 @@ export const saveNotificationToken = async (
   // indicates for "test-only" or "dry-run" purpose.
   await messaging.send({ token: fcmToken }, true);
 
-  await defaultDb
+  await db
     .doc(`/users/${walletAddress}`)
-    .set(
-      { address: walletAddress, fcmTokens: FieldValue.arrayUnion(fcmToken) },
-      { merge: true }
-    );
+    .set({ address: walletAddress, fcmTokens: FieldValue.arrayUnion(fcmToken) }, { merge: true });
 };

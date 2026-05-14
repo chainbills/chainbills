@@ -14,6 +14,7 @@ Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receiv
   - [EVM](#evm)
   - [Solana](#solana)
   - [CosmWasm](#cosmwasm)
+- [Relayer](#relayer)
 - [Server](#server)
 - [Frontend](#frontend)
 - [Deployed Contracts](#deployed-contracts)
@@ -108,15 +109,28 @@ Cosmos chains use [CosmWasm](https://cosmos.network/cosmwasm) (WebAssembly) for 
 
 Chainbills also has a cosmwasm contract built with the [Sylvia](https://cosmwasm.cosmos.network/sylvia) framework. Chainbills' features are split around `query` and `execute` method calls as CosmWasm expects. Find out more in the [`cosmwasm` subdirectory].
 
+## Relayer
+
+The relayer is a standalone, long-lived Node.js process (deployed on Cloud Run with `min-instances=1`) that automates cross-chain event indexing and message relaying for Chainbills EVM chains. It runs independently of the server and the frontend.
+
+**What it does:**
+- **Event Indexing** — watches `CreatedPayable`, `UserPaid`, `PayableReceived`, and `Withdrew` events on all EVM chains using `viem` `getLogs` polling with a crash-safe Firestore block cursor. Writes entities to both top-level and chain-scoped Firestore paths using `{ merge: true }`.
+- **Payable Update Relaying** — when a payable is created or updated on one chain, the relayer detects the `PayableUpdateBroadcasted` event and submits the `PayablePayload` to all registered foreign chains via Wormhole VAA or Circle CCTP attestation.
+- **Cross-Chain Payment Relaying** — when a cross-chain payment `UserPaid` event is detected, the relayer fetches both the Wormhole VAA and the Circle CCTP attestation in parallel, then calls `receiveForeignPaymentWithCircle()` on the destination chain.
+- **Notifications** — sends FCM push notifications to payable hosts on `PayableReceived` events.
+
+All relay actions are persisted in a Firestore job queue (`/relayerJobs`) for auditability and crash recovery, with up to 5 retry attempts per job.
+
+Find out more at the [`relayer` subdirectory](./relayer).
+
 ## Server
 
-The server helps with handling other off-chain processes. Specifically, Chainbills keeps track of payables and descriptions in the server and sends browser notifications from there.
+The server handles off-chain processes that require authentication. Its role is now focused on:
+- `POST /payable` — verifies the caller is the payable owner on-chain, then upserts the host-provided description into Firestore.
+- `GET /payable/:id` — returns the chain name and description for a given payable (used for chain discovery by the frontend).
+- `POST /notifications` — saves FCM tokens for browser push notifications.
 
-The server is a NodeJS Firebase Cloud Function that exposes endpoints for the frontend. The frontend call them after any of the main entities (Payables, Payments, and Withdrawals) have been created or initialized.
-
-One important thing about the server is keeping track of all payables from any chain. So instead of the frontend to guess the chain on which the payable was created (when the payable's page is visited), the server records the chain alongside the payable ID during the payable's creation and returns those when queried.
-
-Find out more information at the [`server` subdirectory](./server).
+The server is a NodeJS Firebase Cloud Function. Find out more at the [`server` subdirectory](./server).
 
 ## Frontend
 

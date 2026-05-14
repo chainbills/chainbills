@@ -11,6 +11,7 @@ import {CbPayables} from 'src/CbPayables.sol';
 import {CbTransactions} from 'src/CbTransactions.sol';
 import {toWormholeFormat} from 'wormhole/Utils.sol';
 import {USDC} from './mocks/MockUSDC.sol';
+import {RejectEth} from './mocks/RejectEth.sol';
 
 contract CbPayablesFundsTest is CbStructs, Test {
   Chainbills chainbills;
@@ -101,7 +102,6 @@ contract CbPayablesFundsTest is CbStructs, Test {
   }
 
   function testSuccessfulPayablePayment() public {
-    // Create payable that enforces tokens and amounts
     TokenAndAmount[] memory ataa = new TokenAndAmount[](2);
     ataa[0] = TokenAndAmount({token: address(chainbills), amount: ethAmt});
     ataa[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
@@ -109,92 +109,74 @@ contract CbPayablesFundsTest is CbStructs, Test {
     (bytes32 payableId,) = chainbills.createPayable(ataa, false);
 
     vm.startPrank(user);
-    ChainStats memory prevChainStats = cbGetters.getChainStats();
-    TokenDetails memory prevEthDetails = cbGetters.getTokenDetails(address(chainbills));
-    TokenDetails memory prevUsdcDetails = cbGetters.getTokenDetails(address(usdc));
 
-    // testing successful first payment with native token (ETH)
-    uint256 prevCbEthBal = address(chainbills).balance;
-
+    // First payment: ETH — assert before and after to avoid keeping snapshot variables.
+    assertEq(address(chainbills).balance, 0);
     vm.expectEmit(true, true, false, true);
     emit PayableReceived(payableId, toWormholeFormat(user), bytes32(0), 0, 1, 1);
     (, bytes32 paymentId1) = chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
-    uint256 newCbEthBal = address(chainbills).balance;
-    bytes32 fetchedP1Id = cbGetters.payablePaymentIdsPaginated(payableId, 0, 1)[0];
-    PayablePayment memory p1 = cbGetters.getPayablePayment(paymentId1);
-    ChainStats memory newChainStats = cbGetters.getChainStats();
+    assertEq(address(chainbills).balance, ethAmt);
+    assertEq(cbGetters.getChainStats().payablePaymentsCount, 1);
+    assertEq(cbGetters.getTokenDetails(address(chainbills)).totalUserPaid, ethAmt);
+    assertEq(cbGetters.getTokenDetails(address(chainbills)).totalPayableReceived, ethAmt);
 
-    // testing successful second payment with ERC20 token (USDC)
-    uint256 prevCbUsdcBal = usdc.balanceOf(address(chainbills));
-
+    // Second payment: USDC.
+    assertEq(usdc.balanceOf(address(chainbills)), 0);
     vm.expectEmit(true, true, false, true);
     emit PayableReceived(payableId, toWormholeFormat(user), bytes32(0), 0, 2, 2);
     (, bytes32 paymentId2) = chainbills.pay(payableId, address(usdc), usdcAmt);
 
-    uint256 newCbUsdcBal = usdc.balanceOf(address(chainbills));
-    bytes32 fetchedP2Id = cbGetters.payablePaymentIdsPaginated(payableId, 1, 1)[0];
-    PayablePayment memory p2 = cbGetters.getPayablePayment(paymentId2);
-
-    ChainStats memory newerChainStats = cbGetters.getChainStats();
-    Payable memory pyble = cbGetters.getPayable(payableId);
-    TokenDetails memory newEthDetails = cbGetters.getTokenDetails(address(chainbills));
-    TokenDetails memory newUsdcDetails = cbGetters.getTokenDetails(address(usdc));
-
-    uint256 localChainCount = cbGetters.getPayableChainPaymentsCount(payableId, 0);
-    bytes32[] memory localChainPaymentIds = cbGetters.payableChainPaymentIdsPaginated(payableId, 0, 0, localChainCount);
+    assertEq(usdc.balanceOf(address(chainbills)), usdcAmt);
+    assertEq(cbGetters.getChainStats().payablePaymentsCount, 2);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).totalUserPaid, usdcAmt);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).totalPayableReceived, usdcAmt);
     vm.stopPrank();
 
-    // check balances
-    assertEq(prevCbEthBal + ethAmt, newCbEthBal);
-    assertEq(prevCbUsdcBal + usdcAmt, newCbUsdcBal);
+    // Payable balances.
     assertEq(cbGetters.getBalances(payableId)[0].token, address(chainbills));
     assertEq(cbGetters.getBalances(payableId)[0].amount, ethAmt);
     assertEq(cbGetters.getBalances(payableId)[1].token, address(usdc));
     assertEq(cbGetters.getBalances(payableId)[1].amount, usdcAmt);
 
-    // check stored IDs
-    assertEq(paymentId1, fetchedP1Id);
-    assertEq(paymentId2, fetchedP2Id);
+    // Stored payment IDs.
+    assertEq(paymentId1, cbGetters.payablePaymentIdsPaginated(payableId, 0, 1)[0]);
+    assertEq(paymentId2, cbGetters.payablePaymentIdsPaginated(payableId, 1, 1)[0]);
 
-    // check counts
-    assertEq(prevChainStats.payablePaymentsCount, 0);
-    assertEq(newChainStats.payablePaymentsCount, 1);
-    assertEq(newerChainStats.payablePaymentsCount, 2);
-    assertEq(pyble.paymentsCount, 2);
-    assertEq(pyble.balancesCount, 2);
-    assertEq(newerChainStats.payablePaymentsCount, pyble.paymentsCount);
-    assertEq(localChainCount, 2);
-    assertEq(localChainPaymentIds[0], paymentId1);
-    assertEq(localChainPaymentIds[1], paymentId2);
+    // Payable counts.
+    assertEq(cbGetters.getPayable(payableId).paymentsCount, 2);
+    assertEq(cbGetters.getPayable(payableId).balancesCount, 2);
 
-    // check token totals
-    assertEq(prevEthDetails.totalUserPaid + ethAmt, newEthDetails.totalUserPaid);
-    assertEq(prevEthDetails.totalPayableReceived + ethAmt, newEthDetails.totalPayableReceived);
-    assertEq(prevUsdcDetails.totalUserPaid + usdcAmt, newUsdcDetails.totalUserPaid);
-    assertEq(prevUsdcDetails.totalPayableReceived + usdcAmt, newUsdcDetails.totalPayableReceived);
+    // Local chain payment IDs.
+    uint256 localCount = cbGetters.getPayableChainPaymentsCount(payableId, 0);
+    assertEq(localCount, 2);
+    bytes32[] memory localIds = cbGetters.payableChainPaymentIdsPaginated(payableId, 0, 0, localCount);
+    assertEq(localIds[0], paymentId1);
+    assertEq(localIds[1], paymentId2);
 
-    // check payment 1's details
-    assertEq(p1.payableId, payableId);
-    assertEq(p1.payer, toWormholeFormat(user));
-    assertEq(p1.token, address(chainbills));
-    assertEq(p1.chainCount, newChainStats.payablePaymentsCount);
-    assertEq(p1.payerChainId, 0);
-    assertEq(p1.localChainCount, localChainCount - 1);
-    assertGt(p1.timestamp, 0);
-    assertGe(p1.timestamp, block.timestamp);
-    assertEq(p1.amount, ethAmt);
+    // Payment 1 details.
+    PayablePayment memory p = cbGetters.getPayablePayment(paymentId1);
+    assertEq(p.payableId, payableId);
+    assertEq(p.payer, toWormholeFormat(user));
+    assertEq(p.token, address(chainbills));
+    assertEq(p.chainCount, 1);
+    assertEq(p.payerChainId, 0);
+    assertEq(p.localChainCount, localCount - 1);
+    assertGt(p.timestamp, 0);
+    assertGe(p.timestamp, block.timestamp);
+    assertEq(p.amount, ethAmt);
 
-    // check payment 2's details
-    assertEq(p2.payableId, payableId);
-    assertEq(p2.payer, toWormholeFormat(user));
-    assertEq(p2.token, address(usdc));
-    assertEq(p2.chainCount, newerChainStats.payablePaymentsCount);
-    assertEq(p2.payerChainId, 0);
-    assertEq(p2.localChainCount, localChainCount);
-    assertGt(p2.timestamp, 0);
-    assertGe(p2.timestamp, block.timestamp);
-    assertEq(p2.amount, usdcAmt);
+    // Payment 2 details (reuse p).
+    p = cbGetters.getPayablePayment(paymentId2);
+    assertEq(p.payableId, payableId);
+    assertEq(p.payer, toWormholeFormat(user));
+    assertEq(p.token, address(usdc));
+    assertEq(p.chainCount, 2);
+    assertEq(p.payerChainId, 0);
+    assertEq(p.localChainCount, localCount);
+    assertGt(p.timestamp, 0);
+    assertGe(p.timestamp, block.timestamp);
+    assertEq(p.amount, usdcAmt);
   }
 
   function testRevertingPayableWithdrawal() public {
@@ -236,193 +218,202 @@ contract CbPayablesFundsTest is CbStructs, Test {
   }
 
   function testSuccessfulPayableWithdrawal() public {
-    // Create payable that enforces tokens and amounts
-    vm.startPrank(user);
-    TokenAndAmount[] memory ataa = new TokenAndAmount[](2);
-    ataa[0] = TokenAndAmount({token: address(chainbills), amount: ethAmt});
-    ataa[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
-    (bytes32 payableId,) = chainbills.createPayable(ataa, false);
+    bytes32 payableId;
+    {
+      TokenAndAmount[] memory ataa = new TokenAndAmount[](2);
+      ataa[0] = TokenAndAmount({token: address(chainbills), amount: ethAmt});
+      ataa[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+      vm.startPrank(user);
+      (payableId,) = chainbills.createPayable(ataa, false);
+      chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
+      chainbills.pay(payableId, address(usdc), usdcAmt);
+    }
+    // ataa freed; prank still active.
 
-    ChainStats memory prevChainStats = cbGetters.getChainStats();
-    TokenDetails memory prevEthDetails = cbGetters.getTokenDetails(address(chainbills));
-    TokenDetails memory prevUsdcDetails = cbGetters.getTokenDetails(address(usdc));
+    bytes32 wId1;
+    uint256 ethFee;
+    {
+      uint256 prevCbEthBal = address(chainbills).balance;
+      uint256 prevPybleEthBal = cbGetters.getBalances(payableId)[0].amount;
+      uint256 ethPercent = (ethAmt * feePercent) / 10000;
+      ethFee = ethPercent > maxWtdlFeesEth ? maxWtdlFeesEth : ethPercent;
+      uint256 prevFeeColEth = feeCollector.balance;
 
-    // Make payments in native token (ETH) and ERC20 token (USDC)
-    chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
-    chainbills.pay(payableId, address(usdc), usdcAmt);
+      vm.expectEmit(true, true, false, true);
+      emit Withdrew(payableId, user, bytes32(0), 1, 1, 1);
+      wId1 = chainbills.withdraw(payableId, address(chainbills), ethAmt);
 
-    // obtain balances before withdrawals
-    uint256 prevCbEthBal = address(chainbills).balance;
-    uint256 prevPybleEthBal = cbGetters.getBalances(payableId)[0].amount;
-    uint256 prevFeeCollectorEthBal = feeCollector.balance;
-    uint256 prevCbUsdcBal = usdc.balanceOf(address(chainbills));
-    uint256 prevFeeCollectorUsdcBal = usdc.balanceOf(feeCollector);
-    uint256 prevPybleUsdcBal = cbGetters.getBalances(payableId)[1].amount;
+      assertEq(address(chainbills).balance, prevCbEthBal - ethAmt);
+      assertEq(cbGetters.getBalances(payableId)[0].amount, prevPybleEthBal - ethAmt);
+      assertEq(feeCollector.balance, prevFeeColEth + ethFee);
+      assertEq(cbGetters.getChainStats().withdrawalsCount, 1);
+      assertEq(wId1, cbGetters.payableWithdrawalIdsPaginated(payableId, 0, 1)[0]);
+    }
 
-    // Make withdrawal in native token (ETH)
-    vm.expectEmit(true, true, false, true);
-    emit Withdrew(payableId, user, bytes32(0), 1, 1, 1);
-    (bytes32 wId1) = chainbills.withdraw(payableId, address(chainbills), ethAmt);
-    bytes32 fetchedW1Id = cbGetters.payableWithdrawalIdsPaginated(payableId, 0, 1)[0];
-    Withdrawal memory w1 = cbGetters.getWithdrawal(wId1);
-    ChainStats memory newChainStats = cbGetters.getChainStats();
+    bytes32 wId2;
+    uint256 usdcFee;
+    {
+      uint256 prevCbUsdcBal = usdc.balanceOf(address(chainbills));
+      uint256 prevPybleUsdcBal = cbGetters.getBalances(payableId)[1].amount;
+      uint256 usdcPercent = (usdcAmt * feePercent) / 10000;
+      usdcFee = usdcPercent > maxWtdlFeesUsdc ? maxWtdlFeesUsdc : usdcPercent;
+      uint256 prevFeeColUsdc = usdc.balanceOf(feeCollector);
 
-    // Make withdrawal in ERC20 token (USDC)
-    vm.expectEmit(true, true, false, true);
-    emit Withdrew(payableId, user, bytes32(0), 2, 2, 2);
-    (bytes32 wId2) = chainbills.withdraw(payableId, address(usdc), usdcAmt);
-    bytes32 fetchedW2Id = cbGetters.payableWithdrawalIdsPaginated(payableId, 1, 1)[0];
-    Withdrawal memory w2 = cbGetters.getWithdrawal(wId2);
+      vm.expectEmit(true, true, false, true);
+      emit Withdrew(payableId, user, bytes32(0), 2, 2, 2);
+      wId2 = chainbills.withdraw(payableId, address(usdc), usdcAmt);
 
-    // Obtain balances after withdrawals
-    uint256 newCbEthBal = address(chainbills).balance;
-    uint256 newPybleEthBal = cbGetters.getBalances(payableId)[0].amount;
-    uint256 newFeeCollectorEthBal = feeCollector.balance;
-    uint256 newCbUsdcBal = usdc.balanceOf(address(chainbills));
-    uint256 newPybleUsdcBal = cbGetters.getBalances(payableId)[1].amount;
-    uint256 newFeeCollectorUsdcBal = usdc.balanceOf(feeCollector);
-
-    ChainStats memory newerChainStats = cbGetters.getChainStats();
-    Payable memory pyble = cbGetters.getPayable(payableId);
-    TokenDetails memory newEthDetails = cbGetters.getTokenDetails(address(chainbills));
-    TokenDetails memory newUsdcDetails = cbGetters.getTokenDetails(address(usdc));
-
+      assertEq(usdc.balanceOf(address(chainbills)), prevCbUsdcBal - usdcAmt);
+      assertEq(cbGetters.getBalances(payableId)[1].amount, prevPybleUsdcBal - usdcAmt);
+      assertEq(usdc.balanceOf(feeCollector), prevFeeColUsdc + usdcFee);
+      assertEq(cbGetters.getChainStats().withdrawalsCount, 2);
+      assertEq(wId2, cbGetters.payableWithdrawalIdsPaginated(payableId, 1, 1)[0]);
+    }
     vm.stopPrank();
 
-    // obtain fees and amount due
-    Config memory config = cbGetters.getConfig();
-    // 10000 means 100 but with 2 decimal places
-    uint256 ethPercent = (ethAmt * config.withdrawalFeePercentage) / 10000;
-    uint256 ethFee = ethPercent > maxWtdlFeesEth ? maxWtdlFeesEth : ethPercent;
-    uint256 usdcPercent = (usdcAmt * config.withdrawalFeePercentage) / 10000;
-    uint256 usdcFee = usdcPercent > maxWtdlFeesUsdc ? maxWtdlFeesUsdc : usdcPercent;
+    // Token totals — known absolute values since setUp creates a fresh contract.
+    assertEq(cbGetters.getTokenDetails(address(chainbills)).totalWithdrawn, ethAmt);
+    assertEq(cbGetters.getTokenDetails(address(chainbills)).totalWithdrawalFeesCollected, ethFee);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).totalWithdrawn, usdcAmt);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).totalWithdrawalFeesCollected, usdcFee);
 
-    // check balances
-    assertEq(prevCbEthBal - ethAmt, newCbEthBal);
-    assertEq(prevPybleEthBal - ethAmt, newPybleEthBal);
-    assertEq(prevFeeCollectorEthBal + ethFee, newFeeCollectorEthBal);
-    assertEq(prevCbUsdcBal - usdcAmt, newCbUsdcBal);
-    assertEq(prevPybleUsdcBal - usdcAmt, newPybleUsdcBal);
-    assertEq(prevFeeCollectorUsdcBal + usdcFee, newFeeCollectorUsdcBal);
+    assertEq(cbGetters.getPayable(payableId).withdrawalsCount, 2);
+    assertEq(cbGetters.getChainStats().withdrawalsCount, 2);
 
-    // check stored IDs
-    assertEq(wId1, fetchedW1Id);
-    assertEq(wId2, fetchedW2Id);
+    // Withdrawal 1 details.
+    Withdrawal memory w = cbGetters.getWithdrawal(wId1);
+    assertEq(w.payableId, payableId);
+    assertEq(w.host, user);
+    assertEq(w.token, address(chainbills));
+    assertEq(w.chainCount, 1);
+    assertEq(w.hostCount, 1);
+    assertEq(w.payableCount, 1);
+    assertGt(w.timestamp, 0);
+    assertGe(w.timestamp, block.timestamp);
+    assertEq(w.amount, ethAmt);
 
-    // check counts
-    assertEq(prevChainStats.withdrawalsCount, 0);
-    assertEq(newChainStats.withdrawalsCount, 1);
-    assertEq(newerChainStats.withdrawalsCount, 2);
-    assertEq(pyble.withdrawalsCount, 2);
-    assertEq(newerChainStats.withdrawalsCount, pyble.withdrawalsCount);
+    // Withdrawal 2 details (reuse w).
+    w = cbGetters.getWithdrawal(wId2);
+    assertEq(w.payableId, payableId);
+    assertEq(w.host, user);
+    assertEq(w.token, address(usdc));
+    assertEq(w.chainCount, 2);
+    assertEq(w.hostCount, 2);
+    assertEq(w.payableCount, 2);
+    assertGt(w.timestamp, 0);
+    assertGe(w.timestamp, block.timestamp);
+    assertEq(w.amount, usdcAmt);
+  }
 
-    // check token totals
-    assertEq(prevEthDetails.totalWithdrawn + ethAmt, newEthDetails.totalWithdrawn);
-    assertEq(prevEthDetails.totalWithdrawalFeesCollected + ethFee, newEthDetails.totalWithdrawalFeesCollected);
-    assertEq(prevUsdcDetails.totalWithdrawn + usdcAmt, newUsdcDetails.totalWithdrawn);
-    assertEq(prevUsdcDetails.totalWithdrawalFeesCollected + usdcFee, newUsdcDetails.totalWithdrawalFeesCollected);
+  function testPaySameTokenTwiceUpdatesExistingBalance() public {
+    // First payment adds a new balance entry; second payment hits the existing
+    // entry (wasMatchingBalanceUpdated = true path in CbTransactions._receivePayment).
+    vm.prank(host);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
 
-    // check withdrawal 1's details
-    assertEq(w1.payableId, payableId);
-    assertEq(w1.host, user);
-    assertEq(w1.token, address(chainbills));
-    assertEq(w1.chainCount, newChainStats.withdrawalsCount);
-    assertEq(w1.hostCount, cbGetters.getUser(user).withdrawalsCount - 1);
-    assertEq(w1.payableCount, pyble.withdrawalsCount - 1);
-    assertGt(w1.timestamp, 0);
-    assertGe(w1.timestamp, block.timestamp);
-    assertEq(w1.amount, ethAmt);
+    vm.startPrank(user);
+    deal(address(usdc), user, usdcAmt * 3);
+    usdc.approve(address(chainbills), usdcAmt * 3);
 
-    // check withdrawal 2's details
-    assertEq(w2.payableId, payableId);
-    assertEq(w2.host, user);
-    assertEq(w2.token, address(usdc));
-    assertEq(w2.chainCount, newerChainStats.withdrawalsCount);
-    assertEq(w2.hostCount, cbGetters.getUser(user).withdrawalsCount);
-    assertEq(w2.payableCount, pyble.withdrawalsCount);
-    assertGt(w2.timestamp, 0);
-    assertGe(w2.timestamp, block.timestamp);
-    assertEq(w2.amount, usdcAmt);
+    chainbills.pay(payableId, address(usdc), usdcAmt);
+    chainbills.pay(payableId, address(usdc), usdcAmt);
+    vm.stopPrank();
+
+    assertEq(cbGetters.getPayable(payableId).paymentsCount, 2);
+    assertEq(cbGetters.getPayable(payableId).balancesCount, 1); // same token — only one balance entry
+    assertEq(cbGetters.getBalances(payableId)[0].amount, usdcAmt * 2);
   }
 
   function testSuccessfulPayableAutoWithdrawalOnPayment() public {
-    // Create payable that enforces tokens and amounts with autoWithdraw enabled
     TokenAndAmount[] memory ataa = new TokenAndAmount[](2);
     ataa[0] = TokenAndAmount({token: address(chainbills), amount: ethAmt});
     ataa[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
     vm.prank(host);
     (bytes32 payableId,) = chainbills.createPayable(ataa, true);
 
-    // Get initial balances and stats
-    uint256 initialUserEthBal = user.balance;
-    uint256 initialUserUsdcBal = usdc.balanceOf(user);
-    uint256 initialHostEthBal = host.balance;
-    uint256 initialHostUsdcBal = usdc.balanceOf(host);
-    uint256 initialFeeCollectorEthBal = feeCollector.balance;
-    uint256 initialFeeCollectorUsdcBal = usdc.balanceOf(feeCollector);
-    ChainStats memory initialStats = cbGetters.getChainStats();
-    TokenDetails memory prevEthDetails = cbGetters.getTokenDetails(address(chainbills));
-    TokenDetails memory prevUsdcDetails = cbGetters.getTokenDetails(address(usdc));
+    // Fee calc — use feePercent state var directly instead of fetching config.
+    uint256 ethFee = (ethAmt * feePercent) / 10000;
+    if (ethFee > maxWtdlFeesEth) ethFee = maxWtdlFeesEth;
+    uint256 usdcFee = (usdcAmt * feePercent) / 10000;
+    if (usdcFee > maxWtdlFeesUsdc) usdcFee = maxWtdlFeesUsdc;
 
-    // Calculate fees
-    Config memory config = cbGetters.getConfig();
-    uint256 ethFee = (ethAmt * config.withdrawalFeePercentage) / 10000;
-    ethFee = ethFee > maxWtdlFeesEth ? maxWtdlFeesEth : ethFee;
-    uint256 ethAmtDue = ethAmt - ethFee;
-    uint256 usdcFee = (usdcAmt * config.withdrawalFeePercentage) / 10000;
-    usdcFee = usdcFee > maxWtdlFeesUsdc ? maxWtdlFeesUsdc : usdcFee;
-    uint256 usdcAmtDue = usdcAmt - usdcFee;
+    uint256 initPayments = cbGetters.getChainStats().payablePaymentsCount;
+    uint256 initWithdrawals = cbGetters.getChainStats().withdrawalsCount;
+
     vm.startPrank(user);
-
-    // Make ETH payment and check auto-withdrawal
     vm.expectEmit(true, true, false, true);
     emit PayableReceived(payableId, toWormholeFormat(user), bytes32(0), 0, 1, 1);
     vm.expectEmit(true, true, false, true);
     emit Withdrew(payableId, host, bytes32(0), 1, 1, 1);
     chainbills.pay{value: ethAmt}(payableId, address(chainbills), ethAmt);
 
-    // Make USDC payment and check auto-withdrawal
     vm.expectEmit(true, true, false, true);
     emit PayableReceived(payableId, toWormholeFormat(user), bytes32(0), 0, 2, 2);
     vm.expectEmit(true, true, false, true);
     emit Withdrew(payableId, host, bytes32(0), 2, 2, 2);
     chainbills.pay(payableId, address(usdc), usdcAmt);
-
     vm.stopPrank();
 
-    TokenDetails memory newEthDetails = cbGetters.getTokenDetails(address(chainbills));
-    TokenDetails memory newUsdcDetails = cbGetters.getTokenDetails(address(usdc));
+    // Final balances — setUp gives user ethAmt*2 ETH and usdcAmt*2 USDC;
+    // host and feeCollector start at 0.
+    assertEq(user.balance, ethAmt);
+    assertEq(usdc.balanceOf(user), usdcAmt);
+    assertEq(host.balance, ethAmt - ethFee);
+    assertEq(usdc.balanceOf(host), usdcAmt - usdcFee);
+    assertEq(feeCollector.balance, ethFee);
+    assertEq(usdc.balanceOf(feeCollector), usdcFee);
 
-    // Verify final balances
-    assertEq(user.balance, initialUserEthBal - ethAmt);
-    assertEq(usdc.balanceOf(user), initialUserUsdcBal - usdcAmt);
-    assertEq(host.balance, initialHostEthBal + ethAmtDue);
-    assertEq(usdc.balanceOf(host), initialHostUsdcBal + usdcAmtDue);
-    assertEq(feeCollector.balance, initialFeeCollectorEthBal + ethFee);
-    assertEq(usdc.balanceOf(feeCollector), initialFeeCollectorUsdcBal + usdcFee);
+    // Token totals — absolute values since contract is fresh.
+    assertEq(cbGetters.getTokenDetails(address(chainbills)).totalUserPaid, ethAmt);
+    assertEq(cbGetters.getTokenDetails(address(chainbills)).totalPayableReceived, ethAmt);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).totalUserPaid, usdcAmt);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).totalPayableReceived, usdcAmt);
+    assertEq(cbGetters.getTokenDetails(address(chainbills)).totalWithdrawn, ethAmt);
+    assertEq(cbGetters.getTokenDetails(address(chainbills)).totalWithdrawalFeesCollected, ethFee);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).totalWithdrawn, usdcAmt);
+    assertEq(cbGetters.getTokenDetails(address(usdc)).totalWithdrawalFeesCollected, usdcFee);
 
-    // check token totals
-    assertEq(prevEthDetails.totalUserPaid + ethAmt, newEthDetails.totalUserPaid);
-    assertEq(prevEthDetails.totalPayableReceived + ethAmt, newEthDetails.totalPayableReceived);
-    assertEq(prevUsdcDetails.totalUserPaid + usdcAmt, newUsdcDetails.totalUserPaid);
-    assertEq(prevUsdcDetails.totalPayableReceived + usdcAmt, newUsdcDetails.totalPayableReceived);
-    assertEq(prevEthDetails.totalWithdrawn + ethAmt, newEthDetails.totalWithdrawn);
-    assertEq(prevEthDetails.totalWithdrawalFeesCollected + ethFee, newEthDetails.totalWithdrawalFeesCollected);
-    assertEq(prevUsdcDetails.totalWithdrawn + usdcAmt, newUsdcDetails.totalWithdrawn);
-    assertEq(prevUsdcDetails.totalWithdrawalFeesCollected + usdcFee, newUsdcDetails.totalWithdrawalFeesCollected);
-
-    // Verify payable state
-    Payable memory pyble = cbGetters.getPayable(payableId);
-    assertEq(pyble.paymentsCount, 2);
-    assertEq(pyble.withdrawalsCount, 2);
+    // Payable state.
+    assertEq(cbGetters.getPayable(payableId).paymentsCount, 2);
+    assertEq(cbGetters.getPayable(payableId).withdrawalsCount, 2);
     assertEq(cbGetters.getBalances(payableId)[0].token, address(chainbills));
     assertEq(cbGetters.getBalances(payableId)[0].amount, 0);
     assertEq(cbGetters.getBalances(payableId)[1].token, address(usdc));
     assertEq(cbGetters.getBalances(payableId)[1].amount, 0);
 
-    // Verify chain stats
-    ChainStats memory finalStats = cbGetters.getChainStats();
-    assertEq(finalStats.payablePaymentsCount, initialStats.payablePaymentsCount + 2);
-    assertEq(finalStats.withdrawalsCount, initialStats.withdrawalsCount + 2);
+    // Chain stats.
+    assertEq(cbGetters.getChainStats().payablePaymentsCount, initPayments + 2);
+    assertEq(cbGetters.getChainStats().withdrawalsCount, initWithdrawals + 2);
+  }
+
+  function testWithdrawRevertsWhenHostRejectsEth() public {
+    RejectEth rejecter = new RejectEth();
+    vm.prank(address(rejecter));
+    (bytes32 pid,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    deal(user, ethAmt);
+    vm.prank(user);
+    chainbills.pay{value: ethAmt}(pid, address(chainbills), ethAmt);
+
+    vm.prank(address(rejecter));
+    vm.expectRevert(UnsuccessfulWithdrawal.selector);
+    chainbills.withdraw(pid, address(chainbills), ethAmt);
+  }
+
+  function testWithdrawRevertsWhenFeeCollectorRejectsEth() public {
+    vm.prank(host);
+    (bytes32 pid,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    deal(user, ethAmt);
+    vm.prank(user);
+    chainbills.pay{value: ethAmt}(pid, address(chainbills), ethAmt);
+
+    RejectEth rejecter = new RejectEth();
+    vm.prank(owner);
+    chainbills.setFeeCollectorAddress(address(rejecter));
+
+    vm.prank(host);
+    vm.expectRevert(UnsuccessfulFeesWithdrawal.selector);
+    chainbills.withdraw(pid, address(chainbills), ethAmt);
   }
 }

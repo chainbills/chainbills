@@ -222,6 +222,22 @@ contract Chainbills is
     emit RegisteredMatchingTokenForForeignChain(cbChainId, foreignToken, token);
   }
 
+  /// Removes the matching token mapping for a foreign token, preventing new
+  /// cross-chain payments using that token pair.
+  /// @dev Only the deployer (owner) can invoke this method.
+  /// @param cbChainId CAIP-2 cbChainId of the foreign chain.
+  /// @param foreignToken The Wormhole-normalized address of the token on the foreign chain.
+  function unregisterMatchingTokenForForeignChain(bytes32 cbChainId, bytes32 foreignToken) public onlyOwner {
+    if (cbChainId == bytes32(0) || cbChainId == config.cbChainId) revert InvalidChainId();
+    if (foreignToken == bytes32(0)) revert InvalidTokenAddress();
+    address localToken = forForeignChainMatchingTokenAddresses[cbChainId][foreignToken];
+    if (localToken != address(0)) {
+      forTokenAddressMatchingForeignChainTokens[localToken][cbChainId] = bytes32(0);
+    }
+    forForeignChainMatchingTokenAddresses[cbChainId][foreignToken] = address(0);
+    emit UnregisteredMatchingTokenForForeignChain(cbChainId, foreignToken);
+  }
+
   /// Sets the Payables Logic Contract address.
   /// @dev Only the deployer (owner) can invoke this method
   /// @param payablesLogicAddress The address of the Payables Logic Contract.
@@ -276,6 +292,7 @@ contract Chainbills is
   /// @param feePercent The percentage with 2 decimals. 200 means 2%.
   /// @dev Only the deployer (owner) can invoke this method.
   function setWithdrawalFeePercentage(uint16 feePercent) public onlyOwner {
+    if (feePercent > 10000) revert InvalidWithdrawalFeePercentage();
     config.withdrawalFeePercentage = feePercent;
     emit SetWithdrawalFeePercentage(feePercent);
   }

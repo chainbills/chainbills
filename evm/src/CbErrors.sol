@@ -105,4 +105,6 @@ contract CbErrors {
   error UnsupportedToken();
   /// @notice Thrown when a zero token amount is specified for a payment or withdrawal.
   error ZeroAmountSpecified();
+  /// @notice Thrown when a withdrawal fee percentage greater than 10000 (100%) is set.
+  error InvalidWithdrawalFeePercentage();
 }

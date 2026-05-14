@@ -971,6 +971,19 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
+  // publishPayableDetails — with non-empty ATAA
+  // -------------------------------------------------------------------------
+
+  function testPublishPayableDetailsWithAtaaCoversLoop() public {
+    TokenAndAmount[] memory ataa = new TokenAndAmount[](1);
+    ataa[0] = TokenAndAmount({token: address(usdc), amount: 1e6});
+    vm.prank(host);
+    (bytes32 pid,) = chainbills.createPayable(ataa, false);
+    vm.prank(relayer);
+    chainbills.publishPayableDetails{value: 0}(pid);
+  }
+
+  // -------------------------------------------------------------------------
   // perChainConsumedWormholeMessagesPaginated
   // -------------------------------------------------------------------------
 

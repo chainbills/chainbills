@@ -123,6 +123,11 @@ contract CbEvents is CbErrors {
   /// @param token The local address of the corresponding token.
   event RegisteredMatchingTokenForForeignChain(bytes32 cbChainId, bytes32 foreignToken, address token);
 
+  /// Emitted when owner removes a matching token mapping for a foreign token.
+  /// @param cbChainId The CAIP-2 chain ID for the removed mapping.
+  /// @param foreignToken The Wormhole-normalized address of the foreign token.
+  event UnregisteredMatchingTokenForForeignChain(bytes32 cbChainId, bytes32 foreignToken);
+
   /// Emitted when owner registers the Circle Domain for a foreign chain.
   /// @param cbChainId The CAIP-2 chain ID.
   /// @param circleDomain The corresponding Circle domain.
@@ -185,7 +190,7 @@ contract CbEvents is CbErrors {
   /// @param payableId The ID of the payable that was synced.
   /// @param cbChainId The CAIP-2 chain ID from which the update originated.
   /// @param nonce The cross-protocol update deduplication nonce.
-  event ReceivedPayableUpdateViaAdminSync(bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce);
+  event ReceivedPayableUpdateViaAdminSync(bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce, address indexed syncedBy);
 
   /// Emitted when owner configures the data messaging protocol for a foreign chain
   /// @param cbChainId The CAIP-2 chain ID of the foreign chain.

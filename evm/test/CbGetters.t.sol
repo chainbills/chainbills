@@ -468,7 +468,7 @@ contract CbGettersTest is CbStructs, Test {
     }
   }
 
-  function testChainUserAddressesPaginated() public {
+  function testChainUserAddressesPaginated() public view {
     // setUp created 2 users (host and user).
     address[] memory page = cbGetters.chainUserAddressesPaginated(0, 10);
     assertEq(page.length, 2);

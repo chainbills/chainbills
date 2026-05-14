@@ -30,6 +30,67 @@ contract CbTransactions is CbUtils {
     if (amount == 0) revert ZeroAmountSpecified();
   }
 
+  /// Updates an existing payable balance entry for `token` by adding `amount`.
+  /// Returns true if a matching entry was found and updated, false otherwise.
+  function _updateBalance(bytes32 payableId, address token, uint256 amount) internal returns (bool) {
+    uint8 count = payables[payableId].balancesCount;
+    for (uint8 i = 0; i < count; i++) {
+      if (payableBalances[payableId][i].token == token) {
+        payableBalances[payableId][i].amount += amount;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Decrements an existing payable balance entry for `token` by `amount`.
+  function _deductBalance(bytes32 payableId, address token, uint256 amount) internal {
+    uint8 count = payables[payableId].balancesCount;
+    for (uint8 i = 0; i < count; i++) {
+      if (payableBalances[payableId][i].token == token) {
+        payableBalances[payableId][i].amount -= amount;
+        return;
+      }
+    }
+  }
+
+  /// Parses and validates Circle message fields against the Wormhole payload data.
+  /// Reverts with the appropriate error if any field mismatches.
+  function _checkCircleMessage(
+    bytes memory circleBridgeMessage,
+    bytes32 payerChainId,
+    bytes32 payableChainId,
+    uint64 expectedNonce
+  ) internal view {
+    uint256 index = 4;
+    uint32 parsedSourceDomain;
+    uint32 parsedTargetDomain;
+    uint64 parsedNonce;
+    bytes32 parsedSender;
+    bytes32 parsedRecipient;
+    (parsedSourceDomain, index) = circleBridgeMessage.asUint32(index);
+    (parsedTargetDomain, index) = circleBridgeMessage.asUint32(index);
+    (parsedNonce, index) = circleBridgeMessage.asUint64(index);
+    (parsedSender, index) = circleBridgeMessage.asBytes32(index);
+    (parsedRecipient, index) = circleBridgeMessage.asBytes32(index);
+    if (cbChainIdToCircleDomain[payerChainId] != parsedSourceDomain) revert CircleSourceDomainMismatch();
+    if (cbChainIdToCircleDomain[payableChainId] != parsedTargetDomain) revert CircleTargetDomainMismatch();
+    if (parsedNonce != expectedNonce) revert CircleNonceMismatch();
+    if (parsedSender != registeredForeignContracts[payerChainId]) revert CircleSenderMismatch();
+    if (parsedRecipient != toWormholeFormat(address(this))) revert CircleRecipientMismatch();
+  }
+
+  /// Looks up the local Circle token for the given foreign chain token and
+  /// reverts with CircleTokenMismatch if it does not match `payableChainToken`.
+  function _checkCircleToken(bytes32 payerChainId, bytes32 payerChainToken, bytes32 payableChainToken) internal view {
+    bytes32 localToken = toWormholeFormat(
+      circleTokenMinter().remoteTokensToLocalTokens(
+        keccak256(abi.encodePacked(cbChainIdToCircleDomain[payerChainId], payerChainToken))
+      )
+    );
+    if (localToken != payableChainToken) revert CircleTokenMismatch();
+  }
+
   /// Records successful payments and activity from a payer.
   /// @param payableId The ID of the payable that was paid into.
   /// @param payableChainId CAIP-2 cbChainId of the payable's chain.
@@ -115,15 +176,7 @@ contract CbTransactions is CbUtils {
     _payable.activitiesCount++;
 
     // Update payable's balances to add this token and its amount.
-    bool wasMatchingBalanceUpdated = false;
-    for (uint8 i = 0; i < _payable.balancesCount; i++) {
-      if (payableBalances[payableId][i].token == token) {
-        payableBalances[payableId][i].amount += amount;
-        wasMatchingBalanceUpdated = true;
-        break;
-      }
-    }
-    if (!wasMatchingBalanceUpdated) {
+    if (!_updateBalance(payableId, token, amount)) {
       payableBalances[payableId].push(TokenAndAmount({token: token, amount: amount}));
       _payable.balancesCount++;
     }
@@ -184,22 +237,17 @@ contract CbTransactions is CbUtils {
     uint256 fees = percent > maxFees ? maxFees : percent;
     uint256 amtDue = amount - fees;
 
-    // Transfer the amount minus fees to the owner.
+    // Transfer amounts and fees to host and fee collector.
     // NOTE: Since this executes via delegatecall from Chainbills.sol,
     // the native `.call` transfers funds directly from the proxy's balance.
     Payable storage _payable = payables[payableId];
     if (token == address(this)) {
-      (bool isWtdlSuccess,) = payable(_payable.host).call{value: amtDue}('');
-      if (!isWtdlSuccess) revert UnsuccessfulWithdrawal();
+      (bool s1,) = payable(_payable.host).call{value: amtDue}('');
+      if (!s1) revert UnsuccessfulWithdrawal();
+      (bool s2,) = payable(config.feeCollector).call{value: fees}('');
+      if (!s2) revert UnsuccessfulFeesWithdrawal();
     } else {
       IERC20(token).safeTransfer(_payable.host, amtDue);
-    }
-
-    // Transfer the fees to the fees collector.
-    if (token == address(this)) {
-      (bool isFeesSuccess,) = payable(config.feeCollector).call{value: fees}('');
-      if (!isFeesSuccess) revert UnsuccessfulFeesWithdrawal();
-    } else {
       IERC20(token).safeTransfer(config.feeCollector, fees);
     }
 
@@ -218,13 +266,7 @@ contract CbTransactions is CbUtils {
     _payable.activitiesCount++;
 
     // Deduct the balances on the involved payable.
-
-    for (uint8 i = 0; i < _payable.balancesCount; i++) {
-      if (payableBalances[payableId][i].token == token) {
-        payableBalances[payableId][i].amount -= amount;
-        break;
-      }
-    }
+    _deductBalance(payableId, token, amount);
 
     // Increase the supported token's totals from this withdrawal.
     tokenDetails[token].totalWithdrawn += amount;
@@ -424,48 +466,9 @@ contract CbTransactions is CbUtils {
     Payable storage _payable = payables[payableId];
     if (_payable.host == address(0)) revert InvalidPayableId();
 
-    // Verify Circle Message for Matching Domains, Nonce, and our Contract
-    // Addresses.
-    uint256 index = 4;
-    uint32 circleParsedSourceDomain;
-    uint32 circleParsedTargetDomain;
-    uint64 circleNonce;
-    bytes32 circleSender;
-    bytes32 circleRecipient;
-    uint32 payloadSourceDomain = cbChainIdToCircleDomain[payload.payerChainId];
-    uint32 payloadTargetDomain = cbChainIdToCircleDomain[payload.payableChainId];
-    (circleParsedSourceDomain, index) = params.circleBridgeMessage.asUint32(index);
-    (circleParsedTargetDomain, index) = params.circleBridgeMessage.asUint32(index);
-    (circleNonce, index) = params.circleBridgeMessage.asUint64(index);
-    (circleSender, index) = params.circleBridgeMessage.asBytes32(index);
-    (circleRecipient, index) = params.circleBridgeMessage.asBytes32(index);
-
-    if (payloadSourceDomain != circleParsedSourceDomain) {
-      revert CircleSourceDomainMismatch();
-    }
-    if (payloadTargetDomain != circleParsedTargetDomain) {
-      revert CircleTargetDomainMismatch();
-    }
-    if (circleNonce != payload.circleNonce) revert CircleNonceMismatch();
-    if (circleSender != registeredForeignContracts[payload.payerChainId]) {
-      revert CircleSenderMismatch();
-    }
-    if (circleRecipient != toWormholeFormat(address(this))) {
-      revert CircleRecipientMismatch();
-    }
-
-    // Obtain the token that Circle will mint from Circle.
-    bytes32 localCircleToken = toWormholeFormat(
-      circleTokenMinter()
-        .remoteTokensToLocalTokens(
-          keccak256(abi.encodePacked(cbChainIdToCircleDomain[payload.payerChainId], payload.payerChainToken))
-        )
-    );
-
-    // Ensure that the to-be-minted token is what is expected.
-    if (localCircleToken != payload.payableChainToken) {
-      revert CircleTokenMismatch();
-    }
+    // Verify Circle message fields and token against the Wormhole payload.
+    _checkCircleMessage(params.circleBridgeMessage, payload.payerChainId, payload.payableChainId, payload.circleNonce);
+    _checkCircleToken(payload.payerChainId, payload.payerChainToken, payload.payableChainToken);
 
     /* TRANSFER */
     // Redeem the Circle Message. Minting takes place in this call.

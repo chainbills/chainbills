@@ -90,6 +90,19 @@ contract CbSetupTest is CbStructs, Test {
     vm.stopPrank();
   }
 
+  function testUpgradeToNewImplementation() public {
+    Chainbills newImpl = new Chainbills();
+    vm.prank(owner);
+    chainbills.upgradeToAndCall(address(newImpl), '');
+  }
+
+  function testUpgradeRevertsForNonOwner() public {
+    Chainbills newImpl = new Chainbills();
+    vm.prank(nonOwner);
+    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
+    chainbills.upgradeToAndCall(address(newImpl), '');
+  }
+
   function testPauseRevertsForNonOwner() public {
     vm.prank(nonOwner);
     vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
@@ -474,6 +487,32 @@ contract CbSetupTest is CbStructs, Test {
 
     assertEq(chainbills.forForeignChainMatchingTokenAddresses(foreignCbChainId, foreignToken), localToken);
     assertEq(chainbills.forTokenAddressMatchingForeignChainTokens(localToken, foreignCbChainId), foreignToken);
+  }
+
+  // ------------------------------------------------------------------------
+  // unregisterMatchingTokenForForeignChain
+  // ------------------------------------------------------------------------
+
+  function testUnregisterMatchingTokenRevertsOnZeroChainId() public {
+    bytes32 foreignToken = bytes32(uint256(uint160(makeAddr('foreign-token'))));
+    vm.prank(owner);
+    vm.expectRevert(InvalidChainId.selector);
+    chainbills.unregisterMatchingTokenForForeignChain(bytes32(0), foreignToken);
+  }
+
+  function testUnregisterMatchingTokenRevertsOnSameChain() public {
+    vm.startPrank(owner);
+    chainbills.setupCctpOnly(address(mockCircleTransmitter), 6, thisCbChainId);
+    bytes32 foreignToken = bytes32(uint256(uint160(makeAddr('foreign-token'))));
+    vm.expectRevert(InvalidChainId.selector);
+    chainbills.unregisterMatchingTokenForForeignChain(thisCbChainId, foreignToken);
+    vm.stopPrank();
+  }
+
+  function testUnregisterMatchingTokenRevertsOnZeroForeignToken() public {
+    vm.prank(owner);
+    vm.expectRevert(InvalidTokenAddress.selector);
+    chainbills.unregisterMatchingTokenForForeignChain(foreignCbChainId, bytes32(0));
   }
 
   // ------------------------------------------------------------------------

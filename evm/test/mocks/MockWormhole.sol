@@ -6,8 +6,20 @@ import {IWormhole} from 'wormhole/interfaces/IWormhole.sol';
 /// Configurable Wormhole mock for testing. Implements the full IWormhole interface
 /// with configurable parseAndVerifyVM and messageFee responses; all other methods
 /// are no-ops or return zero values.
+///
+/// Stores VM fields individually (not as IWormhole.VM) to avoid the legacy-codegen
+/// restriction on copying Signature[] memory arrays to storage.
 contract MockWormhole is IWormhole {
-  IWormhole.VM private _presetVM;
+  // VM fields stored individually to avoid Signature[] memory→storage copy.
+  uint32 private _presetNonce;
+  uint16 private _presetEmitterChainId;
+  bytes32 private _presetEmitterAddress;
+  uint64 private _presetSequence;
+  uint8 private _presetConsistencyLevel;
+  bytes private _presetPayload;
+  uint32 private _presetGuardianSetIndex;
+  bytes32 private _presetHash;
+
   bool private _presetValid;
   string private _presetReason;
   uint256 private _fee;
@@ -20,7 +32,14 @@ contract MockWormhole is IWormhole {
   /// @param valid Whether the VM is considered valid.
   /// @param reason Reason string (used only when valid=false).
   function setPresetVM(IWormhole.VM memory vm_, bool valid, string memory reason) external {
-    _presetVM = vm_;
+    _presetNonce = vm_.nonce;
+    _presetEmitterChainId = vm_.emitterChainId;
+    _presetEmitterAddress = vm_.emitterAddress;
+    _presetSequence = vm_.sequence;
+    _presetConsistencyLevel = vm_.consistencyLevel;
+    _presetPayload = vm_.payload;
+    _presetGuardianSetIndex = vm_.guardianSetIndex;
+    _presetHash = vm_.hash;
     _presetValid = valid;
     _presetReason = reason;
   }
@@ -33,7 +52,16 @@ contract MockWormhole is IWormhole {
     override
     returns (IWormhole.VM memory vm, bool valid, string memory reason)
   {
-    return (_presetVM, _presetValid, _presetReason);
+    vm.nonce = _presetNonce;
+    vm.emitterChainId = _presetEmitterChainId;
+    vm.emitterAddress = _presetEmitterAddress;
+    vm.sequence = _presetSequence;
+    vm.consistencyLevel = _presetConsistencyLevel;
+    vm.payload = _presetPayload;
+    vm.guardianSetIndex = _presetGuardianSetIndex;
+    vm.signatures = new IWormhole.Signature[](0);
+    vm.hash = _presetHash;
+    return (vm, _presetValid, _presetReason);
   }
 
   function messageFee() external view override returns (uint256) {

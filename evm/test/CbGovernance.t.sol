@@ -303,6 +303,36 @@ contract CbGovernanceTest is CbStructs, Test {
     assertEq(usdc.balanceOf(feeCollectorA), prevBalance + expectedFeeB);
   }
 
+  function testSetPayablesLogicZeroAddressReverts() public {
+    vm.prank(owner);
+    vm.expectRevert(InvalidPayablesLogic.selector);
+    chainbills.setPayablesLogic(address(0));
+  }
+
+  function testSetTransactionsLogicZeroAddressReverts() public {
+    vm.prank(owner);
+    vm.expectRevert(InvalidTransactionsLogic.selector);
+    chainbills.setTransactionsLogic(address(0));
+  }
+
+  function testAllowPaymentsForTokenZeroAddressReverts() public {
+    vm.prank(owner);
+    vm.expectRevert(InvalidTokenAddress.selector);
+    chainbills.allowPaymentsForToken(address(0));
+  }
+
+  function testStopPaymentsForTokenZeroAddressReverts() public {
+    vm.prank(owner);
+    vm.expectRevert(InvalidTokenAddress.selector);
+    chainbills.stopPaymentsForToken(address(0));
+  }
+
+  function testUpdateMaxWithdrawalFeesZeroAddressReverts() public {
+    vm.prank(owner);
+    vm.expectRevert(InvalidTokenAddress.selector);
+    chainbills.updateMaxWithdrawalFees(address(0), maxWtdlFeesUsdcA);
+  }
+
   function testUpdateMaxWithdrawalFees() public {
     uint256 hugeAmount = 15e9; // 15,000 USDC
 

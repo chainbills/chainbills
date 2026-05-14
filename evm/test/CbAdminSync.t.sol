@@ -146,7 +146,7 @@ contract CbAdminSyncTest is CbStructs, Test {
 
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
-    emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 1);
+    emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 1, admin);
     chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, ataa);
 
     PayableForeign memory fp = cbGetters.getForeignPayable(payableId);
@@ -192,7 +192,7 @@ contract CbAdminSyncTest is CbStructs, Test {
 
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
-    emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 2);
+    emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 2, admin);
     chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 2, true, new TokenAndAmountForeign[](0));
 
     assertTrue(cbGetters.getForeignPayable(payableId).isClosed);
@@ -210,7 +210,7 @@ contract CbAdminSyncTest is CbStructs, Test {
 
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
-    emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 3);
+    emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 3, admin);
     chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 3, 3, false, new TokenAndAmountForeign[](0));
 
     assertFalse(cbGetters.getForeignPayable(payableId).isClosed);
@@ -234,7 +234,7 @@ contract CbAdminSyncTest is CbStructs, Test {
 
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
-    emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 2);
+    emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 2, admin);
     chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 4, false, ataa2);
 
     PayableForeign memory fp = cbGetters.getForeignPayable(payableId);

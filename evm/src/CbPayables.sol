@@ -476,7 +476,7 @@ contract CbPayables is CbUtils {
     });
 
     _applyPayablePayloadUpdate(payload, cbChainId);
-    emit ReceivedPayableUpdateViaAdminSync(payableId, cbChainId, nonce);
+    emit ReceivedPayableUpdateViaAdminSync(payableId, cbChainId, nonce, msg.sender);
   }
 
   /// Applies a decoded PayablePayload to the foreignPayables state.

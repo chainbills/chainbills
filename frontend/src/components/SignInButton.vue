@@ -30,8 +30,7 @@ const { open: openAppKit, close: closeAppKit } = useAppKit();
 const appkitNetwork = useAppKitNetwork();
 const auth = useAuthStore();
 const icons = {
-  arctestnet,
-  sepoliaInApp: IconArc,
+  arctestnet: IconArc,
   megaeth: IconMegaETH,
   sepolia: IconEthereum,
   solanadevnet: IconSolana,

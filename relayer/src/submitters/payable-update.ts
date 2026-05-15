@@ -20,7 +20,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { toHex } from 'viem';
-import type { ChainConfig } from '../chains/index.js';
+import type { ChainConfig } from '../chains.js';
 import { mainAbi } from '../utils/abis.js';
 import { makePublicClient, makeWalletClient, relayerAccount } from '../utils/clients.js';
 import { logger } from '../utils/logger.js';

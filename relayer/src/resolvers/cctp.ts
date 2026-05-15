@@ -16,7 +16,7 @@
 //     is retried from its last PROCESSING state on the next processor run.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import type { ChainConfig } from '../chains/index.js';
+import type { ChainConfig } from '../chains.js';
 import { logger } from '../utils/logger.js';
 
 export interface CctpAttestation {

@@ -167,10 +167,20 @@ async function processBlockRange(
 
     // Cross-chain payment? Source chain emitted UserPaid but the payable
     // lives on a different chain → queue PAYMENT_VIA_CIRCLE job.
+    // PAYMENT_VIA_CIRCLE requires both Wormhole (for VAA) and CCTP (for USDC
+    // transfer) on the source chain. If either is missing, the job would burn
+    // all retry attempts and fail — skip it and warn instead.
     if (payableChainId && payableChainId !== chain.cbChainId) {
       const destChain = chainByCbChainId.get(payableChainId);
       if (!destChain) {
         log.warn({ payableChainId }, 'Unknown payableChainId — cannot queue payment job');
+        continue;
+      }
+      if (!chain.hasWormhole || !chain.hasCctp) {
+        log.warn(
+          { paymentId, sourceChain: chain.name, destChain: destChain.name },
+          'Source chain lacks Wormhole or CCTP — cross-chain payment cannot be relayed'
+        );
         continue;
       }
       const alreadyQueued = await jobExistsForTx(l.transactionHash!, destChain.name);

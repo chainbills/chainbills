@@ -2,10 +2,10 @@
   "name": "@chainbills/relayer",
   "version": "1.0.0",
   "description": "Chainbills EVM cross-chain relayer — listens to contract events, relays Wormhole VAAs and Circle CCTP attestations, and indexes entities into Firestore.",
-  "main": "dist/index.js",
+  "main": "lib/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "start": "node lib/index.js",
     "build": "tsc",
     "backfill": "tsx src/scripts/backfill.ts",
     "check-pending": "tsx src/scripts/check-pending.ts"

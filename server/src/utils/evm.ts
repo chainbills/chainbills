@@ -1,5 +1,5 @@
 import { ContractFunctionArgs, ContractFunctionName, createPublicClient, http, verifyMessage } from 'viem';
-import { arcTestnet, megaeth, Chain as ViemChain } from 'viem/chains';
+import { arcTestnet, megaeth, sepolia, Chain as ViemChain } from 'viem/chains';
 import { gettersAbi } from './abis';
 import { ChainName } from './chain';
 
@@ -22,6 +22,7 @@ export const evmReadContract = async (
 ) => {
   let chain: ViemChain;
   if (chainName == 'megaeth') chain = megaeth;
+  else if (chainName == 'sepolia') chain = sepolia;
   else if (chainName == 'arctestnet') chain = arcTestnet;
   else throw new Error(`Unsupported chain: ${chainName}`);
 

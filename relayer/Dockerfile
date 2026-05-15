@@ -11,6 +11,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/lib ./lib
 # The relayer is a long-lived process; Cloud Run min-instances=1 keeps it warm.
-CMD ["node", "dist/index.js"]
+CMD ["node", "lib/index.js"]

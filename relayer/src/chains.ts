@@ -120,9 +120,9 @@ export const arcTestnet: ChainConfig = {
   hasCctp: true,
   circleDomain: 10, // Circle domain 10 for Arc Testnet
   cctpNetwork: 'Testnet',
-  deploymentBlock: 0n, // Update after real deployment if desired
+  deploymentBlock: 42188119n, // First tx block of latest DeployChainbills broadcast (chain 5042002)
   pollIntervalMs: 2000, // Arc has ~500ms blocks; poll every 2s
-  minGasBalance: parseEther('10'), // Native gas is USDC; warn below 10 USDC
+  minGasBalance: parseEther('10'), // Native token is USDC (18 decimals on Arc); warn below 10 units
 };
 
 export const sepolia: ChainConfig = {
@@ -139,9 +139,9 @@ export const sepolia: ChainConfig = {
   hasCctp: true,
   circleDomain: 0, // Circle domain 0 for Ethereum Sepolia
   cctpNetwork: 'Testnet',
-  deploymentBlock: 0n,
+  deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
   pollIntervalMs: 12000, // Sepolia ~12s blocks; poll every 12s
-  minGasBalance: parseEther('0.05'), // Warn below 0.05 ETH
+  minGasBalance: parseEther('0.005'), // Warn below 0.05 ETH
 };
 
 export const megaeth: ChainConfig = {
@@ -160,7 +160,7 @@ export const megaeth: ChainConfig = {
   cctpNetwork: 'Mainnet',
   deploymentBlock: 0n,
   pollIntervalMs: 2000, // MegaETH is a real-time chain; poll every 2s
-  minGasBalance: parseEther('0.05'), // Warn below 0.05 ETH
+  minGasBalance: parseEther('0.00'), // Warn below 0.05 ETH
 };
 
 /** All chains the relayer watches. Add new chains here. */

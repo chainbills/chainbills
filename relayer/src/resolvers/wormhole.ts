@@ -9,9 +9,9 @@
 // (Testnet / Mainnet) so the relayer can handle both concurrently.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { serialize, wormhole, type Network } from '@wormhole-foundation/sdk';
+import { serialize, wormhole, type Network, type TxHash } from '@wormhole-foundation/sdk';
 import evm from '@wormhole-foundation/sdk/evm';
-import type { ChainConfig } from '../chains/index.js';
+import type { ChainConfig } from '../chains.js';
 import { logger } from '../utils/logger.js';
 
 // ── SDK instances (one per Wormhole network environment) ─────────────────────
@@ -45,7 +45,7 @@ export async function getVaa(chain: ChainConfig, txHash: string, timeoutMs = 180
 
   try {
     const wh = await getSdk(chain.wormholeNetwork);
-    const vaa = await wh.getVaa(txHash as any, 'Uint8Array', timeoutMs);
+    const vaa = await wh.getVaa(txHash as TxHash, 'Uint8Array', timeoutMs);
     if (!vaa) return null;
     logger.info({ chain: chain.name, txHash }, 'Fetched Wormhole VAA');
     return serialize(vaa);

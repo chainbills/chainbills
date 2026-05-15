@@ -16,7 +16,7 @@
 // For payment jobs we need both the VAA AND the CCTP attestation.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { chainByName } from '../chains/index.js';
+import { chainByName } from '../chains.js';
 import { waitForAttestation } from '../resolvers/cctp.js';
 import { getVaa } from '../resolvers/wormhole.js';
 import { submitPayableUpdateViaCctp, submitPayableUpdateViaWormhole } from '../submitters/payable-update.js';

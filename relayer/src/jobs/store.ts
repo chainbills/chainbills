@@ -18,7 +18,7 @@
 
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { db } from '../utils/firebase.js';
-import type { ChainName } from '../chains/index.js';
+import type { ChainName } from '../chains.js';
 
 export type JobType =
   | 'PAYABLE_UPDATE_VIA_WORMHOLE'

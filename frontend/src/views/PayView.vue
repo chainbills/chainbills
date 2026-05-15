@@ -17,9 +17,27 @@ const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const balanceError = ref('');
 const balances = ref<(number | null)[]>([]);
-const availableTokens = computed(() =>
-  tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain.name])
-);
+const isSameChain = computed(() => {
+  if (!auth.currentUser || !payable.value) return true;
+  return auth.currentUser.chain.name === payable.value.chain.name;
+});
+const availableTokens = computed(() => {
+  if (!auth.currentUser || !payable.value) return tokens;
+  const userChainName = auth.currentUser.chain.name;
+  const payableChainName = payable.value.chain.name;
+
+  return tokens.filter((t) => {
+    // Must have details on user's current chain
+    if (!t.details[userChainName]) return false;
+
+    // If cross-chain, must be USDC (for now) and also exist on the target chain
+    if (!isSameChain.value) {
+      return t.name === 'USDC' && !!t.details[payableChainName];
+    }
+
+    return true;
+  });
+});
 const configError = ref('');
 const isLoading = ref(true);
 const isPaying = ref(false);
@@ -28,6 +46,13 @@ const route = useRoute();
 const payable = ref<Payable | null>(null);
 const payables = usePayableStore();
 const aTAAs = computed(() => payable.value?.allowedTokensAndAmounts ?? []);
+const compatibleATAAs = computed(() => {
+  if (!auth.currentUser || !payable.value) return aTAAs.value;
+  if (isSameChain.value) return aTAAs.value;
+
+  // For cross-chain, only USDC is supported for now
+  return aTAAs.value.filter((taa) => taa.name === 'USDC' && !!taa.details[auth.currentUser!.chain.name]);
+});
 const allowsFreePayments = computed(() => aTAAs.value.length == 0);
 const router = useRouter();
 const selectedConfig = ref<TokenAndAmount | null>(null);
@@ -71,7 +96,7 @@ const updateBalances = async () => {
     if (allowsFreePayments.value) {
       balances.value = [selectedToken.value ? await auth.balance(selectedToken.value) : null];
     } else {
-      balances.value = await Promise.all(aTAAs.value.map(async (taa) => await auth.balance(taa.token())));
+      balances.value = await Promise.all(compatibleATAAs.value.map(async (taa) => await auth.balance(taa.token())));
     }
   }
 };
@@ -92,7 +117,16 @@ const validateConfig = () => {
     else if (aTAAs.value.length > 1) {
       configError.value = 'Please make a choice';
     } else configError.value = '';
-  } else configError.value = '';
+  } else {
+    // Check if selected token is compatible with cross-chain if applicable
+    if (!isSameChain.value) {
+      if (selectedConfig.value.name !== 'USDC') {
+        configError.value = 'Only USDC is supported for cross-chain payments';
+      } else if (!selectedConfig.value.details[payable.value!.chain.name]) {
+        configError.value = `USDC is not supported on ${payable.value!.chain.displayName}`;
+      } else configError.value = '';
+    } else configError.value = '';
+  }
 };
 
 const pay = async () => {
@@ -186,13 +220,24 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="grow basis-1/2 md:max-w-md md:mt-12">
-        <div class="text-center pt-8" v-if="isPaying">
-          <p class="mb-12">Paying ...</p>
-          <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
-        </div>
+    <div class="grow basis-1/2 md:max-w-md md:mt-12">
+      <div class="text-center pt-8" v-if="isPaying">
+        <p class="mb-12">Paying ...</p>
+        <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
+      </div>
 
-        <form class="max-w-sm mx-auto" @submit.prevent="pay" v-else>
+      <div
+        v-else-if="!isSameChain && !allowsFreePayments && compatibleATAAs.length === 0"
+        class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400"
+      >
+        <p class="mb-4">
+          This payable only accepts tokens that are not compatible with cross-chain payments from your current network.
+          Please switch to <strong>{{ payable.chain.displayName }}</strong> to pay.
+        </p>
+        <SignInButton />
+      </div>
+
+      <form class="max-w-sm mx-auto" @submit.prevent="pay" v-else>
           <div class="mb-8 leading-tight" v-if="allowsFreePayments">
             <p class="mb-2">Amount</p>
             <div class="flex mb-4">
@@ -249,7 +294,7 @@ onMounted(async () => {
             </div>
 
             <div class="flex gap-4 flex-wrap mb-3 pt-2" v-else>
-              <div class="w-fit flex flex-col gap-1" v-for="(taa, i) of aTAAs">
+              <div class="w-fit flex flex-col gap-1" v-for="(taa, i) of compatibleATAAs">
                 <Button
                   :class="
                     'text-current border-none shadow-md dark:shadow-[#ffffff0a]  px-3 py-2 text-xl ' +
@@ -266,7 +311,7 @@ onMounted(async () => {
            formatting tokenAndAmount display especially when swaps start -->
                   {{ taa.display(payable.chain) }}
                 </Button>
-                <p v-if="balances.length == aTAAs.length && balances[i]">
+                <p v-if="balances.length == compatibleATAAs.length && balances[i]">
                   <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
                   <span class="text-[10px] text-gray-500">
                     {{ Math.trunc(balances[i]! * 10 ** 5) / 10 ** 5 }}&nbsp;{{ taa.name }}</span
@@ -291,7 +336,7 @@ onMounted(async () => {
             </p>
 
             <!-- Same-chain payment: show Pay Now button normally -->
-            <template v-if="auth.currentUser.chain.name === payable.chain.name">
+            <template v-if="isSameChain">
               <p class="mt-8 mb-24 text-right">
                 <Button type="submit" class="text-xl px-6 py-2"> Pay Now </Button>
                 <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
@@ -301,6 +346,7 @@ onMounted(async () => {
             <!-- Cross-chain EVM payment: same network type (both testnet or both mainnet) -->
             <template
               v-else-if="
+                !isSameChain &&
                 auth.currentUser.chain.isEvm &&
                 payable.chain.isEvm &&
                 auth.currentUser.chain.networkType === payable.chain.networkType

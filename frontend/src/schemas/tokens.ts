@@ -107,6 +107,10 @@ export const tokens: Token[] = [
         address: contracts.megaeth,
         decimals: 18,
       },
+      sepolia: {
+        address: contracts.sepolia,
+        decimals: 18,
+      },
     },
   },
   {

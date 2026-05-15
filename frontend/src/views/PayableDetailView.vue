@@ -18,12 +18,14 @@ import {
 } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
 import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
 import Tabs from 'primevue/tabs';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 const payable = ref<Payable | null>(null);
 const route = useRoute();
@@ -53,6 +55,7 @@ const { origin } = window.location;
 const link = computed(() => (payable.value && `${origin}/pay/${payable.value.id}`) ?? '');
 const payments = usePaymentStore();
 const payableStore = usePayableStore();
+const router = useRouter();
 const withdrawals = useWithdrawalStore();
 
 const totalActivitiesCount = computed(() => {
@@ -82,6 +85,15 @@ const comingSoon = () => {
 
 const balsDisplay = computed(() => (payable.value && payable.value.getBalsDisplay()) ?? []);
 const isWithdrawing = ref(false);
+const showWithdrawModal = ref(false);
+const withdrawAmount = ref(0);
+const selectedBalance = ref<TokenAndAmount | null>(null);
+
+const openWithdrawModal = (balance: TokenAndAmount) => {
+  selectedBalance.value = balance;
+  withdrawAmount.value = balance.format(payable.value!.chain);
+  showWithdrawModal.value = true;
+};
 
 const getTransactions = async () => {
   if (!payable.value) return;
@@ -115,34 +127,48 @@ const updateTablePage = (page: number) => {
   getTransactions();
 };
 
-const withdraw = async (balance: TokenAndAmount) => {
-  analytics.recordEvent('clicked_withdraw');
-  if (!payable.value || !auth.currentUser) return;
-  if (balance.amount == 0) {
+const withdraw = async () => {
+  analytics.recordEvent('clicked_confirm_withdraw');
+  if (!payable.value || !auth.currentUser || !selectedBalance.value) return;
+
+  const chain = payable.value.chain;
+  const decimals = selectedBalance.value.details[chain.name]?.decimals ?? 0;
+  const rawAmount = withdrawAmount.value * 10 ** decimals;
+
+  if (rawAmount <= 0) {
     toast.add({
-      severity: 'info',
-      summary: 'Zero Balance',
-      detail: 'You cannot withdraw an empty balance.',
-      life: 12000,
+      severity: 'warn',
+      summary: 'Invalid Amount',
+      detail: 'Please enter a positive amount to withdraw.',
+      life: 5000,
     });
-  } else {
-    isWithdrawing.value = true;
-    const result = await withdrawals.exec(payable.value.id, balance);
-    if (result) {
-      const newPayable = await payableStore.get(payable.value.id);
-      if (newPayable) {
-        payable.value = newPayable;
-        isWithdrawing.value = false;
-
-        // showing the receipt ID if withdrawal was successful since we are not
-        // redirecting to the receipt page for withdrawals.
-        console.log('Withdrawal Receipt ID: ', result);
-
-        // reloading the page if updates failed to ensure we don't have
-        // stale data in the UI
-      } else window.location.reload();
-    } else isWithdrawing.value = false;
+    return;
   }
+
+  if (rawAmount > selectedBalance.value.amount) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Insufficient Balance',
+      detail: 'You cannot withdraw more than your current balance.',
+      life: 5000,
+    });
+    return;
+  }
+
+  showWithdrawModal.value = false;
+  isWithdrawing.value = true;
+
+  const withdrawalDetails = new TokenAndAmount(selectedBalance.value.token(), rawAmount);
+  const result = await withdrawals.exec(payable.value.id, withdrawalDetails);
+
+  if (result) {
+    const newPayable = await payableStore.get(payable.value.id);
+    if (newPayable) {
+      payable.value = newPayable;
+      isWithdrawing.value = false;
+      console.log('Withdrawal Receipt ID: ', result);
+    } else window.location.reload();
+  } else isWithdrawing.value = false;
 };
 
 onMounted(async () => {
@@ -151,7 +177,7 @@ onMounted(async () => {
   resetTablePage();
   await getTransactions();
 
-  window.addEventListener('focus', async () => await fetchPayable(true, false))
+  window.addEventListener('focus', async () => await fetchPayable(true, false));
 
   watch([() => auth.currentUser, () => activeCat.value], (_) => {
     if (!payable.value) return;
@@ -168,6 +194,15 @@ onMounted(async () => {
       });
     }
   );
+  watch(
+    () => auth.currentUser?.chain.name,
+    (newName, oldName) => {
+      if (oldName && newName && oldName !== newName) {
+        router.push('/dashboard');
+      }
+    }
+  );
+
   watch(() => payable.value, getTransactions);
 });
 </script>
@@ -294,7 +329,7 @@ onMounted(async () => {
               <p class="text-4xl mr-6">
                 {{ balsDisplay[0].display(payable.chain) }}
               </p>
-              <Button @click="withdraw(balsDisplay[0])" class="text-sm px-3 py-1">Withdraw</Button>
+              <Button @click="openWithdrawModal(balsDisplay[0])" class="text-sm px-3 py-1">Withdraw</Button>
             </div>
             <div v-else class="grid grid-cols-2 gap-6 sm:flex pb-12 flex-wrap content-start">
               <div
@@ -304,7 +339,9 @@ onMounted(async () => {
                 <p class="font-bold text-lg mb-3">
                   {{ taa.display(payable.chain) }}
                 </p>
-                <Button class="bg-transparent text-primary text-sm px-3 py-1" @click="withdraw(taa)">Withdraw</Button>
+                <Button class="bg-transparent text-primary text-sm px-3 py-1" @click="openWithdrawModal(taa)"
+                  >Withdraw</Button
+                >
               </div>
             </div>
           </div>
@@ -374,4 +411,44 @@ onMounted(async () => {
       </template>
     </template>
   </section>
+
+  <Dialog
+    v-model:visible="showWithdrawModal"
+    modal
+    header="Withdraw Funds"
+    class="m-8"
+    :style="{ width: '24rem' }"
+    v-if="selectedBalance"
+  >
+    <span class="text-surface-500 dark:text-surface-400 block mb-4"
+      >Specify the amount you'd like to withdraw from your <strong>{{ selectedBalance.name }}</strong> balance.</span
+    >
+    <div class="flex flex-col gap-2 mb-4">
+      <label for="amount" class="font-semibold w-24">Amount</label>
+      <div class="flex flex-col grow">
+        <InputNumber
+          id="amount"
+          v-model="withdrawAmount"
+          class="flex-auto"
+          :min="0"
+          :max="selectedBalance.format(payable!.chain)"
+          :maxFractionDigits="selectedBalance.details[payable!.chain.name]?.decimals ?? 2"
+          fluid
+        />
+        <div class="flex justify-between mt-1">
+          <small class="text-xs text-surface-500">Available: {{ selectedBalance.display(payable!.chain) }}</small>
+          <button
+            class="text-xs text-primary underline bg-transparent border-none cursor-pointer p-0"
+            @click="withdrawAmount = selectedBalance!.format(payable!.chain)"
+          >
+            Max
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2 mt-8">
+      <Button type="button" label="Cancel" severity="secondary" @click="showWithdrawModal = false"></Button>
+      <Button type="button" label="Withdraw" @click="withdraw"></Button>
+    </div>
+  </Dialog>
 </template>

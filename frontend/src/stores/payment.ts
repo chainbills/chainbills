@@ -10,7 +10,7 @@ import {
   type ChainName,
   type Payment,
 } from '@/schemas';
-import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
+import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, usePayableStore, useSolanaStore } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -21,6 +21,7 @@ export const usePaymentStore = defineStore('payment', () => {
   const auth = useAuthStore();
   const cache = useCacheStore();
   const evm = useEvmStore();
+  const payableStore = usePayableStore();
   const solana = useSolanaStore();
   const toast = useToast();
 
@@ -65,6 +66,7 @@ export const usePaymentStore = defineStore('payment', () => {
       detail: isSameChain
         ? 'You have successfully made a Payment.'
         : 'Cross-chain payment initiated! Funds will arrive on the destination chain after relaying.',
+      data: { url: result.explorerUrl },
       life: 12000,
     });
     analytics.recordEvent('made_payment', {
@@ -189,7 +191,7 @@ export const usePaymentStore = defineStore('payment', () => {
     const target = page * count + 1;
     if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
-      const chain = auth.currentUser.chain;
+      const chain = chainNamesToChains[auth.currentUser.chain.name];
       if (chain.isEvm) {
         const offset = page * count;
         const ids: string[] | null = await evm.getUserPaymentIdsPaginated(
@@ -238,7 +240,7 @@ export const usePaymentStore = defineStore('payment', () => {
       for (let i = start; i >= target; i--) {
         const id = await auth.getPaymentId(i);
         if (id) {
-          const payment = await getForUser(id, { ...auth.currentUser.chain });
+          const payment = await getForUser(id, chainNamesToChains[auth.currentUser.chain.name]);
           if (payment) payments.push(payment);
           else return null;
         } else return null;
@@ -252,7 +254,8 @@ export const usePaymentStore = defineStore('payment', () => {
   };
 
   const getManyForPayable = async (payable: Payable, page: number, count: number): Promise<PayablePayment[] | null> => {
-    const { paymentsCount: totalCount, chain } = payable;
+    const totalCount = payable.paymentsCount;
+    const chain = chainNamesToChains[payable.chain.name];
     if (count === 0) return [];
 
     let start = (page + 1) * count;
@@ -301,7 +304,7 @@ export const usePaymentStore = defineStore('payment', () => {
       for (let i = start; i >= target; i--) {
         const id = await payableStore.getPaymentId(payable.id, chain, i);
         if (id) {
-          const payment = await getForPayable(id, { ...chain });
+          const payment = await getForPayable(id, chainNamesToChains[chain.name]);
           if (payment) payments.push(payment);
           else return null;
         } else return null;

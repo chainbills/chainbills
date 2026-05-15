@@ -66,6 +66,7 @@ export const usePayableStore = defineStore('payable', () => {
       severity: 'success',
       summary: 'Successful Payable Creation',
       detail: 'You have successfully created a Payable.',
+      data: { url: result.explorerUrl },
       life: 12000,
     });
     notifications.ensure();

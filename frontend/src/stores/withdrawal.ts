@@ -7,7 +7,14 @@ import {
   Withdrawal,
   type ChainName,
 } from '@/schemas';
-import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
+import {
+  useAnalyticsStore,
+  useAuthStore,
+  useCacheStore,
+  useEvmStore,
+  usePayableStore,
+  useSolanaStore,
+} from '@/stores';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -18,6 +25,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const auth = useAuthStore();
   const cache = useCacheStore();
   const evm = useEvmStore();
+  const payableStore = usePayableStore();
   const solana = useSolanaStore();
   const toast = useToast();
 
@@ -41,6 +49,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       severity: 'success',
       summary: 'Successfully Withdrew',
       detail: 'You have successfully made a Withdrawal. Check your wallet for your increments.',
+      data: { url: result.explorerUrl },
       life: 12000,
     });
     analytics.recordEvent('made_withdrawal', {
@@ -128,7 +137,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
     const target = page * count + 1;
     if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
-      const chain = auth.currentUser.chain;
+      const chain = chainNamesToChains[auth.currentUser.chain.name];
       if (chain.isEvm) {
         const offset = page * count;
         const ids: string[] | null = await evm.getUserWithdrawalIdsPaginated(
@@ -189,7 +198,8 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   };
 
   const getManyForPayable = async (payable: Payable, page: number, count: number): Promise<Withdrawal[] | null> => {
-    const { withdrawalsCount: totalCount, chain } = payable;
+    const totalCount = payable.withdrawalsCount;
+    const chain = chainNamesToChains[payable.chain.name];
     if (count === 0) return [];
 
     let start = (page + 1) * count;

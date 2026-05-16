@@ -24,6 +24,7 @@ export type JobType =
   | 'PAYABLE_UPDATE_VIA_WORMHOLE'
   | 'PAYABLE_UPDATE_VIA_CCTP'
   | 'PAYMENT_VIA_CIRCLE'
+  | 'PAYMENT_VIA_CCTP_ONLY'
   | 'ADMIN_SYNC';
 
 export type JobStatus = 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
@@ -60,6 +61,10 @@ export interface RelayerJob {
   circleMsg?: string;
   /** Hex-encoded Circle attestation bytes (added once fetched). */
   circleAttestation?: string;
+  /** Hex-encoded Circle data message bytes for CCTP-only payment payload (added once fetched). */
+  circleMsgPayload?: string;
+  /** Hex-encoded Circle data message attestation for CCTP-only payment (added once fetched). */
+  circleAttestPayload?: string;
 }
 
 const jobsCol = () => db.collection('relayerJobs');

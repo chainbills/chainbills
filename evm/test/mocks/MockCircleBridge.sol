@@ -22,20 +22,10 @@ contract MockCircleBridge {
     return _minter;
   }
 
-  function depositForBurn(uint256, uint32, bytes32, address) external pure returns (uint64) {
-    return 0;
-  }
-
-  function depositForBurnWithCaller(uint256, uint32, bytes32, address, bytes32) external pure returns (uint64) {
-    return 0;
-  }
+  function depositForBurn(uint256, uint32, bytes32, address, bytes32, uint256, uint32) external pure {}
 
   function owner() external pure returns (address) {
     return address(0);
-  }
-
-  function handleReceiveMessage(uint32, bytes32, bytes memory) external pure returns (bool) {
-    return true;
   }
 
   function remoteCircleBridges(uint32) external pure returns (bytes32) {

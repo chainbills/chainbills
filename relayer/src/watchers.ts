@@ -176,27 +176,37 @@ async function processBlockRange(
         log.warn({ payableChainId }, 'Unknown payableChainId — cannot queue payment job');
         continue;
       }
-      if (!chain.hasWormhole || !chain.hasCctp) {
+      if (!chain.hasCctp) {
         log.warn(
           { paymentId, sourceChain: chain.name, destChain: destChain.name },
-          'Source chain lacks Wormhole or CCTP — cross-chain payment cannot be relayed'
+          'Source chain lacks CCTP — cross-chain payment cannot be relayed'
         );
         continue;
       }
+
       const alreadyQueued = await jobExistsForTx(l.transactionHash!, destChain.name);
       if (!alreadyQueued) {
-        await createJob({
-          type: 'PAYMENT_VIA_CIRCLE',
-          sourceChain: chain.name,
-          destChain: destChain.name,
-          txHash: l.transactionHash!,
-          blockNumber: Number(l.blockNumber),
-          eventData: {
-            paymentId,
-            payableChainId,
-          },
-        });
-        log.info({ paymentId, destChain: destChain.name }, 'Queued PAYMENT_VIA_CIRCLE job');
+        if (chain.hasWormhole) {
+          await createJob({
+            type: 'PAYMENT_VIA_CIRCLE',
+            sourceChain: chain.name,
+            destChain: destChain.name,
+            txHash: l.transactionHash!,
+            blockNumber: Number(l.blockNumber),
+            eventData: { paymentId, payableChainId },
+          });
+          log.info({ paymentId, destChain: destChain.name }, 'Queued PAYMENT_VIA_CIRCLE job');
+        } else {
+          await createJob({
+            type: 'PAYMENT_VIA_CCTP_ONLY',
+            sourceChain: chain.name,
+            destChain: destChain.name,
+            txHash: l.transactionHash!,
+            blockNumber: Number(l.blockNumber),
+            eventData: { paymentId, payableChainId },
+          });
+          log.info({ paymentId, destChain: destChain.name }, 'Queued PAYMENT_VIA_CCTP_ONLY job');
+        }
       }
     }
   }

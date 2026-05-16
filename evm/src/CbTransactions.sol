@@ -54,28 +54,25 @@ contract CbTransactions is CbUtils {
     }
   }
 
-  /// Parses and validates Circle message fields against the Wormhole payload data.
-  /// Reverts with the appropriate error if any field mismatches.
+  /// Parses and validates Circle v2 message header fields (source/target domain, sender, recipient).
+  /// CCTP v2 layout: version(4)|srcDomain(4)|destDomain(4)|nonce(32)|sender(32)|recipient(32)|...
   function _checkCircleMessage(
     bytes memory circleBridgeMessage,
     bytes32 payerChainId,
-    bytes32 payableChainId,
-    uint64 expectedNonce
+    bytes32 payableChainId
   ) internal view {
     uint256 index = 4;
     uint32 parsedSourceDomain;
     uint32 parsedTargetDomain;
-    uint64 parsedNonce;
     bytes32 parsedSender;
     bytes32 parsedRecipient;
     (parsedSourceDomain, index) = circleBridgeMessage.asUint32(index);
     (parsedTargetDomain, index) = circleBridgeMessage.asUint32(index);
-    (parsedNonce, index) = circleBridgeMessage.asUint64(index);
+    index += 32; // skip bytes32 nonce (v2: 32 bytes at offset 12)
     (parsedSender, index) = circleBridgeMessage.asBytes32(index);
     (parsedRecipient, index) = circleBridgeMessage.asBytes32(index);
     if (cbChainIdToCircleDomain[payerChainId] != parsedSourceDomain) revert CircleSourceDomainMismatch();
     if (cbChainIdToCircleDomain[payableChainId] != parsedTargetDomain) revert CircleTargetDomainMismatch();
-    if (parsedNonce != expectedNonce) revert CircleNonceMismatch();
     if (parsedSender != registeredForeignContracts[payerChainId]) revert CircleSenderMismatch();
     if (parsedRecipient != toWormholeFormat(address(this))) revert CircleRecipientMismatch();
   }
@@ -388,8 +385,8 @@ contract CbTransactions is CbUtils {
     // Basic Payment Checks
     _ensurePaymentChecks(token, amount);
 
-    // Ensure that the required Wormhole Fees were paid.
-    _ensureWormholeFees();
+    // Only require Wormhole fees on chains that have Wormhole configured.
+    if (hasWormhole()) _ensureWormholeFees();
 
     // Ensure that the foreign payable exists and it is not closed
     PayableForeign storage _payable = foreignPayables[payableId];
@@ -415,31 +412,45 @@ contract CbTransactions is CbUtils {
     // Approve the Circle Bridge to spend tokens
     SafeERC20.safeIncreaseAllowance(IERC20(token), config.circleBridge, amount);
 
-    // Burn tokens with CircleBridge
-    uint64 circleNonce = circleBridge()
-      .depositForBurn(
-        amount, cbChainIdToCircleDomain[_payable.chainId], registeredForeignContracts[_payable.chainId], token
-      );
+    // Burn tokens with CircleBridge (CCTP v2: no return value, destinationCaller=any, maxFee=0, FINALIZED)
+    circleBridge().depositForBurn(
+      amount,
+      cbChainIdToCircleDomain[_payable.chainId],
+      registeredForeignContracts[_payable.chainId],
+      token,
+      bytes32(0),
+      0,
+      2000
+    );
 
     /* STATE CHANGES */
     // Record successful payment and activity from the payer.
     userPaymentId = _recordUserPayment(payableId, _payable.chainId, token, amount);
 
-    // Publish Message through Wormhole.
+    // Publish PaymentPayload via Wormhole (if available) or Circle data message (CCTP-only).
     bytes32 foreignTokenAddr = forTokenAddressMatchingForeignChainTokens[token][_payable.chainId];
-    wormholeMessageSequence = _publishPayloadMessage(
-      PaymentPayload({
-          version: 1,
-          payableId: payableId,
-          payableChainToken: toWormholeFormat(token),
-          payableChainId: _payable.chainId,
-          payer: toWormholeFormat(msg.sender),
-          payerChainToken: foreignTokenAddr,
-          payerChainId: config.cbChainId,
-          amount: SafeCast.toUint64(amount),
-          circleNonce: circleNonce
-        }).encode()
-    );
+    bytes memory encodedPayload = PaymentPayload({
+      version: 1,
+      payableId: payableId,
+      payableChainToken: toWormholeFormat(token),
+      payableChainId: _payable.chainId,
+      payer: toWormholeFormat(msg.sender),
+      payerChainToken: foreignTokenAddr,
+      payerChainId: config.cbChainId,
+      amount: SafeCast.toUint64(amount),
+      circleNonce: 0
+    }).encode();
+
+    if (hasWormhole()) {
+      wormholeMessageSequence = _publishPayloadMessage(encodedPayload);
+    } else {
+      // CCTP-only chain: send PaymentPayload via Circle data message (CCTP v2).
+      // Prefix with type byte 0x02 so handleReceiveFinalizedMessage can dispatch correctly.
+      uint32 destDomain = cbChainIdToCircleDomain[_payable.chainId];
+      bytes32 destContract = registeredForeignContracts[_payable.chainId];
+      circleTransmitter().sendMessage(destDomain, destContract, bytes32(0), 2000, abi.encodePacked(uint8(2), encodedPayload));
+      wormholeMessageSequence = 0;
+    }
   }
 
   /// Receives a payment to a payable from another chain.
@@ -453,46 +464,98 @@ contract CbTransactions is CbUtils {
     public
     returns (bytes32 payablePaymentId)
   {
-    /* CHECKS */
-    // Carry out necessary verifications on the encoded Wormhole and parse it.
-    IWormhole.VM memory wormholeMessage = _parseAndCheckWormholeMessage(params.wormholeEncoded);
+    if (params.wormholeEncoded.length > 0) {
+      // ── Wormhole path ────────────────────────────────────────────────────────
+      IWormhole.VM memory wormholeMessage = _parseAndCheckWormholeMessage(params.wormholeEncoded);
+      PaymentPayload memory payload = wormholeMessage.payload.decodePaymentPayload();
 
-    // Decode the Payload from the Wormhole message.
-    PaymentPayload memory payload = wormholeMessage.payload.decodePaymentPayload();
+      bytes32 payableId = payload.payableId;
+      Payable storage _payable = payables[payableId];
+      if (_payable.host == address(0)) revert InvalidPayableId();
 
-    // Ensure that the payable exists.
-    bytes32 payableId = payload.payableId;
-    Payable storage _payable = payables[payableId];
-    if (_payable.host == address(0)) revert InvalidPayableId();
+      _checkCircleMessage(params.circleBridgeMessage, payload.payerChainId, payload.payableChainId);
+      _checkCircleToken(payload.payerChainId, payload.payerChainToken, payload.payableChainToken);
 
-    // Verify Circle message fields and token against the Wormhole payload.
-    _checkCircleMessage(params.circleBridgeMessage, payload.payerChainId, payload.payableChainId, payload.circleNonce);
-    _checkCircleToken(payload.payerChainId, payload.payerChainToken, payload.payableChainToken);
+      bool isSuccess = circleTransmitter().receiveMessage(params.circleBridgeMessage, params.circleAttestation);
+      if (!isSuccess) revert CircleMintingFailed();
 
-    /* TRANSFER */
-    // Redeem the Circle Message. Minting takes place in this call.
-    bool isSuccess = circleTransmitter().receiveMessage(params.circleBridgeMessage, params.circleAttestation);
-    if (!isSuccess) revert CircleMintingFailed();
+      address token = fromWormholeFormat(payload.payableChainToken);
+      uint256 amount = uint256(payload.amount);
+      payablePaymentId = _recordPayablePayment(payableId, payload.payer, payload.payerChainId, token, amount);
 
-    /* STATE CHANGES */
-    // Record successful payment and activity to the payable.
-    address token = fromWormholeFormat(payload.payableChainToken);
-    uint256 amount = uint256(payload.amount);
-    payablePaymentId = _recordPayablePayment(payableId, payload.payer, payload.payerChainId, token, amount);
+      consumeWormholeMessage(wormholeMessage);
+      bytes32 srcCbChainId = wormholeChainIdToCbChainId[wormholeMessage.emitterChainId];
+      emit ConsumedWormholePaymentMessage(payableId, srcCbChainId, wormholeMessage.hash);
 
-    /// Store and consume the Wormhole message.
-    consumeWormholeMessage(wormholeMessage);
+      if (_payable.isAutoWithdraw) _actualizeWithdrawal(payableId, token, amount);
+    } else if (params.circlePayloadMessage.length > 0) {
+      // ── CCTP-only path ───────────────────────────────────────────────────────
+      // Parse the Circle v2 data message header (148-byte prefix) then type byte + PaymentPayload.
+      // CCTP v2 layout: version(4)|srcDomain(4)|destDomain(4)|nonce(32)|sender(32)|recipient(32)|destCaller(32)|minThreshold(4)|thresholdExecuted(4)|body(...)
+      uint256 mIdx = 4;
+      uint32 payloadSrcDomain;
+      bytes32 payloadSender;
+      bytes32 payloadRecipient;
+      (payloadSrcDomain, mIdx) = params.circlePayloadMessage.asUint32(mIdx);
+      mIdx += 4; // skip destDomain
+      mIdx += 32; // skip bytes32 nonce (v2)
+      (payloadSender, mIdx) = params.circlePayloadMessage.asBytes32(mIdx);
+      (payloadRecipient, mIdx) = params.circlePayloadMessage.asBytes32(mIdx);
+      mIdx += 32; // skip destinationCaller
+      mIdx += 4;  // skip minFinalityThreshold
+      mIdx += 4;  // skip finalityThresholdExecuted
 
-    // Resolve emitter chain to cbChainId for the event.
-    bytes32 srcCbChainId = wormholeChainIdToCbChainId[wormholeMessage.emitterChainId];
+      // Verify type byte == 0x02 (PaymentPayload)
+      uint8 msgType;
+      (msgType, mIdx) = params.circlePayloadMessage.asUint8(mIdx);
+      if (msgType != 2) revert InvalidPayload();
 
-    // Emit Event.
-    emit ConsumedWormholePaymentMessage(payableId, srcCbChainId, wormholeMessage.hash);
+      // Decode PaymentPayload inline from current offset
+      PaymentPayload memory payload;
+      (payload.version, mIdx) = params.circlePayloadMessage.asUint8(mIdx);
+      (payload.payableId, mIdx) = params.circlePayloadMessage.asBytes32(mIdx);
+      (payload.payableChainToken, mIdx) = params.circlePayloadMessage.asBytes32(mIdx);
+      (payload.payableChainId, mIdx) = params.circlePayloadMessage.asBytes32(mIdx);
+      (payload.payer, mIdx) = params.circlePayloadMessage.asBytes32(mIdx);
+      (payload.payerChainToken, mIdx) = params.circlePayloadMessage.asBytes32(mIdx);
+      (payload.payerChainId, mIdx) = params.circlePayloadMessage.asBytes32(mIdx);
+      (payload.amount, mIdx) = params.circlePayloadMessage.asUint64(mIdx);
+      (payload.circleNonce, mIdx) = params.circlePayloadMessage.asUint64(mIdx);
+      if (mIdx != params.circlePayloadMessage.length) revert InvalidPayload();
 
-    // If the Payable is an auto-withdraw, then make transfer of just-redeemed
-    // amount to the payable's owner and update state immediately by calling
-    // helper function.
-    if (_payable.isAutoWithdraw) _actualizeWithdrawal(payableId, token, amount);
+      // Validate Circle data message sender/domain/recipient
+      if (payloadSrcDomain != cbChainIdToCircleDomain[payload.payerChainId]) revert CircleSourceDomainMismatch();
+      if (payloadSender != registeredForeignContracts[payload.payerChainId]) revert CircleSenderMismatch();
+      if (payloadRecipient != toWormholeFormat(address(this))) revert CircleRecipientMismatch();
+
+      bytes32 payableId = payload.payableId;
+      Payable storage _payable = payables[payableId];
+      if (_payable.host == address(0)) revert InvalidPayableId();
+
+      // Validate Circle token burn message header (domain, sender, recipient).
+      _checkCircleMessage(params.circleBridgeMessage, payload.payerChainId, payload.payableChainId);
+      _checkCircleToken(payload.payerChainId, payload.payerChainToken, payload.payableChainToken);
+
+      // Replay protection: extract bytes32 burn nonce from v2 message at offset 12, mark consumed (CEI).
+      bytes32 burnNonce;
+      (burnNonce,) = params.circleBridgeMessage.asBytes32(12);
+      if (consumedCctpBurnNonces[payloadSrcDomain][burnNonce]) revert CctpBurnNonceAlreadyConsumed();
+      consumedCctpBurnNonces[payloadSrcDomain][burnNonce] = true;
+
+      // Redeem token burn — mints USDC to this contract.
+      bool isSuccess = circleTransmitter().receiveMessage(params.circleBridgeMessage, params.circleAttestation);
+      if (!isSuccess) revert CircleMintingFailed();
+
+      address token = fromWormholeFormat(payload.payableChainToken);
+      uint256 amount = uint256(payload.amount);
+      payablePaymentId = _recordPayablePayment(payableId, payload.payer, payload.payerChainId, token, amount);
+
+      emit ReceivedForeignPaymentViaCircle(payableId, payload.payerChainId, payablePaymentId);
+
+      if (_payable.isAutoWithdraw) _actualizeWithdrawal(payableId, token, amount);
+    } else {
+      revert InvalidPayload();
+    }
   }
 
   /// Transfers the amount of tokens from a payable to the owner host.

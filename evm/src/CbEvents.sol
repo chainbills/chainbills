@@ -198,4 +198,12 @@ contract CbEvents is CbErrors {
   /// @param cbChainId The CAIP-2 chain ID of the foreign chain.
   /// @param protocol The DataMessagingProtocol identifier.
   event SetChainDataMessagingProtocol(bytes32 indexed cbChainId, uint8 protocol);
+
+  /// Emitted when a foreign payment is received via Circle CCTP (CCTP-only path, no Wormhole).
+  /// @param payableId The ID of the payable that received the payment.
+  /// @param cbChainId The CAIP-2 chain ID of the payer's chain.
+  /// @param payablePaymentId The ID of the recorded payable payment.
+  event ReceivedForeignPaymentViaCircle(
+    bytes32 indexed payableId, bytes32 indexed cbChainId, bytes32 indexed payablePaymentId
+  );
 }

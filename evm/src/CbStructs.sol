@@ -341,10 +341,16 @@ contract CbStructs is CbEvents {
   /// Necessary params for receiving payments from a foreign chain.
   struct RedeemCirclePaymentParameters {
     /// The encoded message published to Wormhole from the source chain.
+    /// Empty bytes signals CCTP-only path (circlePayloadMessage carries the payload instead).
     bytes wormholeEncoded;
-    /// Message emitted by circle bridge contract on source chain about token burn
+    /// Message emitted by circle bridge contract on source chain about token burn.
     bytes circleBridgeMessage;
-    /// Circle's Serialized EC Signature attesting the cross-chain transfer
+    /// Circle's Serialized EC Signature attesting the cross-chain transfer.
     bytes circleAttestation;
+    /// Circle sendMessage body carrying the PaymentPayload (CCTP-only path, no Wormhole).
+    /// Wire format: type byte 0x02 followed by encoded PaymentPayload bytes.
+    bytes circlePayloadMessage;
+    /// Circle attestation for circlePayloadMessage (CCTP-only path).
+    bytes circlePayloadAttestation;
   }
 }

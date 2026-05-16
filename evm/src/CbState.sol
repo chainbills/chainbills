@@ -114,9 +114,12 @@ contract CbState is CbStructs {
   /// Set by registerChainWormholeId. Used in VAA verification to resolve the
   /// emitter chain to its cbChainId for registeredForeignContracts lookup.
   mapping(uint16 => bytes32) public wormholeChainIdToCbChainId;
+  /// Tracks consumed CCTP-only burn nonces (Circle source domain → CCTP v2 bytes32 nonce → consumed).
+  /// Set by receiveForeignPaymentWithCircle before the external Circle call (CEI).
+  mapping(uint32 => mapping(bytes32 => bool)) internal consumedCctpBurnNonces;
   /// storage gap for additional state variables in future versions
   // forge-lint: disable-next-line(mixed-case-variable)
-  uint256[50] __gap;
+  uint256[49] __gap;
 
   /// @notice Checks if Wormhole is configured on this chain.
   /// @return True if Wormhole is configured.

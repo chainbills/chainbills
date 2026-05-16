@@ -5,8 +5,6 @@ pragma solidity ^0.8.30;
 contract CbErrors {
   /// @notice Thrown when Circle token minting operation fails.
   error CircleMintingFailed();
-  /// @notice Thrown when the nonce in the Circle message does not match the expected payload nonce.
-  error CircleNonceMismatch();
   /// @notice Thrown when the caller is not the authorized Circle Transmitter.
   error CircleTransmitterOnly();
   /// @notice Thrown when an invalid or unknown Circle domain is encountered.
@@ -107,4 +105,6 @@ contract CbErrors {
   error ZeroAmountSpecified();
   /// @notice Thrown when a withdrawal fee percentage greater than 10000 (100%) is set.
   error InvalidWithdrawalFeePercentage();
+  /// @notice Thrown when a CCTP-only payment burn nonce has already been consumed by receiveForeignPaymentWithCircle.
+  error CctpBurnNonceAlreadyConsumed();
 }

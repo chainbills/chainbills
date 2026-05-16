@@ -8,8 +8,7 @@ import {Chainbills} from 'src/Chainbills.sol';
 contract SetupCCTPOnly is Script {
   function run() public {
     address cbAddr = vm.envAddress('CB_ADDRESS');
-    address circleTransmitter = vm.envAddress('CIRCLE_TRANSMITTER_ADDRESS');
-    uint32 circleDomain = uint32(vm.envUint('CIRCLE_DOMAIN'));
+    address circleBridge = vm.envAddress('CIRCLE_BRIDGE_ADDRESS');
     bytes32 cbChainId = vm.envBytes32('CB_CHAIN_ID');
 
     Chainbills chainbills = Chainbills(payable(cbAddr));
@@ -18,8 +17,7 @@ contract SetupCCTPOnly is Script {
     vm.startBroadcast(ownerPrivateKey);
 
     console.log('Setting up CCTP-only on Chainbills ...');
-    chainbills.setupCctpOnly(circleTransmitter, circleDomain, cbChainId);
-    console.log('Done. Circle Domain:', circleDomain);
+    chainbills.setupCctpOnly(circleBridge, cbChainId);
     console.logBytes32(cbChainId);
 
     vm.stopBroadcast();

@@ -76,6 +76,66 @@ export async function waitForAttestation(
   throw new Error(`CCTP attestation timeout after ${maxAttempts} attempts for txHash=${txHash} domain=${sourceDomain}`);
 }
 
+/**
+ * Polls the Circle Iris API until ALL attestations for a given source-chain
+ * transaction are complete, then returns all (message, attestation) pairs.
+ *
+ * Used for CCTP-only payments where a single tx emits two MessageSent events:
+ * one for the token burn (depositForBurn) and one for the PaymentPayload data
+ * message (sendMessage). Both must be attested before calling
+ * receiveForeignPaymentWithCircle on the destination chain.
+ *
+ * @param chain        Source chain config (must have hasCctp=true).
+ * @param txHash       Transaction hash of the combined depositForBurn + sendMessage tx.
+ * @param expectedCount  Number of messages expected (default 2).
+ * @param maxAttempts  Max poll rounds (default 60 = ~3 min at 3s intervals).
+ */
+export async function waitForAllAttestations(
+  chain: ChainConfig,
+  txHash: string,
+  expectedCount = 2,
+  maxAttempts = 60
+): Promise<CctpAttestation[]> {
+  const sourceDomain = chain.circleDomain;
+  const baseUrl =
+    chain.cctpNetwork === 'Mainnet' ? 'https://iris-api.circle.com' : 'https://iris-api-sandbox.circle.com';
+
+  const url = `${baseUrl}/v2/messages/${sourceDomain}?transactionHash=${txHash}`;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        logger.warn({ sourceDomain, txHash, status: res.status }, 'Iris API non-200 response');
+        await sleep(3000);
+        continue;
+      }
+
+      const body = (await res.json()) as any;
+      const msgs: any[] = body?.messages ?? [];
+      const complete = msgs.filter((m) => m?.status === 'complete' && m.attestation && m.message);
+
+      if (complete.length >= expectedCount) {
+        logger.info({ sourceDomain, txHash, count: complete.length, attempt: i + 1 }, 'All CCTP attestations ready');
+        return complete.map((m) => ({ message: m.message, attestation: m.attestation }));
+      }
+
+      logger.debug(
+        { sourceDomain, txHash, ready: complete.length, expected: expectedCount, attempt: i + 1 },
+        'Not all attestations ready yet, waiting…'
+      );
+    } catch (err) {
+      logger.warn({ sourceDomain, txHash, err }, 'Iris API request failed, retrying…');
+    }
+
+    await sleep(3000);
+  }
+
+  throw new Error(
+    `CCTP attestation timeout after ${maxAttempts} attempts for txHash=${txHash} domain=${sourceDomain}`
+  );
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }

@@ -18,7 +18,7 @@ import {MockCircleTokenMinter} from './mocks/MockCircleTokenMinter.sol';
 import {USDC} from './mocks/MockUSDC.sol';
 
 /// Cross-chain tests covering publishPayableDetails (relayer model),
-/// receivePayableUpdateViaWormhole, handleReceiveMessage, and
+/// receivePayableUpdateViaWormhole, handleReceiveFinalizedMessage, and
 /// receivePayableUpdateViaCircle.
 contract CbCrossChainTest is CbStructs, Test {
   using CbEncodePayablePayload for PayablePayload;
@@ -130,6 +130,15 @@ contract CbCrossChainTest is CbStructs, Test {
         isClosed: isClosed,
         allowedTokensAndAmounts: emptyAtaa
       }).encode();
+  }
+
+  /// Encode a PayablePayload with Circle type-byte prefix (0x01) for handleReceiveFinalizedMessage.
+  function _encodeCctpPayload(bytes32 payableId_, uint8 actionType_, uint64 nonce_)
+    internal
+    pure
+    returns (bytes memory)
+  {
+    return abi.encodePacked(uint8(1), _encodePayload(payableId_, actionType_, nonce_));
   }
 
   // -------------------------------------------------------------------------
@@ -341,57 +350,57 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
-  // handleReceiveMessage (Circle CCTP callback)
+  // handleReceiveFinalizedMessage (Circle CCTP v2 callback)
   // -------------------------------------------------------------------------
 
   function testHandleReceiveMessageRevertsForNonTransmitter() public {
-    bytes memory payload = _encodePayload(keccak256('fp'), 1, 1);
+    bytes memory payload = _encodeCctpPayload(keccak256('fp'), 1, 1);
     vm.prank(makeAddr('random'));
     vm.expectRevert(CircleTransmitterOnly.selector);
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payload);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payload);
   }
 
   function testHandleReceiveMessageRevertsOnUnregisteredDomain() public {
-    bytes memory payload = _encodePayload(keccak256('fp'), 1, 1);
+    bytes memory payload = _encodeCctpPayload(keccak256('fp'), 1, 1);
     // sourceDomain=99 is not registered.
     vm.prank(address(mockCircleTransmitter));
     vm.expectRevert(InvalidCircleDomain.selector);
-    chainbills.handleReceiveMessage(99, foreignEmitter, payload);
+    chainbills.handleReceiveFinalizedMessage(99, foreignEmitter, 2000, payload);
   }
 
   function testHandleReceiveMessageRevertsOnSenderMismatch() public {
-    bytes memory payload = _encodePayload(keccak256('fp'), 1, 1);
+    bytes memory payload = _encodeCctpPayload(keccak256('fp'), 1, 1);
     bytes32 wrongSender = toWormholeFormat(makeAddr('wrong'));
     vm.prank(address(mockCircleTransmitter));
     vm.expectRevert(CircleSenderMismatch.selector);
-    chainbills.handleReceiveMessage(foreignCircleDomain, wrongSender, payload);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, wrongSender, 2000, payload);
   }
 
   function testHandleReceiveMessageRevertsOnStaleNonce() public {
     bytes32 foreignPayableId = keccak256('fp-cctp-stale');
 
     // Precompute payloads before setting up pranks.
-    bytes memory payload5 = _encodePayload(foreignPayableId, 1, 5);
-    bytes memory payload4 = _encodePayload(foreignPayableId, 2, 4);
+    bytes memory payload5 = _encodeCctpPayload(foreignPayableId, 1, 5);
+    bytes memory payload4 = _encodeCctpPayload(foreignPayableId, 2, 4);
 
     // Deliver nonce=5 first.
     vm.prank(address(mockCircleTransmitter));
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payload5);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payload5);
 
     // Deliver nonce=4 (stale).
     vm.prank(address(mockCircleTransmitter));
     vm.expectRevert(StalePayableUpdateNonce.selector);
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payload4);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payload4);
   }
 
   function testHandleReceiveMessageSuccessCreate() public {
     bytes32 foreignPayableId = keccak256('fp-cctp-create');
-    bytes memory payload = _encodePayload(foreignPayableId, 1, 1);
+    bytes memory payload = _encodeCctpPayload(foreignPayableId, 1, 1);
 
     vm.prank(address(mockCircleTransmitter));
     vm.expectEmit(true, true, false, true);
     emit ReceivedPayableUpdateViaCircle(foreignPayableId, foreignCbChainId, 1);
-    bool ok = chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payload);
+    bool ok = chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payload);
     assertTrue(ok);
 
     PayableForeign memory fp = cbGetters.getForeignPayable(foreignPayableId);
@@ -402,39 +411,39 @@ contract CbCrossChainTest is CbStructs, Test {
   function testHandleReceiveMessageSuccessReopen() public {
     bytes32 foreignPayableId = keccak256('fp-cctp-reopen');
 
-    bytes memory payloadCreate = _encodePayload(foreignPayableId, 1, 1);
-    bytes memory payloadClose = _encodePayload(foreignPayableId, 2, 2);
-    bytes memory payloadReopen = _encodePayload(foreignPayableId, 3, 3);
+    bytes memory payloadCreate = _encodeCctpPayload(foreignPayableId, 1, 1);
+    bytes memory payloadClose = _encodeCctpPayload(foreignPayableId, 2, 2);
+    bytes memory payloadReopen = _encodeCctpPayload(foreignPayableId, 3, 3);
 
     // Create.
     vm.prank(address(mockCircleTransmitter));
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payloadCreate);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payloadCreate);
 
     // Close.
     vm.prank(address(mockCircleTransmitter));
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payloadClose);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payloadClose);
     assertTrue(cbGetters.getForeignPayable(foreignPayableId).isClosed);
 
     // Reopen.
     vm.prank(address(mockCircleTransmitter));
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payloadReopen);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payloadReopen);
     assertFalse(cbGetters.getForeignPayable(foreignPayableId).isClosed);
   }
 
   function testHandleReceiveMessageNoncePreventsDuplicates() public {
     bytes32 foreignPayableId = keccak256('fp-cctp-dup');
 
-    bytes memory payload10 = _encodePayload(foreignPayableId, 1, 10);
-    bytes memory payload10again = _encodePayload(foreignPayableId, 1, 10);
+    bytes memory payload10 = _encodeCctpPayload(foreignPayableId, 1, 10);
+    bytes memory payload10again = _encodeCctpPayload(foreignPayableId, 1, 10);
 
     // First delivery.
     vm.prank(address(mockCircleTransmitter));
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payload10);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payload10);
 
     // Same nonce — stale.
     vm.prank(address(mockCircleTransmitter));
     vm.expectRevert(StalePayableUpdateNonce.selector);
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, payload10again);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payload10again);
   }
 
   // -------------------------------------------------------------------------
@@ -448,7 +457,7 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   function testReceivePayableUpdateViaCircleSucceedsWhenReceiveReturnsTrue() public {
-    // Mock returns true without calling handleReceiveMessage.
+    // Mock returns true without calling handleReceiveFinalizedMessage.
     // The function must not revert.
     mockCircleTransmitter.setReceiveSuccess(true);
     chainbills.receivePayableUpdateViaCircle(bytes(''), bytes(''));
@@ -463,8 +472,8 @@ contract CbCrossChainTest is CbStructs, Test {
 
     // Precompute payloads before pranks.
     bytes memory whPayload = _encodePayload(foreignPayableId, 1, 5);
-    bytes memory cctpStale = _encodePayload(foreignPayableId, 2, 5);
-    bytes memory cctpFresh = _encodePayload(foreignPayableId, 2, 6);
+    bytes memory cctpStale = _encodeCctpPayload(foreignPayableId, 2, 5);
+    bytes memory cctpFresh = _encodeCctpPayload(foreignPayableId, 2, 6);
 
     // Deliver nonce=5 via Wormhole.
     IWormhole.VM memory wormVm = _buildVm(foreignWormholeChainId, foreignEmitter, whPayload, keccak256('h-shared'));
@@ -474,11 +483,11 @@ contract CbCrossChainTest is CbStructs, Test {
     // Now try to deliver nonce=5 via CCTP — must be rejected as stale.
     vm.prank(address(mockCircleTransmitter));
     vm.expectRevert(StalePayableUpdateNonce.selector);
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, cctpStale);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, cctpStale);
 
     // Deliver nonce=6 via CCTP — must succeed.
     vm.prank(address(mockCircleTransmitter));
-    chainbills.handleReceiveMessage(foreignCircleDomain, foreignEmitter, cctpFresh);
+    chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, cctpFresh);
   }
 
   // -------------------------------------------------------------------------
@@ -632,15 +641,15 @@ contract CbCrossChainTest is CbStructs, Test {
   function _buildCircleMessage(
     uint32 sourceDomain,
     uint32 targetDomain,
-    uint64 nonce,
+    bytes32 nonce,
     bytes32 sender,
     bytes32 recipient
   ) internal pure returns (bytes memory) {
-    // Circle message: 4-byte prefix (ignored), then source/target domain, nonce, sender, recipient.
-    return abi.encodePacked(uint32(0), sourceDomain, targetDomain, nonce, sender, recipient);
+    // CCTP v2 layout: version(4)|srcDomain(4)|destDomain(4)|nonce(32)|sender(32)|recipient(32)|destCaller(32)|minThreshold(4)|thresholdExecuted(4)
+    return abi.encodePacked(uint32(0), sourceDomain, targetDomain, nonce, sender, recipient, bytes32(0), uint32(2000), uint32(2000));
   }
 
-  function _setupPaymentVm(bytes32 localPayableId, uint64 circleNonce, bytes32 vaaHash)
+  function _setupPaymentVm(bytes32 localPayableId, uint64, bytes32 vaaHash)
     internal
     returns (bytes memory circleMsg)
   {
@@ -654,7 +663,7 @@ contract CbCrossChainTest is CbStructs, Test {
         payerChainToken: foreignToken,
         payerChainId: foreignCbChainId,
         amount: 1e6,
-        circleNonce: circleNonce
+        circleNonce: 0
       }).encode();
 
     IWormhole.VM memory wormVm = _buildVm(foreignWormholeChainId, foreignEmitter, paymentEncoded, vaaHash);
@@ -662,7 +671,7 @@ contract CbCrossChainTest is CbStructs, Test {
 
     // cbChainIdToCircleDomain[thisCbChainId] is 0 by default (never explicitly set).
     circleMsg = _buildCircleMessage(
-      foreignCircleDomain, uint32(0), circleNonce, foreignEmitter, toWormholeFormat(address(chainbills))
+      foreignCircleDomain, uint32(0), bytes32(0), foreignEmitter, toWormholeFormat(address(chainbills))
     );
 
     bytes32 remoteKey = keccak256(abi.encodePacked(foreignCircleDomain, foreignToken));
@@ -676,12 +685,16 @@ contract CbCrossChainTest is CbStructs, Test {
   function testReceiveForeignPaymentRevertsOnInvalidWormholeVAA() public {
     // Default mock state: valid=false → require(valid, reason) reverts.
     bytes memory circleMsg = _buildCircleMessage(
-      foreignCircleDomain, uint32(0), uint64(1), foreignEmitter, toWormholeFormat(address(chainbills))
+      foreignCircleDomain, uint32(0), bytes32(0), foreignEmitter, toWormholeFormat(address(chainbills))
     );
     vm.expectRevert();
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
   }
@@ -705,13 +718,17 @@ contract CbCrossChainTest is CbStructs, Test {
     mockWormhole.setPresetVM(wormVm, true, '');
 
     bytes memory circleMsg = _buildCircleMessage(
-      foreignCircleDomain, uint32(0), uint64(1), foreignEmitter, toWormholeFormat(address(chainbills))
+      foreignCircleDomain, uint32(0), bytes32(0), foreignEmitter, toWormholeFormat(address(chainbills))
     );
 
     vm.expectRevert(InvalidPayableId.selector);
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
   }
@@ -738,12 +755,16 @@ contract CbCrossChainTest is CbStructs, Test {
 
     // Source domain 99 != cbChainIdToCircleDomain[foreignCbChainId] = foreignCircleDomain = 1.
     bytes memory circleMsg =
-      _buildCircleMessage(uint32(99), uint32(0), uint64(1), foreignEmitter, toWormholeFormat(address(chainbills)));
+      _buildCircleMessage(uint32(99), uint32(0), bytes32(0), foreignEmitter, toWormholeFormat(address(chainbills)));
 
     vm.expectRevert(CircleSourceDomainMismatch.selector);
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
   }
@@ -770,46 +791,17 @@ contract CbCrossChainTest is CbStructs, Test {
 
     // Target domain 99 != cbChainIdToCircleDomain[thisCbChainId] = 0.
     bytes memory circleMsg = _buildCircleMessage(
-      foreignCircleDomain, uint32(99), uint64(1), foreignEmitter, toWormholeFormat(address(chainbills))
+      foreignCircleDomain, uint32(99), bytes32(0), foreignEmitter, toWormholeFormat(address(chainbills))
     );
 
     vm.expectRevert(CircleTargetDomainMismatch.selector);
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
-      })
-    );
-  }
-
-  function testReceiveForeignPaymentRevertsOnCircleNonceMismatch() public {
-    vm.prank(host);
-    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
-
-    bytes memory paymentEncoded = PaymentPayload({
-        version: 1,
-        payableId: localPayableId,
-        payableChainToken: toWormholeFormat(address(usdc)),
-        payableChainId: thisCbChainId,
-        payer: toWormholeFormat(makeAddr('fp-nonce')),
-        payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId,
-        amount: 1e6,
-        circleNonce: 42
-      }).encode();
-
-    IWormhole.VM memory wormVm =
-      _buildVm(foreignWormholeChainId, foreignEmitter, paymentEncoded, keccak256('rfp-nonce-hash'));
-    mockWormhole.setPresetVM(wormVm, true, '');
-
-    // Circle nonce 99 != payload circleNonce 42.
-    bytes memory circleMsg = _buildCircleMessage(
-      foreignCircleDomain, uint32(0), uint64(99), foreignEmitter, toWormholeFormat(address(chainbills))
-    );
-
-    vm.expectRevert(CircleNonceMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
-      RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
   }
@@ -836,13 +828,17 @@ contract CbCrossChainTest is CbStructs, Test {
 
     bytes32 wrongSender = toWormholeFormat(makeAddr('wrong-sender'));
     bytes memory circleMsg = _buildCircleMessage(
-      foreignCircleDomain, uint32(0), uint64(1), wrongSender, toWormholeFormat(address(chainbills))
+      foreignCircleDomain, uint32(0), bytes32(0), wrongSender, toWormholeFormat(address(chainbills))
     );
 
     vm.expectRevert(CircleSenderMismatch.selector);
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
   }
@@ -869,12 +865,16 @@ contract CbCrossChainTest is CbStructs, Test {
 
     bytes32 wrongRecipient = toWormholeFormat(makeAddr('wrong-recipient'));
     bytes memory circleMsg =
-      _buildCircleMessage(foreignCircleDomain, uint32(0), uint64(1), foreignEmitter, wrongRecipient);
+      _buildCircleMessage(foreignCircleDomain, uint32(0), bytes32(0), foreignEmitter, wrongRecipient);
 
     vm.expectRevert(CircleRecipientMismatch.selector);
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
   }
@@ -900,7 +900,7 @@ contract CbCrossChainTest is CbStructs, Test {
     mockWormhole.setPresetVM(wormVm, true, '');
 
     bytes memory circleMsg = _buildCircleMessage(
-      foreignCircleDomain, uint32(0), uint64(1), foreignEmitter, toWormholeFormat(address(chainbills))
+      foreignCircleDomain, uint32(0), bytes32(0), foreignEmitter, toWormholeFormat(address(chainbills))
     );
 
     // Token minter returns a different token — mismatch with payload.payableChainToken.
@@ -910,7 +910,11 @@ contract CbCrossChainTest is CbStructs, Test {
     vm.expectRevert(CircleTokenMismatch.selector);
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
   }
@@ -925,7 +929,11 @@ contract CbCrossChainTest is CbStructs, Test {
     vm.expectRevert(CircleMintingFailed.selector);
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
   }
@@ -940,7 +948,11 @@ contract CbCrossChainTest is CbStructs, Test {
     emit ConsumedWormholePaymentMessage(localPayableId, foreignCbChainId, keccak256('rfp-success-hash'));
     bytes32 payablePaymentId = chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
 
@@ -962,7 +974,11 @@ contract CbCrossChainTest is CbStructs, Test {
 
     chainbills.receiveForeignPaymentWithCircle(
       RedeemCirclePaymentParameters({
-        wormholeEncoded: bytes(''), circleBridgeMessage: circleMsg, circleAttestation: bytes('')
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
       })
     );
 

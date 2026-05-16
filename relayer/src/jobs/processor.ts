@@ -17,10 +17,10 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { chainByName } from '../chains.js';
-import { waitForAttestation } from '../resolvers/cctp.js';
+import { waitForAllAttestations, waitForAttestation } from '../resolvers/cctp.js';
 import { getVaa } from '../resolvers/wormhole.js';
 import { submitPayableUpdateViaCctp, submitPayableUpdateViaWormhole } from '../submitters/payable-update.js';
-import { submitForeignPayment } from '../submitters/payment.js';
+import { submitForeignPayment, submitForeignPaymentViaCctp } from '../submitters/payment.js';
 import { logger } from '../utils/logger.js';
 import { getPendingJobs, markDone, markFailed, markProcessing, patchJob, type RelayerJob } from './store.js';
 
@@ -99,6 +99,32 @@ async function processJob(job: RelayerJob): Promise<void> {
           circleAttestation: attestation,
         });
         await submitForeignPayment(destChain, vaaBytes, message, attestation);
+        break;
+      }
+
+      case 'PAYMENT_VIA_CCTP_ONLY': {
+        log.info('Fetching two CCTP attestations for CCTP-only payment');
+        if (!sourceChain.hasCctp || sourceChain.circleDomain === undefined) {
+          throw new Error(`Source chain ${sourceChain.name} has no CCTP`);
+        }
+        const attestations = await waitForAllAttestations(sourceChain, job.txHash, 2);
+        if (attestations.length < 2) {
+          throw new Error(`Expected 2 CCTP attestations, got ${attestations.length}`);
+        }
+        const [tokenBurn, payloadMsg] = attestations;
+        await patchJob(job.id, {
+          circleMsg: tokenBurn.message,
+          circleAttestation: tokenBurn.attestation,
+          circleMsgPayload: payloadMsg.message,
+          circleAttestPayload: payloadMsg.attestation,
+        });
+        await submitForeignPaymentViaCctp(
+          destChain,
+          tokenBurn.message,
+          tokenBurn.attestation,
+          payloadMsg.message,
+          payloadMsg.attestation
+        );
         break;
       }
 

@@ -385,7 +385,7 @@ contract CbPayables is CbUtils {
 
   /// Manually submits a CCTP attestation for a payable-update message.
   /// Anyone can call this — Circle's MessageTransmitter verifies the attestation
-  /// and then calls handleReceiveMessage() on this contract.
+  /// and then calls handleReceiveFinalizedMessage() on this contract.
   /// Mirrors the pattern of receiveForeignPaymentWithCircle for payment messages.
   /// @param message The Circle message bytes.
   /// @param attestation Circle's attestation bytes.
@@ -394,19 +394,19 @@ contract CbPayables is CbUtils {
     if (!success) revert CircleMintingFailed();
   }
 
-  /// Called by Circle's MessageTransmitter when a CCTP payable-update message
-  /// is relayed to this chain. The MessageTransmitter verifies the attestation
-  /// before calling this function, so we only need to verify the sender and
-  /// apply nonce-based ordering.
-  ///
-  /// This is the IMessageHandler callback — the recipient set in sendMessage()
-  /// on the source chain must be this contract's address.
+  /// IMessageHandlerV2 callback for finalized CCTP messages. Called by Circle's
+  /// MessageTransmitter after attestation is verified.
   ///
   /// @param sourceDomain Circle domain of the source chain.
   /// @param sender Wormhole-formatted address of the sending contract.
-  /// @param messageBody Encoded PayablePayload (version 2).
-  /// @return true on success (required by IMessageHandler interface).
-  function handleReceiveMessage(uint32 sourceDomain, bytes32 sender, bytes calldata messageBody) public returns (bool) {
+  /// @param messageBody Encoded PayablePayload (type 0x01) or PaymentPayload (type 0x02).
+  /// @return true on success (required by IMessageHandlerV2 interface).
+  function handleReceiveFinalizedMessage(
+    uint32 sourceDomain,
+    bytes32 sender,
+    uint32, /* finalityThresholdExecuted */
+    bytes calldata messageBody
+  ) public returns (bool) {
     // Only Circle's MessageTransmitter may call this function.
     if (msg.sender != config.circleTransmitter) revert CircleTransmitterOnly();
 
@@ -417,23 +417,43 @@ contract CbPayables is CbUtils {
     // Verify sender is the registered Chainbills contract on the source chain.
     if (sender != registeredForeignContracts[srcCbChainId]) revert CircleSenderMismatch();
 
-    // Decode payload (version 2 required).
-    PayablePayload memory payload = messageBody.decodePayablePayload();
+    if (messageBody.length == 0) revert InvalidPayload();
 
-    // Source chain is authoritative from CCTP sourceDomain — MessageTransmitter
-    // verified the sender so no need to duplicate chain ID in the payload body.
+    // Dispatch on message type byte (first byte):
+    //   0x01 = PayablePayload (payable update broadcast)
+    //   0x02 = PaymentPayload (CCTP-only payment companion data message — no-op here)
+    uint8 msgType = uint8(messageBody[0]);
+    bytes memory payload = messageBody[1:];
 
-    // Nonce ordering: reject if this update is not strictly newer than what we
-    // have already applied (whether via Wormhole or CCTP).
-    uint64 lastNonce = payableUpdateNonces[payload.payableId][srcCbChainId];
-    if (payload.nonce <= lastNonce) revert StalePayableUpdateNonce();
-    payableUpdateNonces[payload.payableId][srcCbChainId] = payload.nonce;
+    if (msgType == 2) {
+      // CCTP-only payment companion data message.
+      // receiveForeignPaymentWithCircle already redeemed the token burn and recorded state.
+      // Circle's receiveMessage prevents replay of this data message via nonce tracking.
+      return true;
+    }
 
-    // Apply state changes.
-    _applyPayablePayloadUpdate(payload, srcCbChainId);
+    // msgType == 1: PayablePayload (payable update).
+    PayablePayload memory update = payload.decodePayablePayload();
 
-    emit ReceivedPayableUpdateViaCircle(payload.payableId, srcCbChainId, payload.nonce);
+    // Nonce ordering: reject stale or duplicate deliveries (cross-protocol deduplication).
+    uint64 lastNonce = payableUpdateNonces[update.payableId][srcCbChainId];
+    if (update.nonce <= lastNonce) revert StalePayableUpdateNonce();
+    payableUpdateNonces[update.payableId][srcCbChainId] = update.nonce;
+
+    _applyPayablePayloadUpdate(update, srcCbChainId);
+    emit ReceivedPayableUpdateViaCircle(update.payableId, srcCbChainId, update.nonce);
     return true;
+  }
+
+  /// IMessageHandlerV2 callback for unfinalized CCTP messages. Always returns false
+  /// — we only process finalized (threshold=2000) messages.
+  function handleReceiveUnfinalizedMessage(
+    uint32, /* sourceDomain */
+    bytes32, /* sender */
+    uint32, /* finalityThresholdExecuted */
+    bytes calldata /* messageBody */
+  ) public pure returns (bool) {
+    return false;
   }
 
   /// Admin escape hatch for syncing foreign payable state on chains that share
@@ -559,7 +579,9 @@ contract CbPayables is CbUtils {
           // Skip if admin hasn't configured the Circle domain or registered
           // the foreign contract address yet.
           if (domain != 0 && recipient != bytes32(0)) {
-            circleTransmitter().sendMessage(domain, recipient, encoded);
+            // Prefix with type byte 0x01 to distinguish PayablePayload from PaymentPayload
+            // in the handleReceiveFinalizedMessage callback. CCTP v2: no return value.
+            circleTransmitter().sendMessage(domain, recipient, bytes32(0), 2000, abi.encodePacked(uint8(1), encoded));
           }
         }
       }

@@ -5,15 +5,20 @@ interface IMessageTransmitter {
   event MessageSent(bytes message);
 
   /**
-   * @notice Sends an outgoing message from the source domain.
+   * @notice Sends an outgoing message from the source domain (CCTP v2). No return value.
    * @param destinationDomain Domain of destination chain
    * @param recipient Address of message recipient on destination domain as bytes32
+   * @param destinationCaller caller on destination domain (bytes32(0) = any)
+   * @param minFinalityThreshold minimum finality threshold (2000 = FINALIZED)
    * @param messageBody Raw bytes content of message
-   * @return nonce reserved by message
    */
-  function sendMessage(uint32 destinationDomain, bytes32 recipient, bytes calldata messageBody)
-    external
-    returns (uint64);
+  function sendMessage(
+    uint32 destinationDomain,
+    bytes32 recipient,
+    bytes32 destinationCaller,
+    uint32 minFinalityThreshold,
+    bytes calldata messageBody
+  ) external;
 
   /**
    * @notice Emitted when tokens are minted
@@ -24,31 +29,24 @@ interface IMessageTransmitter {
   event MintAndWithdraw(address _mintRecipient, uint256 _amount, address _mintToken);
 
   /**
-   * @notice Receive a message. Messages with a given nonce
-   * can only be broadcast once for a (sourceDomain, destinationDomain)
-   * pair. The message body of a valid message is passed to the
-   * specified recipient for further processing.
+   * @notice Receive a message. Messages with a given nonce can only be broadcast once.
+   * The message body of a valid message is passed to the specified recipient for further processing.
    *
-   * @dev Attestation format:
-   * A valid attestation is the concatenated 65-byte signature(s) of exactly
-   * `thresholdSignature` signatures, in increasing order of attester address.
-   * ***If the attester addresses recovered from signatures are not in
-   * increasing order, signature verification will fail.***
-   * If incorrect number of signatures or duplicate signatures are supplied,
-   * signature verification will fail.
+   * CCTP v2 message format:
+   * Field                  Bytes  Type    Index
+   * version                4      uint32  0
+   * sourceDomain           4      uint32  4
+   * destinationDomain      4      uint32  8
+   * nonce                  32     bytes32 12
+   * sender                 32     bytes32 44
+   * recipient              32     bytes32 76
+   * destinationCaller      32     bytes32 108
+   * minFinalityThreshold   4      uint32  140
+   * finalityThresholdExecuted 4   uint32  144
+   * messageBody            dynamic bytes   148
    *
-   * Message format:
-   * Field Bytes Type Index
-   * version 4 uint32 0
-   * sourceDomain 4 uint32 4
-   * destinationDomain 4 uint32 8
-   * nonce 8 uint64 12
-   * sender 32 bytes32 20
-   * recipient 32 bytes32 52
-   * messageBody dynamic bytes 84
    * @param _message Message bytes
-   * @param _attestation Concatenated 65-byte signature(s) of `_message`, in increasing order
-   * of the attester address recovered from signatures.
+   * @param _attestation Concatenated 65-byte signature(s) of `_message`
    * @return success bool, true if successful
    */
   function receiveMessage(bytes memory _message, bytes calldata _attestation) external returns (bool success);

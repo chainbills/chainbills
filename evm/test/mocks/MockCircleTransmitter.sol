@@ -22,9 +22,7 @@ contract MockCircleTransmitter {
     return receiveSuccess;
   }
 
-  function sendMessage(uint32, bytes32, bytes calldata) external pure returns (uint64) {
-    return 0;
-  }
+  function sendMessage(uint32, bytes32, bytes32, uint32, bytes calldata) external pure {}
 
   // Stub remaining IMessageTransmitter methods to satisfy any potential cast.
   function attesterManager() external pure returns (address) {

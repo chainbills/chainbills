@@ -118,7 +118,7 @@ export const arcTestnet: ChainConfig = {
   wormholeNetwork: 'Testnet',
   hasWormhole: false, // Wormhole NOT deployed on Arc Testnet
   hasCctp: true,
-  circleDomain: 10, // Circle domain 10 for Arc Testnet
+  circleDomain: 26, // Circle domain 26 for Arc Testnet
   cctpNetwork: 'Testnet',
   deploymentBlock: 42188119n, // First tx block of latest DeployChainbills broadcast (chain 5042002)
   pollIntervalMs: 2000, // Arc has ~500ms blocks; poll every 2s

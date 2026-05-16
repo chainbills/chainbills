@@ -244,34 +244,35 @@ contract CbSetupTest is CbStructs, Test {
   // setupCctpOnly
   // ------------------------------------------------------------------------
 
-  function testSetupCctpOnlyRevertsOnZeroTransmitter() public {
+  function testSetupCctpOnlyRevertsOnZeroBridge() public {
     vm.prank(owner);
-    vm.expectRevert(InvalidCircleTransmitter.selector);
-    chainbills.setupCctpOnly(address(0), 6, thisCbChainId);
+    vm.expectRevert(InvalidCircleBridge.selector);
+    chainbills.setupCctpOnly(address(0), thisCbChainId);
   }
 
   function testSetupCctpOnlyRevertsOnZeroChainId() public {
     vm.prank(owner);
     vm.expectRevert(InvalidChainId.selector);
-    chainbills.setupCctpOnly(address(mockCircleTransmitter), 6, bytes32(0));
+    chainbills.setupCctpOnly(address(mockCircleBridge), bytes32(0));
   }
 
   function testSetupCctpOnlyRevertsForNonOwner() public {
     vm.prank(nonOwner);
     vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
-    chainbills.setupCctpOnly(address(mockCircleTransmitter), 6, thisCbChainId);
+    chainbills.setupCctpOnly(address(mockCircleBridge), thisCbChainId);
   }
 
   function testSetupCctpOnlySuccess() public {
-    uint32 domain = 6;
     vm.prank(owner);
     vm.expectEmit(true, true, true, true);
     emit SetupCCTPOnly();
-    chainbills.setupCctpOnly(address(mockCircleTransmitter), domain, thisCbChainId);
+    chainbills.setupCctpOnly(address(mockCircleBridge), thisCbChainId);
 
     Config memory conf = cbGetters.getConfig();
+    assertEq(conf.circleBridge, address(mockCircleBridge));
     assertEq(conf.circleTransmitter, address(mockCircleTransmitter));
-    assertEq(conf.circleDomain, domain);
+    assertEq(conf.circleTokenMinter, address(mockCircleTokenMinter));
+    assertEq(conf.circleDomain, localCircleDomain); // derived from mockCircleTransmitter.localDomain()
     assertEq(conf.cbChainId, thisCbChainId);
   }
 
@@ -383,7 +384,7 @@ contract CbSetupTest is CbStructs, Test {
   function testRegisterForeignContractRevertsOnSameChain() public {
     // Set cbChainId first so the same-chain check has a target.
     vm.startPrank(owner);
-    chainbills.setupCctpOnly(address(mockCircleTransmitter), 6, thisCbChainId);
+    chainbills.setupCctpOnly(address(mockCircleBridge), thisCbChainId);
     bytes32 emitter = bytes32(uint256(uint160(makeAddr('emitter'))));
     vm.expectRevert(InvalidChainId.selector);
     chainbills.registerForeignContract(thisCbChainId, emitter);
@@ -435,7 +436,7 @@ contract CbSetupTest is CbStructs, Test {
 
   function testRegisterMatchingTokenRevertsOnSameChain() public {
     vm.startPrank(owner);
-    chainbills.setupCctpOnly(address(mockCircleTransmitter), 6, thisCbChainId);
+    chainbills.setupCctpOnly(address(mockCircleBridge), thisCbChainId);
     address localToken = makeAddr('local-token');
     bytes32 foreignToken = bytes32(uint256(uint160(makeAddr('foreign-token'))));
     vm.expectRevert(InvalidChainId.selector);
@@ -490,7 +491,7 @@ contract CbSetupTest is CbStructs, Test {
 
   function testUnregisterMatchingTokenRevertsOnSameChain() public {
     vm.startPrank(owner);
-    chainbills.setupCctpOnly(address(mockCircleTransmitter), 6, thisCbChainId);
+    chainbills.setupCctpOnly(address(mockCircleBridge), thisCbChainId);
     bytes32 foreignToken = bytes32(uint256(uint160(makeAddr('foreign-token'))));
     vm.expectRevert(InvalidChainId.selector);
     chainbills.unregisterMatchingTokenForForeignChain(thisCbChainId, foreignToken);
@@ -533,7 +534,7 @@ contract CbSetupTest is CbStructs, Test {
 
   function testHasCctpReturnsTrueAfterSetupCctpOnly() public {
     vm.prank(owner);
-    chainbills.setupCctpOnly(address(mockCircleTransmitter), 6, thisCbChainId);
+    chainbills.setupCctpOnly(address(mockCircleBridge), thisCbChainId);
     assertTrue(chainbills.hasCctp());
     assertFalse(chainbills.hasWormhole());
   }

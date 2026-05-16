@@ -126,17 +126,24 @@ contract Chainbills is
   }
 
   /// Sets up Circle CCTP on chains where Wormhole is not deployed.
-  /// Allows this contract to send and receive payable-update messages via CCTP
-  /// without requiring Wormhole.
-  /// @param circleTransmitterAddr Address of Circle's MessageTransmitter on this chain.
-  /// @param circleDomain Circle domain ID of this chain.
+  /// Derives circleTransmitter, circleDomain, and circleTokenMinter from the
+  /// circleBridge (TokenMessenger) address exactly as setupWormholeAndCircle does,
+  /// but without configuring Wormhole. Call this on CCTP-only chains (e.g. Arc Testnet).
+  /// @param circleBridgeAddr Address of Circle's TokenMessenger (ICircleBridge) on this chain.
   /// @param cbChainId CAIP-2 chain identifier for this chain
   ///        (keccak256 of "namespace:reference", e.g. keccak256("eip155:8453")).
   /// @dev Only the deployer (owner) can invoke this method.
-  function setupCctpOnly(address circleTransmitterAddr, uint32 circleDomain, bytes32 cbChainId) public onlyOwner {
-    if (circleTransmitterAddr == address(0)) revert InvalidCircleTransmitter();
+  function setupCctpOnly(address circleBridgeAddr, bytes32 cbChainId) public onlyOwner {
+    if (circleBridgeAddr == address(0)) revert InvalidCircleBridge();
     if (cbChainId == bytes32(0)) revert InvalidChainId();
-    config.circleTransmitter = circleTransmitterAddr;
+
+    IMessageTransmitter transmitter = ICircleBridge(circleBridgeAddr).localMessageTransmitter();
+    uint32 circleDomain = transmitter.localDomain();
+    ITokenMinter minter = ICircleBridge(circleBridgeAddr).localMinter();
+
+    config.circleBridge = circleBridgeAddr;
+    config.circleTransmitter = address(transmitter);
+    config.circleTokenMinter = address(minter);
     config.circleDomain = circleDomain;
     config.cbChainId = cbChainId;
     emit SetupCCTPOnly();
@@ -301,6 +308,7 @@ contract Chainbills is
   /// @param feeCollector The wallet address to collect fees.
   /// @dev Only the deployer (owner) can invoke this method.
   function setFeeCollectorAddress(address feeCollector) public onlyOwner {
+    if (feeCollector == address(0)) revert InvalidFeeCollector();
     config.feeCollector = feeCollector;
     emit SetFeeCollectorAddress(feeCollector);
   }
@@ -477,20 +485,36 @@ contract Chainbills is
     }
   }
 
-  /// @notice Circle CCTP IMessageHandler callback. Called by Circle's MessageTransmitter.
-  /// - Parameter sourceDomain: Circle domain of the source chain.
-  /// - Parameter sender: Sender address of the message.
-  /// - Parameter message:Body The actual message body.
+  /// @notice Circle CCTP v2 IMessageHandlerV2 callback for finalized messages.
+  /// Called by Circle's MessageTransmitter after attestation is verified.
   /// @return True if the message was successfully processed.
-  function handleReceiveMessage(
-    uint32,
-    /* sourceDomain */
-    bytes32,
-    /* sender */
+  function handleReceiveFinalizedMessage(
+    uint32, /* sourceDomain */
+    bytes32, /* sender */
+    uint32, /* finalityThresholdExecuted */
     bytes calldata /* messageBody */
   )
     external
-    nonReentrant
+    whenNotPaused
+    returns (bool)
+  {
+    (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);
+    if (!success) {
+      assembly {
+        revert(add(result, 32), mload(result))
+      }
+    }
+    return abi.decode(result, (bool));
+  }
+
+  /// @notice Circle CCTP v2 IMessageHandlerV2 callback for unfinalized messages. Always returns false.
+  function handleReceiveUnfinalizedMessage(
+    uint32, /* sourceDomain */
+    bytes32, /* sender */
+    uint32, /* finalityThresholdExecuted */
+    bytes calldata /* messageBody */
+  )
+    external
     whenNotPaused
     returns (bool)
   {

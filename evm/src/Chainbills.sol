@@ -162,7 +162,7 @@ contract Chainbills is
   /// @dev Only the deployer (owner) can invoke this method.
   function setChainDataMessagingProtocol(bytes32 cbChainId, uint8 protocol) public onlyOwner {
     if (cbChainId == bytes32(0)) revert InvalidChainId();
-    if (protocol > 2) revert InvalidChainId();
+    if (protocol > 2) revert InvalidDataMessagingProtocol();
     chainDataMessagingProtocol[cbChainId] = DataMessagingProtocol(protocol);
     emit SetChainDataMessagingProtocol(cbChainId, protocol);
   }
@@ -210,6 +210,33 @@ contract Chainbills is
     emit RegisteredForeignContract(cbChainId, emitterAddress);
   }
 
+  /// Removes a registered foreign contract and its chain ID from the broadcast list.
+  /// After unregistering, the chain will no longer receive payable update broadcasts
+  /// and cross-chain payments to/from it will be rejected.
+  /// Payable update nonces for this chain are preserved — if re-registered later,
+  /// the nonce sequence resumes from where it left off.
+  /// @dev Only the deployer (owner) can invoke this method.
+  /// @param cbChainId CAIP-2 cbChainId of the chain to unregister.
+  function unregisterForeignContract(bytes32 cbChainId) public onlyOwner {
+    if (cbChainId == bytes32(0)) revert InvalidChainId();
+    bytes32 emitterAddress = registeredForeignContracts[cbChainId];
+    if (emitterAddress == bytes32(0)) revert InvalidWormholeEmitterAddress();
+
+    // Swap-and-pop: find this cbChainId in registeredCbChainIds, swap with last, pop.
+    // Order of the array is not significant — it is only iterated for CCTP broadcasts.
+    uint256 len = registeredCbChainIds.length;
+    for (uint256 i = 0; i < len; i++) {
+      if (registeredCbChainIds[i] == cbChainId) {
+        registeredCbChainIds[i] = registeredCbChainIds[len - 1];
+        registeredCbChainIds.pop();
+        break;
+      }
+    }
+
+    registeredForeignContracts[cbChainId] = bytes32(0);
+    emit UnregisteredForeignContract(cbChainId, emitterAddress);
+  }
+
   /// Registers a matching token address for a foreign token.
   /// @dev Only the deployer (owner) can invoke this method
   /// @param cbChainId CAIP-2 cbChainId of the foreign chain.
@@ -224,6 +251,21 @@ contract Chainbills is
     } else if (token == address(0) || foreignToken == bytes32(0)) {
       revert InvalidTokenAddress();
     }
+
+    // If a different local token was previously registered for this (chain, foreignToken) pair,
+    // zero out its reverse mapping. Otherwise calling register twice without calling
+    // unregister first would leave the old local token's reverse entry pointing at foreignToken,
+    // allowing cross-chain payments with the superseded token to pass ATAA validation.
+    address oldLocalToken = forForeignChainMatchingTokenAddresses[cbChainId][foreignToken];
+    if (oldLocalToken != address(0) && oldLocalToken != token) {
+      forTokenAddressMatchingForeignChainTokens[oldLocalToken][cbChainId] = bytes32(0);
+    }
+    bytes32 oldForeignToken = forTokenAddressMatchingForeignChainTokens[token][cbChainId];
+    if (oldForeignToken != bytes32(0) && oldForeignToken != foreignToken) {
+      forForeignChainMatchingTokenAddresses[cbChainId][oldForeignToken] = address(0);
+    }
+
+    // Proceed to actually set the matching tokens.
     forForeignChainMatchingTokenAddresses[cbChainId][foreignToken] = token;
     forTokenAddressMatchingForeignChainTokens[token][cbChainId] = foreignToken;
     emit RegisteredMatchingTokenForForeignChain(cbChainId, foreignToken, token);

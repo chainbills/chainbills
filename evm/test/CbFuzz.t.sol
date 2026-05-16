@@ -108,6 +108,7 @@ contract CbFuzzTest is CbStructs, Test {
 
     bool isClosed = (actionType == 2);
     PayablePayload memory original = PayablePayload({
+      payloadType: 1,
       version: 1,
       actionType: actionType,
       payableId: payableId,
@@ -118,6 +119,7 @@ contract CbFuzzTest is CbStructs, Test {
 
     PayablePayload memory decoded = original.encode().decodePayablePayload();
 
+    assertEq(decoded.payloadType, original.payloadType, 'payloadType mismatch');
     assertEq(decoded.version, original.version, 'version mismatch');
     assertEq(decoded.actionType, original.actionType, 'actionType mismatch');
     assertEq(decoded.payableId, original.payableId, 'payableId mismatch');
@@ -152,28 +154,32 @@ contract CbFuzzTest is CbStructs, Test {
     uint64 circleNonce
   ) public pure {
     PaymentPayload memory original = PaymentPayload({
+      payloadType: 2,
       version: 1,
+      actionType: 5,
       payableId: payableId,
+      circleNonce: circleNonce,
+      amount: amount,
       payableChainToken: payableChainToken,
       payableChainId: payableChainId,
       payer: payer,
       payerChainToken: payerChainToken,
-      payerChainId: payerChainId,
-      amount: amount,
-      circleNonce: circleNonce
+      payerChainId: payerChainId
     });
 
     PaymentPayload memory decoded = original.encode().decodePaymentPayload();
 
+    assertEq(decoded.payloadType, 2, 'payloadType');
     assertEq(decoded.version, 1, 'version');
+    assertEq(decoded.actionType, 5, 'actionType');
     assertEq(decoded.payableId, payableId, 'payableId');
+    assertEq(decoded.circleNonce, circleNonce, 'circleNonce');
+    assertEq(decoded.amount, amount, 'amount');
     assertEq(decoded.payableChainToken, payableChainToken, 'payableChainToken');
     assertEq(decoded.payableChainId, payableChainId, 'payableChainId');
     assertEq(decoded.payer, payer, 'payer');
     assertEq(decoded.payerChainToken, payerChainToken, 'payerChainToken');
     assertEq(decoded.payerChainId, payerChainId, 'payerChainId');
-    assertEq(decoded.amount, amount, 'amount');
-    assertEq(decoded.circleNonce, circleNonce, 'circleNonce');
   }
 
   // ---------------------------------------------------------------------------

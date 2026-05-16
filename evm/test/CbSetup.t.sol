@@ -288,7 +288,7 @@ contract CbSetupTest is CbStructs, Test {
 
   function testSetChainDataMessagingProtocolRevertsOnInvalidValue() public {
     vm.prank(owner);
-    vm.expectRevert(InvalidChainId.selector);
+    vm.expectRevert(InvalidDataMessagingProtocol.selector);
     chainbills.setChainDataMessagingProtocol(foreignCbChainId, 3);
   }
 

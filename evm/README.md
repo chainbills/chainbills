@@ -377,6 +377,42 @@ $ anvil --help
 $ cast --help
 ```
 
+## Updating Logic Contracts vs. Upgrading the Proxy
+
+Chainbills uses three deployed contracts:
+
+- **Proxy** (`Chainbills.sol`) — the UUPS upgradeable proxy that users interact with
+- **CbPayables** — logic for payable creation, updates, and cross-chain sync
+- **CbTransactions** — logic for payments, withdrawals, and cross-chain payment receipt
+
+### When to update a logic contract (not a proxy upgrade)
+
+If you change only `CbPayables.sol` or `CbTransactions.sol` (no storage layout changes, no new state variables, no changes to the proxy itself), you only need to redeploy the logic contract and point the proxy at it.
+
+Use `script/run.sh` — it loads `CB_ADDRESS`, `PRIVATE_KEY`, and `RPC_URL` from the chain's env file automatically (`script/env/<chain>.env` + `.env.local`):
+
+```bash
+# Update payables logic only
+./script/run.sh <chain> UpdatePayablesLogic
+
+# Update transactions logic only
+./script/run.sh <chain> UpdateTransactionsLogic
+
+# Dry-run first to simulate without broadcasting
+./script/run.sh <chain> UpdatePayablesLogic --dry-run
+./script/run.sh <chain> UpdateTransactionsLogic --dry-run
+```
+
+Where `<chain>` is one of the configured chains (e.g. `arc`, `sepolia`, `megaeth`). Put your `PRIVATE_KEY` in `script/env/<chain>.env.local` (gitignored).
+
+These scripts call `setPayablesLogic(address)` or `setTransactionsLogic(address)` on the proxy. Only the owner can call these. No proxy storage migration is required.
+
+### When to upgrade the proxy
+
+If you change `Chainbills.sol`, `CbState.sol`, `CbUtils.sol`, `CbStructs.sol`, or any file that affects the proxy's storage layout or ABI, run a full UUPS proxy upgrade instead. The upgrade script (`script/UpgradeChainbills.s.sol` or equivalent) calls `upgradeToAndCall` on the proxy.
+
+**Important:** After a proxy upgrade that also changes logic contracts, redeploy and update BOTH logic contracts — the new proxy implementation may delegatecall into stale logic.
+
 ## Deployed Parameters
 
 All deployed contract addresses, cbChainIds, Circle domains, and Wormhole IDs are tracked in [DEPLOYED.md](./DEPLOYED.md). Update that file after every deployment or admin setup call.

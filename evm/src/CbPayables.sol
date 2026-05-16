@@ -100,6 +100,7 @@ contract CbPayables is CbUtils {
     // protocols (Wormhole one-shot + CCTP per CCTP-capable chain).
     wormholeMessageSequence = _broadcastPayableUpdate(
       PayablePayload({
+        payloadType: 1,
         version: 1,
         actionType: 1,
         payableId: payableId,
@@ -168,6 +169,7 @@ contract CbPayables is CbUtils {
     // Broadcast payable close to all registered foreign chains.
     wormholeMessageSequence = _broadcastPayableUpdate(
       PayablePayload({
+        payloadType: 1,
         version: 1,
         actionType: 2,
         payableId: payableId,
@@ -208,6 +210,7 @@ contract CbPayables is CbUtils {
     // Broadcast payable reopen to all registered foreign chains.
     wormholeMessageSequence = _broadcastPayableUpdate(
       PayablePayload({
+        payloadType: 1,
         version: 1,
         actionType: 3,
         payableId: payableId,
@@ -282,7 +285,13 @@ contract CbPayables is CbUtils {
     // Broadcast ATAA update to all registered foreign chains.
     wormholeMessageSequence = _broadcastPayableUpdate(
       PayablePayload({
-        version: 1, actionType: 4, payableId: payableId, nonce: 0, isClosed: false, allowedTokensAndAmounts: foreignAtaa
+        payloadType: 1,
+        version: 1,
+        actionType: 4,
+        payableId: payableId,
+        nonce: 0,
+        isClosed: false,
+        allowedTokensAndAmounts: foreignAtaa
       })
     );
   }
@@ -341,6 +350,7 @@ contract CbPayables is CbUtils {
     // Broadcast current payable state to all registered foreign chains.
     wormholeMessageSequence = _broadcastPayableUpdate(
       PayablePayload({
+        payloadType: 1,
         version: 1,
         actionType: 1,
         payableId: payableId,
@@ -390,7 +400,7 @@ contract CbPayables is CbUtils {
   /// @param attestation Circle's attestation bytes.
   function receivePayableUpdateViaCircle(bytes calldata message, bytes calldata attestation) public {
     bool success = circleTransmitter().receiveMessage(message, attestation);
-    if (!success) revert CircleMintingFailed();
+    if (!success) revert CircleMessageReceivingFailed();
   }
 
   /// IMessageHandlerV2 callback for finalized CCTP messages. Called by Circle's
@@ -405,7 +415,10 @@ contract CbPayables is CbUtils {
     bytes32 sender,
     uint32, /* finalityThresholdExecuted */
     bytes calldata messageBody
-  ) public returns (bool) {
+  )
+    public
+    returns (bool)
+  {
     // Only Circle's MessageTransmitter may call this function.
     if (msg.sender != config.circleTransmitter) revert CircleTransmitterOnly();
 
@@ -422,17 +435,20 @@ contract CbPayables is CbUtils {
     //   0x01 = PayablePayload (payable update broadcast)
     //   0x02 = PaymentPayload (CCTP-only payment companion data message — no-op here)
     uint8 msgType = uint8(messageBody[0]);
-    bytes memory payload = messageBody[1:];
 
     if (msgType == 2) {
-      // CCTP-only payment companion data message.
-      // receiveForeignPaymentWithCircle already redeemed the token burn and recorded state.
-      // Circle's receiveMessage prevents replay of this data message via nonce tracking.
+      // PaymentPayload companion data message (CCTP-only payment path).
+      // receiveForeignPaymentWithCircle already processed the burn and recorded the payment
+      // in the same transaction that submitted this data message. This callback merely lets
+      // Circle consume the data-message nonce. No state change needed here.
       return true;
     }
 
-    // msgType == 1: PayablePayload (payable update).
-    PayablePayload memory update = payload.decodePayablePayload();
+    if (msgType != 1) revert InvalidPayload();
+
+    // msgType == 1: PayablePayload (payable update broadcast).
+    // messageBody[0] is payloadType. decodePayablePayload re-validates it.
+    PayablePayload memory update = messageBody.decodePayablePayload();
 
     // Nonce ordering: reject stale or duplicate deliveries (cross-protocol deduplication).
     uint64 lastNonce = payableUpdateNonces[update.payableId][srcCbChainId];
@@ -451,14 +467,18 @@ contract CbPayables is CbUtils {
     bytes32, /* sender */
     uint32, /* finalityThresholdExecuted */
     bytes calldata /* messageBody */
-  ) public pure returns (bool) {
+  )
+    public
+    pure
+    returns (bool)
+  {
     return false;
   }
 
   /// Admin escape hatch for syncing foreign payable state on chains that share
   /// no common protocol with the source chain (e.g. Wormhole-only chain needs
   /// to record a payable from a CCTP-only chain). Nonce ordering still applies
-  /// — admin cannot regress state. Use a multisig/timelock for the owner.
+  /// — admin cannot regress state.
   /// @param payableId The payable ID on the source chain.
   /// @param cbChainId CAIP-2 cbChainId of the source chain.
   /// @param nonce Must be strictly greater than the last recorded nonce.
@@ -475,6 +495,7 @@ contract CbPayables is CbUtils {
   ) public {
     if (payableId == bytes32(0)) revert InvalidPayableId();
     if (cbChainId == bytes32(0)) revert InvalidChainId();
+    if (actionType == 0 || actionType > 4) revert InvalidPayablePayloadActionType();
 
     uint64 lastNonce = payableUpdateNonces[payableId][cbChainId];
     if (nonce <= lastNonce) revert StalePayableUpdateNonce();
@@ -486,7 +507,8 @@ contract CbPayables is CbUtils {
     }
 
     PayablePayload memory payload = PayablePayload({
-      version: 2,
+      payloadType: 1,
+      version: 1,
       actionType: actionType,
       payableId: payableId,
       nonce: nonce,
@@ -550,14 +572,11 @@ contract CbPayables is CbUtils {
   /// Protocol behaviour:
   ///   - Wormhole (if configured): single publishMessage() covers all chains
   ///     reachable by Wormhole relayers.
-  ///   - CCTP (if configured): one sendMessage() per chain configured as CCTP.
+  ///   - CCTP_ONLY (if configured): one sendMessage() per chain configured as CCTP.
   ///     WORMHOLE chains are skipped here since the Wormhole broadcast already
   ///     covers them.
   ///
-  /// Sets payload.version=2 and payload.nonce before encoding, so callers
-  /// pass zero for those fields.
-  ///
-  /// @param payload PayablePayload with version/nonce left as 0.
+  /// @param payload PayablePayload with nonce left as 0.
   /// @return sequence Wormhole message sequence (0 when Wormhole not configured).
   function _broadcastPayableUpdate(PayablePayload memory payload) internal returns (uint64 sequence) {
     // Assign a monotonically increasing nonce for cross-protocol deduplication.
@@ -583,10 +602,10 @@ contract CbPayables is CbUtils {
           bytes32 recipient = registeredForeignContracts[chainId];
           // Skip if admin hasn't configured the Circle domain or registered
           // the foreign contract address yet.
-          if (domain != 0 && recipient != bytes32(0)) {
+          if (recipient != bytes32(0)) {
             // Prefix with type byte 0x01 to distinguish PayablePayload from PaymentPayload
             // in the handleReceiveFinalizedMessage callback. CCTP v2: no return value.
-            circleTransmitter().sendMessage(domain, recipient, bytes32(0), 2000, abi.encodePacked(uint8(1), encoded));
+            circleTransmitter().sendMessage(domain, recipient, bytes32(0), 2000, encoded);
           }
         }
       }

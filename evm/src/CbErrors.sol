@@ -3,10 +3,18 @@ pragma solidity ^0.8.30;
 
 /// Stores all thrown errors in Chainbills
 contract CbErrors {
+  /// @notice Thrown when a CCTP-only payment burn nonce has already been consumed by receiveForeignPaymentWithCircle.
+  error CctpBurnNonceAlreadyConsumed();
+  /// @notice Thrown when the burn message amount does not match the declared payload amount.
+  error CircleAmountMismatch();
+  /// @notice Thrown when Circle message receiving operation fails (e.g. invalid attestation, message replay, etc.).
+  error CircleMessageReceivingFailed();
   /// @notice Thrown when Circle token minting operation fails.
   error CircleMintingFailed();
   /// @notice Thrown when the caller is not the authorized Circle Transmitter.
   error CircleTransmitterOnly();
+  /// @notice Thrown when the Data Messaging Protocol is not valid or supported.
+  error InvalidDataMessagingProtocol();
   /// @notice Thrown when an invalid or unknown Circle domain is encountered.
   error InvalidCircleDomain();
   /// @notice Thrown when the Circle message recipient does not match this contract.
@@ -65,6 +73,8 @@ contract CbErrors {
   error InvalidTokenAddress();
   /// @notice Thrown when an invalid wallet address (e.g. zero address) is provided.
   error InvalidWalletAddress();
+  /// @notice Thrown when a withdrawal fee percentage greater than 10000 (100%) is set.
+  error InvalidWithdrawalFeePercentage();
   /// @notice Thrown when providing a zero or invalid withdrawal ID.
   error InvalidWithdrawalId();
   /// @notice Thrown when an invalid Wormhole core contract address is provided.
@@ -103,8 +113,4 @@ contract CbErrors {
   error UnsupportedToken();
   /// @notice Thrown when a zero token amount is specified for a payment or withdrawal.
   error ZeroAmountSpecified();
-  /// @notice Thrown when a withdrawal fee percentage greater than 10000 (100%) is set.
-  error InvalidWithdrawalFeePercentage();
-  /// @notice Thrown when a CCTP-only payment burn nonce has already been consumed by receiveForeignPaymentWithCircle.
-  error CctpBurnNonceAlreadyConsumed();
 }

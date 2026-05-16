@@ -273,6 +273,9 @@ contract CbStructs is CbEvents {
 
   /// Emitted when a payable is created or updated.
   struct PayablePayload {
+    /// Payload type discriminator for CCTP single-callback dispatch.
+    /// Always 1 for PayablePayload. Must be first byte of encoded output.
+    uint8 payloadType;
     /// Version of the payload.
     uint8 version;
     /// Type of the payable activity.
@@ -298,10 +301,19 @@ contract CbStructs is CbEvents {
   /// networks are different. That is the when a user is on a different chain
   /// from the payable.
   struct PaymentPayload {
+    /// Payload type discriminator for CCTP single-callback dispatch.
+    /// Always 2 for PaymentPayload. Must be first byte of encoded output.
+    uint8 payloadType;
     /// Version of the payload.
     uint8 version;
+    /// Type of the payment activity (always 5).
+    uint8 actionType;
     /// The Payable's ID.
     bytes32 payableId;
+    /// Circle Nonce of the payment.
+    uint64 circleNonce;
+    /// The amount paid on for the transaction.
+    uint64 amount;
     /// The Wormhole-normalized address of the involved token on the payable
     /// (destination) chain.
     bytes32 payableChainToken;
@@ -314,10 +326,6 @@ contract CbStructs is CbEvents {
     bytes32 payerChainToken;
     /// CAIP-2 cbChainId of where the User made the payment.
     bytes32 payerChainId;
-    /// The amount paid on for the transaction.
-    uint64 amount;
-    /// Circle Nonce of the payment.
-    uint64 circleNonce;
   }
 
   /// A combination of a token address and its amount from another chain.

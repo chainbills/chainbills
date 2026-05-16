@@ -117,6 +117,11 @@ contract CbEvents is CbErrors {
   /// @param emitterAddress The Wormhole-normalized address of the contract.
   event RegisteredForeignContract(bytes32 cbChainId, bytes32 emitterAddress);
 
+  /// Emitted when owner removes a registered foreign contract.
+  /// @param cbChainId The CAIP-2 chain ID of the removed contract.
+  /// @param emitterAddress The Wormhole-normalized address that was removed.
+  event UnregisteredForeignContract(bytes32 cbChainId, bytes32 emitterAddress);
+
   /// Emitted when owner (deployer) registers/updates a foreign token.
   /// @param cbChainId The CAIP-2 chain ID for the foreign token.
   /// @param foreignToken The Wormhole-normalized address of the foreign token.

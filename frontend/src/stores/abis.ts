@@ -954,6 +954,16 @@ export const gettersAbi = [
   },
   {
     type: 'event',
+    name: 'ReceivedForeignPaymentViaCircle',
+    inputs: [
+      { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payablePaymentId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'ReceivedPayableUpdateViaAdminSync',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
@@ -1072,6 +1082,15 @@ export const gettersAbi = [
   },
   {
     type: 'event',
+    name: 'UnregisteredForeignContract',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'emitterAddress', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'UnregisteredMatchingTokenForForeignChain',
     inputs: [
       { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
@@ -1133,8 +1152,10 @@ export const gettersAbi = [
     ],
     anonymous: false,
   },
+  { type: 'error', name: 'CctpBurnNonceAlreadyConsumed', inputs: [] },
+  { type: 'error', name: 'CircleAmountMismatch', inputs: [] },
+  { type: 'error', name: 'CircleMessageReceivingFailed', inputs: [] },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
-  { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
   { type: 'error', name: 'CircleRecipientMismatch', inputs: [] },
   { type: 'error', name: 'CircleSenderMismatch', inputs: [] },
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },
@@ -1156,6 +1177,7 @@ export const gettersAbi = [
   { type: 'error', name: 'InvalidCircleDomain', inputs: [] },
   { type: 'error', name: 'InvalidCircleTokenMinter', inputs: [] },
   { type: 'error', name: 'InvalidCircleTransmitter', inputs: [] },
+  { type: 'error', name: 'InvalidDataMessagingProtocol', inputs: [] },
   { type: 'error', name: 'InvalidFeeCollector', inputs: [] },
   { type: 'error', name: 'InvalidLocalCircleDomain', inputs: [] },
   { type: 'error', name: 'InvalidPayableId', inputs: [] },
@@ -1919,6 +1941,16 @@ export const gettersAbi = [
   },
   {
     type: 'event',
+    name: 'ReceivedForeignPaymentViaCircle',
+    inputs: [
+      { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payablePaymentId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'ReceivedPayableUpdateViaAdminSync',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
@@ -2037,6 +2069,15 @@ export const gettersAbi = [
   },
   {
     type: 'event',
+    name: 'UnregisteredForeignContract',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'emitterAddress', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'UnregisteredMatchingTokenForForeignChain',
     inputs: [
       { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
@@ -2098,8 +2139,10 @@ export const gettersAbi = [
     ],
     anonymous: false,
   },
+  { type: 'error', name: 'CctpBurnNonceAlreadyConsumed', inputs: [] },
+  { type: 'error', name: 'CircleAmountMismatch', inputs: [] },
+  { type: 'error', name: 'CircleMessageReceivingFailed', inputs: [] },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
-  { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
   { type: 'error', name: 'CircleRecipientMismatch', inputs: [] },
   { type: 'error', name: 'CircleSenderMismatch', inputs: [] },
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },
@@ -2121,6 +2164,7 @@ export const gettersAbi = [
   { type: 'error', name: 'InvalidCircleDomain', inputs: [] },
   { type: 'error', name: 'InvalidCircleTokenMinter', inputs: [] },
   { type: 'error', name: 'InvalidCircleTransmitter', inputs: [] },
+  { type: 'error', name: 'InvalidDataMessagingProtocol', inputs: [] },
   { type: 'error', name: 'InvalidFeeCollector', inputs: [] },
   { type: 'error', name: 'InvalidLocalCircleDomain', inputs: [] },
   { type: 'error', name: 'InvalidPayableId', inputs: [] },
@@ -2457,10 +2501,23 @@ export const mainAbi = [
   },
   {
     type: 'function',
-    name: 'handleReceiveMessage',
+    name: 'handleReceiveFinalizedMessage',
     inputs: [
       { name: '', type: 'uint32', internalType: 'uint32' },
       { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'uint32', internalType: 'uint32' },
+      { name: '', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'handleReceiveUnfinalizedMessage',
+    inputs: [
+      { name: '', type: 'uint32', internalType: 'uint32' },
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'uint32', internalType: 'uint32' },
       { name: '', type: 'bytes', internalType: 'bytes' },
     ],
     outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
@@ -2716,6 +2773,8 @@ export const mainAbi = [
           { name: 'wormholeEncoded', type: 'bytes', internalType: 'bytes' },
           { name: 'circleBridgeMessage', type: 'bytes', internalType: 'bytes' },
           { name: 'circleAttestation', type: 'bytes', internalType: 'bytes' },
+          { name: 'circlePayloadMessage', type: 'bytes', internalType: 'bytes' },
+          { name: 'circlePayloadAttestation', type: 'bytes', internalType: 'bytes' },
         ],
       },
     ],
@@ -2871,8 +2930,7 @@ export const mainAbi = [
     type: 'function',
     name: 'setupCctpOnly',
     inputs: [
-      { name: 'circleTransmitterAddr', type: 'address', internalType: 'address' },
-      { name: 'circleDomain', type: 'uint32', internalType: 'uint32' },
+      { name: 'circleBridgeAddr', type: 'address', internalType: 'address' },
       { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [],
@@ -2949,6 +3007,13 @@ export const mainAbi = [
     stateMutability: 'nonpayable',
   },
   { type: 'function', name: 'unpause', inputs: [], outputs: [], stateMutability: 'nonpayable' },
+  {
+    type: 'function',
+    name: 'unregisterForeignContract',
+    inputs: [{ name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
   {
     type: 'function',
     name: 'unregisterMatchingTokenForForeignChain',
@@ -3227,6 +3292,16 @@ export const mainAbi = [
   },
   {
     type: 'event',
+    name: 'ReceivedForeignPaymentViaCircle',
+    inputs: [
+      { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payablePaymentId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'ReceivedPayableUpdateViaAdminSync',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
@@ -3381,6 +3456,15 @@ export const mainAbi = [
   },
   {
     type: 'event',
+    name: 'UnregisteredForeignContract',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'emitterAddress', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'UnregisteredMatchingTokenForForeignChain',
     inputs: [
       { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
@@ -3458,8 +3542,10 @@ export const mainAbi = [
     ],
   },
   { type: 'error', name: 'AddressEmptyCode', inputs: [{ name: 'target', type: 'address', internalType: 'address' }] },
+  { type: 'error', name: 'CctpBurnNonceAlreadyConsumed', inputs: [] },
+  { type: 'error', name: 'CircleAmountMismatch', inputs: [] },
+  { type: 'error', name: 'CircleMessageReceivingFailed', inputs: [] },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
-  { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
   { type: 'error', name: 'CircleRecipientMismatch', inputs: [] },
   { type: 'error', name: 'CircleSenderMismatch', inputs: [] },
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },
@@ -3489,6 +3575,7 @@ export const mainAbi = [
   { type: 'error', name: 'InvalidCircleDomain', inputs: [] },
   { type: 'error', name: 'InvalidCircleTokenMinter', inputs: [] },
   { type: 'error', name: 'InvalidCircleTransmitter', inputs: [] },
+  { type: 'error', name: 'InvalidDataMessagingProtocol', inputs: [] },
   { type: 'error', name: 'InvalidFeeCollector', inputs: [] },
   { type: 'error', name: 'InvalidInitialization', inputs: [] },
   { type: 'error', name: 'InvalidLocalCircleDomain', inputs: [] },
@@ -3838,10 +3925,23 @@ export const mainAbi = [
   },
   {
     type: 'function',
-    name: 'handleReceiveMessage',
+    name: 'handleReceiveFinalizedMessage',
     inputs: [
       { name: '', type: 'uint32', internalType: 'uint32' },
       { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'uint32', internalType: 'uint32' },
+      { name: '', type: 'bytes', internalType: 'bytes' },
+    ],
+    outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'handleReceiveUnfinalizedMessage',
+    inputs: [
+      { name: '', type: 'uint32', internalType: 'uint32' },
+      { name: '', type: 'bytes32', internalType: 'bytes32' },
+      { name: '', type: 'uint32', internalType: 'uint32' },
       { name: '', type: 'bytes', internalType: 'bytes' },
     ],
     outputs: [{ name: '', type: 'bool', internalType: 'bool' }],
@@ -4097,6 +4197,8 @@ export const mainAbi = [
           { name: 'wormholeEncoded', type: 'bytes', internalType: 'bytes' },
           { name: 'circleBridgeMessage', type: 'bytes', internalType: 'bytes' },
           { name: 'circleAttestation', type: 'bytes', internalType: 'bytes' },
+          { name: 'circlePayloadMessage', type: 'bytes', internalType: 'bytes' },
+          { name: 'circlePayloadAttestation', type: 'bytes', internalType: 'bytes' },
         ],
       },
     ],
@@ -4252,8 +4354,7 @@ export const mainAbi = [
     type: 'function',
     name: 'setupCctpOnly',
     inputs: [
-      { name: 'circleTransmitterAddr', type: 'address', internalType: 'address' },
-      { name: 'circleDomain', type: 'uint32', internalType: 'uint32' },
+      { name: 'circleBridgeAddr', type: 'address', internalType: 'address' },
       { name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' },
     ],
     outputs: [],
@@ -4330,6 +4431,13 @@ export const mainAbi = [
     stateMutability: 'nonpayable',
   },
   { type: 'function', name: 'unpause', inputs: [], outputs: [], stateMutability: 'nonpayable' },
+  {
+    type: 'function',
+    name: 'unregisterForeignContract',
+    inputs: [{ name: 'cbChainId', type: 'bytes32', internalType: 'bytes32' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
   {
     type: 'function',
     name: 'unregisterMatchingTokenForForeignChain',
@@ -4608,6 +4716,16 @@ export const mainAbi = [
   },
   {
     type: 'event',
+    name: 'ReceivedForeignPaymentViaCircle',
+    inputs: [
+      { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payablePaymentId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'ReceivedPayableUpdateViaAdminSync',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
@@ -4762,6 +4880,15 @@ export const mainAbi = [
   },
   {
     type: 'event',
+    name: 'UnregisteredForeignContract',
+    inputs: [
+      { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+      { name: 'emitterAddress', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'UnregisteredMatchingTokenForForeignChain',
     inputs: [
       { name: 'cbChainId', type: 'bytes32', indexed: false, internalType: 'bytes32' },
@@ -4839,8 +4966,10 @@ export const mainAbi = [
     ],
   },
   { type: 'error', name: 'AddressEmptyCode', inputs: [{ name: 'target', type: 'address', internalType: 'address' }] },
+  { type: 'error', name: 'CctpBurnNonceAlreadyConsumed', inputs: [] },
+  { type: 'error', name: 'CircleAmountMismatch', inputs: [] },
+  { type: 'error', name: 'CircleMessageReceivingFailed', inputs: [] },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
-  { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
   { type: 'error', name: 'CircleRecipientMismatch', inputs: [] },
   { type: 'error', name: 'CircleSenderMismatch', inputs: [] },
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },
@@ -4870,6 +4999,7 @@ export const mainAbi = [
   { type: 'error', name: 'InvalidCircleDomain', inputs: [] },
   { type: 'error', name: 'InvalidCircleTokenMinter', inputs: [] },
   { type: 'error', name: 'InvalidCircleTransmitter', inputs: [] },
+  { type: 'error', name: 'InvalidDataMessagingProtocol', inputs: [] },
   { type: 'error', name: 'InvalidFeeCollector', inputs: [] },
   { type: 'error', name: 'InvalidInitialization', inputs: [] },
   { type: 'error', name: 'InvalidLocalCircleDomain', inputs: [] },

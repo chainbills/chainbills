@@ -155,6 +155,32 @@ contract CbAdminSyncTest is CbStructs, Test {
     assertFalse(fp.isClosed);
   }
 
+  function testAdminSyncActionType1AppliesIsClosedInSnapshot() public {
+    // actionType 1 with isClosed=true must propagate closed status.
+    // This mirrors the publishPayableDetails path where a closed payable is
+    // re-broadcast and foreign chains must learn it is closed.
+    vm.prank(admin);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, true, new TokenAndAmountForeign[](0));
+
+    assertTrue(cbGetters.getForeignPayable(payableId).isClosed);
+  }
+
+  function testAdminSyncActionType4DoesNotChangeIsClosedStatus() public {
+    // Create closed, then ATAA update must not alter isClosed.
+    vm.prank(admin);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, true, new TokenAndAmountForeign[](0));
+    assertTrue(cbGetters.getForeignPayable(payableId).isClosed);
+
+    TokenAndAmountForeign[] memory newAtaa = new TokenAndAmountForeign[](1);
+    newAtaa[0] = TokenAndAmountForeign({token: bytes32(uint256(5)), amount: 500e6});
+    vm.prank(admin);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 4, false, newAtaa);
+
+    // isClosed must remain true — actionType 4 must not touch it.
+    assertTrue(cbGetters.getForeignPayable(payableId).isClosed);
+    assertEq(cbGetters.getForeignPayable(payableId).allowedTokensAndAmountsCount, 1);
+  }
+
   function testAdminSyncActionType1IncrementsChainStats() public {
     vm.prank(admin);
     chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));

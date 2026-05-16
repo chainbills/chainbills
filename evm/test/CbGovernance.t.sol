@@ -170,6 +170,12 @@ contract CbGovernanceTest is CbStructs, Test {
     vm.stopPrank();
   }
 
+  function testSetFeeCollectorAddressZeroAddressReverts() public {
+    vm.prank(owner);
+    vm.expectRevert(InvalidFeeCollector.selector);
+    chainbills.setFeeCollectorAddress(address(0));
+  }
+
   function testSetFeeCollectorAddress() public {
     // Try to set fee collector with non-owner and confirm revert
     vm.startPrank(nonOwner);

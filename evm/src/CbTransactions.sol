@@ -52,6 +52,7 @@ contract CbTransactions is CbUtils {
         return;
       }
     }
+    revert NoBalanceForWithdrawalToken();
   }
 
   /// Parses and validates Circle v2 message header fields (source/target domain, sender, recipient).
@@ -225,29 +226,15 @@ contract CbTransactions is CbUtils {
     internal
     returns (bytes32 withdrawalId)
   {
-    /* TRANSFER */
-    // Prepare withdraw amounts and fees
+    // Prepare withdraw amounts and fees.
     // 10000 is 100%, that is accounting for 2 decimal places.
     uint256 percent = (amount * config.withdrawalFeePercentage) / 10000;
     uint256 maxFees = tokenDetails[token].maxWithdrawalFees;
     uint256 fees = percent > maxFees ? maxFees : percent;
     uint256 amtDue = amount - fees;
 
-    // Transfer amounts and fees to host and fee collector.
-    // NOTE: Since this executes via delegatecall from Chainbills.sol,
-    // the native `.call` transfers funds directly from the proxy's balance.
-    Payable storage _payable = payables[payableId];
-    if (token == address(this)) {
-      (bool s1,) = payable(_payable.host).call{value: amtDue}('');
-      if (!s1) revert UnsuccessfulWithdrawal();
-      (bool s2,) = payable(config.feeCollector).call{value: fees}('');
-      if (!s2) revert UnsuccessfulFeesWithdrawal();
-    } else {
-      IERC20(token).safeTransfer(_payable.host, amtDue);
-      IERC20(token).safeTransfer(config.feeCollector, fees);
-    }
-
     /* STATE CHANGES */
+    Payable storage _payable = payables[payableId];
     // Increment the chainStats for withdrawalsCount and activitiesCount.
     chainStats.withdrawalsCount++;
     chainStats.activitiesCount++;
@@ -309,6 +296,19 @@ contract CbTransactions is CbUtils {
       users[_payable.host].withdrawalsCount,
       _payable.withdrawalsCount
     );
+
+    /* TRANSFER */
+    // External calls come last (CEI). The native `.call` transfers funds
+    // directly from the proxy's balance since this runs via delegatecall.
+    if (token == address(this)) {
+      (bool s1,) = payable(_payable.host).call{value: amtDue}('');
+      if (!s1) revert UnsuccessfulWithdrawal();
+      (bool s2,) = payable(config.feeCollector).call{value: fees}('');
+      if (!s2) revert UnsuccessfulFeesWithdrawal();
+    } else {
+      IERC20(token).safeTransfer(_payable.host, amtDue);
+      IERC20(token).safeTransfer(config.feeCollector, fees);
+    }
   }
 
   /// Transfers the amount of tokens from a payer to a payable.
@@ -335,11 +335,15 @@ contract CbTransactions is CbUtils {
     // that the token and amount are matching.
     uint8 aTaaLength = _payable.allowedTokensAndAmountsCount;
     if (aTaaLength > 0) {
+      bool found = false;
       for (uint8 i = 0; i < aTaaLength; i++) {
         TokenAndAmount storage ataa = payableAllowedTokensAndAmounts[payableId][i];
-        if (ataa.token == token && ataa.amount == amount) break;
-        if (i == aTaaLength - 1) revert MatchingTokenAndAmountNotFound();
+        if (ataa.token == token && ataa.amount == amount) {
+          found = true;
+          break;
+        }
       }
+      if (!found) revert MatchingTokenAndAmountNotFound();
     }
 
     /* TRANSFER */
@@ -361,11 +365,6 @@ contract CbTransactions is CbUtils {
     // Use config.cbChainId as the payer chain ID (this chain).
     payablePaymentId = _recordPayablePayment(payableId, toWormholeFormat(msg.sender), config.cbChainId, token, amount);
 
-    // If the Payable is an auto-withdraw, then make transfer of just-paid
-    // amount to the payable's owner and update state immediately by calling
-    // helper function.
-    // NOTE: This triggers an external call. This is safe from reentrancy
-    // because the `pay` function on the Chainbills proxy has a `nonReentrant` modifier.
     if (_payable.isAutoWithdraw) _actualizeWithdrawal(payableId, token, amount);
   }
 

@@ -436,6 +436,7 @@ contract Chainbills is
     public
     payable
     nonReentrant
+    whenNotPaused
     returns (uint64 wormholeMessageSequence)
   {
     (bool success, bytes memory result) = payablesLogic.delegatecall(msg.data);

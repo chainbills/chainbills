@@ -26,7 +26,7 @@ contract CbPayables is CbUtils {
   {
     /* CHECKS */
     // Ensure that the allowedTokensAndAmounts are valid.
-    uint8 ataaLength = uint8(allowedTokensAndAmounts.length);
+    uint8 ataaLength = SafeCast.toUint8(allowedTokensAndAmounts.length);
     for (uint8 i = 0; i < ataaLength; i++) {
       // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
@@ -233,15 +233,8 @@ contract CbPayables is CbUtils {
     Payable storage _payable = payables[payableId];
     if (_payable.host != msg.sender) revert NotYourPayable();
 
-    // Clear the currently stored allowedTokensAndAmounts for the payable
-    // NOTE: Loop is bounded safely by uint8 (max 255), so no out-of-gas risk here.
-    for (uint8 i = _payable.allowedTokensAndAmountsCount; i > 0; i--) {
-      // Remove all previously set ATAAs in storage by popping
-      payableAllowedTokensAndAmounts[payableId].pop();
-    }
-
     // Ensure that the allowedTokensAndAmounts are valid.
-    uint8 ataaLength = uint8(allowedTokensAndAmounts.length);
+    uint8 ataaLength = SafeCast.toUint8(allowedTokensAndAmounts.length);
     for (uint8 i = 0; i < ataaLength; i++) {
       // Ensure tokens are valid.
       address token = allowedTokensAndAmounts[i].token;
@@ -258,6 +251,12 @@ contract CbPayables is CbUtils {
     if (hasWormhole()) _ensureWormholeFees();
 
     /* STATE CHANGES */
+    // Clear the previously stored allowedTokensAndAmounts for the payable.
+    // NOTE: Loop is bounded safely by uint8 (max 255), so no out-of-gas risk here.
+    for (uint8 i = _payable.allowedTokensAndAmountsCount; i > 0; i--) {
+      payableAllowedTokensAndAmounts[payableId].pop();
+    }
+
     // Update the payable's allowedTokensAndAmounts count
     _payable.allowedTokensAndAmountsCount = ataaLength;
 
@@ -522,7 +521,7 @@ contract CbPayables is CbUtils {
         foreignPayableAllowedTokensAndAmounts[payableId].pop();
       }
 
-      uint8 ataaLength = uint8(payload.allowedTokensAndAmounts.length);
+      uint8 ataaLength = SafeCast.toUint8(payload.allowedTokensAndAmounts.length);
       for (uint8 i = 0; i < ataaLength; i++) {
         foreignPayableAllowedTokensAndAmounts[payableId].push(
           TokenAndAmountForeign({
@@ -531,6 +530,12 @@ contract CbPayables is CbUtils {
         );
       }
       foreignPayable.allowedTokensAndAmountsCount = ataaLength;
+
+      // For actionType 1 (create/snapshot), also sync the closed status so that
+      // publishPayableDetails correctly mirrors a closed payable to foreign chains.
+      if (payload.actionType == 1) {
+        foreignPayable.isClosed = payload.isClosed;
+      }
     } else if (payload.actionType == 2 || payload.actionType == 3) {
       // Close (2) or Reopen (3): update isClosed.
       foreignPayable.isClosed = payload.isClosed;

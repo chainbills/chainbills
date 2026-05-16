@@ -2,6 +2,7 @@
 pragma solidity ^0.8.30;
 
 import {ERC1967Proxy} from '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol';
+import {SafeCast} from '@openzeppelin/contracts/utils/math/SafeCast.sol';
 import {Test} from 'forge-std/Test.sol';
 import {Chainbills} from 'src/Chainbills.sol';
 import {CbGetters} from 'src/CbGetters.sol';
@@ -50,6 +51,30 @@ contract CbPayablesManagementTest is CbStructs, Test {
     deal(address(usdc), user, usdcAmt * 5);
     vm.prank(user);
     usdc.approve(address(chainbills), usdcAmt * 5);
+  }
+
+  function testCreatePayableWith256AtaaReverts() public {
+    // 256 elements silently truncated to uint8(0) before fix — now SafeCast reverts.
+    TokenAndAmount[] memory ataa = new TokenAndAmount[](256);
+    for (uint256 i = 0; i < 256; i++) {
+      ataa[i] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+    }
+    vm.prank(user);
+    vm.expectRevert(abi.encodeWithSelector(SafeCast.SafeCastOverflowedUintDowncast.selector, uint8(8), uint256(256)));
+    chainbills.createPayable(ataa, false);
+  }
+
+  function testUpdatePayableAtaaWith256ItemsReverts() public {
+    vm.prank(user);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    TokenAndAmount[] memory ataa = new TokenAndAmount[](256);
+    for (uint256 i = 0; i < 256; i++) {
+      ataa[i] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+    }
+    vm.prank(user);
+    vm.expectRevert(abi.encodeWithSelector(SafeCast.SafeCastOverflowedUintDowncast.selector, uint8(8), uint256(256)));
+    chainbills.updatePayableAllowedTokensAndAmounts(payableId, ataa);
   }
 
   function testRevertingPayableCreation() public {

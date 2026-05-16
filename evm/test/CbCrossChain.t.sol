@@ -1108,4 +1108,338 @@ contract CbCrossChainTest is CbStructs, Test {
     bool ok = chainbills.handleReceiveFinalizedMessage(foreignCircleDomain, foreignEmitter, 2000, payload);
     assertTrue(ok);
   }
+
+  // -------------------------------------------------------------------------
+  // handleReceiveUnfinalizedMessage
+  // -------------------------------------------------------------------------
+
+  function testHandleReceiveUnfinalizedMessageReturnsFalse() public {
+    // Chainbills only processes finalized messages. Unfinalized always returns false.
+    bool result = chainbills.handleReceiveUnfinalizedMessage(foreignCircleDomain, foreignEmitter, 500, bytes(''));
+    assertFalse(result);
+  }
+
+  // -------------------------------------------------------------------------
+  // receiveForeignPaymentWithCircle — both params empty
+  // -------------------------------------------------------------------------
+
+  function testReceiveForeignPaymentRevertsOnBothEmpty() public {
+    vm.expectRevert(InvalidPayload.selector);
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: bytes(''),
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // payForeignWithCircle — unregistered Circle domain
+  // -------------------------------------------------------------------------
+
+  function testPayForeignWithCircleRevertsOnUnregisteredCircleDomain() public {
+    // Create a foreign payable on a chain that has no Circle domain registered.
+    // cbChainIdToCircleDomain[newChain] = 0 (default), and
+    // circleDomainToCbChainId[0] is either bytes32(0) or thisCbChainId (not newChain),
+    // so the roundtrip check fails.
+    bytes32 unregisteredChain = keccak256('eip155:9999');
+    bytes32 fpId = keccak256('pfc-no-circle-domain');
+    vm.prank(owner);
+    chainbills.adminSyncForeignPayable(fpId, unregisteredChain, 1, 1, false, new TokenAndAmountForeign[](0));
+
+    address payer = makeAddr('payer-no-circle');
+    deal(address(usdc), payer, 1e6);
+    vm.prank(payer);
+    usdc.approve(address(chainbills), 1e6);
+
+    vm.prank(payer);
+    vm.expectRevert(InvalidCircleDomain.selector);
+    chainbills.payForeignWithCircle(fpId, address(usdc), 1e6);
+  }
+
+  // -------------------------------------------------------------------------
+  // CCTP-only receive path helpers
+  // -------------------------------------------------------------------------
+
+  /// Build a 148-byte CCTP v2 data message header + body.
+  /// Body must be exactly 211 bytes (encoded PaymentPayload).
+  /// Total is 359 bytes — the exact length checked by receiveForeignPaymentWithCircle.
+  function _buildCircleDataMessage(uint32 srcDomain, bytes32 sender, bytes32 recipient, bytes memory body)
+    internal
+    pure
+    returns (bytes memory)
+  {
+    // CCTP v2 header (148 bytes):
+    // version(4)|srcDomain(4)|destDomain(4)|nonce(32)|sender(32)|recipient(32)|destCaller(32)|minThreshold(4)|thresholdExecuted(4)
+    bytes memory header = abi.encodePacked(
+      uint32(0), srcDomain, uint32(0), bytes32(0), sender, recipient, bytes32(0), uint32(2000), uint32(2000)
+    );
+    return abi.encodePacked(header, body);
+  }
+
+  /// Encode a PaymentPayload for CCTP-only receive tests.
+  /// Returns exactly 211 bytes.
+  function _buildPaymentPayloadBody(bytes32 localPayableId, uint64 amount, address payer_)
+    internal
+    view
+    returns (bytes memory)
+  {
+    return PaymentPayload({
+      payloadType: 2,
+      version: 1,
+      actionType: 5,
+      payableId: localPayableId,
+      circleNonce: 0,
+      amount: amount,
+      payableChainToken: toWormholeFormat(address(usdc)),
+      payableChainId: thisCbChainId,
+      payer: toWormholeFormat(payer_),
+      payerChainToken: foreignToken,
+      payerChainId: foreignCbChainId
+    }).encode();
+  }
+
+  // -------------------------------------------------------------------------
+  // CCTP-only receive path — error cases
+  // -------------------------------------------------------------------------
+
+  function testReceiveForeignPaymentCctpOnlyRevertsOnInvalidDomain() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    bytes memory payBody = _buildPaymentPayloadBody(localPayableId, 1e6, makeAddr('cctp-domain-payer'));
+    // srcDomain 99 is not registered → circleDomainToCbChainId[99] == bytes32(0) → InvalidCircleDomain.
+    bytes memory dataMsg =
+      _buildCircleDataMessage(uint32(99), foreignEmitter, toWormholeFormat(address(chainbills)), payBody);
+
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(uint256(1)), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    vm.expectRevert(InvalidCircleDomain.selector);
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  function testReceiveForeignPaymentCctpOnlyRevertsOnSenderMismatch() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    bytes memory payBody = _buildPaymentPayloadBody(localPayableId, 1e6, makeAddr('cctp-sender-payer'));
+    bytes32 wrongSender = toWormholeFormat(makeAddr('wrong-cctp-sender'));
+    bytes memory dataMsg =
+      _buildCircleDataMessage(foreignCircleDomain, wrongSender, toWormholeFormat(address(chainbills)), payBody);
+
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(uint256(2)), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    vm.expectRevert(CircleSenderMismatch.selector);
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  function testReceiveForeignPaymentCctpOnlyRevertsOnRecipientMismatch() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    bytes memory payBody = _buildPaymentPayloadBody(localPayableId, 1e6, makeAddr('cctp-recip-payer'));
+    bytes32 wrongRecipient = toWormholeFormat(makeAddr('wrong-cctp-recipient'));
+    bytes memory dataMsg = _buildCircleDataMessage(foreignCircleDomain, foreignEmitter, wrongRecipient, payBody);
+
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(uint256(3)), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    vm.expectRevert(CircleRecipientMismatch.selector);
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  function testReceiveForeignPaymentCctpOnlyRevertsOnDataMessageFailed() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    bytes memory payBody = _buildPaymentPayloadBody(localPayableId, 1e6, makeAddr('cctp-fail-payer'));
+    bytes memory dataMsg =
+      _buildCircleDataMessage(foreignCircleDomain, foreignEmitter, toWormholeFormat(address(chainbills)), payBody);
+
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(uint256(4)), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    mockCircleTransmitter.setReceiveSuccess(false);
+    vm.expectRevert(CircleMessageReceivingFailed.selector);
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  function testReceiveForeignPaymentCctpOnlyRevertsOnAmountMismatch() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    // Payload declares 1e6.
+    bytes memory payBody = _buildPaymentPayloadBody(localPayableId, 1e6, makeAddr('cctp-amt-payer'));
+    bytes memory dataMsg =
+      _buildCircleDataMessage(foreignCircleDomain, foreignEmitter, toWormholeFormat(address(chainbills)), payBody);
+
+    // Burn message encodes 2e6 — mismatch.
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(uint256(5)), foreignEmitter, toWormholeFormat(address(chainbills)), 2e6
+    );
+
+    bytes32 remoteKey = keccak256(abi.encodePacked(foreignCircleDomain, foreignToken));
+    mockCircleTokenMinter.setLocalToken(remoteKey, address(usdc));
+
+    vm.expectRevert(CircleAmountMismatch.selector);
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  function testReceiveForeignPaymentCctpOnlyRevertsOnBurnNonceAlreadyConsumed() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    bytes32 burnNonce = bytes32(uint256(77));
+    bytes memory payBody = _buildPaymentPayloadBody(localPayableId, 1e6, makeAddr('cctp-nonce-payer'));
+    bytes memory dataMsg =
+      _buildCircleDataMessage(foreignCircleDomain, foreignEmitter, toWormholeFormat(address(chainbills)), payBody);
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), burnNonce, foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    bytes32 remoteKey = keccak256(abi.encodePacked(foreignCircleDomain, foreignToken));
+    mockCircleTokenMinter.setLocalToken(remoteKey, address(usdc));
+
+    // First call succeeds — burn nonce is now marked consumed.
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+
+    // Second call with the same burn nonce must revert.
+    vm.expectRevert(CctpBurnNonceAlreadyConsumed.selector);
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // CCTP-only receive path — success cases
+  // -------------------------------------------------------------------------
+
+  function testReceiveForeignPaymentCctpOnlySuccess() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    bytes memory payBody = _buildPaymentPayloadBody(localPayableId, 1e6, makeAddr('cctp-only-payer'));
+    bytes memory dataMsg =
+      _buildCircleDataMessage(foreignCircleDomain, foreignEmitter, toWormholeFormat(address(chainbills)), payBody);
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(uint256(88)), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    bytes32 remoteKey = keccak256(abi.encodePacked(foreignCircleDomain, foreignToken));
+    mockCircleTokenMinter.setLocalToken(remoteKey, address(usdc));
+
+    vm.expectEmit(true, true, false, false);
+    emit ReceivedForeignPaymentViaCircle(localPayableId, foreignCbChainId, bytes32(0));
+
+    bytes32 payablePaymentId = chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+
+    assertTrue(payablePaymentId != bytes32(0));
+    PayablePayment memory pp = cbGetters.getPayablePayment(payablePaymentId);
+    assertEq(pp.payableId, localPayableId);
+    assertEq(pp.token, address(usdc));
+    assertEq(pp.amount, 1e6);
+    assertEq(pp.payerChainId, foreignCbChainId);
+  }
+
+  function testReceiveForeignPaymentCctpOnlyWithAutoWithdraw() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), true);
+
+    // Pre-fund the proxy with USDC to simulate Circle minting.
+    deal(address(usdc), address(chainbills), 1e6);
+
+    bytes memory payBody = _buildPaymentPayloadBody(localPayableId, 1e6, makeAddr('cctp-only-autow-payer'));
+    bytes memory dataMsg =
+      _buildCircleDataMessage(foreignCircleDomain, foreignEmitter, toWormholeFormat(address(chainbills)), payBody);
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(uint256(99)), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    bytes32 remoteKey = keccak256(abi.encodePacked(foreignCircleDomain, foreignToken));
+    mockCircleTokenMinter.setLocalToken(remoteKey, address(usdc));
+
+    chainbills.receiveForeignPaymentWithCircle(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+
+    // Auto-withdraw transferred funds minus fees to host.
+    assertGt(usdc.balanceOf(host), 0);
+  }
 }

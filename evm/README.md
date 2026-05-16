@@ -20,6 +20,7 @@ Here you will find engineering specifics that apply to this EVM contract.
 - [Creating IDs](#creating-ids)
 - [Upgradeability](#upgradeability)
 - [`delegatecall`](#delegatecall)
+- [Cross-Chain Messaging](#cross-chain-messaging)
 - [State Getters and Pagination](#state-getters-and-pagination)
 - [Tests](#tests)
 - [About Foundry](#about-foundry)
@@ -185,6 +186,79 @@ function pay(bytes32, /* payableId */ address, /* token */ uint256 /* amount */ 
 Notwithstanding, the main Chainbills contract declares its governance methods (`onlyOnwer`) by itself.
 
 Luckily, if there is an update to the internal flow of CbPayables or CbTransactions, we can redeploy new variants and set the new addresses as the logic handlers in the main Chainbills contract without upgrading Chainbills itself. Of course, only the deployer / owner wallet of Chainbills can do the upgrade.
+
+## Cross-Chain Messaging
+
+Chainbills uses up to two cross-chain protocols depending on how a chain is configured.
+
+**Wormhole + Circle CCTP (most EVM chains):** When both Wormhole and Circle are configured via `setupWormholeAndCircle`, payable updates are broadcast with a single Wormhole `publishMessage`. Wormhole relayers deliver the VAA to all registered chains simultaneously. Cross-chain payments burn tokens on the payer's chain via Circle CCTP, and the payment record is delivered alongside via Wormhole.
+
+**CCTP-only (chains without Wormhole support):** When only Circle is configured via `setupCctpOnly`, payable updates are broadcast by iterating every entry in `registeredCbChainIds` and calling `circleTransmitter().sendMessage()` once per chain that is marked as CCTP. Cross-chain payments send both the token burn and the `PaymentPayload` as separate Circle messages — no Wormhole at all.
+
+The `_broadcastPayableUpdate` function in `CbPayables` handles this automatically:
+
+```solidity
+if (hasWormhole()) {
+  sequence = _publishPayloadMessage(encoded);    // one VAA covers all Wormhole chains
+}
+if (hasCctp()) {
+  for (uint256 i = 0; i < registeredCbChainIds.length; i++) {
+    bytes32 chainId = registeredCbChainIds[i];
+    if (supportsCctp(chainId)) {
+      circleTransmitter().sendMessage(domain, recipient, bytes32(0), 2000, encoded);
+    }
+  }
+}
+```
+
+`destinationCaller = bytes32(0)` for payable updates — anyone can submit them to Circle's transmitter since payable updates carry no funds. For payment data messages in `payForeignWithCircle`, `destinationCaller` is set to the registered Chainbills contract on the destination chain. This means only our contract can submit the burn or data message to Circle on the destination, preventing griefing attacks where an attacker submits the burn directly without our contract recording the payment.
+
+### Payload Type Discriminator
+
+Every message body begins with a `payloadType` byte:
+
+- `0x01` = `PayablePayload` (payable creation, close, reopen, or ATAA update)
+- `0x02` = `PaymentPayload` (cross-chain payment details)
+
+Both structs embed this field as their first field so the encoded output is self-describing. The `handleReceiveFinalizedMessage` callback dispatches on this byte:
+
+```solidity
+uint8 msgType = uint8(messageBody[0]);
+if (msgType == 2) return true;       // PaymentPayload companion — no-op (see below)
+if (msgType != 1) revert InvalidPayload();
+PayablePayload memory update = messageBody.decodePayablePayload();
+// apply update to foreignPayables state...
+```
+
+### Circle CCTP Callback (`handleReceiveFinalizedMessage`)
+
+Circle's `MessageTransmitter` calls `handleReceiveFinalizedMessage` on the `recipient` contract after verifying a data message's attestation. Chainbills implements this callback (required by `IMessageHandlerV2`) in `CbPayables`:
+
+- **PayablePayload (type 1):** Decoded, nonce-checked against `payableUpdateNonces`, and applied to the `foreignPayables` mapping. Both Wormhole and CCTP deliveries share the same nonce — whichever arrives first wins, and the other is rejected as stale.
+- **PaymentPayload (type 2):** Returns `true` immediately with no state change. The payment was already recorded in `receiveForeignPaymentWithCircle` in the same transaction that submitted this data message. This callback exists only to let Circle consume the data-message nonce for replay protection.
+- **Unknown type:** Reverts with `InvalidPayload`.
+
+`handleReceiveUnfinalizedMessage` always returns `false`. Chainbills only processes finalized (threshold = 2000) messages.
+
+> **Note:** Circle only fires these callbacks for explicit `sendMessage` data messages. Burn messages (`depositForBurn`) are routed to Circle's internal `TokenMessenger` and do **not** trigger callbacks on Chainbills. The type-1 / type-2 dispatch is therefore safe from burn-message interference.
+
+### Dual-Message Payment Receipt (CCTP-only path)
+
+When a chain has no Wormhole, receiving a cross-chain payment requires two separate Circle messages submitted together in one call to `receiveForeignPaymentWithCircle`:
+
+- `circleBridgeMessage` — the Circle burn message that triggers USDC minting
+- `circlePayloadMessage` — a Circle data message containing the encoded `PaymentPayload`
+
+These are processed in strict order:
+
+1. **Validate data message header** (source domain, sender, recipient) from raw bytes — just enough to authenticate the source before Circle runs its attestation check.
+2. **Submit data message to Circle first.** Circle verifies the attestation and consumes the message nonce (preventing replay). It then fires `handleReceiveFinalizedMessage` on this contract, which returns `true` for type 2 without any state change. Only after Circle has verified the entire message body do we decode the `PaymentPayload` from it.
+3. **Validate burn message** (domain, sender, recipient, and burn amount must equal the declared payload amount — `CircleAmountMismatch` otherwise).
+4. **Burn nonce replay protection.** The burn nonce is marked consumed in `consumedCctpBurnNonces` before the Circle call. Circle's own nonce tracking handles the data message; we handle the burn message separately because Circle does not replay-protect burn messages at the application level.
+5. **Submit burn message to Circle** — mints USDC to this contract.
+6. **Record payment and optionally auto-withdraw.**
+
+Step 2 (data message verified first) is security-critical: the `PaymentPayload` fields (payableId, payer, amount) are only trusted after Circle has cryptographically authenticated the message body via attestation. An attacker who crafts a data message with a different `payableId` or inflated `amount` would fail Circle's attestation check in step 2 before Chainbills reads a single payload field.
 
 ## State Getters and Pagination
 

@@ -423,6 +423,66 @@ contract CbSetupTest is CbStructs, Test {
   }
 
   // ------------------------------------------------------------------------
+  // unregisterForeignContract
+  // ------------------------------------------------------------------------
+
+  function testUnregisterForeignContractRevertsOnZeroChainId() public {
+    vm.prank(owner);
+    vm.expectRevert(InvalidChainId.selector);
+    chainbills.unregisterForeignContract(bytes32(0));
+  }
+
+  function testUnregisterForeignContractRevertsOnUnregisteredChain() public {
+    // foreignCbChainId has never been registered → emitterAddress == bytes32(0) → InvalidWormholeEmitterAddress.
+    vm.prank(owner);
+    vm.expectRevert(InvalidWormholeEmitterAddress.selector);
+    chainbills.unregisterForeignContract(foreignCbChainId);
+  }
+
+  function testUnregisterForeignContractRevertsForNonOwner() public {
+    bytes32 emitter = bytes32(uint256(uint160(makeAddr('emitter-unrg'))));
+    vm.prank(owner);
+    chainbills.registerForeignContract(foreignCbChainId, emitter);
+
+    vm.prank(nonOwner);
+    vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, nonOwner));
+    chainbills.unregisterForeignContract(foreignCbChainId);
+  }
+
+  function testUnregisterForeignContractSuccess() public {
+    bytes32 emitter = bytes32(uint256(uint160(makeAddr('emitter-success'))));
+    vm.startPrank(owner);
+    chainbills.registerForeignContract(foreignCbChainId, emitter);
+
+    vm.expectEmit(true, true, true, true);
+    emit UnregisteredForeignContract(foreignCbChainId, emitter);
+    chainbills.unregisterForeignContract(foreignCbChainId);
+    vm.stopPrank();
+
+    assertEq(chainbills.registeredForeignContracts(foreignCbChainId), bytes32(0));
+  }
+
+  function testUnregisterForeignContractRemovesFromRegisteredList() public {
+    bytes32 secondChain = keccak256('eip155:3');
+    bytes32 emitter1 = bytes32(uint256(uint160(makeAddr('emitter-chain1'))));
+    bytes32 emitter2 = bytes32(uint256(uint160(makeAddr('emitter-chain2'))));
+
+    vm.startPrank(owner);
+    chainbills.registerForeignContract(foreignCbChainId, emitter1);
+    chainbills.registerForeignContract(secondChain, emitter2);
+    // Array now has two entries.
+
+    chainbills.unregisterForeignContract(foreignCbChainId);
+    vm.stopPrank();
+
+    // Swap-and-pop: array must shrink to length 1.
+    // The remaining entry is the secondChain (swapped into slot 0).
+    assertEq(chainbills.registeredCbChainIds(0), secondChain);
+    vm.expectRevert(); // index 1 out of bounds
+    chainbills.registeredCbChainIds(1);
+  }
+
+  // ------------------------------------------------------------------------
   // registerMatchingTokenForForeignChain
   // ------------------------------------------------------------------------
 
@@ -476,6 +536,44 @@ contract CbSetupTest is CbStructs, Test {
 
     assertEq(chainbills.forForeignChainMatchingTokenAddresses(foreignCbChainId, foreignToken), localToken);
     assertEq(chainbills.forTokenAddressMatchingForeignChainTokens(localToken, foreignCbChainId), foreignToken);
+  }
+
+  function testRegisterMatchingTokenCleansOldLocalToken() public {
+    // Register tokenA for (foreignCbChainId, foreignToken), then switch to tokenB.
+    // The old tokenA reverse mapping must be zeroed so it can't be used for payments.
+    address tokenA = makeAddr('local-token-A');
+    address tokenB = makeAddr('local-token-B');
+    bytes32 foreignTok = bytes32(uint256(uint160(makeAddr('foreign-tok-1'))));
+
+    vm.startPrank(owner);
+    chainbills.registerMatchingTokenForForeignChain(foreignCbChainId, foreignTok, tokenA);
+    chainbills.registerMatchingTokenForForeignChain(foreignCbChainId, foreignTok, tokenB);
+    vm.stopPrank();
+
+    // New registration takes effect.
+    assertEq(chainbills.forForeignChainMatchingTokenAddresses(foreignCbChainId, foreignTok), tokenB);
+    assertEq(chainbills.forTokenAddressMatchingForeignChainTokens(tokenB, foreignCbChainId), foreignTok);
+    // Old local token's reverse mapping is zeroed.
+    assertEq(chainbills.forTokenAddressMatchingForeignChainTokens(tokenA, foreignCbChainId), bytes32(0));
+  }
+
+  function testRegisterMatchingTokenCleansOldForeignToken() public {
+    // Register foreignToken1 for (foreignCbChainId, localToken), then switch to foreignToken2.
+    // The old foreignToken1 forward mapping must be zeroed.
+    address localTok = makeAddr('local-tok-2');
+    bytes32 foreignToken1 = bytes32(uint256(uint160(makeAddr('foreign-tok-A'))));
+    bytes32 foreignToken2 = bytes32(uint256(uint160(makeAddr('foreign-tok-B'))));
+
+    vm.startPrank(owner);
+    chainbills.registerMatchingTokenForForeignChain(foreignCbChainId, foreignToken1, localTok);
+    chainbills.registerMatchingTokenForForeignChain(foreignCbChainId, foreignToken2, localTok);
+    vm.stopPrank();
+
+    // New registration takes effect.
+    assertEq(chainbills.forForeignChainMatchingTokenAddresses(foreignCbChainId, foreignToken2), localTok);
+    assertEq(chainbills.forTokenAddressMatchingForeignChainTokens(localTok, foreignCbChainId), foreignToken2);
+    // Old foreign token's forward mapping is zeroed.
+    assertEq(chainbills.forForeignChainMatchingTokenAddresses(foreignCbChainId, foreignToken1), address(0));
   }
 
   // ------------------------------------------------------------------------

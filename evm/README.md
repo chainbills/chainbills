@@ -416,3 +416,9 @@ If you change `Chainbills.sol`, `CbState.sol`, `CbUtils.sol`, `CbStructs.sol`, o
 ## Deployed Parameters
 
 All deployed contract addresses, cbChainIds, Circle domains, and Wormhole IDs are tracked in [DEPLOYED.md](./DEPLOYED.md). Update that file after every deployment or admin setup call.
+
+## Testnet Deployments CHANGELOG
+
+- **16 May 2026 - v2**: Improved CCTP-only data and payments. (sepolia & arctestnet)
+
+- **09 May 2026 - v1**: Initial testnet deployment. (sepolia & arctestnet)

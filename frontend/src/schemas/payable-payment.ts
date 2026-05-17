@@ -21,16 +21,11 @@ export class PayablePayment implements Payment {
     else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
     else this.payableId = onChainData.payableId;
 
-    const payerChain = cbChainIdToChain[onChainData.payerChainId];
-    if (!payerChain) throw new Error(`Unknown cbChainId: ${onChainData.payerChainId}`);
-
-    if (chain.isEvm && chain.name == payerChain.name) {
-      this.payer = '0x' + onChainData.payer.split('0x')[1].replace(/^0+/, '');
-    } else {
-      this.payer = denormalizeBytes(onChainData.payer, payerChain);
-    }
-
-    this.payerChain = payerChain;
+    this.payerChain = cbChainIdToChain[onChainData.payerChainId];
+    if (!this.payerChain) throw new Error(`Unknown cbChainId: ${onChainData.payerChainId}`);
+    this.payer = this.payerChain.isEvm
+      ? '0x' + onChainData.payer.split('0x')[1].replace(/^0+/, '')
+      : denormalizeBytes(onChainData.payer, this.payerChain);
 
     this.payableCount = Number(onChainData.payableCount);
     this.localChainCount = Number(onChainData.localChainCount);

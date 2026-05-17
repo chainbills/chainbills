@@ -643,16 +643,23 @@ contract CbCrossChainTest is CbStructs, Test {
     uint32 sourceDomain,
     uint32 targetDomain,
     bytes32 nonce,
-    bytes32 sender,
-    bytes32 recipient,
+    bytes32 depositor,  // Chainbills proxy on source chain — verified from body at byte 248
+    bytes32 recipient,  // this contract — used as destinationCaller in header + mintRecipient in body
     uint256 amount
   ) internal pure returns (bytes memory) {
-    // CCTP v2 layout: version(4)|srcDomain(4)|destDomain(4)|nonce(32)|sender(32)|recipient(32)|destCaller(32)|minThreshold(4)|thresholdExecuted(4)
+    // CCTP v2 header: version(4)|srcDomain(4)|destDomain(4)|nonce(32)
+    //   |sender(32, TokenMessenger — not checked)|recipient(32, TokenMessenger — not checked)
+    //   |destinationCaller(32)|minFinalityThreshold(4)|maxFee(4)
     bytes memory header = abi.encodePacked(
-      uint32(0), sourceDomain, targetDomain, nonce, sender, recipient, bytes32(0), uint32(2000), uint32(2000)
+      uint32(0), sourceDomain, targetDomain, nonce,
+      bytes32(0), // sender = Circle TokenMessenger (not checked by contract)
+      bytes32(0), // recipient = Circle TokenMessenger on dest (not checked by contract)
+      recipient,  // destinationCaller = this contract (checked: must == address(this))
+      uint32(2000), uint32(2000)
     );
-    // Body: version(4)|burnToken(32)|mintRecipient(32)|amount(32)
-    bytes memory body = abi.encodePacked(uint32(0), bytes32(0), recipient, amount);
+    // CCTP v2 body: version(4)|burnToken(32)|mintRecipient(32)|amount(32)|depositor(32)
+    // depositor is at absolute byte 248 — the contract reads and verifies it here.
+    bytes memory body = abi.encodePacked(uint32(0), bytes32(0), recipient, amount, depositor);
     return abi.encodePacked(header, body);
   }
 

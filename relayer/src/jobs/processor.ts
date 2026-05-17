@@ -19,7 +19,11 @@
 import { chainByName } from '../chains.js';
 import { waitForAllAttestations, waitForAttestation } from '../resolvers/cctp.js';
 import { getVaa } from '../resolvers/wormhole.js';
-import { submitPayableUpdateViaCctp, submitPayableUpdateViaWormhole } from '../submitters/payable-update.js';
+import {
+  submitAdminSyncPayable,
+  submitPayableUpdateViaCctp,
+  submitPayableUpdateViaWormhole,
+} from '../submitters/payable-update.js';
 import { submitForeignPayment, submitForeignPaymentViaCctp } from '../submitters/payment.js';
 import { logger } from '../utils/logger.js';
 import { getPendingJobs, markDone, markFailed, markProcessing, patchJob, type RelayerJob } from './store.js';
@@ -57,10 +61,18 @@ async function processJob(job: RelayerJob): Promise<void> {
 
     switch (job.type) {
       case 'PAYABLE_UPDATE_VIA_WORMHOLE': {
-        log.info('Fetching Wormhole VAA for payable update');
-        const vaaBytes = await getVaa(sourceChain, job.txHash);
-        if (!vaaBytes) throw new Error('VAA not yet available, will retry');
-        await patchJob(job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
+        let vaaBytes: Uint8Array;
+        if (job.vaa) {
+          // VAA pre-fetched by the count-based watcher via sequence lookup.
+          vaaBytes = Buffer.from(job.vaa, 'hex');
+        } else {
+          // Legacy path: job was created by the old block-cursor watcher with a real txHash.
+          log.info('Fetching Wormhole VAA for payable update by txHash');
+          const fetched = await getVaa(sourceChain, job.txHash);
+          if (!fetched) throw new Error('VAA not yet available, will retry');
+          vaaBytes = fetched;
+          await patchJob(job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
+        }
         await submitPayableUpdateViaWormhole(destChain, vaaBytes);
         break;
       }
@@ -125,6 +137,13 @@ async function processJob(job: RelayerJob): Promise<void> {
           payloadMsg.message,
           payloadMsg.attestation
         );
+        break;
+      }
+
+      case 'ADMIN_SYNC': {
+        if (!job.vaa) throw new Error('ADMIN_SYNC job missing vaa');
+        const vaaBytes = new Uint8Array(Buffer.from(job.vaa, 'hex'));
+        await submitAdminSyncPayable(sourceChain, destChain, vaaBytes);
         break;
       }
 

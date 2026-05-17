@@ -141,7 +141,7 @@ export const sepolia: ChainConfig = {
   cctpNetwork: 'Testnet',
   deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
   pollIntervalMs: 12000, // Sepolia ~12s blocks; poll every 12s
-  minGasBalance: parseEther('0.005'), // Warn below 0.05 ETH
+  minGasBalance: parseEther('0.01'), // Warn below 0.05 ETH
 };
 
 export const megaeth: ChainConfig = {
@@ -164,7 +164,7 @@ export const megaeth: ChainConfig = {
 };
 
 /** All chains the relayer watches. Add new chains here. */
-export const ALL_CHAINS: ChainConfig[] = [arcTestnet, sepolia, megaeth];
+export const ALL_CHAINS: ChainConfig[] = [arcTestnet, sepolia /*, megaeth */];
 
 /** Look up a chain config by its CAIP-2 cbChainId. */
 export const chainByCbChainId = new Map<string, ChainConfig>(ALL_CHAINS.map((c) => [c.cbChainId, c]));

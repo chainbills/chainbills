@@ -45,7 +45,7 @@ useThemeStore();
             v-if="slotProps.message.data?.url"
             :href="slotProps.message.data.url"
             target="_blank"
-            class="text-xs underline hover:opacity-80 transition-opacity"
+            class="ml-6 text-xs underline hover:opacity-80 transition-opacity"
           >
             View on Explorer
           </a>

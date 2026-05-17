@@ -68,7 +68,7 @@ export async function submitForeignPayment(
     abi: mainAbi,
     functionName: 'receiveForeignPaymentWithCircle',
     args: [params],
-    account: account.address,
+    account,
   });
 
   const txHash = await walletClient.writeContract(request);
@@ -122,7 +122,7 @@ export async function submitForeignPaymentViaCctp(
     abi: mainAbi,
     functionName: 'receiveForeignPaymentWithCircle',
     args: [params],
-    account: account.address,
+    account,
   });
 
   const txHash = await walletClient.writeContract(request);

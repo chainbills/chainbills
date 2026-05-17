@@ -23,9 +23,8 @@ export class UserPayment implements Payment {
 
     this.payableChain = cbChainIdToChain[onChainData.payableChainId];
     if (!this.payableChain) throw new Error(`Unknown cbChainId: ${onChainData.payableChainId}`);
-
-    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
-    else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
+    if (this.payableChain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
+    else if (this.payableChain.isSolana) this.payableId = onChainData.payableId.toBase58();
     else this.payableId = onChainData.payableId;
 
     this.payerCount = Number(onChainData.payerCount);

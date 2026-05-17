@@ -55,8 +55,19 @@ contract CbTransactions is CbUtils {
     revert NoBalanceForWithdrawalToken();
   }
 
-  /// Parses and validates Circle v2 message header fields (source/target domain, sender, recipient).
-  /// CCTP v2 layout: version(4)|srcDomain(4)|destDomain(4)|nonce(32)|sender(32)|recipient(32)|...
+  /// Parses and validates Circle v2 burn message fields.
+  ///
+  /// CCTP v2 header layout (148 bytes total):
+  ///   version(4) | srcDomain(4) | destDomain(4) | nonce(32) | sender(32) | recipient(32)
+  ///   | destinationCaller(32) | minFinalityThreshold(4) | maxFee(4)
+  ///
+  /// In CCTP v2, header `sender` and `recipient` are both the Circle TokenMessenger
+  /// address (an intermediary), not the application contracts. The actual Chainbills
+  /// proxy (depositor) is encoded in the message body, and `destinationCaller` names
+  /// which contract is authorised to call receiveMessage on the destination chain.
+  ///
+  /// CCTP v2 body layout (starts at byte 148):
+  ///   version(4) | burnToken(32) | mintRecipient(32) | amount(32) | depositor(32) | ...
   function _checkCircleMessage(
     bytes memory circleBridgeMessage,
     bytes32 payerChainId,
@@ -66,21 +77,24 @@ contract CbTransactions is CbUtils {
     uint256 index = 4;
     uint32 parsedSourceDomain;
     uint32 parsedTargetDomain;
-    bytes32 parsedSender;
-    bytes32 parsedRecipient;
+    bytes32 destinationCaller;
     (parsedSourceDomain, index) = circleBridgeMessage.asUint32(index);
     (parsedTargetDomain, index) = circleBridgeMessage.asUint32(index);
-    index += 32; // skip bytes32 nonce (v2: 32 bytes at offset 12)
-    (parsedSender, index) = circleBridgeMessage.asBytes32(index);
-    (parsedRecipient, index) = circleBridgeMessage.asBytes32(index);
+    index += 32; // skip nonce (v2: 32 bytes at offset 12)
+    index += 32; // skip sender (Circle TokenMessenger on source — not the depositor)
+    index += 32; // skip recipient (Circle TokenMessenger on dest — not this contract)
+    (destinationCaller, index) = circleBridgeMessage.asBytes32(index); // bytes 108-139
     if (cbChainIdToCircleDomain[payerChainId] != parsedSourceDomain) revert CircleSourceDomainMismatch();
     if (cbChainIdToCircleDomain[payableChainId] != parsedTargetDomain) revert CircleTargetDomainMismatch();
-    if (parsedSender != registeredForeignContracts[payerChainId]) revert CircleSenderMismatch();
-    if (parsedRecipient != toWormholeFormat(address(this))) revert CircleRecipientMismatch();
+    // destinationCaller must be this contract — Circle enforces only it can call receiveMessage.
+    if (destinationCaller != toWormholeFormat(address(this))) revert CircleRecipientMismatch();
 
-    // CCTP v2 burn message body layout (after 148-byte header):
-    //   version(4) | burnToken(32) | mintRecipient(32) | amount(32) | ...
-    // amount is at absolute byte offset 148 + 4 + 32 + 32 = 216.
+    // Body: depositor at 148 + 4 + 32 + 32 + 32 = 248 — the Chainbills proxy that called depositForBurn.
+    bytes32 depositor;
+    (depositor,) = circleBridgeMessage.asBytes32(248);
+    if (depositor != registeredForeignContracts[payerChainId]) revert CircleSenderMismatch();
+
+    // Body: amount at 148 + 4 + 32 + 32 = 216.
     uint256 burnAmount;
     (burnAmount,) = circleBridgeMessage.asUint256(216);
     if (burnAmount != expectedAmount) revert CircleAmountMismatch();
@@ -437,10 +451,10 @@ contract CbTransactions is CbUtils {
         payableId: payableId,
         circleNonce: 0,
         amount: SafeCast.toUint64(amount),
-        payableChainToken: toWormholeFormat(token),
+        payableChainToken: foreignTokenAddr,
         payableChainId: _payable.chainId,
         payer: toWormholeFormat(msg.sender),
-        payerChainToken: foreignTokenAddr,
+        payerChainToken: toWormholeFormat(token),
         payerChainId: config.cbChainId
       }).encode();
 

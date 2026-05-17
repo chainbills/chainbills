@@ -3,11 +3,7 @@ import { evmVerify, solanaVerify } from '../utils';
 
 export const AUTH_MESSAGE = 'Authentication';
 
-export const validateAuth = async (
-  { headers }: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const validateAuth = async ({ headers }: Request, res: Response, next: NextFunction) => {
   try {
     const { chain } = res.locals;
     let { 'wallet-address': walletAddress, signature } = headers;
@@ -29,7 +25,7 @@ export const validateAuth = async (
     const isVerified = await verify(AUTH_MESSAGE, signature, walletAddress);
     if (!isVerified) throw 'Unauthorized. Signature and Address Not Matching.';
 
-    if (chain.isEvm) walletAddress = walletAddress.toLowerCase();
+    if (chain.isEvm) walletAddress = walletAddress;
     res.locals.walletAddress = walletAddress;
     next();
   } catch (e: any) {
@@ -37,7 +33,7 @@ export const validateAuth = async (
     console.error(e);
     res.status(400).json({
       success: false,
-      message: e['shortMessage'] ?? e['message'] ?? `${e}`
+      message: e['shortMessage'] ?? e['message'] ?? `${e}`,
     });
   }
 };

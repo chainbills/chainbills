@@ -143,7 +143,7 @@ export const useEvmStore = defineStore('evm', () => {
             : (e['details'] ?? e['shortMessage'] ?? e['message'] ?? `${e}`).split('()')[0] // Message just before the EVM Revert error
         );
         analytics.recordEvent('failed_evm_transaction');
-        console.error(e);
+        logError(e);
       } else {
         analytics.recordEvent('rejected_evm_transaction');
       }
@@ -203,7 +203,7 @@ export const useEvmStore = defineStore('evm', () => {
   ) => await readContract(`get${entity}`, [id as `0x${string}`], chainName, ignoreErrors);
 
   const getCurrentUser = async () => {
-    const addr = (account.address.value ?? '').toLowerCase() as `0x${string}`;
+    const addr = (account.address.value ?? '') as `0x${string}`;
     if (!addr) return null;
 
     const chain = getCurrentChain();
@@ -217,7 +217,7 @@ export const useEvmStore = defineStore('evm', () => {
         // Is New User, return the default
         return new User(chain, addr, null);
       } else {
-        console.error(e);
+        logError(e);
         toastError(`${e}`);
       }
     }
@@ -424,7 +424,7 @@ export const useEvmStore = defineStore('evm', () => {
     } catch (e) {
       if (rethrowError) throw e;
       if (!ignoreErrors) {
-        console.error(e);
+        logError(e);
         toastError(`${e}`);
       }
       return null;
@@ -449,6 +449,15 @@ export const useEvmStore = defineStore('evm', () => {
   };
 
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+
+  const logError = (e: any) => {
+    if (e && typeof e === 'object' && 'abi' in e) {
+      const { abi: _abi, ...rest } = e;
+      console.error(rest);
+    } else {
+      console.error(e);
+    }
+  };
 
   const withdraw = async (payableId: string, { amount, details }: TokenAndAmount): Promise<OnChainSuccess | null> => {
     const chain = getCurrentChain();

@@ -63,7 +63,7 @@ export async function getVaaBySequence(
 
   const baseUrl = chain.wormholeNetwork === 'Mainnet' ? SCAN_MAINNET : SCAN_TESTNET;
   // EVM emitter: contract address left-padded to 32 bytes (64 hex chars, no 0x prefix).
-  const emitter = chain.contractAddress.replace(/^0x/i, '').toLowerCase().padStart(64, '0');
+  const emitter = chain.contractAddress.replace(/^0x/i, '').padStart(64, '0');
   const url = `${baseUrl}/api/v1/vaas/${chain.wormholeChainId}/${emitter}/${sequence}`;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {

@@ -16,7 +16,7 @@ export class Payable {
     this.chainNetworkType = chain.networkType;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain.isEvm) this.host = onChainData.host.toLowerCase();
+    if (chain.isEvm) this.host = onChainData.host;
     else if (chain.isSolana) this.host = onChainData.host.toBase58();
     else this.host = onChainData.host;
 

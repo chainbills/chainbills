@@ -21,7 +21,7 @@ export class UserPayment {
     this.chainNetworkType = chain.networkType;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain.isEvm) this.payer = onChainData.payer.toLowerCase();
+    if (chain.isEvm) this.payer = onChainData.payer;
     else if (chain.isSolana) this.payer = onChainData.payer.toBase58();
     else this.payer = onChainData.payer;
 
@@ -29,8 +29,8 @@ export class UserPayment {
     if (!payableChain) throw new Error(`Unknown cbChainId: ${onChainData.payableChainId}`);
     this.payableChainName = payableChain.name;
 
-    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
-    else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
+    if (payableChain.isEvm) this.payableId = onChainData.payableId;
+    else if (payableChain.isSolana) this.payableId = onChainData.payableId.toBase58();
     else this.payableId = onChainData.payableId;
 
     this.payerCount = Number(onChainData.payerCount);

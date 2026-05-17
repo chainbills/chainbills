@@ -20,19 +20,22 @@ export interface Token {
 
 /**
  * Registry of all tokens supported in Chainbills contracts.
- * Keep in sync with server/src/schemas/tokens-and-amounts.ts.
  */
 export const TOKENS: Token[] = [
   {
     name: 'USDC',
     details: {
       arctestnet: { address: '0x3600000000000000000000000000000000000000', decimals: 6 },
-      sepolia: { address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238', decimals: 6 },
+      sepolia: { address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', decimals: 6 },
     },
   },
   {
     name: 'ETH',
     details: {
+      sepolia: {
+        address: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
+        decimals: 18,
+      },
       megaeth: { address: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60', decimals: 18 },
     },
   },
@@ -44,7 +47,7 @@ export const TOKENS: Token[] = [
  * Falls back to the raw address if the token is not in the registry.
  */
 export function resolveToken(tokenAddress: string, chainName: ChainName): { name: string; decimals: number } {
-  const addr = tokenAddress.toLowerCase();
+  const addr = tokenAddress;
   const found = TOKENS.find((t) => t.details[chainName]?.address === addr);
   if (found) {
     return { name: found.name, decimals: found.details[chainName]!.decimals };

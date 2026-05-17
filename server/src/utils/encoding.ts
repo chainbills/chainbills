@@ -20,7 +20,7 @@ export const hex = {
   /** encode a string or Uint8Array to hex */
   encode: (input: string | Uint8Array, prefix: boolean = false) => {
     input = typeof input === 'string' ? bytes.encode(input) : input;
-    return (prefix ? '0x' : '') + base16.encode(input).toLowerCase();
+    return (prefix ? '0x' : '') + base16.encode(input);
   },
 };
 

@@ -58,10 +58,7 @@ export async function notifyPaymentReceived(
       } catch (e: any) {
         // If the token is expired/invalid, remove it from the user's list.
         if (`${e}`.toLowerCase().includes('not found')) {
-          await db.doc(`users/${host}`).set(
-            { fcmTokens: FieldValue.arrayRemove(fcmToken) },
-            { merge: true }
-          );
+          await db.doc(`users/${host}`).set({ fcmTokens: FieldValue.arrayRemove(fcmToken) }, { merge: true });
         } else {
           logger.error({ host, fcmToken, err: e }, 'FCM send failed');
         }

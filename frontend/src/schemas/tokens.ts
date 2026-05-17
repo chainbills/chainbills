@@ -29,7 +29,7 @@ export const getTokenDetails = (token: string | PublicKey, chain: Chain) => {
   let found: Token | undefined;
 
   if (chain.isEvm) {
-    found = tokens.find((t) => t.details[chain.name]?.address == `${token}`.toLowerCase());
+    found = tokens.find((t) => t.details[chain.name]?.address == `${token}`);
   } else if (chain.isSolana) {
     if ((token as any) instanceof PublicKey) {
       token = (token as unknown as PublicKey).toBase58();
@@ -95,7 +95,7 @@ export const tokens: Token[] = [
         decimals: 6,
       },
       sepolia: {
-        address: '0x1c7d4b196cb0c7b01d743fbc6116a902379c7238',
+        address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
         decimals: 6,
       },
     },

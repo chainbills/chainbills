@@ -26,10 +26,12 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Timestamp } from 'firebase-admin/firestore';
+import { getContract } from 'viem';
 import type { ChainConfig } from './chains.js';
 import { chainByCbChainId } from './chains.js';
 import { gettersAbi } from './utils/abis.js';
 import { makePublicClient } from './utils/clients.js';
+import { denormalizeBytes, stripPrefix } from './utils/encoding.js';
 import { db } from './utils/firebase.js';
 import { logger } from './utils/logger.js';
 import { resolveToken } from './utils/tokens.js';
@@ -47,16 +49,15 @@ async function writeToDb(topPath: string, chainPath: string, data: Record<string
 }
 
 /**
- * Reads on-chain data for a given entity via the CbGetters contract.
- * This is the same pattern as server/utils/evm.ts evmFetch().
+ * Returns a typed viem contract instance bound to the CbGetters ABI and the
+ * given chain's getters address. All `.read` methods are fully typed by viem's
+ * ABI inference — no `any` casts needed at call sites.
  */
-async function fetchOnChain(chain: ChainConfig, functionName: string, id: `0x${string}`): Promise<unknown> {
-  const client = makePublicClient(chain);
-  return await client.readContract({
+function makeGettersContract(chain: ChainConfig) {
+  return getContract({
     address: chain.gettersAddress,
     abi: gettersAbi,
-    functionName: functionName as any,
-    args: [id],
+    client: makePublicClient(chain),
   });
 }
 
@@ -71,26 +72,25 @@ async function fetchOnChain(chain: ChainConfig, functionName: string, id: `0x${s
  *   /chains/{chainName}/payables/{payableId}  (chain subcollection)
  */
 export async function indexPayable(chain: ChainConfig, payableId: `0x${string}`): Promise<void> {
-  const id = payableId.toLowerCase();
   try {
-    const raw: any = await fetchOnChain(chain, 'getPayable', payableId);
+    const contract = makeGettersContract(chain);
+    const { host, chainCount, hostCount, createdAt } = await contract.read.getPayable([payableId]);
 
     const data = {
-      id,
+      id: payableId,
       chainName: chain.name,
       chainNetworkType: chain.wormholeNetwork === 'Mainnet' ? 'mainnet' : 'testnet',
-      host: (raw.host as string).toLowerCase(),
-      chainCount: Number(raw.chainCount),
-      hostCount: Number(raw.hostCount),
-      createdAt: Timestamp.fromMillis(Number(raw.createdAt) * 1000),
+      host,
+      chainCount: Number(chainCount),
+      hostCount: Number(hostCount),
+      createdAt: Timestamp.fromMillis(Number(createdAt) * 1000),
       indexedAt: Timestamp.now(),
     };
+    await writeToDb(`payables/${payableId}`, `chains/${chain.name}/payables/${payableId}`, data);
 
-    await writeToDb(`payables/${id}`, `chains/${chain.name}/payables/${id}`, data);
-
-    logger.info({ chain: chain.name, payableId: id }, 'Indexed payable');
+    logger.info({ chain: chain.name, payableId: payableId }, 'Indexed payable');
   } catch (err) {
-    logger.error({ chain: chain.name, payableId: id, err }, 'Failed to index payable');
+    logger.error({ chain: chain.name, payableId: payableId, err }, 'Failed to index payable');
     throw err;
   }
 }
@@ -104,36 +104,36 @@ export async function indexPayable(chain: ChainConfig, payableId: `0x${string}`)
  *   /chains/{chainName}/userPayments/{paymentId}
  */
 export async function indexUserPayment(chain: ChainConfig, paymentId: `0x${string}`): Promise<void> {
-  const id = paymentId.toLowerCase();
   try {
-    const raw: any = await fetchOnChain(chain, 'getUserPayment', paymentId);
+    const contract = makeGettersContract(chain);
+    const { payer, payerCount, payableId, payableChainId, chainCount, token, amount, timestamp } =
+      await contract.read.getUserPayment([paymentId]);
 
     // Resolve CAIP-2 payableChainId → chain name for the Firestore record.
-    const payableChain = chainByCbChainId.get(raw.payableChainId as string);
-    const payableChainName = payableChain?.name ?? raw.payableChainId;
-
-    const { name: tokenName, decimals } = resolveToken((raw.token as string).toLowerCase(), chain.name);
+    const payableChain = chainByCbChainId.get(payableChainId);
+    const payableChainName = payableChain?.name ?? payableChainId;
+    const { name: tokenName, decimals } = resolveToken(token, chain.name);
 
     const data = {
-      id,
+      id: paymentId,
       chainName: chain.name,
       chainNetworkType: chain.wormholeNetwork === 'Mainnet' ? 'mainnet' : 'testnet',
-      payer: (raw.payer as string).toLowerCase(),
-      payerCount: Number(raw.payerCount),
-      payableId: (raw.payableId as string).toLowerCase(),
+      payer,
+      payerCount: Number(payerCount),
+      payableId,
       payableChainName,
-      chainCount: Number(raw.chainCount),
+      chainCount: Number(chainCount),
       token: tokenName,
-      amount: Number(raw.amount) / 10 ** decimals,
-      timestamp: Timestamp.fromMillis(Number(raw.timestamp) * 1000),
+      amount: Number(amount) / 10 ** decimals,
+      timestamp: Timestamp.fromMillis(Number(timestamp) * 1000),
       indexedAt: Timestamp.now(),
     };
 
-    await writeToDb(`userPayments/${id}`, `chains/${chain.name}/userPayments/${id}`, data);
+    await writeToDb(`userPayments/${paymentId}`, `chains/${chain.name}/userPayments/${paymentId}`, data);
 
-    logger.info({ chain: chain.name, paymentId: id }, 'Indexed userPayment');
+    logger.info({ chain: chain.name, paymentId }, 'Indexed userPayment');
   } catch (err) {
-    logger.error({ chain: chain.name, paymentId: id, err }, 'Failed to index userPayment');
+    logger.error({ chain: chain.name, paymentId, err }, 'Failed to index userPayment');
     throw err;
   }
 }
@@ -147,42 +147,52 @@ export async function indexUserPayment(chain: ChainConfig, paymentId: `0x${strin
  *   /chains/{chainName}/payablePayments/{paymentId}
  */
 export async function indexPayablePayment(chain: ChainConfig, paymentId: `0x${string}`): Promise<void> {
-  const id = paymentId.toLowerCase();
   try {
-    const raw: any = await fetchOnChain(chain, 'getPayablePayment', paymentId);
+    const contract = makeGettersContract(chain);
+    const {
+      amount,
+      payer: payerRaw,
+      payerChainId,
+      payableId,
+      payableCount,
+      localChainCount,
+      chainCount,
+      token,
+      timestamp,
+    } = await contract.read.getPayablePayment([paymentId]);
 
     // Resolve payer's chain
-    const payerChain = chainByCbChainId.get(raw.payerChainId as string);
-    const payerChainName = payerChain?.name ?? raw.payerChainId;
+    const payerChain = chainByCbChainId.get(payerChainId);
+    if (!payerChain) throw new Error(`Unknown cbChainId: ${payerChainId}`);
+    const { name: tokenName, decimals } = resolveToken(token, chain.name);
 
-    const { name: tokenName, decimals } = resolveToken((raw.token as string).toLowerCase(), chain.name);
-
-    // Denormalize payer: strip leading zeros from Wormhole-padded bytes32
-    const payerRaw = raw.payer as string;
-    const payerAddr =
-      payerChain?.name === chain.name ? '0x' + payerRaw.replace(/^0x/, '').replace(/^0+/, '') : payerRaw; // keep raw bytes32 for cross-chain payers
+    // Denormalize payer: strip leading zeros from Wormhole-padded bytes32 in EVM, convert for others.
+    const strippedPayer = stripPrefix('0x', payerRaw);
+    const payer = payerChain.isEvm
+      ? '0x' + strippedPayer.replace(/^0+/, '')
+      : denormalizeBytes(Uint8Array.from(Buffer.from(strippedPayer, chain.isEvm ? 'hex' : undefined)), payerChain);
 
     const data = {
-      id,
+      id: paymentId,
       chainName: chain.name,
       chainNetworkType: chain.wormholeNetwork === 'Mainnet' ? 'mainnet' : 'testnet',
-      payableId: (raw.payableId as string).toLowerCase(),
-      payer: payerAddr.toLowerCase(),
-      payerChainName,
-      payableCount: Number(raw.payableCount),
-      localChainCount: Number(raw.localChainCount),
-      chainCount: Number(raw.chainCount),
+      payableId,
+      payer,
+      payerChainName: payerChain.name,
+      payableCount: Number(payableCount),
+      localChainCount: Number(localChainCount),
+      chainCount: Number(chainCount),
       token: tokenName,
-      amount: Number(raw.amount) / 10 ** decimals,
-      timestamp: Timestamp.fromMillis(Number(raw.timestamp) * 1000),
+      amount: Number(amount) / 10 ** decimals,
+      timestamp: Timestamp.fromMillis(Number(timestamp) * 1000),
       indexedAt: Timestamp.now(),
     };
 
-    await writeToDb(`payablePayments/${id}`, `chains/${chain.name}/payablePayments/${id}`, data);
+    await writeToDb(`payablePayments/${paymentId}`, `chains/${chain.name}/payablePayments/${paymentId}`, data);
 
-    logger.info({ chain: chain.name, paymentId: id }, 'Indexed payablePayment');
+    logger.info({ chain: chain.name, paymentId }, 'Indexed payablePayment');
   } catch (err) {
-    logger.error({ chain: chain.name, paymentId: id, err }, 'Failed to index payablePayment');
+    logger.error({ chain: chain.name, paymentId, err }, 'Failed to index payablePayment');
     throw err;
   }
 }
@@ -196,18 +206,19 @@ export async function indexPayablePayment(chain: ChainConfig, paymentId: `0x${st
  *   /chains/{chainName}/withdrawals/{withdrawalId}
  */
 export async function indexWithdrawal(chain: ChainConfig, withdrawalId: `0x${string}`): Promise<void> {
-  const id = withdrawalId.toLowerCase();
+  const id = withdrawalId;
   try {
-    const raw: any = await fetchOnChain(chain, 'getWithdrawal', withdrawalId);
+    const contract = makeGettersContract(chain);
+    const raw = await contract.read.getWithdrawal([withdrawalId]);
 
-    const { name: tokenName, decimals } = resolveToken((raw.token as string).toLowerCase(), chain.name);
+    const { name: tokenName, decimals } = resolveToken(raw.token, chain.name);
 
     const data = {
       id,
       chainName: chain.name,
       chainNetworkType: chain.wormholeNetwork === 'Mainnet' ? 'mainnet' : 'testnet',
-      payableId: (raw.payableId as string).toLowerCase(),
-      host: (raw.host as string).toLowerCase(),
+      payableId: raw.payableId,
+      host: raw.host,
       chainCount: Number(raw.chainCount),
       hostCount: Number(raw.hostCount),
       payableCount: Number(raw.payableCount),
@@ -217,11 +228,11 @@ export async function indexWithdrawal(chain: ChainConfig, withdrawalId: `0x${str
       indexedAt: Timestamp.now(),
     };
 
-    await writeToDb(`withdrawals/${id}`, `chains/${chain.name}/withdrawals/${id}`, data);
+    await writeToDb(`withdrawals/${withdrawalId}`, `chains/${chain.name}/withdrawals/${withdrawalId}`, data);
 
-    logger.info({ chain: chain.name, withdrawalId: id }, 'Indexed withdrawal');
+    logger.info({ chain: chain.name, withdrawalId }, 'Indexed withdrawal');
   } catch (err) {
-    logger.error({ chain: chain.name, withdrawalId: id, err }, 'Failed to index withdrawal');
+    logger.error({ chain: chain.name, withdrawalId, err }, 'Failed to index withdrawal');
     throw err;
   }
 }

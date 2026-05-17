@@ -20,7 +20,7 @@ export class PayablePayment {
     this.chainName = chain.name;
     this.chainNetworkType = chain.networkType;
 
-    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
+    if (chain.isEvm) this.payableId = onChainData.payableId;
     else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
     else this.payableId = onChainData.payableId;
 
@@ -28,13 +28,9 @@ export class PayablePayment {
     if (!payerChain) throw new Error(`Unknown cbChainId: ${onChainData.payerChainId}`);
     this.payerChainName = payerChain.name;
 
-    if (chain.isEvm && chain.name == payerChain.name) {
-      // This because of the "toWormholeFormat" conversion in EVM contract
-      this.payer = '0x' + onChainData.payer.split('0x')[1].replace(/^0+/, '');
-    } else {
-      // Use payerChain for denormalization when cross-chain
-      this.payer = denormalizeBytes(onChainData.payer, payerChain);
-    }
+    this.payer = payerChain.isEvm
+      ? '0x' + onChainData.payer.split('0x')[1].replace(/^0+/, '')
+      : denormalizeBytes(onChainData.payer, payerChain);
 
     this.payableCount = Number(onChainData.payableCount);
     this.localChainCount = Number(onChainData.localChainCount);

@@ -2,6 +2,7 @@
 // https://github.com/wormhole-foundation/wormhole-sdk-ts/blob/29ea21a6e71a4fd2f53f3d4e0293e1ace4b2145c/core/base/src/utils/encoding.ts
 
 import { base16, base58, base64 } from '@scure/base';
+import { ChainConfig } from '../chains';
 
 export { bech32 } from '@scure/base';
 
@@ -51,7 +52,7 @@ export const bignum = {
   /** decode a hex string or bytes to a bigint */
   decode: (input: string | Uint8Array) => {
     if (typeof input !== 'string') input = hex.encode(input, true);
-    if (input === '' || input === '0x') return 0n;
+    if (input === '' || input === '0x') return BigInt(0);
     return BigInt(input);
   },
   /** encode a bigint as a hex string */
@@ -111,4 +112,12 @@ export const bytes = {
     });
     return result;
   },
+};
+
+export const denormalizeBytes = (bytes: Uint8Array, chain: ChainConfig): string => {
+  bytes = Uint8Array.from(bytes);
+  if (chain.isSolana) return b58.encode(bytes);
+  if (chain.isEvm) {
+    return '0x' + hex.encode(bytes, false).replace(/^0+/, '');
+  } else throw `Unknown chain: ${chain}`;
 };

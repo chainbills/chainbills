@@ -17,7 +17,7 @@ export class PayablePayment implements Payment {
     this.id = id;
     this.chain = chain;
 
-    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
+    if (chain.isEvm) this.payableId = onChainData.payableId;
     else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
     else this.payableId = onChainData.payableId;
 

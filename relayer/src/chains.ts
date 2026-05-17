@@ -100,6 +100,13 @@ export interface ChainConfig {
    * If the balance falls below this amount, the relayer logs a critical warning.
    */
   minGasBalance: bigint;
+  /**
+   * Whether this chain is an EVM or non-EVM chain. Used to determine how to decode addresses.
+   * For EVM chains, addresses are 20-byte values left-padded to 32 bytes and represented as hex strings.
+   * For non-EVM chains, addresses may be variable-length byte arrays and we can use Wormhole decoding.
+   */
+  isEvm: boolean;
+  isSolana: boolean;
 }
 
 // ── Chain Definitions ─────────────────────────────────────────────────────────
@@ -123,6 +130,8 @@ export const arcTestnet: ChainConfig = {
   deploymentBlock: 42188119n, // First tx block of latest DeployChainbills broadcast (chain 5042002)
   pollIntervalMs: 2000, // Arc has ~500ms blocks; poll every 2s
   minGasBalance: parseEther('10'), // Native token is USDC (18 decimals on Arc); warn below 10 units
+  isEvm: true,
+  isSolana: false
 };
 
 export const sepolia: ChainConfig = {
@@ -142,6 +151,8 @@ export const sepolia: ChainConfig = {
   deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
   pollIntervalMs: 12000, // Sepolia ~12s blocks; poll every 12s
   minGasBalance: parseEther('0.01'), // Warn below 0.05 ETH
+  isEvm: true,
+  isSolana: false
 };
 
 export const megaeth: ChainConfig = {
@@ -161,6 +172,8 @@ export const megaeth: ChainConfig = {
   deploymentBlock: 0n,
   pollIntervalMs: 2000, // MegaETH is a real-time chain; poll every 2s
   minGasBalance: parseEther('0.00'), // Warn below 0.05 ETH
+  isEvm: true,
+  isSolana: false,
 };
 
 /** All chains the relayer watches. Add new chains here. */

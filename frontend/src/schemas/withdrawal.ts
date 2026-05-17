@@ -17,13 +17,13 @@ export class Withdrawal implements Receipt {
     this.chain = chain;
     this.chainCount = Number(onChainData.chainCount);
 
-    if (chain.isEvm) this.host = onChainData.host.toLowerCase();
+    if (chain.isEvm) this.host = onChainData.host;
     else if (chain.isSolana) this.host = onChainData.host.toBase58();
     else this.host = onChainData.host;
 
     this.hostCount = Number(onChainData.hostCount);
 
-    if (chain.isEvm) this.payableId = onChainData.payableId.toLowerCase();
+    if (chain.isEvm) this.payableId = onChainData.payableId;
     else if (chain.isSolana) this.payableId = onChainData.payableId.toBase58();
     else this.payableId = onChainData.payableId;
 

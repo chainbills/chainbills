@@ -145,7 +145,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   const cursor = memoryCursors.get(chain.name)!;
 
   // One RPC call gets all chain-level counts.
-  const stats: any = await client.readContract({
+  const stats = await client.readContract({
     address: chain.gettersAddress,
     abi: gettersAbi,
     functionName: 'getChainStats',
@@ -158,12 +158,12 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   if (onChainPayables > cursor.payablesIndexed) {
     const delta = onChainPayables - cursor.payablesIndexed;
     log.info({ from: cursor.payablesIndexed, delta }, 'New payables detected');
-    const ids: readonly `0x${string}`[] = (await client.readContract({
+    const ids = await client.readContract({
       address: chain.gettersAddress,
       abi: gettersAbi,
       functionName: 'chainPayableIdsPaginated',
       args: [BigInt(cursor.payablesIndexed), BigInt(delta)],
-    })) as `0x${string}`[];
+    });
     let done = 0;
     for (const id of ids) {
       try {
@@ -173,7 +173,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
           const bcastLogs = await client.getLogs({
             address: chain.contractAddress,
             event: PAYABLE_UPDATE_BROADCASTED_EVENT,
-            args: { payableId: id } as any,
+            args: { payableId: id },
             fromBlock: chain.deploymentBlock,
           });
           if (bcastLogs.length > 0) {
@@ -197,12 +197,12 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   if (onChainUserPayments > cursor.userPaymentsIndexed) {
     const delta = onChainUserPayments - cursor.userPaymentsIndexed;
     log.info({ from: cursor.userPaymentsIndexed, delta }, 'New user payments detected');
-    const ids: readonly `0x${string}`[] = (await client.readContract({
+    const ids = await client.readContract({
       address: chain.gettersAddress,
       abi: gettersAbi,
       functionName: 'chainUserPaymentIdsPaginated',
       args: [BigInt(cursor.userPaymentsIndexed), BigInt(delta)],
-    })) as `0x${string}`[];
+    });
     let done = 0;
     for (const id of ids) {
       try {
@@ -228,29 +228,24 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   if (onChainPayablePayments > cursor.payablePaymentsIndexed) {
     const delta = onChainPayablePayments - cursor.payablePaymentsIndexed;
     log.info({ from: cursor.payablePaymentsIndexed, delta }, 'New payable payments detected');
-    const ids: readonly `0x${string}`[] = (await client.readContract({
+    const ids = await client.readContract({
       address: chain.gettersAddress,
       abi: gettersAbi,
       functionName: 'chainPayablePaymentIdsPaginated',
       args: [BigInt(cursor.payablePaymentsIndexed), BigInt(delta)],
-    })) as `0x${string}`[];
+    });
     let done = 0;
     for (const id of ids) {
       try {
         await indexPayablePayment(chain, id);
-        const raw: any = await client.readContract({
+        const raw = await client.readContract({
           address: chain.gettersAddress,
           abi: gettersAbi,
           functionName: 'getPayablePayment',
           args: [id],
         });
-        const { name: tokenName, decimals } = resolveToken((raw.token as string).toLowerCase(), chain.name);
-        await notifyPaymentReceived(
-          (raw.payableId as string).toLowerCase(),
-          id.toLowerCase(),
-          tokenName,
-          Number(raw.amount) / 10 ** decimals
-        );
+        const { name: tokenName, decimals } = resolveToken(raw.token, chain.name);
+        await notifyPaymentReceived(raw.payableId, id, tokenName, Number(raw.amount) / 10 ** decimals);
         done++;
       } catch (e) {
         log.error(
@@ -271,12 +266,12 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   if (onChainWithdrawals > cursor.withdrawalsIndexed) {
     const delta = onChainWithdrawals - cursor.withdrawalsIndexed;
     log.info({ from: cursor.withdrawalsIndexed, delta }, 'New withdrawals detected');
-    const ids: readonly `0x${string}`[] = (await client.readContract({
+    const ids = await client.readContract({
       address: chain.gettersAddress,
       abi: gettersAbi,
       functionName: 'chainWithdrawalIdsPaginated',
       args: [BigInt(cursor.withdrawalsIndexed), BigInt(delta)],
-    })) as `0x${string}`[];
+    });
     let done = 0;
     for (const id of ids) {
       try {
@@ -337,14 +332,12 @@ async function maybeQueuePaymentRelayJob(
   paymentId: `0x${string}`,
   log: ReturnType<typeof chainLogger>
 ): Promise<void> {
-  const raw: any = await client.readContract({
+  const { payableChainId } = await client.readContract({
     address: chain.gettersAddress,
     abi: gettersAbi,
     functionName: 'getUserPayment',
     args: [paymentId],
   });
-
-  const payableChainId: string = raw.payableChainId;
 
   // Local payment — payable lives on this chain, no relay needed.
   if (payableChainId === chain.cbChainId) return;

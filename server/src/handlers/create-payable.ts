@@ -18,7 +18,7 @@ export const createPayable = async (body: any, chain: Chain, walletAddress: stri
   let raw: any;
   if (chain.isEvm) {
     raw = await evmFetch('Payable', payableId, chain.name);
-    payableId = payableId.toLowerCase();
+    payableId = payableId;
   } else if (chain.isSolana) raw = await solanaFetch('payable', payableId);
   else throw `Unsupported Chain ${chain.name}`;
 

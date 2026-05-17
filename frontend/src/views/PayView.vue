@@ -4,7 +4,7 @@ import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import IconWallet from '@/icons/IconWallet.vue';
 import { Payable, TokenAndAmount, tokens, type ChainName, type Token } from '@/schemas';
-import { useAnalyticsStore, useAuthStore, usePayableStore, usePaymentStore } from '@/stores';
+import { useAnalyticsStore, useAuthStore, useEvmStore, usePayableStore, usePaymentStore } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
@@ -15,8 +15,10 @@ const amount = ref<any>('');
 const amountError = ref('');
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
+const evm = useEvmStore();
 const balanceError = ref('');
 const balances = ref<(number | null)[]>([]);
+const isForeignPayableRelayed = ref<boolean | null>(null);
 const isSameChain = computed(() => {
   if (!auth.currentUser || !payable.value) return true;
   return auth.currentUser.chain.name === payable.value.chain.name;
@@ -147,11 +149,19 @@ const pay = async () => {
   else isPaying.value = false;
 };
 
+const checkForeignPayableRelayed = async () => {
+  if (!auth.currentUser || !payable.value) return;
+  if (isSameChain.value || !auth.currentUser.chain.isEvm || !payable.value.chain.isEvm) return;
+  isForeignPayableRelayed.value = null;
+  const result = await evm.fetchForeignPayable(payable.value.id, auth.currentUser.chain.name as ChainName);
+  isForeignPayableRelayed.value = !!result;
+};
+
 onMounted(async () => {
   payable.value = await payables.get(route.params.id as string);
   isLoading.value = false;
 
-  await updateBalances();
+  await Promise.all([updateBalances(), checkForeignPayableRelayed()]);
   document.addEventListener('visibilitychange', updateBalances);
   watch(() => amount.value, validateAmount);
   watch(
@@ -164,13 +174,14 @@ onMounted(async () => {
   );
   watch(
     () => auth.currentUser,
-    (_) => {
+    async (_) => {
       // Reset the form when the user changes to avoid cross-chain token issues
       selectedConfig.value = null;
       selectedToken.value = null;
       configError.value = '';
       balanceError.value = '';
       updateBalances();
+      await checkForeignPayableRelayed();
 
       if (!allowsFreePayments.value && aTAAs.value.length == 1) {
         selectedConfig.value = aTAAs.value[0];
@@ -220,24 +231,24 @@ onMounted(async () => {
         </div>
       </div>
 
-    <div class="grow basis-1/2 md:max-w-md md:mt-12">
-      <div class="text-center pt-8" v-if="isPaying">
-        <p class="mb-12">Paying ...</p>
-        <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
-      </div>
+      <div class="grow basis-1/2 md:max-w-md md:mt-12">
+        <div class="text-center pt-8" v-if="isPaying">
+          <p class="mb-12">Paying ...</p>
+          <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
+        </div>
 
-      <div
-        v-else-if="!isSameChain && !allowsFreePayments && compatibleATAAs.length === 0"
-        class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400"
-      >
-        <p class="mb-4">
-          This payable only accepts tokens that are not compatible with cross-chain payments from your current network.
-          Please switch to <strong>{{ payable.chain.displayName }}</strong> to pay.
-        </p>
-        <SignInButton />
-      </div>
+        <div
+          v-else-if="!isSameChain && !allowsFreePayments && compatibleATAAs.length === 0"
+          class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400"
+        >
+          <p class="mb-4">
+            This payable only accepts tokens that are not compatible with cross-chain payments from your current
+            network. Please switch to <strong>{{ payable.chain.displayName }}</strong> to pay.
+          </p>
+          <SignInButton />
+        </div>
 
-      <form class="max-w-sm mx-auto" @submit.prevent="pay" v-else>
+        <form class="max-w-sm mx-auto" @submit.prevent="pay" v-else>
           <div class="mb-8 leading-tight" v-if="allowsFreePayments">
             <p class="mb-2">Amount</p>
             <div class="flex mb-4">
@@ -352,20 +363,39 @@ onMounted(async () => {
                 auth.currentUser.chain.networkType === payable.chain.networkType
               "
             >
+              <!-- Still checking if foreign payable has been relayed -->
+              <div v-if="isForeignPayableRelayed === null" class="mt-8 mb-24 flex justify-center">
+                <IconSpinner class="w-8 h-8 animate-spin text-primary" />
+              </div>
+
+              <!-- Foreign payable not yet relayed to user's chain -->
               <div
-                class="mt-6 mb-4 rounded-lg bg-primary bg-opacity-10 dark:bg-opacity-5 border border-primary border-opacity-30 px-4 py-3 text-sm"
+                v-else-if="isForeignPayableRelayed === false"
+                class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400"
               >
-                <p class="font-semibold mb-1">⚡ Cross-Chain Payment</p>
-                <p class="text-gray-600 dark:text-gray-400 leading-snug">
-                  This payable is on <strong>{{ payable.chain.displayName }}</strong
-                  >. Your payment will be bridged via <strong>Circle CCTP</strong> and will arrive after a relayer
-                  confirms it on the destination chain.
+                <p>
+                  This payable hasn't been relayed to <strong>{{ auth.currentUser.chain.displayName }}</strong> yet.
+                  Please try again shortly.
                 </p>
               </div>
-              <p class="mt-4 mb-24 text-right">
-                <Button type="submit" class="text-xl px-6 py-2"> Pay via CCTP </Button>
-                <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
-              </p>
+
+              <!-- Foreign payable is available — show pay button -->
+              <template v-else>
+                <div
+                  class="mt-6 mb-4 rounded-lg bg-primary bg-opacity-10 dark:bg-opacity-5 border border-primary border-opacity-30 px-4 py-3 text-sm"
+                >
+                  <p class="font-semibold mb-1">⚡ Cross-Chain Payment</p>
+                  <p class="text-gray-600 dark:text-gray-400 leading-snug">
+                    This payable is on <strong>{{ payable.chain.displayName }}</strong
+                    >. Your payment will be bridged via <strong>Circle CCTP</strong> and will arrive after a relayer
+                    confirms it on the destination chain.
+                  </p>
+                </div>
+                <p class="mt-4 mb-24 text-right">
+                  <Button type="submit" class="text-xl px-6 py-2"> Pay via CCTP </Button>
+                  <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
+                </p>
+              </template>
             </template>
 
             <!-- Mainnet / Testnet mismatch: hard block with info message -->

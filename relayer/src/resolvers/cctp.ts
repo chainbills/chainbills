@@ -19,6 +19,9 @@
 import type { ChainConfig } from '../chains.js';
 import { logger } from '../utils/logger.js';
 
+const getBaseUrl = (chainType: 'mainnet' | 'testnet') =>
+  `https://iris-api${chainType === 'testnet' ? '-sandbox' : ''}.circle.com`;
+
 export interface CctpAttestation {
   /** Hex-encoded CCTP message bytes. */
   message: string;
@@ -40,10 +43,7 @@ export async function waitForAttestation(
   maxAttempts = 60
 ): Promise<CctpAttestation> {
   const sourceDomain = chain.circleDomain;
-  const baseUrl =
-    chain.cctpNetwork === 'Mainnet' ? 'https://iris-api.circle.com' : 'https://iris-api-sandbox.circle.com';
-
-  const url = `${baseUrl}/v2/messages/${sourceDomain}?transactionHash=${txHash}`;
+  const url = `${getBaseUrl(chain.network)}/v2/messages/${sourceDomain}?transactionHash=${txHash}`;
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -97,10 +97,7 @@ export async function waitForAllAttestations(
   maxAttempts = 60
 ): Promise<CctpAttestation[]> {
   const sourceDomain = chain.circleDomain;
-  const baseUrl =
-    chain.cctpNetwork === 'Mainnet' ? 'https://iris-api.circle.com' : 'https://iris-api-sandbox.circle.com';
-
-  const url = `${baseUrl}/v2/messages/${sourceDomain}?transactionHash=${txHash}`;
+  const url = `${getBaseUrl(chain.network)}/v2/messages/${sourceDomain}?transactionHash=${txHash}`;
 
   for (let i = 0; i < maxAttempts; i++) {
     try {
@@ -117,7 +114,17 @@ export async function waitForAllAttestations(
 
       if (complete.length >= expectedCount) {
         logger.info({ sourceDomain, txHash, count: complete.length, attempt: i + 1 }, 'All CCTP attestations ready');
-        return complete.map((m) => ({ message: m.message, attestation: m.attestation }));
+        // Sort: token burn first, PaymentPayload data message (type 0x02 at message body offset 148) second.
+        const sorted = [...complete].sort((a, b) => {
+          const aHex = (a.message as string).startsWith('0x') ? (a.message as string).slice(2) : (a.message as string);
+          const bHex = (b.message as string).startsWith('0x') ? (b.message as string).slice(2) : (b.message as string);
+          const aType = aHex.length >= 298 ? parseInt(aHex.slice(296, 298), 16) : 0;
+          const bType = bHex.length >= 298 ? parseInt(bHex.slice(296, 298), 16) : 0;
+          if (aType === 2) return 1;
+          if (bType === 2) return -1;
+          return 0;
+        });
+        return sorted.map((m) => ({ message: m.message, attestation: m.attestation }));
       }
 
       logger.debug(
@@ -131,9 +138,7 @@ export async function waitForAllAttestations(
     await sleep(3000);
   }
 
-  throw new Error(
-    `CCTP attestation timeout after ${maxAttempts} attempts for txHash=${txHash} domain=${sourceDomain}`
-  );
+  throw new Error(`CCTP attestation timeout after ${maxAttempts} attempts for txHash=${txHash} domain=${sourceDomain}`);
 }
 
 function sleep(ms: number): Promise<void> {

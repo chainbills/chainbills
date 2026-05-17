@@ -49,10 +49,26 @@ contract CbStructs is CbEvents {
     uint256 withdrawalsCount;
     /// Total number of activities that have ever been made on this chain.
     uint256 activitiesCount;
+  }
+
+  /// Keeps track of Wormhole message activity on this chain.
+  struct WormholeStats {
     /// Total number of published Wormhole messages on this chain.
     uint256 publishedWormholeMessagesCount;
     /// Total number of consumed Wormhole messages on this chain.
     uint256 consumedWormholeMessagesCount;
+  }
+
+  /// Keeps track of Circle CCTP message activity on this chain.
+  struct CctpStats {
+    /// Total number of CCTP payment messages emitted on this chain.
+    uint256 emittedCctpPaymentMessagesCount;
+    /// Total number of CCTP payable update messages emitted on this chain.
+    uint256 emittedCctpPayableUpdateMessagesCount;
+    /// Total number of CCTP payment messages received on this chain.
+    uint256 receivedCctpPaymentMessagesCount;
+    /// Total number of CCTP payable update messages received on this chain.
+    uint256 receivedCctpPayableUpdateMessagesCount;
   }
 
   /// A user is an entity that can create payables and make payments.

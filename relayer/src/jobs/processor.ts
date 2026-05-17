@@ -18,7 +18,7 @@
 
 import { chainByName } from '../chains.js';
 import { waitForAllAttestations, waitForAttestation } from '../resolvers/cctp.js';
-import { getVaa } from '../resolvers/wormhole.js';
+import { getVaaBySequence, getVaaByTxHash } from '../resolvers/wormhole.js';
 import {
   submitAdminSyncPayable,
   submitPayableUpdateViaCctp,
@@ -63,15 +63,28 @@ async function processJob(job: RelayerJob): Promise<void> {
       case 'PAYABLE_UPDATE_VIA_WORMHOLE': {
         let vaaBytes: Uint8Array;
         if (job.vaa) {
-          // VAA pre-fetched by the count-based watcher via sequence lookup.
           vaaBytes = Buffer.from(job.vaa, 'hex');
+        } else if (job.eventData?.sequence !== undefined) {
+          const sequence = Number(job.eventData.sequence);
+          log.info({ sequence }, 'Fetching Wormhole VAA by sequence');
+          const fetched = await getVaaBySequence(sourceChain, sequence);
+          if (!fetched) throw new Error('VAA not yet available by sequence, will retry');
+          vaaBytes = fetched;
+          await patchJob(job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
         } else {
-          // Legacy path: job was created by the old block-cursor watcher with a real txHash.
-          log.info('Fetching Wormhole VAA for payable update by txHash');
-          const fetched = await getVaa(sourceChain, job.txHash);
+          // Legacy path: job created with a real txHash (no sequence in eventData).
+          log.info('Fetching Wormhole VAA by txHash (legacy)');
+          const fetched = await getVaaByTxHash(sourceChain, job.txHash);
           if (!fetched) throw new Error('VAA not yet available, will retry');
           vaaBytes = fetched;
           await patchJob(job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
+        }
+        // Skip non-payable-update VAAs (type 2 = payment, handled via payment relay path).
+        const payloadOffset = wormholePayloadOffset(vaaBytes);
+        if (payloadOffset !== null && vaaBytes[payloadOffset] !== 1) {
+          log.debug({ payloadType: vaaBytes[payloadOffset] }, 'Skipping non-payable-update VAA');
+          await markDone(job.id);
+          return;
         }
         await submitPayableUpdateViaWormhole(destChain, vaaBytes);
         break;
@@ -99,7 +112,7 @@ async function processJob(job: RelayerJob): Promise<void> {
 
         // Fetch VAA and attestation in parallel to reduce latency.
         const [vaaBytes, { message, attestation }] = await Promise.all([
-          getVaa(sourceChain, job.txHash),
+          getVaaByTxHash(sourceChain, job.txHash),
           waitForAttestation(sourceChain, job.txHash),
         ]);
 
@@ -141,8 +154,26 @@ async function processJob(job: RelayerJob): Promise<void> {
       }
 
       case 'ADMIN_SYNC': {
-        if (!job.vaa) throw new Error('ADMIN_SYNC job missing vaa');
-        const vaaBytes = new Uint8Array(Buffer.from(job.vaa, 'hex'));
+        let vaaBytes: Uint8Array;
+        if (job.vaa) {
+          vaaBytes = new Uint8Array(Buffer.from(job.vaa, 'hex'));
+        } else if (job.eventData?.sequence !== undefined) {
+          const sequence = Number(job.eventData.sequence);
+          log.info({ sequence }, 'Fetching Wormhole VAA for admin sync by sequence');
+          const fetched = await getVaaBySequence(sourceChain, sequence);
+          if (!fetched) throw new Error('VAA not yet available by sequence, will retry');
+          vaaBytes = fetched;
+          await patchJob(job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
+        } else {
+          throw new Error('ADMIN_SYNC job missing both vaa and sequence');
+        }
+        // Skip non-payable-update VAAs.
+        const payloadOffset = wormholePayloadOffset(vaaBytes);
+        if (payloadOffset !== null && vaaBytes[payloadOffset] !== 1) {
+          log.debug({ payloadType: vaaBytes[payloadOffset] }, 'Skipping non-payable-update VAA in ADMIN_SYNC');
+          await markDone(job.id);
+          return;
+        }
         await submitAdminSyncPayable(sourceChain, destChain, vaaBytes);
         break;
       }
@@ -157,6 +188,12 @@ async function processJob(job: RelayerJob): Promise<void> {
     const errMsg = err?.message ?? `${err}`;
     log.error({ err: errMsg }, 'Job failed');
 
+    // StalePayableUpdateNonce: the update was already applied via another protocol path — mark DONE.
+    if (errMsg.includes('StalePayableUpdateNonce')) {
+      await markDone(job.id);
+      return;
+    }
+
     if (job.attempts + 1 >= MAX_ATTEMPTS) {
       await markFailed(job.id, errMsg);
     } else {
@@ -166,5 +203,18 @@ async function processJob(job: RelayerJob): Promise<void> {
       const { db } = await import('../utils/firebase.js');
       await db.doc(`relayerJobs/${job.id}`).update({ status: 'PENDING', error: errMsg });
     }
+  }
+}
+
+/**
+ * Returns the byte offset of the payload within a serialized signed VAA.
+ * VAA layout: version(1) + guardianSetIndex(4) + numSigs(1) + sigs(66*n) + header(51) + payload
+ */
+function wormholePayloadOffset(vaa: Uint8Array): number | null {
+  try {
+    const numSigs = vaa[5];
+    return 6 + 66 * numSigs + 51;
+  } catch {
+    return null;
   }
 }

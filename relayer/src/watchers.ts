@@ -38,7 +38,6 @@ import { ALL_CHAINS, chainByCbChainId } from './chains.js';
 import { indexPayable, indexPayablePayment, indexUserPayment, indexWithdrawal } from './indexer.js';
 import { createJob, jobExistsForTx } from './jobs/store.js';
 import { notifyPaymentReceived } from './notify/host.js';
-import { getVaaBySequence } from './resolvers/wormhole.js';
 import { gettersAbi } from './utils/abis.js';
 import { makePublicClient } from './utils/clients.js';
 import { db } from './utils/firebase.js';
@@ -145,7 +144,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   const cursor = memoryCursors.get(chain.name)!;
 
   // One RPC call gets all chain-level counts.
-  const stats = await client.readContract({
+  const chainStats = await client.readContract({
     address: chain.gettersAddress,
     abi: gettersAbi,
     functionName: 'getChainStats',
@@ -154,7 +153,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   let changed = false;
 
   // ── 1. Payables ─────────────────────────────────────────────────────────────
-  const onChainPayables = Number(stats.payablesCount);
+  const onChainPayables = Number(chainStats.payablesCount);
   if (onChainPayables > cursor.payablesIndexed) {
     const delta = onChainPayables - cursor.payablesIndexed;
     log.info({ from: cursor.payablesIndexed, delta }, 'New payables detected');
@@ -170,7 +169,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
         await indexPayable(chain, id);
         if (chain.hasCctp) {
           // Targeted getLogs by indexed payableId — returns exactly the creation log.
-          const bcastLogs = await client.getLogs({
+          const bcastLogs = await getLogsChunked(client, {
             address: chain.contractAddress,
             event: PAYABLE_UPDATE_BROADCASTED_EVENT,
             args: { payableId: id },
@@ -193,7 +192,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   }
 
   // ── 2. User payments — index + cross-chain relay ───────────────────────────
-  const onChainUserPayments = Number(stats.userPaymentsCount);
+  const onChainUserPayments = Number(chainStats.userPaymentsCount);
   if (onChainUserPayments > cursor.userPaymentsIndexed) {
     const delta = onChainUserPayments - cursor.userPaymentsIndexed;
     log.info({ from: cursor.userPaymentsIndexed, delta }, 'New user payments detected');
@@ -224,7 +223,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   }
 
   // ── 3. Payable payments — index + notify host ──────────────────────────────
-  const onChainPayablePayments = Number(stats.payablePaymentsCount);
+  const onChainPayablePayments = Number(chainStats.payablePaymentsCount);
   if (onChainPayablePayments > cursor.payablePaymentsIndexed) {
     const delta = onChainPayablePayments - cursor.payablePaymentsIndexed;
     log.info({ from: cursor.payablePaymentsIndexed, delta }, 'New payable payments detected');
@@ -262,7 +261,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
   }
 
   // ── 4. Withdrawals ───────────────────────────────────────────────────────────
-  const onChainWithdrawals = Number(stats.withdrawalsCount);
+  const onChainWithdrawals = Number(chainStats.withdrawalsCount);
   if (onChainWithdrawals > cursor.withdrawalsIndexed) {
     const delta = onChainWithdrawals - cursor.withdrawalsIndexed;
     log.info({ from: cursor.withdrawalsIndexed, delta }, 'New withdrawals detected');
@@ -293,7 +292,12 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
 
   // ── 5. Wormhole payable update relay — sequence-based (Wormhole chains) ────
   if (chain.hasWormhole) {
-    const onChainWormhole = Number(stats.publishedWormholeMessagesCount);
+    const wormholeStats = await client.readContract({
+      address: chain.gettersAddress,
+      abi: gettersAbi,
+      functionName: 'getWormholeStats',
+    });
+    const onChainWormhole = Number(wormholeStats.publishedWormholeMessagesCount);
     if (onChainWormhole > cursor.wormholeRelayed) {
       const delta = onChainWormhole - cursor.wormholeRelayed;
       log.info({ from: cursor.wormholeRelayed, delta }, 'New Wormhole messages to relay');
@@ -352,28 +356,16 @@ async function maybeQueuePaymentRelayJob(
     return;
   }
 
-  // Fetch the txHash via targeted getLogs — paymentId is an indexed topic so
-  // each chunk returns at most one log. Paginate in 9,000-block chunks to
-  // satisfy RPCs that cap eth_getLogs ranges (e.g. Arc Testnet: 10,000 blocks).
-  const latestBlock = await client.getBlockNumber();
-  const CHUNK = 9_000n;
-  let txHash: `0x${string}` | undefined;
-  let blockNumber: number | undefined;
-  for (let from = chain.deploymentBlock; from <= latestBlock; from += CHUNK) {
-    const to = from + CHUNK - 1n < latestBlock ? from + CHUNK - 1n : latestBlock;
-    const chunk = await client.getLogs({
-      address: chain.contractAddress,
-      event: USER_PAID_EVENT,
-      args: { paymentId } as any,
-      fromBlock: from,
-      toBlock: to,
-    });
-    if (chunk.length > 0) {
-      txHash = chunk[0].transactionHash!;
-      blockNumber = Number(chunk[0].blockNumber);
-      break;
-    }
-  }
+  // Fetch the txHash via chunked getLogs — paymentId is an indexed topic so
+  // at most one log matches. getLogsChunked handles RPCs with a 10,000-block cap.
+  const paymentLogs = await getLogsChunked(client, {
+    address: chain.contractAddress,
+    event: USER_PAID_EVENT,
+    args: { paymentId } as any,
+    fromBlock: chain.deploymentBlock,
+  });
+  const txHash = paymentLogs[0]?.transactionHash ?? undefined;
+  const blockNumber = paymentLogs[0]?.blockNumber !== undefined ? Number(paymentLogs[0].blockNumber) : undefined;
   if (!txHash) {
     log.warn({ paymentId }, 'UserPaid log not found — cannot queue payment relay job');
     return;
@@ -382,7 +374,7 @@ async function maybeQueuePaymentRelayJob(
   const alreadyQueued = await jobExistsForTx(txHash, destChain.name);
   if (alreadyQueued) return;
 
-  const jobType = chain.hasWormhole ? 'PAYMENT_VIA_CIRCLE' : 'PAYMENT_VIA_CCTP_ONLY';
+  const jobType = destChain.hasWormhole ? 'PAYMENT_VIA_CIRCLE' : 'PAYMENT_VIA_CCTP_ONLY';
   await createJob({
     type: jobType,
     sourceChain: chain.name,
@@ -401,87 +393,25 @@ async function maybeQueueWormholeRelayJob(
   sequence: number,
   log: ReturnType<typeof chainLogger>
 ): Promise<void> {
-  const vaaBytes = await getVaaBySequence(chain, sequence);
-  if (!vaaBytes) {
-    // VAA not ready (Guardians haven't signed yet). The wormholeRelayed cursor
-    // will still advance, so this sequence won't be retried automatically.
-    // The job processor handles retries for already-created jobs; for missed
-    // sequences, use the backfill script.
-    log.warn({ sequence }, 'VAA not ready for sequence — sequence will not be auto-retried');
-    return;
-  }
-
-  // Inspect the payload type byte to skip Payment VAAs (type 2).
-  // Payment relays are handled separately via the user payment path.
-  const payloadOffset = wormholePayloadOffset(vaaBytes);
-  if (payloadOffset === null || vaaBytes[payloadOffset] !== 1) {
-    log.debug(
-      { sequence, payloadType: payloadOffset !== null ? vaaBytes[payloadOffset] : '?' },
-      'Skipping non-payable-update VAA'
-    );
-    return;
-  }
-
-  const vaaHex = Buffer.from(vaaBytes).toString('hex');
   // Use a synthetic txHash so the dedup check works without a real transaction hash.
   const syntheticKey = `wormhole-seq-${chain.name}-${sequence}`;
 
-  // Extract payableId from VAA payload for admin-sync jobs (non-Wormhole dest chains).
-  // PayablePayload layout after payload offset: payloadType(1) | version(1) | actionType(1) | payableId(32) | ...
-  const payableId = ('0x' +
-    Buffer.from(vaaBytes.slice(payloadOffset + 3, payloadOffset + 35)).toString('hex')) as `0x${string}`;
-
   for (const destChain of ALL_CHAINS) {
     if (destChain.name === chain.name) continue;
+    if (!destChain.hasWormhole) continue; // CCTP path handles non-Wormhole dest chains
 
     const alreadyQueued = await jobExistsForTx(syntheticKey, destChain.name);
     if (alreadyQueued) continue;
 
-    if (destChain.hasWormhole) {
-      await createJob({
-        type: 'PAYABLE_UPDATE_VIA_WORMHOLE',
-        sourceChain: chain.name,
-        destChain: destChain.name,
-        txHash: syntheticKey,
-        blockNumber: 0,
-        eventData: { sequence: String(sequence) },
-        vaa: vaaHex,
-      });
-      log.info({ sequence, destChain: destChain.name }, 'Queued PAYABLE_UPDATE_VIA_WORMHOLE job');
-    } else {
-      // Dest chain has no Wormhole — apply update via adminSyncForeignPayable.
-      await createJob({
-        type: 'ADMIN_SYNC',
-        sourceChain: chain.name,
-        destChain: destChain.name,
-        txHash: syntheticKey,
-        blockNumber: 0,
-        eventData: { payableId, sequence: String(sequence) },
-        vaa: vaaHex,
-      });
-      log.info({ sequence, payableId, destChain: destChain.name }, 'Queued ADMIN_SYNC job');
-    }
-  }
-}
-
-/**
- * Returns the byte offset of the payload within a serialized signed VAA.
- *
- * VAA wire layout:
- *   version(1) | guardianSetIndex(4) | numSignatures(1)
- *   | signatures(66 × numSignatures)
- *   | timestamp(4) | nonce(4) | emitterChain(2) | emitterAddress(32)
- *   | sequence(8) | consistencyLevel(1)
- *   | payload(...)
- *
- * Header before payload = 6 + 66×numSigs + 51 bytes.
- */
-function wormholePayloadOffset(vaa: Uint8Array): number | null {
-  try {
-    const numSigs = vaa[5];
-    return 6 + 66 * numSigs + 51;
-  } catch {
-    return null;
+    await createJob({
+      type: 'PAYABLE_UPDATE_VIA_WORMHOLE',
+      sourceChain: chain.name,
+      destChain: destChain.name,
+      txHash: syntheticKey,
+      blockNumber: 0,
+      eventData: { sequence: String(sequence) },
+    });
+    log.info({ sequence, destChain: destChain.name }, 'Queued PAYABLE_UPDATE_VIA_WORMHOLE job');
   }
 }
 
@@ -495,13 +425,7 @@ async function maybeQueueCctpPayableUpdateJobs(
 ): Promise<void> {
   for (const destChain of ALL_CHAINS) {
     if (destChain.name === chain.name) continue;
-
-    const bothWormhole = chain.hasWormhole && destChain.hasWormhole;
-    const bothCctp = chain.hasCctp && destChain.hasCctp;
-
-    // Wormhole pairs are handled by the sequence-based Wormhole relay above.
-    if (bothWormhole) continue;
-    if (!bothCctp) continue;
+    if (!destChain.hasCctp) continue; // dest needs CCTP to receive payable updates via Circle
 
     const alreadyQueued = await jobExistsForTx(txHash, destChain.name);
     if (alreadyQueued) continue;
@@ -522,6 +446,26 @@ async function maybeQueueCctpPayableUpdateJobs(
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Chunked getLogs — splits [fromBlock, latest] into 9,000-block pages so that
+ * RPCs with a 10,000-block cap (e.g. Arc Testnet) don't reject the request.
+ * Returns all matching logs across all chunks.
+ */
+async function getLogsChunked(
+  client: PublicClient,
+  params: Parameters<PublicClient['getLogs']>[0] & { fromBlock: bigint }
+): Promise<Awaited<ReturnType<PublicClient['getLogs']>>> {
+  const CHUNK = 9_000n;
+  const latestBlock = await client.getBlockNumber();
+  const results: Awaited<ReturnType<PublicClient['getLogs']>> = [];
+  for (let from = params.fromBlock; from <= latestBlock; from += CHUNK) {
+    const to = from + CHUNK - 1n < latestBlock ? from + CHUNK - 1n : latestBlock;
+    const chunk = await client.getLogs({ ...params, fromBlock: from, toBlock: to });
+    results.push(...chunk);
+  }
+  return results;
 }
 
 /**

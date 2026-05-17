@@ -7,6 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { ChainName } from '../chains.js';
+import { logger } from './logger.js';
 
 export interface TokenChainDetails {
   address: string;
@@ -36,7 +37,7 @@ export const TOKENS: Token[] = [
         address: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
         decimals: 18,
       },
-      megaeth: { address: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60', decimals: 18 },
+      megaeth: { address: '0x92e67bFE49466b18ccDf2A3A28b234AB68374c60', decimals: 18 },
     },
   },
 ];
@@ -44,13 +45,13 @@ export const TOKENS: Token[] = [
 /**
  * Resolves an on-chain EVM token address (lowercase hex) to its human-readable
  * name and decimal count.
- * Falls back to the raw address if the token is not in the registry.
  */
 export function resolveToken(tokenAddress: string, chainName: ChainName): { name: string; decimals: number } {
   const addr = tokenAddress;
-  const found = TOKENS.find((t) => t.details[chainName]?.address === addr);
+  const found = TOKENS.find((t) => t.details[chainName]?.address.toLowerCase() === addr.toLowerCase());
   if (found) {
     return { name: found.name, decimals: found.details[chainName]!.decimals };
   }
+  logger.error({ tokenAddress, chainName }, 'Unknown token — add to TOKENS registry');
   return { name: addr, decimals: 0 };
 }

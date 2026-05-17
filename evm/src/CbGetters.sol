@@ -46,8 +46,7 @@ contract CbGetters is CbErrors, CbStructs {
   /// @notice Fetches the global statistics for the Chainbills protocol on this chain.
   /// @return stats The ChainStats struct with overall protocol counts.
   function getChainStats() external view returns (ChainStats memory stats) {
-    (uint256 a, uint256 b, uint256 c, uint256 d, uint256 e, uint256 f, uint256 g, uint256 h, uint256 i) =
-      STATE.chainStats();
+    (uint256 a, uint256 b, uint256 c, uint256 d, uint256 e, uint256 f, uint256 g) = STATE.chainStats();
     stats = ChainStats({
       usersCount: a,
       payablesCount: b,
@@ -55,9 +54,26 @@ contract CbGetters is CbErrors, CbStructs {
       userPaymentsCount: d,
       payablePaymentsCount: e,
       withdrawalsCount: f,
-      activitiesCount: g,
-      publishedWormholeMessagesCount: h,
-      consumedWormholeMessagesCount: i
+      activitiesCount: g
+    });
+  }
+
+  /// @notice Fetches the Wormhole message activity counters for this chain.
+  /// @return stats The WormholeStats struct with Wormhole message counts.
+  function getWormholeStats() external view returns (WormholeStats memory stats) {
+    (uint256 a, uint256 b) = STATE.wormholeStats();
+    stats = WormholeStats({publishedWormholeMessagesCount: a, consumedWormholeMessagesCount: b});
+  }
+
+  /// @notice Fetches the CCTP message activity counters for this chain.
+  /// @return stats The CctpStats struct with CCTP message counts.
+  function getCctpStats() external view returns (CctpStats memory stats) {
+    (uint256 a, uint256 b, uint256 c, uint256 d) = STATE.cctpStats();
+    stats = CctpStats({
+      emittedCctpPaymentMessagesCount: a,
+      emittedCctpPayableUpdateMessagesCount: b,
+      receivedCctpPaymentMessagesCount: c,
+      receivedCctpPayableUpdateMessagesCount: d
     });
   }
 
@@ -474,7 +490,7 @@ contract CbGetters is CbErrors, CbStructs {
   /// @param limit Maximum number of items to return.
   /// @return items Array of user addresses.
   function chainUserAddressesPaginated(uint256 offset, uint256 limit) external view returns (address[] memory items) {
-    (uint256 total,,,,,,,,) = STATE.chainStats();
+    (uint256 total,,,,,,) = STATE.chainStats();
     return _paginateAddressArray(STATE.chainUserAddresses, total, offset, limit);
   }
 
@@ -483,7 +499,7 @@ contract CbGetters is CbErrors, CbStructs {
   /// @param limit Maximum number of items to return.
   /// @return items Array of payable IDs.
   function chainPayableIdsPaginated(uint256 offset, uint256 limit) external view returns (bytes32[] memory items) {
-    (, uint256 total,,,,,,,) = STATE.chainStats();
+    (, uint256 total,,,,,) = STATE.chainStats();
     return _paginateBytes32Array(STATE.chainPayableIds, total, offset, limit);
   }
 
@@ -496,7 +512,7 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32[] memory items)
   {
-    (,, uint256 total,,,,,,) = STATE.chainStats();
+    (,, uint256 total,,,,) = STATE.chainStats();
     return _paginateBytes32Array(STATE.chainForeignPayableIds, total, offset, limit);
   }
 
@@ -505,7 +521,7 @@ contract CbGetters is CbErrors, CbStructs {
   /// @param limit Maximum number of items to return.
   /// @return items Array of user payment IDs.
   function chainUserPaymentIdsPaginated(uint256 offset, uint256 limit) external view returns (bytes32[] memory items) {
-    (,,, uint256 total,,,,,) = STATE.chainStats();
+    (,,, uint256 total,,,) = STATE.chainStats();
     return _paginateBytes32Array(STATE.chainUserPaymentIds, total, offset, limit);
   }
 
@@ -518,7 +534,7 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32[] memory items)
   {
-    (,,,, uint256 total,,,,) = STATE.chainStats();
+    (,,,, uint256 total,,) = STATE.chainStats();
     return _paginateBytes32Array(STATE.chainPayablePaymentIds, total, offset, limit);
   }
 
@@ -527,7 +543,7 @@ contract CbGetters is CbErrors, CbStructs {
   /// @param limit Maximum number of items to return.
   /// @return items Array of withdrawal IDs.
   function chainWithdrawalIdsPaginated(uint256 offset, uint256 limit) external view returns (bytes32[] memory items) {
-    (,,,,, uint256 total,,,) = STATE.chainStats();
+    (,,,,, uint256 total,) = STATE.chainStats();
     return _paginateBytes32Array(STATE.chainWithdrawalIds, total, offset, limit);
   }
 
@@ -536,7 +552,7 @@ contract CbGetters is CbErrors, CbStructs {
   /// @param limit Maximum number of items to return.
   /// @return items Array of activity IDs.
   function chainActivityIdsPaginated(uint256 offset, uint256 limit) external view returns (bytes32[] memory items) {
-    (,,,,,, uint256 total,,) = STATE.chainStats();
+    (,,,,,, uint256 total) = STATE.chainStats();
     return _paginateBytes32Array(STATE.chainActivityIds, total, offset, limit);
   }
 
@@ -549,7 +565,7 @@ contract CbGetters is CbErrors, CbStructs {
     view
     returns (bytes32[] memory items)
   {
-    (,,,,,,,, uint256 total) = STATE.chainStats();
+    (, uint256 total) = STATE.wormholeStats();
     return _paginateBytes32Array(STATE.consumedWormholeMessages, total, offset, limit);
   }
 

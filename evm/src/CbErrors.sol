@@ -3,14 +3,20 @@ pragma solidity ^0.8.30;
 
 /// Stores all thrown errors in Chainbills
 contract CbErrors {
+  /// @notice Thrown when a token amount exceeds the uint64 maximum allowed for cross-chain transfers.
+  error AmountExceedsCrossChainLimit();
   /// @notice Thrown when a CCTP-only payment burn nonce has already been consumed by receiveForeignPaymentWithCircle.
   error CctpBurnNonceAlreadyConsumed();
+  /// @notice Thrown when a CCTP data message nonce has already been consumed (replay protection for payable updates).
+  error CctpDataNonceAlreadyConsumed();
   /// @notice Thrown when the burn message amount does not match the declared payload amount.
   error CircleAmountMismatch();
   /// @notice Thrown when Circle message receiving operation fails (e.g. invalid attestation, message replay, etc.).
   error CircleMessageReceivingFailed();
   /// @notice Thrown when Circle token minting operation fails.
   error CircleMintingFailed();
+  /// @notice Thrown when the burn nonce in the PaymentPayload does not match the nonce in the Circle burn message.
+  error CircleNonceMismatch();
   /// @notice Thrown when the caller is not the authorized Circle Transmitter.
   error CircleTransmitterOnly();
   /// @notice Thrown when the Data Messaging Protocol is not valid or supported.

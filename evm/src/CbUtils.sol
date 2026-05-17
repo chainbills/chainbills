@@ -9,7 +9,7 @@ contract CbUtils is CbState {
   /// Stores a Wormhole Message and mark it as consumed.
   /// @param wormholeMessage The parsed Wormhole message struct.
   function consumeWormholeMessage(IWormhole.VM memory wormholeMessage) internal {
-    chainStats.consumedWormholeMessagesCount++;
+    wormholeStats.consumedWormholeMessagesCount++;
     consumedWormholeMessages.push(wormholeMessage.hash);
     uint16 chainId = wormholeMessage.emitterChainId;
     perChainConsumedWormholeMessages[chainId].push(wormholeMessage.hash);
@@ -33,9 +33,10 @@ contract CbUtils is CbState {
     if (msg.value > wormholeFees) revert IncorrectWormholeFees();
   }
 
-  /// Returns the cost of sending a message through Wormhole.
+  /// Returns the cost of sending a message through Wormhole, or 0 if Wormhole is not configured.
   /// @return The required fee in native token wei.
   function getWormholeMessageFee() public view returns (uint256) {
+    if (!hasWormhole()) return 0;
     return wormhole().messageFee();
   }
 
@@ -116,6 +117,6 @@ contract CbUtils is CbState {
     );
 
     // Increment the chainStats for publishedWormholeMessagesCount.
-    chainStats.publishedWormholeMessagesCount++;
+    wormholeStats.publishedWormholeMessagesCount++;
   }
 }

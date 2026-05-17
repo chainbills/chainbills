@@ -90,17 +90,32 @@ contract CbEvents is CbErrors {
   /// @param isAutoWithdraw The new auto-withdraw status.
   event UpdatedPayableAutoWithdrawStatus(bytes32 indexed payableId, address indexed hostWallet, bool isAutoWithdraw);
 
-  /// Emitted when a Wormhole Message is consumed for payable update.
+  /// Emitted when a foreign payment is received and recorded via Wormhole.
+  /// @param payableId The ID of the payable that received the payment.
+  /// @param cbChainId The CAIP-2 chain ID of the payer's chain.
+  /// @param payablePaymentId The ID of the recorded payable payment.
+  /// @param vaaHash The hash of the consumed Wormhole VAA.
+  event ReceivedForeignPaymentViaWormhole(
+    bytes32 indexed payableId, bytes32 indexed cbChainId, bytes32 indexed payablePaymentId, bytes32 vaaHash
+  );
+
+  /// Emitted when a CCTP burn message is consumed for a CCTP-only cross-chain payment.
+  /// @param payableId The ID of the payable that received the payment.
+  /// @param payerChainId The CAIP-2 chain ID of the payer's chain.
+  /// @param sourceDomain The Circle domain of the source chain.
+  /// @param burnNonce The CCTP v2 burn message nonce (bytes32).
+  event ConsumedCctpPaymentMessage(
+    bytes32 indexed payableId, bytes32 indexed payerChainId, uint32 sourceDomain, bytes32 burnNonce
+  );
+
+  /// Emitted when a CCTP data message is consumed for a payable update.
   /// @param payableId The ID of the payable that was updated.
   /// @param cbChainId The CAIP-2 chain ID of the source chain.
-  /// @param vaaHash The hash of the consumed Wormhole VAA.
-  event ConsumedWormholePayableMessage(bytes32 indexed payableId, bytes32 indexed cbChainId, bytes32 indexed vaaHash);
-
-  /// Emitted when a Wormhole Message is consumed for receiving payments.
-  /// @param payableId The ID of the payable that received the payment.
-  /// @param cbChainId The CAIP-2 chain ID of the source chain.
-  /// @param vaaHash The hash of the consumed Wormhole VAA.
-  event ConsumedWormholePaymentMessage(bytes32 indexed payableId, bytes32 indexed cbChainId, bytes32 indexed vaaHash);
+  /// @param sourceDomain The Circle domain of the source chain.
+  /// @param dataNonce The CCTP v2 data message nonce (bytes32).
+  event ConsumedCctpPayableUpdateMessage(
+    bytes32 indexed payableId, bytes32 indexed cbChainId, uint32 sourceDomain, bytes32 dataNonce
+  );
 
   /// Emitted when owner (deployer) updates the `maxWithdrawalFees` of `token`.
   /// @param token The address of the token whose max fees were updated.
@@ -179,11 +194,14 @@ contract CbEvents is CbErrors {
   /// @param actionType The type of action performed (e.g., create, close).
   event PayableUpdateBroadcasted(bytes32 indexed payableId, uint64 nonce, uint8 actionType);
 
-  /// Emitted when a payable update is received and applied via Wormhole
+  /// Emitted when a payable update is received and applied via Wormhole.
   /// @param payableId The ID of the payable that was updated.
   /// @param cbChainId The CAIP-2 chain ID from which the update originated.
   /// @param nonce The cross-protocol update deduplication nonce.
-  event ReceivedPayableUpdateViaWormhole(bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce);
+  /// @param vaaHash The hash of the consumed Wormhole VAA.
+  event ReceivedPayableUpdateViaWormhole(
+    bytes32 indexed payableId, bytes32 indexed cbChainId, uint64 nonce, bytes32 vaaHash
+  );
 
   /// Emitted when a payable update is received and applied via Circle CCTP
   /// @param payableId The ID of the payable that was updated.

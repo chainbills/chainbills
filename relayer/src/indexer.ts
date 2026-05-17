@@ -79,7 +79,7 @@ export async function indexPayable(chain: ChainConfig, payableId: `0x${string}`)
     const data = {
       id: payableId,
       chainName: chain.name,
-      chainNetworkType: chain.wormholeNetwork === 'Mainnet' ? 'mainnet' : 'testnet',
+      chainNetworkType: chain.network,
       host,
       chainCount: Number(chainCount),
       hostCount: Number(hostCount),
@@ -117,7 +117,7 @@ export async function indexUserPayment(chain: ChainConfig, paymentId: `0x${strin
     const data = {
       id: paymentId,
       chainName: chain.name,
-      chainNetworkType: chain.wormholeNetwork === 'Mainnet' ? 'mainnet' : 'testnet',
+      chainNetworkType: chain.network,
       payer,
       payerCount: Number(payerCount),
       payableId,
@@ -175,7 +175,7 @@ export async function indexPayablePayment(chain: ChainConfig, paymentId: `0x${st
     const data = {
       id: paymentId,
       chainName: chain.name,
-      chainNetworkType: chain.wormholeNetwork === 'Mainnet' ? 'mainnet' : 'testnet',
+      chainNetworkType: chain.network,
       payableId,
       payer,
       payerChainName: payerChain.name,
@@ -216,7 +216,7 @@ export async function indexWithdrawal(chain: ChainConfig, withdrawalId: `0x${str
     const data = {
       id,
       chainName: chain.name,
-      chainNetworkType: chain.wormholeNetwork === 'Mainnet' ? 'mainnet' : 'testnet',
+      chainNetworkType: chain.network,
       payableId: raw.payableId,
       host: raw.host,
       chainCount: Number(raw.chainCount),

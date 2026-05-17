@@ -17,8 +17,8 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { db } from '../utils/firebase.js';
 import type { ChainName } from '../chains.js';
+import { db } from '../utils/firebase.js';
 
 export type JobType =
   | 'PAYABLE_UPDATE_VIA_WORMHOLE'
@@ -70,9 +70,7 @@ export interface RelayerJob {
 const jobsCol = () => db.collection('relayerJobs');
 
 /** Creates a new PENDING job and returns its Firestore document ID. */
-export async function createJob(
-  data: Omit<RelayerJob, 'id' | 'status' | 'attempts' | 'createdAt'>
-): Promise<string> {
+export async function createJob(data: Omit<RelayerJob, 'id' | 'status' | 'attempts' | 'createdAt'>): Promise<string> {
   const ref = jobsCol().doc();
   const job: RelayerJob = {
     ...data,
@@ -87,11 +85,13 @@ export async function createJob(
 
 /** Marks a job as PROCESSING and increments its attempt counter. */
 export async function markProcessing(jobId: string): Promise<void> {
-  await jobsCol().doc(jobId).update({
-    status: 'PROCESSING',
-    attempts: FieldValue.increment(1),
-    lastAttemptAt: Timestamp.now(),
-  });
+  await jobsCol()
+    .doc(jobId)
+    .update({
+      status: 'PROCESSING',
+      attempts: FieldValue.increment(1),
+      lastAttemptAt: Timestamp.now(),
+    });
 }
 
 /** Marks a job as DONE. */
@@ -113,24 +113,19 @@ export async function markFailed(jobId: string, error: string): Promise<void> {
 
 /** Updates arbitrary fields on a job (used to attach vaa, circleMsg, etc.). */
 export async function patchJob(jobId: string, data: Partial<RelayerJob>): Promise<void> {
-  await jobsCol().doc(jobId).update(data as Record<string, unknown>);
+  await jobsCol()
+    .doc(jobId)
+    .update(data as Record<string, unknown>);
 }
 
 /** Returns all PENDING and PROCESSING jobs ordered by creation time. */
 export async function getPendingJobs(): Promise<RelayerJob[]> {
-  const snap = await jobsCol()
-    .where('status', 'in', ['PENDING', 'PROCESSING'])
-    .orderBy('createdAt')
-    .get();
+  const snap = await jobsCol().where('status', 'in', ['PENDING', 'PROCESSING']).orderBy('createdAt').get();
   return snap.docs.map((d) => d.data() as RelayerJob);
 }
 
 /** Checks whether a job already exists for the given txHash + destChain pair (dedup). */
 export async function jobExistsForTx(txHash: string, destChain: ChainName): Promise<boolean> {
-  const snap = await jobsCol()
-    .where('txHash', '==', txHash)
-    .where('destChain', '==', destChain)
-    .limit(1)
-    .get();
+  const snap = await jobsCol().where('txHash', '==', txHash).where('destChain', '==', destChain).limit(1).get();
   return !snap.empty;
 }

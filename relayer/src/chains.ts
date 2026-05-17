@@ -6,9 +6,6 @@
 // one object here — no other files need changing.
 //
 // Design notes:
-//  • wormholeNetwork is per-chain because a single relayer process handles
-//    both Testnet and Mainnet chains concurrently. The Wormhole SDK is
-//    instantiated once per unique network type (see wormhole.ts).
 //  • deploymentBlock defaults to 0n (BigInt zero) because no mainnet
 //    deployments have happened yet. Update this to the actual deployment
 //    block to skip unnecessary history scanning.
@@ -53,12 +50,8 @@ export interface ChainConfig {
    * contracts, and stored in Firestore records to identify the source chain.
    */
   cbChainId: `0x${string}`;
-  /**
-   * The Wormhole SDK network environment for this chain.
-   * A single relayer process can watch both Testnet and Mainnet chains;
-   * the SDK is instantiated once per unique wormholeNetwork value.
-   */
-  wormholeNetwork: 'Testnet' | 'Mainnet';
+  /** Network environment for this chain — used for Wormhole and CCTP API selection. */
+  network: 'testnet' | 'mainnet';
   /**
    * Whether Wormhole Core is deployed on this chain.
    * Chains without Wormhole skip VAA publishing and VAA fetching.
@@ -79,11 +72,6 @@ export interface ChainConfig {
    * Passed to the Circle Iris API when polling for attestations.
    */
   circleDomain?: number;
-  /**
-   * The Circle CCTP environment ('Testnet' | 'Mainnet').
-   * Defines which Iris API endpoint to poll for this chain.
-   */
-  cctpNetwork?: 'Testnet' | 'Mainnet';
   /**
    * The block number from which to start indexing on first run.
    * Defaults to 0n (scan from genesis). Update to the actual deployment
@@ -122,11 +110,10 @@ export const arcTestnet: ChainConfig = {
   contractAddress: '0xc38d1681d34DA821E46508C084D673477E455570',
   gettersAddress: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
   cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
-  wormholeNetwork: 'Testnet',
+  network: 'testnet',
   hasWormhole: false, // Wormhole NOT deployed on Arc Testnet
   hasCctp: true,
   circleDomain: 26, // Circle domain 26 for Arc Testnet
-  cctpNetwork: 'Testnet',
   deploymentBlock: 42188119n, // First tx block of latest DeployChainbills broadcast (chain 5042002)
   pollIntervalMs: 2000, // Arc has ~500ms blocks; poll every 2s
   minGasBalance: parseEther('10'), // Native token is USDC (18 decimals on Arc); warn below 10 units
@@ -142,12 +129,11 @@ export const sepolia: ChainConfig = {
   contractAddress: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
   gettersAddress: '0xC4d4fcB77230FE1eB1ad3d257673FC9Dca707feD',
   cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
-  wormholeNetwork: 'Testnet',
+  network: 'testnet',
   hasWormhole: true,
   wormholeChainId: 10002, // Wormhole chain ID for Ethereum Sepolia
   hasCctp: true,
   circleDomain: 0, // Circle domain 0 for Ethereum Sepolia
-  cctpNetwork: 'Testnet',
   deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
   pollIntervalMs: 12000, // Sepolia ~12s blocks; poll every 12s
   minGasBalance: parseEther('0.01'), // Warn below 0.05 ETH
@@ -164,14 +150,13 @@ export const megaeth: ChainConfig = {
   contractAddress: '0x0000000000000000000000000000000000000000',
   gettersAddress: '0x0000000000000000000000000000000000000000',
   cbChainId: '0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a',
-  wormholeNetwork: 'Mainnet', // MegaETH is a mainnet chain
+  network: 'mainnet', // MegaETH is a mainnet chain
   hasWormhole: true,
   wormholeChainId: 64, // Wormhole chain ID for MegaETH
   hasCctp: false, // Circle CCTP NOT deployed on MegaETH (as of May 2026)
-  cctpNetwork: 'Mainnet',
   deploymentBlock: 0n,
   pollIntervalMs: 2000, // MegaETH is a real-time chain; poll every 2s
-  minGasBalance: parseEther('0.00'), // Warn below 0.05 ETH
+  minGasBalance: parseEther('0.01'), // Warn below 0.01 ETH
   isEvm: true,
   isSolana: false,
 };

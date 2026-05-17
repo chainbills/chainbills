@@ -12,6 +12,8 @@ contract CbState is CbStructs {
   Config public config;
   /// Counter for activities on this chain.
   ChainStats public chainStats;
+  /// Wormhole message activity counters 
+  WormholeStats public wormholeStats;
   /// Role identifier for addresses authorized to sync foreign payables.
   bytes32 public constant ADMIN_ROLE = keccak256('ADMIN_ROLE');
   /// Array of Wallet Addresses of Users on this chain.
@@ -117,9 +119,15 @@ contract CbState is CbStructs {
   /// Tracks consumed CCTP-only burn nonces (Circle source domain → CCTP v2 bytes32 nonce → consumed).
   /// Set by receiveForeignPaymentWithCircle before the external Circle call (CEI).
   mapping(uint32 => mapping(bytes32 => bool)) internal consumedCctpBurnNonces;
+  /// Tracks consumed CCTP data message nonces (Circle source domain → CCTP v2 bytes32 nonce → consumed).
+  /// Set by receivePayableUpdateViaCircle before the external Circle call (CEI).
+  mapping(uint32 => mapping(bytes32 => bool)) internal consumedCctpDataNonces;
+  /// CCTP message activity counters — stored separately from ChainStats so that
+  /// adding CCTP support does not shift ChainStats slot layout on upgrade.
+  CctpStats public cctpStats;
   /// storage gap for additional state variables in future versions
   // forge-lint: disable-next-line(mixed-case-variable)
-  uint256[49] __gap;
+  uint256[44] __gap;
 
   /// @notice Checks if Wormhole is configured on this chain.
   /// @return True if Wormhole is configured.

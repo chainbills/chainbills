@@ -3,11 +3,13 @@ pragma solidity ^0.8.30;
 
 import {IWormhole} from 'wormhole/interfaces/IWormhole.sol';
 import {toWormholeFormat} from 'wormhole/Utils.sol';
+import {BytesParsing} from 'wormhole/libraries/BytesParsing.sol';
 import {CbDecodePayload, CbEncodePayablePayload} from './CbPayloadMessages.sol';
 import {CbUtils} from './CbUtils.sol';
 import {SafeCast} from '@openzeppelin/contracts/utils/math/SafeCast.sol';
 
 contract CbPayables is CbUtils {
+  using BytesParsing for bytes;
   using CbDecodePayload for bytes;
   using CbEncodePayablePayload for PayablePayload;
 
@@ -71,6 +73,7 @@ contract CbPayables is CbUtils {
     for (uint8 i = 0; i < ataaLength; i++) {
       address token = allowedTokensAndAmounts[i].token;
       uint256 amount = allowedTokensAndAmounts[i].amount;
+      if (amount > type(uint64).max) revert AmountExceedsCrossChainLimit();
 
       // Set the local allowedTokenAndAmount directly
       payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount({token: token, amount: amount}));
@@ -268,6 +271,7 @@ contract CbPayables is CbUtils {
     for (uint8 i = 0; i < ataaLength; i++) {
       address token = allowedTokensAndAmounts[i].token;
       uint256 amount = allowedTokensAndAmounts[i].amount;
+      if (amount > type(uint64).max) revert AmountExceedsCrossChainLimit();
 
       // Set the local allowedTokenAndAmount directly
       payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount({token: token, amount: amount}));
@@ -387,9 +391,7 @@ contract CbPayables is CbUtils {
     // Mark VAA as consumed (replay protection).
     consumeWormholeMessage(wormholeMessage);
 
-    // Emit Events.
-    emit ConsumedWormholePayableMessage(payload.payableId, srcCbChainId, wormholeMessage.hash);
-    emit ReceivedPayableUpdateViaWormhole(payload.payableId, srcCbChainId, payload.nonce);
+    emit ReceivedPayableUpdateViaWormhole(payload.payableId, srcCbChainId, payload.nonce, wormholeMessage.hash);
   }
 
   /// Manually submits a CCTP attestation for a payable-update message.
@@ -399,8 +401,24 @@ contract CbPayables is CbUtils {
   /// @param message The Circle message bytes.
   /// @param attestation Circle's attestation bytes.
   function receivePayableUpdateViaCircle(bytes calldata message, bytes calldata attestation) public {
+    bytes memory msgMem = message;
+    // CCTP v2 header: version(4) | srcDomain(4) | destDomain(4) | nonce(32) | ...
+    uint32 srcDomain;
+    bytes32 dataNonce;
+    (srcDomain,) = msgMem.asUint32(4);
+    (dataNonce,) = msgMem.asBytes32(12);
+    // PayablePayload body at offset 148: payloadType(1) | version(1) | actionType(1) | payableId(32)
+    bytes32 payableId;
+    (payableId,) = msgMem.asBytes32(151);
+
+    if (consumedCctpDataNonces[srcDomain][dataNonce]) revert CctpDataNonceAlreadyConsumed();
+    consumedCctpDataNonces[srcDomain][dataNonce] = true;
+
     bool success = circleTransmitter().receiveMessage(message, attestation);
     if (!success) revert CircleMessageReceivingFailed();
+
+    bytes32 srcCbChainId = circleDomainToCbChainId[srcDomain];
+    emit ConsumedCctpPayableUpdateMessage(payableId, srcCbChainId, srcDomain, dataNonce);
   }
 
   /// IMessageHandlerV2 callback for finalized CCTP messages. Called by Circle's
@@ -456,6 +474,7 @@ contract CbPayables is CbUtils {
     payableUpdateNonces[update.payableId][srcCbChainId] = update.nonce;
 
     _applyPayablePayloadUpdate(update, srcCbChainId);
+    cctpStats.receivedCctpPayableUpdateMessagesCount++;
     emit ReceivedPayableUpdateViaCircle(update.payableId, srcCbChainId, update.nonce);
     return true;
   }
@@ -591,22 +610,19 @@ contract CbPayables is CbUtils {
       sequence = _publishPayloadMessage(encoded);
     }
 
-    // CCTP: iterate registered chains and send one message per CCTP chain.
-    // WORMHOLE chains are already covered by the single Wormhole broadcast above.
+    // CCTP: send one message per registered chain that has a Circle domain configured.
+    // Dual-publish: even Wormhole chains receive a CCTP copy for redundancy and
+    // to cover the case where the source chain broadcasts CCTP-only (no Wormhole).
     if (hasCctp()) {
       uint256 len = registeredCbChainIds.length;
       for (uint256 i = 0; i < len; i++) {
         bytes32 chainId = registeredCbChainIds[i];
-        if (supportsCctp(chainId)) {
-          uint32 domain = cbChainIdToCircleDomain[chainId];
-          bytes32 recipient = registeredForeignContracts[chainId];
-          // Skip if admin hasn't configured the Circle domain or registered
-          // the foreign contract address yet.
-          if (recipient != bytes32(0)) {
-            // Prefix with type byte 0x01 to distinguish PayablePayload from PaymentPayload
-            // in the handleReceiveFinalizedMessage callback. CCTP v2: no return value.
-            circleTransmitter().sendMessage(domain, recipient, bytes32(0), 2000, encoded);
-          }
+        uint32 domain = cbChainIdToCircleDomain[chainId];
+        bytes32 recipient = registeredForeignContracts[chainId];
+        // Skip chains where admin hasn't configured both Circle domain and contract address.
+        if (recipient != bytes32(0)) {
+          circleTransmitter().sendMessage(domain, recipient, bytes32(0), 2000, encoded);
+          cctpStats.emittedCctpPayableUpdateMessagesCount++;
         }
       }
     }

@@ -202,6 +202,11 @@ export const useEvmStore = defineStore('evm', () => {
     ignoreErrors?: boolean
   ) => await readContract(`get${entity}`, [id as `0x${string}`], chainName, ignoreErrors);
 
+  const fetchForeignPayable = async (id: string, chainName: ChainName) => {
+    const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
+    return await readContract('getForeignPayable', [xId], chainName, true);
+  };
+
   const getCurrentUser = async () => {
     const addr = (account.address.value ?? '') as `0x${string}`;
     if (!addr) return null;
@@ -490,6 +495,7 @@ export const useEvmStore = defineStore('evm', () => {
     createPayable,
     fetchPayable,
     fetchEntity,
+    fetchForeignPayable,
     getCurrentUser,
     getPayablePaymentIdsPaginated,
     getPayablePaymentsBulk,

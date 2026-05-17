@@ -176,6 +176,25 @@ export const gettersAbi = [
   },
   {
     type: 'function',
+    name: 'getCctpStats',
+    inputs: [],
+    outputs: [
+      {
+        name: 'stats',
+        type: 'tuple',
+        internalType: 'struct CbStructs.CctpStats',
+        components: [
+          { name: 'emittedCctpPaymentMessagesCount', type: 'uint256', internalType: 'uint256' },
+          { name: 'emittedCctpPayableUpdateMessagesCount', type: 'uint256', internalType: 'uint256' },
+          { name: 'receivedCctpPaymentMessagesCount', type: 'uint256', internalType: 'uint256' },
+          { name: 'receivedCctpPayableUpdateMessagesCount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'getChainStats',
     inputs: [],
     outputs: [
@@ -191,8 +210,6 @@ export const gettersAbi = [
           { name: 'payablePaymentsCount', type: 'uint256', internalType: 'uint256' },
           { name: 'withdrawalsCount', type: 'uint256', internalType: 'uint256' },
           { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
-          { name: 'publishedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
-          { name: 'consumedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
         ],
       },
     ],
@@ -544,6 +561,23 @@ export const gettersAbi = [
   },
   {
     type: 'function',
+    name: 'getWormholeStats',
+    inputs: [],
+    outputs: [
+      {
+        name: 'stats',
+        type: 'tuple',
+        internalType: 'struct CbStructs.WormholeStats',
+        components: [
+          { name: 'publishedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
+          { name: 'consumedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'payableActivityIdsPaginated',
     inputs: [
       { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
@@ -659,21 +693,23 @@ export const gettersAbi = [
   },
   {
     type: 'event',
-    name: 'ConsumedWormholePayableMessage',
+    name: 'ConsumedCctpPayableUpdateMessage',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'vaaHash', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'sourceDomain', type: 'uint32', indexed: false, internalType: 'uint32' },
+      { name: 'dataNonce', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
   {
     type: 'event',
-    name: 'ConsumedWormholePaymentMessage',
+    name: 'ConsumedCctpPaymentMessage',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'vaaHash', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payerChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'sourceDomain', type: 'uint32', indexed: false, internalType: 'uint32' },
+      { name: 'burnNonce', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
@@ -741,6 +777,17 @@ export const gettersAbi = [
   },
   {
     type: 'event',
+    name: 'ReceivedForeignPaymentViaWormhole',
+    inputs: [
+      { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payablePaymentId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'vaaHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'ReceivedPayableUpdateViaAdminSync',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
@@ -767,6 +814,7 @@ export const gettersAbi = [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      { name: 'vaaHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
@@ -929,10 +977,13 @@ export const gettersAbi = [
     ],
     anonymous: false,
   },
+  { type: 'error', name: 'AmountExceedsCrossChainLimit', inputs: [] },
   { type: 'error', name: 'CctpBurnNonceAlreadyConsumed', inputs: [] },
+  { type: 'error', name: 'CctpDataNonceAlreadyConsumed', inputs: [] },
   { type: 'error', name: 'CircleAmountMismatch', inputs: [] },
   { type: 'error', name: 'CircleMessageReceivingFailed', inputs: [] },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
+  { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
   { type: 'error', name: 'CircleRecipientMismatch', inputs: [] },
   { type: 'error', name: 'CircleSenderMismatch', inputs: [] },
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },
@@ -1163,6 +1214,25 @@ export const gettersAbi = [
   },
   {
     type: 'function',
+    name: 'getCctpStats',
+    inputs: [],
+    outputs: [
+      {
+        name: 'stats',
+        type: 'tuple',
+        internalType: 'struct CbStructs.CctpStats',
+        components: [
+          { name: 'emittedCctpPaymentMessagesCount', type: 'uint256', internalType: 'uint256' },
+          { name: 'emittedCctpPayableUpdateMessagesCount', type: 'uint256', internalType: 'uint256' },
+          { name: 'receivedCctpPaymentMessagesCount', type: 'uint256', internalType: 'uint256' },
+          { name: 'receivedCctpPayableUpdateMessagesCount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'getChainStats',
     inputs: [],
     outputs: [
@@ -1178,8 +1248,6 @@ export const gettersAbi = [
           { name: 'payablePaymentsCount', type: 'uint256', internalType: 'uint256' },
           { name: 'withdrawalsCount', type: 'uint256', internalType: 'uint256' },
           { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
-          { name: 'publishedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
-          { name: 'consumedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
         ],
       },
     ],
@@ -1531,6 +1599,23 @@ export const gettersAbi = [
   },
   {
     type: 'function',
+    name: 'getWormholeStats',
+    inputs: [],
+    outputs: [
+      {
+        name: 'stats',
+        type: 'tuple',
+        internalType: 'struct CbStructs.WormholeStats',
+        components: [
+          { name: 'publishedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
+          { name: 'consumedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
+        ],
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'payableActivityIdsPaginated',
     inputs: [
       { name: 'payableId', type: 'bytes32', internalType: 'bytes32' },
@@ -1646,21 +1731,23 @@ export const gettersAbi = [
   },
   {
     type: 'event',
-    name: 'ConsumedWormholePayableMessage',
+    name: 'ConsumedCctpPayableUpdateMessage',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'vaaHash', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'sourceDomain', type: 'uint32', indexed: false, internalType: 'uint32' },
+      { name: 'dataNonce', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
   {
     type: 'event',
-    name: 'ConsumedWormholePaymentMessage',
+    name: 'ConsumedCctpPaymentMessage',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'vaaHash', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payerChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'sourceDomain', type: 'uint32', indexed: false, internalType: 'uint32' },
+      { name: 'burnNonce', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
@@ -1728,6 +1815,17 @@ export const gettersAbi = [
   },
   {
     type: 'event',
+    name: 'ReceivedForeignPaymentViaWormhole',
+    inputs: [
+      { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payablePaymentId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'vaaHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'ReceivedPayableUpdateViaAdminSync',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
@@ -1754,6 +1852,7 @@ export const gettersAbi = [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      { name: 'vaaHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
@@ -1916,10 +2015,13 @@ export const gettersAbi = [
     ],
     anonymous: false,
   },
+  { type: 'error', name: 'AmountExceedsCrossChainLimit', inputs: [] },
   { type: 'error', name: 'CctpBurnNonceAlreadyConsumed', inputs: [] },
+  { type: 'error', name: 'CctpDataNonceAlreadyConsumed', inputs: [] },
   { type: 'error', name: 'CircleAmountMismatch', inputs: [] },
   { type: 'error', name: 'CircleMessageReceivingFailed', inputs: [] },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
+  { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
   { type: 'error', name: 'CircleRecipientMismatch', inputs: [] },
   { type: 'error', name: 'CircleSenderMismatch', inputs: [] },
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },
@@ -2049,6 +2151,18 @@ export const mainAbi = [
   },
   {
     type: 'function',
+    name: 'cctpStats',
+    inputs: [],
+    outputs: [
+      { name: 'emittedCctpPaymentMessagesCount', type: 'uint256', internalType: 'uint256' },
+      { name: 'emittedCctpPayableUpdateMessagesCount', type: 'uint256', internalType: 'uint256' },
+      { name: 'receivedCctpPaymentMessagesCount', type: 'uint256', internalType: 'uint256' },
+      { name: 'receivedCctpPayableUpdateMessagesCount', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'chainActivityIds',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
@@ -2094,8 +2208,6 @@ export const mainAbi = [
       { name: 'payablePaymentsCount', type: 'uint256', internalType: 'uint256' },
       { name: 'withdrawalsCount', type: 'uint256', internalType: 'uint256' },
       { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'publishedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'consumedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -2960,6 +3072,16 @@ export const mainAbi = [
     stateMutability: 'view',
   },
   {
+    type: 'function',
+    name: 'wormholeStats',
+    inputs: [],
+    outputs: [
+      { name: 'publishedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
+      { name: 'consumedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
     type: 'event',
     name: 'AllowedPaymentsForToken',
     inputs: [{ name: 'token', type: 'address', indexed: false, internalType: 'address' }],
@@ -2976,21 +3098,23 @@ export const mainAbi = [
   },
   {
     type: 'event',
-    name: 'ConsumedWormholePayableMessage',
+    name: 'ConsumedCctpPayableUpdateMessage',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'vaaHash', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'sourceDomain', type: 'uint32', indexed: false, internalType: 'uint32' },
+      { name: 'dataNonce', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
   {
     type: 'event',
-    name: 'ConsumedWormholePaymentMessage',
+    name: 'ConsumedCctpPaymentMessage',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'vaaHash', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payerChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'sourceDomain', type: 'uint32', indexed: false, internalType: 'uint32' },
+      { name: 'burnNonce', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
@@ -3079,6 +3203,17 @@ export const mainAbi = [
   },
   {
     type: 'event',
+    name: 'ReceivedForeignPaymentViaWormhole',
+    inputs: [
+      { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payablePaymentId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'vaaHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'ReceivedPayableUpdateViaAdminSync',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
@@ -3105,6 +3240,7 @@ export const mainAbi = [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      { name: 'vaaHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
@@ -3319,10 +3455,13 @@ export const mainAbi = [
     ],
   },
   { type: 'error', name: 'AddressEmptyCode', inputs: [{ name: 'target', type: 'address', internalType: 'address' }] },
+  { type: 'error', name: 'AmountExceedsCrossChainLimit', inputs: [] },
   { type: 'error', name: 'CctpBurnNonceAlreadyConsumed', inputs: [] },
+  { type: 'error', name: 'CctpDataNonceAlreadyConsumed', inputs: [] },
   { type: 'error', name: 'CircleAmountMismatch', inputs: [] },
   { type: 'error', name: 'CircleMessageReceivingFailed', inputs: [] },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
+  { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
   { type: 'error', name: 'CircleRecipientMismatch', inputs: [] },
   { type: 'error', name: 'CircleSenderMismatch', inputs: [] },
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },
@@ -3473,6 +3612,18 @@ export const mainAbi = [
   },
   {
     type: 'function',
+    name: 'cctpStats',
+    inputs: [],
+    outputs: [
+      { name: 'emittedCctpPaymentMessagesCount', type: 'uint256', internalType: 'uint256' },
+      { name: 'emittedCctpPayableUpdateMessagesCount', type: 'uint256', internalType: 'uint256' },
+      { name: 'receivedCctpPaymentMessagesCount', type: 'uint256', internalType: 'uint256' },
+      { name: 'receivedCctpPayableUpdateMessagesCount', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
     name: 'chainActivityIds',
     inputs: [{ name: '', type: 'uint256', internalType: 'uint256' }],
     outputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
@@ -3518,8 +3669,6 @@ export const mainAbi = [
       { name: 'payablePaymentsCount', type: 'uint256', internalType: 'uint256' },
       { name: 'withdrawalsCount', type: 'uint256', internalType: 'uint256' },
       { name: 'activitiesCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'publishedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
-      { name: 'consumedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
     ],
     stateMutability: 'view',
   },
@@ -4384,6 +4533,16 @@ export const mainAbi = [
     stateMutability: 'view',
   },
   {
+    type: 'function',
+    name: 'wormholeStats',
+    inputs: [],
+    outputs: [
+      { name: 'publishedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
+      { name: 'consumedWormholeMessagesCount', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
+  },
+  {
     type: 'event',
     name: 'AllowedPaymentsForToken',
     inputs: [{ name: 'token', type: 'address', indexed: false, internalType: 'address' }],
@@ -4400,21 +4559,23 @@ export const mainAbi = [
   },
   {
     type: 'event',
-    name: 'ConsumedWormholePayableMessage',
+    name: 'ConsumedCctpPayableUpdateMessage',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'vaaHash', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'sourceDomain', type: 'uint32', indexed: false, internalType: 'uint32' },
+      { name: 'dataNonce', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
   {
     type: 'event',
-    name: 'ConsumedWormholePaymentMessage',
+    name: 'ConsumedCctpPaymentMessage',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
-      { name: 'vaaHash', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payerChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'sourceDomain', type: 'uint32', indexed: false, internalType: 'uint32' },
+      { name: 'burnNonce', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
@@ -4503,6 +4664,17 @@ export const mainAbi = [
   },
   {
     type: 'event',
+    name: 'ReceivedForeignPaymentViaWormhole',
+    inputs: [
+      { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'payablePaymentId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
+      { name: 'vaaHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'ReceivedPayableUpdateViaAdminSync',
     inputs: [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
@@ -4529,6 +4701,7 @@ export const mainAbi = [
       { name: 'payableId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'cbChainId', type: 'bytes32', indexed: true, internalType: 'bytes32' },
       { name: 'nonce', type: 'uint64', indexed: false, internalType: 'uint64' },
+      { name: 'vaaHash', type: 'bytes32', indexed: false, internalType: 'bytes32' },
     ],
     anonymous: false,
   },
@@ -4743,10 +4916,13 @@ export const mainAbi = [
     ],
   },
   { type: 'error', name: 'AddressEmptyCode', inputs: [{ name: 'target', type: 'address', internalType: 'address' }] },
+  { type: 'error', name: 'AmountExceedsCrossChainLimit', inputs: [] },
   { type: 'error', name: 'CctpBurnNonceAlreadyConsumed', inputs: [] },
+  { type: 'error', name: 'CctpDataNonceAlreadyConsumed', inputs: [] },
   { type: 'error', name: 'CircleAmountMismatch', inputs: [] },
   { type: 'error', name: 'CircleMessageReceivingFailed', inputs: [] },
   { type: 'error', name: 'CircleMintingFailed', inputs: [] },
+  { type: 'error', name: 'CircleNonceMismatch', inputs: [] },
   { type: 'error', name: 'CircleRecipientMismatch', inputs: [] },
   { type: 'error', name: 'CircleSenderMismatch', inputs: [] },
   { type: 'error', name: 'CircleSourceDomainMismatch', inputs: [] },

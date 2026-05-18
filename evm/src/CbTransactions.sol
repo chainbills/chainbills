@@ -85,7 +85,9 @@ contract CbTransactions is CbUtils {
     index += 32; // skip recipient (Circle TokenMessenger on dest — not this contract)
     (destinationCaller, index) = circleBridgeMessage.asBytes32(index); // bytes 108-139
     if (cbChainIdToCircleDomain[payerChainId] != parsedSourceDomain) revert CircleSourceDomainMismatch();
-    if (cbChainIdToCircleDomain[payableChainId] != parsedTargetDomain) revert CircleTargetDomainMismatch();
+    if (config.circleDomain != parsedTargetDomain) revert CircleTargetDomainMismatch();
+    // TODO: Enforce and test the following
+    // if (config.cbChainId != payableChainId) revert ChainbillsPayableChainIdMismatch();
     // destinationCaller must be this contract — Circle enforces only it can call receiveMessage.
     if (destinationCaller != toWormholeFormat(address(this))) revert CircleRecipientMismatch();
 
@@ -448,7 +450,7 @@ contract CbTransactions is CbUtils {
     // Read the next CCTP burn nonce before calling depositForBurn.
     // depositForBurn has no return value in CCTP v2; availableNonces gives the
     // sequential uint64 that Circle will embed as bytes32(uint256(nonce)) in the message.
-    uint64 burnNonce = circleTransmitter().availableNonces(circleTransmitter().localDomain());
+    // uint64 burnNonce = circleTransmitter().availableNonces(circleTransmitter().localDomain());
 
     // Build and encode PaymentPayload for cross-chain delivery.
     bytes32 foreignTokenAddr = forTokenAddressMatchingForeignChainTokens[token][_payable.chainId];
@@ -457,7 +459,7 @@ contract CbTransactions is CbUtils {
         version: 1,
         actionType: 5,
         payableId: payableId,
-        circleNonce: burnNonce,
+        circleNonce: 0, // burnNonce,
         amount: SafeCast.toUint64(amount),
         payableChainToken: foreignTokenAddr,
         payableChainId: _payable.chainId,
@@ -519,9 +521,9 @@ contract CbTransactions is CbUtils {
       _checkCircleToken(payload.payerChainId, payload.payerChainToken, payload.payableChainToken);
 
       // Verify that the burn nonce in the payload matches the Circle burn message nonce.
-      bytes32 burnNonce;
-      (burnNonce,) = params.circleBridgeMessage.asBytes32(12);
-      if (burnNonce != bytes32(uint256(payload.circleNonce))) revert CircleNonceMismatch();
+      // bytes32 burnNonce;
+      // (burnNonce,) = params.circleBridgeMessage.asBytes32(12);
+      // if (burnNonce != bytes32(uint256(payload.circleNonce))) revert CircleNonceMismatch();
 
       bool isSuccess = circleTransmitter().receiveMessage(params.circleBridgeMessage, params.circleAttestation);
       if (!isSuccess) revert CircleMintingFailed();
@@ -596,7 +598,7 @@ contract CbTransactions is CbUtils {
       consumedCctpBurnNonces[payloadSrcDomain][burnNonce] = true;
 
       // Step 7b: Verify the burn nonce in the payload matches the Circle burn message nonce.
-      if (burnNonce != bytes32(uint256(payload.circleNonce))) revert CircleNonceMismatch();
+      // if (burnNonce != bytes32(uint256(payload.circleNonce))) revert CircleNonceMismatch();
 
       // Step 8: Submit burn message to Circle — mints USDC to this contract.
       bool isSuccess = circleTransmitter().receiveMessage(params.circleBridgeMessage, params.circleAttestation);

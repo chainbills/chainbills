@@ -127,7 +127,7 @@ contract CbState is CbStructs {
   CctpStats public cctpStats;
   /// storage gap for additional state variables in future versions
   // forge-lint: disable-next-line(mixed-case-variable)
-  uint256[44] __gap;
+  uint256[100] __gap;
 
   /// @notice Checks if Wormhole is configured on this chain.
   /// @return True if Wormhole is configured.

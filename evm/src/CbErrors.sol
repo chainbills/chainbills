@@ -9,6 +9,8 @@ contract CbErrors {
   error CctpBurnNonceAlreadyConsumed();
   /// @notice Thrown when a CCTP data message nonce has already been consumed (replay protection for payable updates).
   error CctpDataNonceAlreadyConsumed();
+  /// @notice Thrown when the target chain ID in a relayed payload message does not match the expected local chain ID.
+  error ChainbillsPayableChainIdMismatch();
   /// @notice Thrown when the burn message amount does not match the declared payload amount.
   error CircleAmountMismatch();
   /// @notice Thrown when Circle message receiving operation fails (e.g. invalid attestation, message replay, etc.).

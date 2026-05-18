@@ -107,8 +107,8 @@ export const arcTestnet: ChainConfig = {
   viemChain: viemArcTestnet,
   rpcUrl: '', // filled from RPC_ARC_TESTNET at startup
   // Arc testnet proxy address (deployed)
-  contractAddress: '0xc38d1681d34DA821E46508C084D673477E455570',
-  gettersAddress: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
+  contractAddress: '0x535a2C8A5fa922B7a905B5a784A80401535B4eC1',
+  gettersAddress: '0x93a55c2bce0E7EEF51621B18761565328d66bbE5',
   cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
   network: 'testnet',
   hasWormhole: false, // Wormhole NOT deployed on Arc Testnet
@@ -118,7 +118,7 @@ export const arcTestnet: ChainConfig = {
   pollIntervalMs: 2000, // Arc has ~500ms blocks; poll every 2s
   minGasBalance: parseEther('10'), // Native token is USDC (18 decimals on Arc); warn below 10 units
   isEvm: true,
-  isSolana: false
+  isSolana: false,
 };
 
 export const sepolia: ChainConfig = {
@@ -126,8 +126,8 @@ export const sepolia: ChainConfig = {
   displayName: 'Ethereum Sepolia',
   viemChain: viemSepolia,
   rpcUrl: '', // filled from RPC_SEPOLIA at startup
-  contractAddress: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
-  gettersAddress: '0xC4d4fcB77230FE1eB1ad3d257673FC9Dca707feD',
+  contractAddress: '0x676FfD548E993E64018Ee23Ba039BBDB15f84699',
+  gettersAddress: '0xbb695eF7cda9c6b86EE36049cE2022d15117D113',
   cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
   network: 'testnet',
   hasWormhole: true,
@@ -135,10 +135,10 @@ export const sepolia: ChainConfig = {
   hasCctp: true,
   circleDomain: 0, // Circle domain 0 for Ethereum Sepolia
   deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
-  pollIntervalMs: 12000, // Sepolia ~12s blocks; poll every 12s
+  pollIntervalMs: 5000, // Sepolia ~12s blocks; poll every 12s
   minGasBalance: parseEther('0.01'), // Warn below 0.05 ETH
   isEvm: true,
-  isSolana: false
+  isSolana: false,
 };
 
 export const megaeth: ChainConfig = {

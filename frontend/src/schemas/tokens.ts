@@ -9,9 +9,9 @@ export const getTokenLogo = (chain: Chain, token: Token) => {
 };
 
 export const contracts: Record<ChainName, string> = {
-  arctestnet: '0xc38d1681d34DA821E46508C084D673477E455570',
+  arctestnet: '0x535a2C8A5fa922B7a905B5a784A80401535B4eC1',
   megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
-  sepolia: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
+  sepolia: '0x676FfD548E993E64018Ee23Ba039BBDB15f84699',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
 };
 

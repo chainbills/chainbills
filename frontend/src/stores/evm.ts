@@ -41,9 +41,9 @@ interface WriteContractResponse {
 }
 
 const getters: Record<ChainName, string> = {
-  arctestnet: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
+  arctestnet: '0x93a55c2bce0E7EEF51621B18761565328d66bbE5',
   megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
-  sepolia: '0xC4d4fcB77230FE1eB1ad3d257673FC9Dca707feD',
+  sepolia: '0xbb695eF7cda9c6b86EE36049cE2022d15117D113',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
 };
 

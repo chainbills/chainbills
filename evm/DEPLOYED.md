@@ -65,8 +65,8 @@ This file is the reference for every value used during contract setup across all
 
 | Chain            | Proxy Address                                |
 | ---------------- | -------------------------------------------- |
-| Ethereum Sepolia | `0x875D3FBf298CF2E7537BbBb3213aB990C35655e8` |
-| Arc Testnet      | `0xc38d1681d34DA821E46508C084D673477E455570` |
+| Ethereum Sepolia | `0x676FfD548E993E64018Ee23Ba039BBDB15f84699` |
+| Arc Testnet      | `0x535a2C8A5fa922B7a905B5a784A80401535B4eC1` |
 | MegaETH Mainnet  | _(fill after deploy)_                        |
 
 ---

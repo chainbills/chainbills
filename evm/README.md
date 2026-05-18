@@ -493,8 +493,4 @@ All deployed contract addresses, cbChainIds, Circle domains, and Wormhole IDs ar
 
 ## Testnet Deployments CHANGELOG
 
-- **17 May 2026 - v3**: Added support for multiple CCTP-only chains. Refactored CCTP logic to loop through all registered CCTP chains instead of hardcoding a single one. (sepolia & arctestnet)
-
-- **16 May 2026 - v2**: Improved CCTP-only data and payments. (sepolia & arctestnet)
-
-- **09 May 2026 - v1**: Initial testnet deployment. (sepolia & arctestnet)
+- **17 May 2026 - v1**: Initial testnet deployment. (sepolia & arctestnet)

@@ -1,35 +1,19 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Relayer — Count-Based Chain Poller
 //
-// Design: contract-stats polling over getLogs block scanning
+// Design: contract-stats counters as cursors, minimal getLogs scanning.
 // ──────────────────────────────────────────────────────────────────────────────
-// Instead of scanning block ranges for events, each poll tick:
-//   1. Calls getChainStats() on CbGetters — one RPC call for all counts.
-//   2. Compares each count against the in-memory cursor.
-//   3. Fetches only the new IDs via paginated getters and processes them.
-//   4. Persists the updated cursor to Firestore after each productive tick.
+// Each poll tick:
+//   1. Calls getChainStats() — one RPC call for indexing counts.
+//   2. Compares each count against in-memory cursor; fetches new IDs.
+//   3. Persists updated cursor to Firestore only when something advanced.
 //
-// Cursor strategy:
-//   • Loaded from Firestore ONCE at startup — no Firestore reads during polling.
-//   • Written back to Firestore only when at least one count advanced.
-//   • All cursors live in /relayerCursors/{chainName} alongside the old
-//     lastPayableUpdateBlock field (still used for CCTP payable update relay).
-//
-// Cross-chain payment relay:
-//   Detected via userPaymentsCount delta. When a new user payment is for a
-//   foreign payable, a targeted getLogs call (paymentId is an indexed topic)
-//   fetches the txHash cheaply, then the existing job queue handles the rest.
-//
-// Wormhole payable update relay:
-//   Detected via publishedWormholeMessagesCount delta. VAAs are fetched by
-//   sequence from WormholeScan (no txHash needed). PaymentPayload VAAs (type 2)
-//   are skipped here — payments are relayed via the user payment path above.
-//
-// CCTP payable update relay:
-//   Block-cursor approach kept for PayableUpdateBroadcasted events. This is the
-//   only place getLogs block scanning is still used — it covers CCTP-only payable
-//   update relay where no Wormhole sequence is available. Stored in the same
-//   cursor doc under lastPayableUpdateBlock.
+// Relay sections (separate from indexing):
+//   5. Wormhole payable update relay — publishedWormholeMessagesCount cursor.
+//   6. CCTP payment relay — emittedCctpPaymentMessagesCount cursor.
+//      Scans UserPaid logs from deploymentBlock on each new tick (dedup safe).
+//   7. CCTP payable update relay — emittedCctpPayableUpdateMessagesCount cursor.
+//      Scans PayableUpdateBroadcasted logs from deploymentBlock on each new tick.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { type PublicClient, parseAbiItem } from 'viem';
@@ -60,8 +44,12 @@ interface ChainCursor {
   userPaymentsIndexed: number;
   payablePaymentsIndexed: number;
   withdrawalsIndexed: number;
-  /** Number of Wormhole messages processed (Wormhole chains only). */
+  /** publishedWormholeMessagesCount high-watermark (Wormhole chains only). */
   wormholeRelayed: number;
+  /** emittedCctpPaymentMessagesCount high-watermark (CCTP chains only). */
+  cctpPaymentsRelayed: number;
+  /** emittedCctpPayableUpdateMessagesCount high-watermark (CCTP chains only). */
+  cctpPayableUpdatesRelayed: number;
 }
 
 const ZERO_CURSOR: ChainCursor = {
@@ -70,6 +58,8 @@ const ZERO_CURSOR: ChainCursor = {
   payablePaymentsIndexed: 0,
   withdrawalsIndexed: 0,
   wormholeRelayed: 0,
+  cctpPaymentsRelayed: 0,
+  cctpPayableUpdatesRelayed: 0,
 };
 
 // In-memory cursors: loaded from Firestore once at startup, never read again.
@@ -85,6 +75,8 @@ async function loadCursor(chainName: string): Promise<ChainCursor> {
     payablePaymentsIndexed: d.payablePaymentsIndexed ?? 0,
     withdrawalsIndexed: d.withdrawalsIndexed ?? 0,
     wormholeRelayed: d.wormholeRelayed ?? 0,
+    cctpPaymentsRelayed: d.cctpPaymentsRelayed ?? 0,
+    cctpPayableUpdatesRelayed: d.cctpPayableUpdatesRelayed ?? 0,
   };
 }
 
@@ -96,6 +88,8 @@ async function saveCursor(chainName: string, cursor: ChainCursor): Promise<void>
       payablePaymentsIndexed: cursor.payablePaymentsIndexed,
       withdrawalsIndexed: cursor.withdrawalsIndexed,
       wormholeRelayed: cursor.wormholeRelayed,
+      cctpPaymentsRelayed: cursor.cctpPaymentsRelayed,
+      cctpPayableUpdatesRelayed: cursor.cctpPayableUpdatesRelayed,
       updatedAt: new Date().toISOString(),
     },
     { merge: true }
@@ -167,18 +161,6 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
     for (const id of ids) {
       try {
         await indexPayable(chain, id);
-        if (chain.hasCctp) {
-          // Targeted getLogs by indexed payableId — returns exactly the creation log.
-          const bcastLogs = await getLogsChunked(client, {
-            address: chain.contractAddress,
-            event: PAYABLE_UPDATE_BROADCASTED_EVENT,
-            args: { payableId: id },
-            fromBlock: chain.deploymentBlock,
-          });
-          if (bcastLogs.length > 0) {
-            await maybeQueueCctpPayableUpdateJobs(chain, bcastLogs[0].transactionHash!, id, log);
-          }
-        }
         done++;
       } catch (e) {
         log.error({ payableId: id, err: sanitizeErr(e) }, 'indexPayable failed — stopping batch, will retry next tick');
@@ -191,7 +173,7 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
     }
   }
 
-  // ── 2. User payments — index + cross-chain relay ───────────────────────────
+  // ── 2. User payments — index only ─────────────────────────────────────────
   const onChainUserPayments = Number(chainStats.userPaymentsCount);
   if (onChainUserPayments > cursor.userPaymentsIndexed) {
     const delta = onChainUserPayments - cursor.userPaymentsIndexed;
@@ -206,7 +188,6 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
     for (const id of ids) {
       try {
         await indexUserPayment(chain, id);
-        await maybeQueuePaymentRelayJob(chain, client, id, log);
         done++;
       } catch (e) {
         log.error(
@@ -322,68 +303,69 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
     }
   }
 
+  // ── 6 & 7. CCTP relay — payments + payable updates ────────────────────────
+  if (chain.hasCctp) {
+    const cctpStats = await client.readContract({
+      address: chain.gettersAddress,
+      abi: gettersAbi,
+      functionName: 'getCctpStats',
+    });
+
+    // ── 6. CCTP payment relay ───────────────────────────────────────────────
+    const onChainCctpPayments = Number(cctpStats.emittedCctpPaymentMessagesCount);
+    if (onChainCctpPayments > cursor.cctpPaymentsRelayed) {
+      log.info({ from: cursor.cctpPaymentsRelayed, onChain: onChainCctpPayments }, 'New CCTP payments to relay');
+      const paymentLogs = await getLogsChunked(client, {
+        address: chain.contractAddress,
+        event: USER_PAID_EVENT,
+        fromBlock: chain.deploymentBlock,
+      });
+      for (const plog of paymentLogs) {
+        const { paymentId, payableChainId } = (plog as any).args as { paymentId: `0x${string}`; payableChainId: `0x${string}` };
+        if (payableChainId === chain.cbChainId) continue;
+        const destChain = chainByCbChainId.get(payableChainId);
+        if (!destChain) continue;
+        const txHash = plog.transactionHash!;
+        const alreadyQueued = await jobExistsForTx(txHash, destChain.name);
+        if (alreadyQueued) continue;
+        const jobType = chain.hasWormhole && destChain.hasWormhole ? 'PAYMENT_VIA_CIRCLE' : 'PAYMENT_VIA_CCTP_ONLY';
+        await createJob({
+          type: jobType,
+          sourceChain: chain.name,
+          destChain: destChain.name,
+          txHash,
+          blockNumber: plog.blockNumber !== undefined ? Number(plog.blockNumber) : 0,
+          eventData: { paymentId, payableChainId },
+        });
+        log.info({ paymentId, destChain: destChain.name, txHash, jobType }, 'Queued cross-chain payment relay job');
+      }
+      cursor.cctpPaymentsRelayed = onChainCctpPayments;
+      changed = true;
+    }
+
+    // ── 7. CCTP payable update relay ────────────────────────────────────────
+    const onChainCctpUpdates = Number(cctpStats.emittedCctpPayableUpdateMessagesCount);
+    if (onChainCctpUpdates > cursor.cctpPayableUpdatesRelayed) {
+      log.info({ from: cursor.cctpPayableUpdatesRelayed, onChain: onChainCctpUpdates }, 'New CCTP payable updates to relay');
+      const updateLogs = await getLogsChunked(client, {
+        address: chain.contractAddress,
+        event: PAYABLE_UPDATE_BROADCASTED_EVENT,
+        fromBlock: chain.deploymentBlock,
+      });
+      for (const ulog of updateLogs) {
+        const { payableId } = (ulog as any).args as { payableId: `0x${string}` };
+        const txHash = ulog.transactionHash!;
+        await maybeQueueCctpPayableUpdateJobs(chain, txHash, payableId, log);
+      }
+      cursor.cctpPayableUpdatesRelayed = onChainCctpUpdates;
+      changed = true;
+    }
+  }
+
   // Persist only when something actually changed — avoids write amplification.
   if (changed) {
     await saveCursor(chain.name, cursor);
   }
-}
-
-// ── Cross-chain payment relay ─────────────────────────────────────────────────
-
-async function maybeQueuePaymentRelayJob(
-  chain: ChainConfig,
-  client: PublicClient,
-  paymentId: `0x${string}`,
-  log: ReturnType<typeof chainLogger>
-): Promise<void> {
-  const { payableChainId } = await client.readContract({
-    address: chain.gettersAddress,
-    abi: gettersAbi,
-    functionName: 'getUserPayment',
-    args: [paymentId],
-  });
-
-  // Local payment — payable lives on this chain, no relay needed.
-  if (payableChainId === chain.cbChainId) return;
-
-  const destChain = chainByCbChainId.get(payableChainId);
-  if (!destChain) {
-    log.warn({ paymentId, payableChainId }, 'Unknown payableChainId — cannot queue payment relay job');
-    return;
-  }
-  if (!chain.hasCctp) {
-    log.warn({ paymentId }, 'Source chain lacks CCTP — cross-chain payment cannot be relayed');
-    return;
-  }
-
-  // Fetch the txHash via chunked getLogs — paymentId is an indexed topic so
-  // at most one log matches. getLogsChunked handles RPCs with a 10,000-block cap.
-  const paymentLogs = await getLogsChunked(client, {
-    address: chain.contractAddress,
-    event: USER_PAID_EVENT,
-    args: { paymentId } as any,
-    fromBlock: chain.deploymentBlock,
-  });
-  const txHash = paymentLogs[0]?.transactionHash ?? undefined;
-  const blockNumber = paymentLogs[0]?.blockNumber !== undefined ? Number(paymentLogs[0].blockNumber) : undefined;
-  if (!txHash) {
-    log.warn({ paymentId }, 'UserPaid log not found — cannot queue payment relay job');
-    return;
-  }
-
-  const alreadyQueued = await jobExistsForTx(txHash, destChain.name);
-  if (alreadyQueued) return;
-
-  const jobType = destChain.hasWormhole ? 'PAYMENT_VIA_CIRCLE' : 'PAYMENT_VIA_CCTP_ONLY';
-  await createJob({
-    type: jobType,
-    sourceChain: chain.name,
-    destChain: destChain.name,
-    txHash,
-    blockNumber: blockNumber ?? 0,
-    eventData: { paymentId, payableChainId },
-  });
-  log.info({ paymentId, destChain: destChain.name, txHash, jobType }, 'Queued cross-chain payment relay job');
 }
 
 // ── Wormhole payable update relay ─────────────────────────────────────────────

@@ -19,11 +19,11 @@
     "dotenv": "^16.4.5",
     "firebase-admin": "^12.1.1",
     "pino": "^9.4.0",
-    "pino-pretty": "^11.2.0",
     "viem": "^2.21.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
+    "pino-pretty": "^11.2.0",
     "tsx": "^4.15.0",
     "typescript": "^5.4.5"
   },

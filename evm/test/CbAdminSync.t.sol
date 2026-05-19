@@ -49,13 +49,13 @@ contract CbAdminSyncTest is CbStructs, Test {
     vm.expectRevert(
       abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, nonAdmin, adminRole)
     );
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
   }
 
   function testAdminSyncRoleGrantedAllowsCall() public {
     // Admin was granted in setUp — just verify it succeeds.
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
   }
 
   function testAdminSyncRoleRevokedPreventsCall() public {
@@ -65,13 +65,13 @@ contract CbAdminSyncTest is CbStructs, Test {
     bytes32 adminRole = chainbills.ADMIN_ROLE();
     vm.prank(admin);
     vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, admin, adminRole));
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
   }
 
   // Owner always has ADMIN_ROLE (granted in initialize).
   function testOwnerHasAdminRoleAndCanSync() public {
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
   }
 
   // ------------------------------------------------------------------------
@@ -81,25 +81,25 @@ contract CbAdminSyncTest is CbStructs, Test {
   function testAdminSyncZeroPayableIdReverts() public {
     vm.prank(admin);
     vm.expectRevert(InvalidPayableId.selector);
-    chainbills.adminSyncForeignPayable(bytes32(0), foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(bytes32(0), foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
   }
 
   function testAdminSyncZeroChainIdReverts() public {
     vm.prank(admin);
     vm.expectRevert(InvalidChainId.selector);
-    chainbills.adminSyncForeignPayable(payableId, bytes32(0), 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, bytes32(0), 1, 0, 1, false, new TokenAndAmountForeign[](0));
   }
 
   function testAdminSyncInvalidActionType0Reverts() public {
     vm.prank(admin);
     vm.expectRevert(InvalidPayablePayloadActionType.selector);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 0, false, new TokenAndAmountForeign[](0));
   }
 
   function testAdminSyncInvalidActionType5Reverts() public {
     vm.prank(admin);
     vm.expectRevert(InvalidPayablePayloadActionType.selector);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 5, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 5, false, new TokenAndAmountForeign[](0));
   }
 
   // ------------------------------------------------------------------------
@@ -108,31 +108,31 @@ contract CbAdminSyncTest is CbStructs, Test {
 
   function testAdminSyncStaleNonceEqualReverts() public {
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 5, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 5, 0, 1, false, new TokenAndAmountForeign[](0));
 
     vm.prank(admin);
     vm.expectRevert(StalePayableUpdateNonce.selector);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 5, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 5, 0, 1, false, new TokenAndAmountForeign[](0));
   }
 
   function testAdminSyncStaleNonceLowerReverts() public {
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 5, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 5, 0, 1, false, new TokenAndAmountForeign[](0));
 
     vm.prank(admin);
     vm.expectRevert(StalePayableUpdateNonce.selector);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 4, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 4, 0, 1, false, new TokenAndAmountForeign[](0));
   }
 
   function testAdminSyncIncreasingNonceSucceeds() public {
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 2, true, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 0, 2, true, new TokenAndAmountForeign[](0));
 
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 3, 3, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 3, 0, 3, false, new TokenAndAmountForeign[](0));
   }
 
   // ------------------------------------------------------------------------
@@ -147,7 +147,7 @@ contract CbAdminSyncTest is CbStructs, Test {
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
     emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 1, admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, ataa);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, ataa);
 
     PayableForeign memory fp = cbGetters.getForeignPayable(payableId);
     assertEq(fp.chainId, foreignCbChainId);
@@ -160,7 +160,7 @@ contract CbAdminSyncTest is CbStructs, Test {
     // This mirrors the publishPayableDetails path where a closed payable is
     // re-broadcast and foreign chains must learn it is closed.
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, true, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, true, new TokenAndAmountForeign[](0));
 
     assertTrue(cbGetters.getForeignPayable(payableId).isClosed);
   }
@@ -168,13 +168,13 @@ contract CbAdminSyncTest is CbStructs, Test {
   function testAdminSyncActionType4DoesNotChangeIsClosedStatus() public {
     // Create closed, then ATAA update must not alter isClosed.
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, true, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, true, new TokenAndAmountForeign[](0));
     assertTrue(cbGetters.getForeignPayable(payableId).isClosed);
 
     TokenAndAmountForeign[] memory newAtaa = new TokenAndAmountForeign[](1);
     newAtaa[0] = TokenAndAmountForeign({token: bytes32(uint256(5)), amount: 500e6});
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 4, false, newAtaa);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 0, 4, false, newAtaa);
 
     // isClosed must remain true — actionType 4 must not touch it.
     assertTrue(cbGetters.getForeignPayable(payableId).isClosed);
@@ -183,13 +183,13 @@ contract CbAdminSyncTest is CbStructs, Test {
 
   function testAdminSyncActionType1IncrementsChainStats() public {
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     assertEq(cbGetters.getChainStats().foreignPayablesCount, 1);
 
     // Second message for the same payableId must not double-count.
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 2, true, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 0, 2, true, new TokenAndAmountForeign[](0));
 
     assertEq(cbGetters.getChainStats().foreignPayablesCount, 1);
   }
@@ -199,7 +199,7 @@ contract CbAdminSyncTest is CbStructs, Test {
     ataa[0] = TokenAndAmountForeign({token: bytes32(uint256(7)), amount: 777e6});
 
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, ataa);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, ataa);
 
     TokenAndAmountForeign[] memory stored = cbGetters.getForeignPayableAllowedTokensAndAmounts(payableId);
     assertEq(stored.length, 1);
@@ -214,12 +214,12 @@ contract CbAdminSyncTest is CbStructs, Test {
   function testAdminSyncActionType2ClosesForeignPayable() public {
     // Create first.
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
     emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 2, admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 2, true, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 0, 2, true, new TokenAndAmountForeign[](0));
 
     assertTrue(cbGetters.getForeignPayable(payableId).isClosed);
   }
@@ -230,14 +230,14 @@ contract CbAdminSyncTest is CbStructs, Test {
 
   function testAdminSyncActionType3ReopensClosedForeignPayable() public {
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 2, true, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 0, 2, true, new TokenAndAmountForeign[](0));
 
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
     emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 3, admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 3, 3, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 3, 0, 3, false, new TokenAndAmountForeign[](0));
 
     assertFalse(cbGetters.getForeignPayable(payableId).isClosed);
   }
@@ -251,7 +251,7 @@ contract CbAdminSyncTest is CbStructs, Test {
     TokenAndAmountForeign[] memory ataa1 = new TokenAndAmountForeign[](1);
     ataa1[0] = TokenAndAmountForeign({token: bytes32(uint256(1)), amount: 100e6});
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, ataa1);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, ataa1);
 
     // Update to 2 entries with different tokens.
     TokenAndAmountForeign[] memory ataa2 = new TokenAndAmountForeign[](2);
@@ -261,7 +261,7 @@ contract CbAdminSyncTest is CbStructs, Test {
     vm.prank(admin);
     vm.expectEmit(true, true, true, true);
     emit ReceivedPayableUpdateViaAdminSync(payableId, foreignCbChainId, 2, admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 4, false, ataa2);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 0, 4, false, ataa2);
 
     PayableForeign memory fp = cbGetters.getForeignPayable(payableId);
     assertEq(fp.allowedTokensAndAmountsCount, 2);
@@ -278,12 +278,12 @@ contract CbAdminSyncTest is CbStructs, Test {
       ataa3[i] = TokenAndAmountForeign({token: bytes32(i + 1), amount: SafeCast.toUint64(i + 1) * 1e6});
     }
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 1, false, ataa3);
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 1, 0, 1, false, ataa3);
     assertEq(cbGetters.getForeignPayable(payableId).allowedTokensAndAmountsCount, 3);
 
     // Collapse to empty.
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 4, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, foreignCbChainId, 2, 0, 4, false, new TokenAndAmountForeign[](0));
     assertEq(cbGetters.getForeignPayable(payableId).allowedTokensAndAmountsCount, 0);
   }
 }

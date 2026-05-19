@@ -173,6 +173,9 @@ contract CbStructs is CbEvents {
     uint256 timestamp;
     /// The amount of the token that was received.
     uint256 amount;
+    /// The ID of the UserPayment record on the source chain (links payer's record
+    /// to the payable's PayablePayment record for cross-chain auditability).
+    bytes32 payerPaymentId;
   }
 
   /// A user's receipt of a payment made in this chain to a Payable on any
@@ -307,6 +310,8 @@ contract CbStructs is CbEvents {
     /// Receiving chains reject updates with nonce <= last seen nonce, preventing
     /// double-application when both Wormhole and CCTP deliver the same update.
     uint64 nonce;
+    /// Unix timestamp (seconds) when the payable was created or updated on the source chain.
+    uint64 initiatedAt;
     /// Whether the payable is closed or not.
     bool isClosed;
     /// The allowed tokens and their amounts.
@@ -326,8 +331,11 @@ contract CbStructs is CbEvents {
     uint8 actionType;
     /// The Payable's ID.
     bytes32 payableId;
-    /// Circle Nonce of the payment.
-    uint64 circleNonce;
+    /// Protocol-agnostic nonce for this payment.
+    /// Equals the nth count of payments by the payer on the source chain.
+    uint64 nonce;
+    /// Unix timestamp (seconds) when the payment was initiated on the source chain.
+    uint64 initiatedAt;
     /// The amount paid on for the transaction.
     uint64 amount;
     /// The Wormhole-normalized address of the involved token on the payable
@@ -342,6 +350,9 @@ contract CbStructs is CbEvents {
     bytes32 payerChainToken;
     /// CAIP-2 cbChainId of where the User made the payment.
     bytes32 payerChainId;
+    /// The ID of the UserPayment record on the source chain (links payer's record
+    /// to the payable's PayablePayment record for cross-chain auditability).
+    bytes32 payerPaymentId;
   }
 
   /// A combination of a token address and its amount from another chain.

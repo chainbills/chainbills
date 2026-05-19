@@ -113,6 +113,7 @@ contract CbFuzzTest is CbStructs, Test {
       actionType: actionType,
       payableId: payableId,
       nonce: nonce,
+      initiatedAt: 0,
       isClosed: isClosed,
       allowedTokensAndAmounts: ataa
     });
@@ -151,15 +152,17 @@ contract CbFuzzTest is CbStructs, Test {
     bytes32 payerChainToken,
     bytes32 payerChainId,
     uint64 amount,
-    uint64 circleNonce
+    uint64 nonce
   ) public pure {
     PaymentPayload memory original = PaymentPayload({
       payloadType: 2,
       version: 1,
       actionType: 5,
       payableId: payableId,
-      circleNonce: circleNonce,
+      nonce: nonce,
+      initiatedAt: 1_700_000_000,
       amount: amount,
+      payerPaymentId: keccak256(abi.encodePacked(payableId, nonce)),
       payableChainToken: payableChainToken,
       payableChainId: payableChainId,
       payer: payer,
@@ -173,8 +176,10 @@ contract CbFuzzTest is CbStructs, Test {
     assertEq(decoded.version, 1, 'version');
     assertEq(decoded.actionType, 5, 'actionType');
     assertEq(decoded.payableId, payableId, 'payableId');
-    assertEq(decoded.circleNonce, circleNonce, 'circleNonce');
+    assertEq(decoded.nonce, nonce, 'nonce');
     assertEq(decoded.amount, amount, 'amount');
+    assertEq(decoded.initiatedAt, original.initiatedAt, 'initiatedAt');
+    assertEq(decoded.payerPaymentId, original.payerPaymentId, 'payerPaymentId');
     assertEq(decoded.payableChainToken, payableChainToken, 'payableChainToken');
     assertEq(decoded.payableChainId, payableChainId, 'payableChainId');
     assertEq(decoded.payer, payer, 'payer');
@@ -196,15 +201,15 @@ contract CbFuzzTest is CbStructs, Test {
     bytes32 chainId = keccak256('eip155:99');
 
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(payableId, chainId, firstNonce, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(payableId, chainId, firstNonce, 0, 1, false, new TokenAndAmountForeign[](0));
 
     if (secondNonce <= firstNonce) {
       vm.prank(owner);
       vm.expectRevert(StalePayableUpdateNonce.selector);
-      chainbills.adminSyncForeignPayable(payableId, chainId, secondNonce, 1, false, new TokenAndAmountForeign[](0));
+      chainbills.adminSyncForeignPayable(payableId, chainId, secondNonce, 0, 1, false, new TokenAndAmountForeign[](0));
     } else {
       vm.prank(owner);
-      chainbills.adminSyncForeignPayable(payableId, chainId, secondNonce, 1, false, new TokenAndAmountForeign[](0));
+      chainbills.adminSyncForeignPayable(payableId, chainId, secondNonce, 0, 1, false, new TokenAndAmountForeign[](0));
       assertEq(cbGetters.getForeignPayable(payableId).chainId, chainId, 'chainId after update');
     }
   }

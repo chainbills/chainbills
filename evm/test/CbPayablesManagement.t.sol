@@ -97,6 +97,40 @@ contract CbPayablesManagementTest is CbStructs, Test {
     zeroAmount[0] = TokenAndAmount({token: address(usdc), amount: 0});
     vm.expectRevert(ZeroAmountSpecified.selector);
     chainbills.createPayable(zeroAmount, false);
+
+    // Duplicate token (same token, same amount)
+    TokenAndAmount[] memory dupSameAmt = new TokenAndAmount[](2);
+    dupSameAmt[0] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+    dupSameAmt[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+    vm.expectRevert(DuplicateTokenAndAmount.selector);
+    chainbills.createPayable(dupSameAmt, false);
+
+    // Same token, different amounts — allowed (multi-option pricing)
+    TokenAndAmount[] memory diffAmts = new TokenAndAmount[](2);
+    diffAmts[0] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+    diffAmts[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt * 2});
+    (bytes32 multiPriceId,) = chainbills.createPayable(diffAmts, false);
+    assertEq(cbGetters.getPayable(multiPriceId).allowedTokensAndAmountsCount, 2);
+    vm.stopPrank();
+  }
+
+  function testUpdatePayableAtaaRevertsDuplicateTokenAndAmount() public {
+    vm.startPrank(user);
+    (bytes32 payableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    // Exact duplicate (same token, same amount) in update reverts.
+    TokenAndAmount[] memory dupAtaa = new TokenAndAmount[](2);
+    dupAtaa[0] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+    dupAtaa[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+    vm.expectRevert(DuplicateTokenAndAmount.selector);
+    chainbills.updatePayableAllowedTokensAndAmounts(payableId, dupAtaa);
+
+    // Same token different amounts in update — allowed.
+    TokenAndAmount[] memory diffAmts = new TokenAndAmount[](2);
+    diffAmts[0] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
+    diffAmts[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt * 3});
+    chainbills.updatePayableAllowedTokensAndAmounts(payableId, diffAmts);
+    assertEq(cbGetters.getPayable(payableId).allowedTokensAndAmountsCount, 2);
     vm.stopPrank();
   }
 

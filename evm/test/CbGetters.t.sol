@@ -208,7 +208,7 @@ contract CbGettersTest is CbStructs, Test {
   function testGetForeignPayable() public {
     bytes32 fpId = keccak256('foreign-payable');
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     PayableForeign memory fp = cbGetters.getForeignPayable(fpId);
     assertEq(fp.chainId, foreignCbChainId);
@@ -258,6 +258,8 @@ contract CbGettersTest is CbStructs, Test {
     PayablePayment memory p = cbGetters.getPayablePayment(ppId);
     assertEq(p.payableId, payableId);
     assertEq(p.amount, usdcAmt);
+    // Same-chain payment: payerPaymentId links back to the UserPayment record.
+    assertEq(p.payerPaymentId, paymentId);
   }
 
   // ------------------------------------------------------------------------
@@ -293,9 +295,15 @@ contract CbGettersTest is CbStructs, Test {
   }
 
   function testGetAllowedTokensAndAmountsWithEntries() public {
+    // Allow a second token so we can create a two-entry ATAA with distinct tokens.
+    vm.startPrank(owner);
+    chainbills.allowPaymentsForToken(address(chainbills));
+    chainbills.updateMaxWithdrawalFees(address(chainbills), maxWtdlFeeUsdc);
+    vm.stopPrank();
+
     TokenAndAmount[] memory ataa = new TokenAndAmount[](2);
     ataa[0] = TokenAndAmount({token: address(usdc), amount: usdcAmt});
-    ataa[1] = TokenAndAmount({token: address(usdc), amount: usdcAmt * 2});
+    ataa[1] = TokenAndAmount({token: address(chainbills), amount: usdcAmt * 2});
 
     vm.prank(host);
     (bytes32 pid,) = chainbills.createPayable(ataa, false);
@@ -304,6 +312,7 @@ contract CbGettersTest is CbStructs, Test {
     assertEq(items.length, 2);
     assertEq(items[0].token, address(usdc));
     assertEq(items[0].amount, usdcAmt);
+    assertEq(items[1].token, address(chainbills));
     assertEq(items[1].amount, usdcAmt * 2);
   }
 
@@ -330,7 +339,7 @@ contract CbGettersTest is CbStructs, Test {
     ataa[0] = TokenAndAmountForeign({token: bytes32(uint256(1)), amount: 1e6});
     ataa[1] = TokenAndAmountForeign({token: bytes32(uint256(2)), amount: 2e6});
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 1, false, ataa);
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 0, 1, false, ataa);
 
     TokenAndAmountForeign[] memory items = cbGetters.getForeignPayableAllowedTokensAndAmounts(fpId);
     assertEq(items.length, 2);
@@ -501,9 +510,9 @@ contract CbGettersTest is CbStructs, Test {
   function testChainForeignPayableIdsPaginated() public {
     // Seed two foreign payables via adminSync.
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(keccak256('fp1'), foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(keccak256('fp1'), foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
     vm.prank(admin);
-    chainbills.adminSyncForeignPayable(keccak256('fp2'), foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(keccak256('fp2'), foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     bytes32[] memory page = cbGetters.chainForeignPayableIdsPaginated(0, 10);
     assertEq(page.length, 2);

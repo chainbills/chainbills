@@ -508,10 +508,10 @@ contract Chainbills is
     }
   }
 
-  /// @notice Receives a payable update from another chain via Circle CCTP manually.
+  /// @notice Receives a payable update from another chain via CCTP.
   /// - Parameter message: The Circle message bytes.
   /// - Parameter attestation: The Circle attestation bytes.
-  function receivePayableUpdateViaCircle(
+  function receivePayableUpdateViaCctp(
     bytes calldata,
     /* message */
     bytes calldata /* attestation */
@@ -581,6 +581,7 @@ contract Chainbills is
     bytes32, /* payableId */
     bytes32, /* cbChainId */
     uint64, /* nonce */
+    uint64, /* initiatedAt */
     uint8, /* actionType */
     bool, /* isClosed */
     TokenAndAmountForeign[] calldata /* ataa */
@@ -633,7 +634,7 @@ contract Chainbills is
   /// - Parameter amount: The amount of the token being paid.
   /// @return userPaymentId The ID of the user payment.
   /// @return wormholeMessageSequence The sequence number of the published Wormhole message.
-  function payForeignWithCircle(
+  function payForeignViaCctp(
     bytes32,
     /* payableId */
     address,
@@ -658,10 +659,10 @@ contract Chainbills is
     }
   }
 
-  /// @notice Receives a cross-chain payment via Circle CCTP and Wormhole.
+  /// @notice Receives a cross-chain payment via CCTP (and optionally Wormhole for the data message).
   /// - Parameter params: The parameters for redeeming the payment.
   /// @return payablePaymentId The ID of the payable payment.
-  function receiveForeignPaymentWithCircle(
+  function receiveForeignPaymentViaCctp(
     RedeemCirclePaymentParameters memory /* params */
   )
     public

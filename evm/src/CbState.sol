@@ -117,11 +117,13 @@ contract CbState is CbStructs {
   /// emitter chain to its cbChainId for registeredForeignContracts lookup.
   mapping(uint16 => bytes32) public wormholeChainIdToCbChainId;
   /// Tracks consumed CCTP-only burn nonces (Circle source domain → CCTP v2 bytes32 nonce → consumed).
-  /// Set by receiveForeignPaymentWithCircle before the external Circle call (CEI).
+  /// Set by receiveForeignPaymentViaCctp before the external Circle call (CEI).
   mapping(uint32 => mapping(bytes32 => bool)) internal consumedCctpBurnNonces;
   /// Tracks consumed CCTP data message nonces (Circle source domain → CCTP v2 bytes32 nonce → consumed).
-  /// Set by receivePayableUpdateViaCircle before the external Circle call (CEI).
+  /// Set by receivePayableUpdateViaCctp before the external Circle call (CEI).
   mapping(uint32 => mapping(bytes32 => bool)) internal consumedCctpDataNonces;
+  /// Tracks consumed payment nonces (payerChainId → payer → payment nonce → consumed).
+  mapping(bytes32 => mapping(bytes32 => mapping(uint64 => bool))) public consumedPaymentNonces;
   /// CCTP message activity counters — stored separately from ChainStats so that
   /// adding CCTP support does not shift ChainStats slot layout on upgrade.
   CctpStats public cctpStats;

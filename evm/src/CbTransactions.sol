@@ -181,11 +181,16 @@ contract CbTransactions is CbUtils {
   /// @param payerChainId CAIP-2 cbChainId of the payer's chain.
   /// @param token The address of the token that was paid.
   /// @param amount The amount paid.
+  /// @param payerPaymentId The ID of the UserPayment record on the source chain.
   /// @return payablePaymentId The ID of the recorded payment from the user.
-  function _recordPayablePayment(bytes32 payableId, bytes32 payer, bytes32 payerChainId, address token, uint256 amount)
-    internal
-    returns (bytes32 payablePaymentId)
-  {
+  function _recordPayablePayment(
+    bytes32 payableId,
+    bytes32 payer,
+    bytes32 payerChainId,
+    address token,
+    uint256 amount,
+    bytes32 payerPaymentId
+  ) internal returns (bytes32 payablePaymentId) {
     // Increment the chainStats for payments and activities counts.
     chainStats.payablePaymentsCount++;
     chainStats.activitiesCount++;
@@ -220,7 +225,8 @@ contract CbTransactions is CbUtils {
       localChainCount: payableChainPaymentsCount[payableId][payerChainId],
       payableCount: _payable.paymentsCount,
       timestamp: block.timestamp,
-      amount: amount
+      amount: amount,
+      payerPaymentId: payerPaymentId
     });
 
     // Record Payable Activity.
@@ -388,7 +394,8 @@ contract CbTransactions is CbUtils {
 
     // Record successful payment and activity to the payable.
     // Use config.cbChainId as the payer chain ID (this chain).
-    payablePaymentId = _recordPayablePayment(payableId, toWormholeFormat(msg.sender), config.cbChainId, token, amount);
+    payablePaymentId =
+      _recordPayablePayment(payableId, toWormholeFormat(msg.sender), config.cbChainId, token, amount, userPaymentId);
 
     if (_payable.isAutoWithdraw) _actualizeWithdrawal(payableId, token, amount);
   }
@@ -400,7 +407,7 @@ contract CbTransactions is CbUtils {
   /// @return userPaymentId The ID of the recorded payment from the user.
   /// @return wormholeMessageSequence The sequence number of the Wormhole
   /// message.
-  function payForeignWithCircle(bytes32 payableId, address token, uint256 amount, uint256 maxFee)
+  function payForeignViaCctp(bytes32 payableId, address token, uint256 amount, uint256 maxFee)
     public
     payable
     returns (bytes32 userPaymentId, uint64 wormholeMessageSequence)
@@ -455,13 +462,15 @@ contract CbTransactions is CbUtils {
         version: 1,
         actionType: 5,
         payableId: payableId,
-        circleNonce: 0,
+        nonce: SafeCast.toUint64(users[msg.sender].paymentsCount),
         amount: SafeCast.toUint64(amount),
+        initiatedAt: SafeCast.toUint64(block.timestamp),
         payableChainToken: foreignTokenAddr,
         payableChainId: _payable.chainId,
         payer: toWormholeFormat(msg.sender),
         payerChainToken: toWormholeFormat(token),
-        payerChainId: config.cbChainId
+        payerChainId: config.cbChainId,
+        payerPaymentId: userPaymentId
       }).encode();
 
     /* INTERACTIONS */
@@ -498,7 +507,7 @@ contract CbTransactions is CbUtils {
   /// - circleBridgeMessage The encoded message from Circle Bridge.
   /// - circleAttestation The encoded attestation from Circle.
   /// @return payablePaymentId The ID of the recorded payment from the payable.
-  function receiveForeignPaymentWithCircle(RedeemCirclePaymentParameters memory params)
+  function receiveForeignPaymentViaCctp(RedeemCirclePaymentParameters memory params)
     public
     returns (bytes32 payablePaymentId)
   {
@@ -516,17 +525,17 @@ contract CbTransactions is CbUtils {
       );
       _checkCircleToken(payload.payerChainId, payload.payerChainToken, payload.payableChainToken);
 
-      // Verify that the burn nonce in the payload matches the Circle burn message nonce.
-      // bytes32 burnNonce;
-      // (burnNonce,) = params.circleBridgeMessage.asBytes32(12);
-      // if (burnNonce != bytes32(uint256(payload.circleNonce))) revert CircleNonceMismatch();
-
       bool isSuccess = circleTransmitter().receiveMessage(params.circleBridgeMessage, params.circleAttestation);
       if (!isSuccess) revert CircleMintingFailed();
 
       address token = fromWormholeFormat(payload.payableChainToken);
       uint256 amount = uint256(payload.amount);
-      payablePaymentId = _recordPayablePayment(payableId, payload.payer, payload.payerChainId, token, amount);
+      
+      if (consumedPaymentNonces[payload.payerChainId][payload.payer][payload.nonce]) revert HasAlreadyConsumedMessage();
+      consumedPaymentNonces[payload.payerChainId][payload.payer][payload.nonce] = true;
+
+      payablePaymentId =
+        _recordPayablePayment(payableId, payload.payer, payload.payerChainId, token, amount, payload.payerPaymentId);
 
       consumeWormholeMessage(wormholeMessage);
       bytes32 srcCbChainId = wormholeChainIdToCbChainId[wormholeMessage.emitterChainId];
@@ -571,8 +580,8 @@ contract CbTransactions is CbUtils {
       // payloadType is the first byte of the body (now embedded in the struct).
       PaymentPayload memory payload = params.circlePayloadMessage.decodePaymentPayload(148);
 
-      // Validate no trailing bytes in the message (148-byte header + 211-byte payload).
-      if (params.circlePayloadMessage.length != 359) revert InvalidPayload();
+      // Validate no trailing bytes in the message (148-byte header + 251-byte payload).
+      if (params.circlePayloadMessage.length != 399) revert InvalidPayload();
 
       // Step 4: Validate the payable exists locally.
       bytes32 payableId = payload.payableId;
@@ -587,14 +596,11 @@ contract CbTransactions is CbUtils {
       // Step 6: Validate the token type via Circle's TokenMinter mapping.
       _checkCircleToken(payload.payerChainId, payload.payerChainToken, payload.payableChainToken);
 
-      // Step 7a: Replay protection for the burn message.
+      // Step 7: Replay protection for the burn message.
       bytes32 burnNonce;
       (burnNonce,) = params.circleBridgeMessage.asBytes32(12);
       if (consumedCctpBurnNonces[payloadSrcDomain][burnNonce]) revert CctpBurnNonceAlreadyConsumed();
       consumedCctpBurnNonces[payloadSrcDomain][burnNonce] = true;
-
-      // Step 7b: Verify the burn nonce in the payload matches the Circle burn message nonce.
-      // if (burnNonce != bytes32(uint256(payload.circleNonce))) revert CircleNonceMismatch();
 
       // Step 8: Submit burn message to Circle — mints USDC to this contract.
       bool isSuccess = circleTransmitter().receiveMessage(params.circleBridgeMessage, params.circleAttestation);
@@ -602,9 +608,13 @@ contract CbTransactions is CbUtils {
 
       address token = fromWormholeFormat(payload.payableChainToken);
       uint256 amount = uint256(payload.amount);
+      
+      if (consumedPaymentNonces[payload.payerChainId][payload.payer][payload.nonce]) revert HasAlreadyConsumedMessage();
+      consumedPaymentNonces[payload.payerChainId][payload.payer][payload.nonce] = true;
 
       // Step 9: Record the payment.
-      payablePaymentId = _recordPayablePayment(payableId, payload.payer, payload.payerChainId, token, amount);
+      payablePaymentId =
+        _recordPayablePayment(payableId, payload.payer, payload.payerChainId, token, amount, payload.payerPaymentId);
 
       cctpStats.receivedCctpPaymentMessagesCount++;
       emit ReceivedForeignPaymentViaCircle(payableId, payload.payerChainId, payablePaymentId);

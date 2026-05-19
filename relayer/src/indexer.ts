@@ -159,6 +159,7 @@ export async function indexPayablePayment(chain: ChainConfig, paymentId: `0x${st
       chainCount,
       token,
       timestamp,
+      payerPaymentId,
     } = await contract.read.getPayablePayment([paymentId]);
 
     // Resolve payer's chain
@@ -185,6 +186,7 @@ export async function indexPayablePayment(chain: ChainConfig, paymentId: `0x${st
       token: tokenName,
       amount: Number(amount) / 10 ** decimals,
       timestamp: Timestamp.fromMillis(Number(timestamp) * 1000),
+      payerPaymentId,
       indexedAt: Timestamp.now(),
     };
 

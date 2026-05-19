@@ -26,25 +26,16 @@ contract CbPayables is CbUtils {
     payable
     returns (bytes32 payableId, uint64 wormholeMessageSequence)
   {
-    /* CHECKS */
-    // Ensure that the allowedTokensAndAmounts are valid.
-    uint8 ataaLength = SafeCast.toUint8(allowedTokensAndAmounts.length);
-    for (uint8 i = 0; i < ataaLength; i++) {
-      // Ensure tokens are valid.
-      address token = allowedTokensAndAmounts[i].token;
-      if (token == address(0)) revert InvalidTokenAddress();
-
-      // Ensure that the token is supported.
-      if (!tokenDetails[token].isSupported) revert UnsupportedToken();
-
-      // Ensure that the specified amount is greater than zero.
-      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
-    }
+    /* CHECKS & STATE CHANGES */
+    // Note: To save gas, we iterate through allowedTokensAndAmounts only once,
+    // merging validation checks with state changes (storage updates).
+    // While this contextually bypasses strict Checks-Effects-Interactions (CEI) 
+    // pattern separation, it is safe here because there are no external calls
+    // within the loop that could trigger reentrancy.
 
     // Ensure that the required Wormhole Fees were paid.
     if (hasWormhole()) _ensureWormholeFees();
 
-    /* STATE CHANGES */
     // Increment payables and activities counts on the host (address) creating
     // this payable.
     _initializeUserIfNeedBe(msg.sender);
@@ -56,6 +47,7 @@ contract CbPayables is CbUtils {
     chainStats.activitiesCount++;
 
     // Create the payable.
+    uint8 ataaLength = SafeCast.toUint8(allowedTokensAndAmounts.length);
     payableId = _createId(toWormholeFormat(msg.sender), EntityType.Payable, users[msg.sender].payablesCount);
     chainPayableIds.push(payableId);
     userPayableIds[msg.sender].push(payableId);
@@ -68,13 +60,26 @@ contract CbPayables is CbUtils {
     _payable.activitiesCount = 1; // for creation
     _payable.isAutoWithdraw = isAutoWithdraw;
 
-    // Store ATAA locally and prepare the foreign equivalents in the same loop.
+    // Store ATAA locally, prepare foreign equivalents, and validate in the same loop.
     TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](ataaLength);
     for (uint8 i = 0; i < ataaLength; i++) {
       address token = allowedTokensAndAmounts[i].token;
       uint256 amount = allowedTokensAndAmounts[i].amount;
+
+      // VALIDATIONS
+      if (token == address(0)) revert InvalidTokenAddress();
+      if (!tokenDetails[token].isSupported) revert UnsupportedToken();
+      if (amount == 0) revert ZeroAmountSpecified();
       if (amount > type(uint64).max) revert AmountExceedsCrossChainLimit();
 
+      // Ensure no exact duplicate (token, amount) pairs.
+      for (uint8 j = 0; j < i; j++) {
+        if (allowedTokensAndAmounts[j].token == token && allowedTokensAndAmounts[j].amount == amount) {
+          revert DuplicateTokenAndAmount();
+        }
+      }
+
+      // STATE CHANGES
       // Set the local allowedTokenAndAmount directly
       payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount({token: token, amount: amount}));
 
@@ -108,6 +113,7 @@ contract CbPayables is CbUtils {
         actionType: 1,
         payableId: payableId,
         nonce: 0, // set inside _broadcastPayableUpdate
+        initiatedAt: SafeCast.toUint64(block.timestamp),
         isClosed: false,
         allowedTokensAndAmounts: foreignAtaa
       })
@@ -177,6 +183,7 @@ contract CbPayables is CbUtils {
         actionType: 2,
         payableId: payableId,
         nonce: 0,
+        initiatedAt: SafeCast.toUint64(block.timestamp),
         isClosed: true,
         allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
       })
@@ -218,6 +225,7 @@ contract CbPayables is CbUtils {
         actionType: 3,
         payableId: payableId,
         nonce: 0,
+        initiatedAt: SafeCast.toUint64(block.timestamp),
         isClosed: false,
         allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
       })
@@ -234,45 +242,51 @@ contract CbPayables is CbUtils {
     payable
     returns (uint64 wormholeMessageSequence)
   {
-    /* CHECKS */
+    /* CHECKS & STATE CHANGES */
+    // Note: To save gas, we iterate through allowedTokensAndAmounts only once,
+    // merging validation checks with state changes (storage updates).
+    // While this contextually bypasses strict Checks-Effects-Interactions (CEI) 
+    // pattern separation, it is safe here because there are no external calls
+    // within the loop that could trigger reentrancy.
+
     // Ensure that the caller owns the payable.
     Payable storage _payable = payables[payableId];
     if (_payable.host != msg.sender) revert NotYourPayable();
 
-    // Ensure that the allowedTokensAndAmounts are valid.
-    uint8 ataaLength = SafeCast.toUint8(allowedTokensAndAmounts.length);
-    for (uint8 i = 0; i < ataaLength; i++) {
-      // Ensure tokens are valid.
-      address token = allowedTokensAndAmounts[i].token;
-      if (token == address(0)) revert InvalidTokenAddress();
-
-      // Ensure that the token is supported.
-      if (!tokenDetails[token].isSupported) revert UnsupportedToken();
-
-      // Ensure that the specified amount is greater than zero.
-      if (allowedTokensAndAmounts[i].amount == 0) revert ZeroAmountSpecified();
-    }
-
     // Ensure that the required Wormhole Fees were paid.
     if (hasWormhole()) _ensureWormholeFees();
 
-    /* STATE CHANGES */
     // Clear the previously stored allowedTokensAndAmounts for the payable.
     // NOTE: Loop is bounded safely by uint8 (max 255), so no out-of-gas risk here.
     for (uint8 i = _payable.allowedTokensAndAmountsCount; i > 0; i--) {
       payableAllowedTokensAndAmounts[payableId].pop();
     }
 
+    uint8 ataaLength = SafeCast.toUint8(allowedTokensAndAmounts.length);
+
     // Update the payable's allowedTokensAndAmounts count
     _payable.allowedTokensAndAmountsCount = ataaLength;
 
-    // Store ATAA locally and prepare the foreign equivalents in the same loop.
+    // Store ATAA locally, prepare foreign equivalents, and validate in the same loop.
     TokenAndAmountForeign[] memory foreignAtaa = new TokenAndAmountForeign[](ataaLength);
     for (uint8 i = 0; i < ataaLength; i++) {
       address token = allowedTokensAndAmounts[i].token;
       uint256 amount = allowedTokensAndAmounts[i].amount;
+
+      // VALIDATIONS
+      if (token == address(0)) revert InvalidTokenAddress();
+      if (!tokenDetails[token].isSupported) revert UnsupportedToken();
+      if (amount == 0) revert ZeroAmountSpecified();
       if (amount > type(uint64).max) revert AmountExceedsCrossChainLimit();
 
+      // Ensure no exact duplicate (token, amount) pairs.
+      for (uint8 j = 0; j < i; j++) {
+        if (allowedTokensAndAmounts[j].token == token && allowedTokensAndAmounts[j].amount == amount) {
+          revert DuplicateTokenAndAmount();
+        }
+      }
+
+      // STATE CHANGES
       // Set the local allowedTokenAndAmount directly
       payableAllowedTokensAndAmounts[payableId].push(TokenAndAmount({token: token, amount: amount}));
 
@@ -294,6 +308,7 @@ contract CbPayables is CbUtils {
         actionType: 4,
         payableId: payableId,
         nonce: 0,
+        initiatedAt: SafeCast.toUint64(block.timestamp),
         isClosed: false,
         allowedTokensAndAmounts: foreignAtaa
       })
@@ -359,6 +374,7 @@ contract CbPayables is CbUtils {
         actionType: 1,
         payableId: payableId,
         nonce: 0,
+        initiatedAt: SafeCast.toUint64(block.timestamp),
         isClosed: _payable.isClosed,
         allowedTokensAndAmounts: foreignAtaa
       })
@@ -397,10 +413,10 @@ contract CbPayables is CbUtils {
   /// Manually submits a CCTP attestation for a payable-update message.
   /// Anyone can call this — Circle's MessageTransmitter verifies the attestation
   /// and then calls handleReceiveFinalizedMessage() on this contract.
-  /// Mirrors the pattern of receiveForeignPaymentWithCircle for payment messages.
+  /// Mirrors the pattern of receiveForeignPaymentViaCctp for payment messages.
   /// @param message The Circle message bytes.
   /// @param attestation Circle's attestation bytes.
-  function receivePayableUpdateViaCircle(bytes calldata message, bytes calldata attestation) public {
+  function receivePayableUpdateViaCctp(bytes calldata message, bytes calldata attestation) public {
     bytes memory msgMem = message;
     // CCTP v2 header: version(4) | srcDomain(4) | destDomain(4) | nonce(32) | ...
     uint32 srcDomain;
@@ -445,7 +461,7 @@ contract CbPayables is CbUtils {
 
     if (msgType == 2) {
       // PaymentPayload companion data message (CCTP-only payment path).
-      // receiveForeignPaymentWithCircle already processed the burn and recorded the payment
+      // receiveForeignPaymentViaCctp already processed the burn and recorded the payment
       // in the same transaction that submitted this data message. This callback merely lets
       // Circle consume the data-message nonce. No state change needed here.
       return true;
@@ -520,6 +536,7 @@ contract CbPayables is CbUtils {
     bytes32 payableId,
     bytes32 cbChainId,
     uint64 nonce,
+    uint64 initiatedAt,
     uint8 actionType,
     bool isClosed,
     TokenAndAmountForeign[] calldata ataa
@@ -543,6 +560,7 @@ contract CbPayables is CbUtils {
       actionType: actionType,
       payableId: payableId,
       nonce: nonce,
+      initiatedAt: initiatedAt,
       isClosed: isClosed,
       allowedTokensAndAmounts: ataaMem
     });

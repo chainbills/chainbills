@@ -11,7 +11,7 @@ library CbEncodePayablePayload {
   /// Encodes the PayablePayload struct into bytes.
   ///
   /// Wire format (version 1):
-  ///   payloadType(1) | version(1) | actionType(1) | payableId(32) | nonce(8)
+  ///   payloadType(1) | version(1) | actionType(1) | payableId(32) | nonce(8) | initiatedAt(8)
   ///   then action-specific fields:
   ///     actionType 1 or 4: ataaLength(1) | [token(32) | amount(8)] * n
   ///     actionType 2 or 3: isClosed(1)
@@ -19,8 +19,9 @@ library CbEncodePayablePayload {
   /// @param payload PayablePayload struct
   /// @return encoded bytes
   function encode(CbStructs.PayablePayload memory payload) public pure returns (bytes memory encoded) {
-    encoded =
-      abi.encodePacked(payload.payloadType, payload.version, payload.actionType, payload.payableId, payload.nonce);
+    encoded = abi.encodePacked(
+      payload.payloadType, payload.version, payload.actionType, payload.payableId, payload.nonce, payload.initiatedAt
+    );
     if (payload.actionType == 1 || payload.actionType == 4) {
       uint8 ataaLength = uint8(payload.allowedTokensAndAmounts.length);
       encoded = abi.encodePacked(encoded, ataaLength);
@@ -43,8 +44,11 @@ library CbEncodePaymentPayload {
   /// Encodes the PaymentPayload struct into bytes.
   ///
   /// Wire format:
-  ///   payloadType(1) | version(1) | actionType(1) | payableId(32) | circleNonce(8) | amount(8)
-  ///   | payableChainToken(32) | payableChainId(32) | payer(32) | payerChainToken(32) | payerChainId(32)
+  ///   payloadType(1) | version(1) | actionType(1) | payableId(32) | nonce(8) | initiatedAt(8)
+  ///   | amount(8) | payableChainToken(32) | payableChainId(32) | payer(32) | payerChainToken(32)
+  ///   | payerChainId(32) | payerPaymentId(32)
+  ///
+  /// Total: 3 + 32 + 8 + 8 + 8 + 32 + 32*5 = 251 bytes
   ///
   /// @param payload PaymentPayload struct
   /// @return encoded bytes
@@ -54,13 +58,15 @@ library CbEncodePaymentPayload {
       payload.version,
       payload.actionType,
       payload.payableId,
-      payload.circleNonce,
+      payload.nonce,
+      payload.initiatedAt,
       payload.amount,
       payload.payableChainToken,
       payload.payableChainId,
       payload.payer,
       payload.payerChainToken,
-      payload.payerChainId
+      payload.payerChainId,
+      payload.payerPaymentId
     );
   }
 }
@@ -79,6 +85,7 @@ library CbDecodePayload {
     (parsed.actionType, index) = encoded.asUint8(index);
     (parsed.payableId, index) = encoded.asBytes32(index);
     (parsed.nonce, index) = encoded.asUint64(index);
+    (parsed.initiatedAt, index) = encoded.asUint64(index);
     if (parsed.actionType == 1 || parsed.actionType == 4) {
       uint8 ataaLength;
       (ataaLength, index) = encoded.asUint8(index);
@@ -104,8 +111,9 @@ library CbDecodePayload {
   function decodePaymentPayload(bytes memory encoded) public pure returns (CbStructs.PaymentPayload memory parsed) {
     parsed = decodePaymentPayload(encoded, 0);
     // Validate no trailing bytes in the body when decoding a standalone payload.
-    // 32*6 (bytes32) + 8*2 (uint64) + 1*3 (uint8) = 192 + 16 + 3 = 211 bytes.
-    if (encoded.length != 211) revert CbErrors.InvalidPayload();
+    // 3 (uint8s) + 32 (payableId) + 8 (nonce) + 8 (amount) + 8 (initiatedAt)
+    // + 32 (payerPaymentId) + 32*5 (chain fields) = 251 bytes.
+    if (encoded.length != 251) revert CbErrors.InvalidPayload();
   }
 
   /// Decodes the encoded bytes into a PaymentPayload struct starting at a given index.
@@ -123,15 +131,17 @@ library CbDecodePayload {
     (parsed.actionType, index) = encoded.asUint8(index);
     if (parsed.actionType != 5) revert CbErrors.InvalidPayload();
     (parsed.payableId, index) = encoded.asBytes32(index);
-    (parsed.circleNonce, index) = encoded.asUint64(index);
+    (parsed.nonce, index) = encoded.asUint64(index);
+    (parsed.initiatedAt, index) = encoded.asUint64(index);
     (parsed.amount, index) = encoded.asUint64(index);
     (parsed.payableChainToken, index) = encoded.asBytes32(index);
     (parsed.payableChainId, index) = encoded.asBytes32(index);
     (parsed.payer, index) = encoded.asBytes32(index);
     (parsed.payerChainToken, index) = encoded.asBytes32(index);
     (parsed.payerChainId, index) = encoded.asBytes32(index);
+    (parsed.payerPaymentId, index) = encoded.asBytes32(index);
 
-    // Validate we've reached the expected end of a PaymentPayload (163 bytes from start).
+    // Validate we've reached the expected end of a PaymentPayload (251 bytes from start).
     // Note: If this is part of a larger message (like CCTP), the caller should validate
     // the total length if needed.
   }

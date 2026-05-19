@@ -5,7 +5,7 @@
 // destination chain to finalize a cross-chain USDC payment.
 //
 // The on-chain function signature is:
-//   receiveForeignPaymentWithCircle(RedeemCirclePaymentParameters params)
+//   receiveForeignPaymentViaCctp(RedeemCirclePaymentParameters params)
 //
 // Where RedeemCirclePaymentParameters (from CbStructs.sol) is:
 //   struct RedeemCirclePaymentParameters {
@@ -49,7 +49,7 @@ export async function submitForeignPayment(
   logger.info(
     {
       destChain: destChain.name,
-      fn: 'receiveForeignPaymentWithCircle',
+      fn: 'receiveForeignPaymentViaCctp',
       contract: destChain.contractAddress,
     },
     'Submitting cross-chain payment relay'
@@ -66,7 +66,7 @@ export async function submitForeignPayment(
   const { request } = await publicClient.simulateContract({
     address: destChain.contractAddress,
     abi: mainAbi,
-    functionName: 'receiveForeignPaymentWithCircle',
+    functionName: 'receiveForeignPaymentViaCctp',
     args: [params],
     account,
   });
@@ -103,7 +103,7 @@ export async function submitForeignPaymentViaCctp(
   logger.info(
     {
       destChain: destChain.name,
-      fn: 'receiveForeignPaymentWithCircle',
+      fn: 'receiveForeignPaymentViaCctp',
       contract: destChain.contractAddress,
     },
     'Submitting CCTP-only cross-chain payment relay'
@@ -120,7 +120,7 @@ export async function submitForeignPaymentViaCctp(
   const { request } = await publicClient.simulateContract({
     address: destChain.contractAddress,
     abi: mainAbi,
-    functionName: 'receiveForeignPaymentWithCircle',
+    functionName: 'receiveForeignPaymentViaCctp',
     args: [params],
     account,
   });

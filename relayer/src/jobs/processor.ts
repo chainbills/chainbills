@@ -17,6 +17,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { chainByName } from '../chains.js';
+import { recordActivity } from '../utils/activity.js';
 import { waitForAllAttestations, waitForAttestation } from '../resolvers/cctp.js';
 import { getVaaBySequence, getVaaByTxHash } from '../resolvers/wormhole.js';
 import {
@@ -49,6 +50,22 @@ export async function processJobs(): Promise<void> {
 }
 
 async function processJob(job: RelayerJob): Promise<void> {
+  const isCctpPaymentJob = ['PAYMENT_VIA_CCTP_WORMHOLE', 'PAYMENT_VIA_CCTP_ONLY'].includes(job.type);
+  if (isCctpPaymentJob) {
+    const sourceChain = chainByName.get(job.sourceChain);
+    const minAgeMs = sourceChain?.cctpAttestationMinAgeMs ?? 0;
+    if (minAgeMs > 0) {
+      const ageMs = Date.now() - job.createdAt.toMillis();
+      if (ageMs < minAgeMs) {
+        logger.debug(
+          { jobId: job.id, ageSec: Math.round(ageMs / 1000), minAgeMin: Math.round(minAgeMs / 60000) },
+          'Job too young for CCTP attestation, deferring'
+        );
+        return;
+      }
+    }
+  }
+
   await markProcessing(job.id);
   const log = logger.child({ jobId: job.id, type: job.type });
 
@@ -101,7 +118,7 @@ async function processJob(job: RelayerJob): Promise<void> {
         break;
       }
 
-      case 'PAYMENT_VIA_CIRCLE': {
+      case 'PAYMENT_VIA_CCTP_WORMHOLE': {
         log.info('Fetching VAA + CCTP attestation for cross-chain payment');
         if (!sourceChain.hasCctp || sourceChain.circleDomain === undefined) {
           throw new Error(`Source chain ${sourceChain.name} has no CCTP for payment`);
@@ -183,6 +200,7 @@ async function processJob(job: RelayerJob): Promise<void> {
     }
 
     await markDone(job.id);
+    recordActivity();
     log.info('Job completed successfully');
   } catch (err: any) {
     const errMsg = err?.message ?? `${err}`;

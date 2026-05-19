@@ -321,14 +321,18 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
         fromBlock: chain.deploymentBlock,
       });
       for (const plog of paymentLogs) {
-        const { paymentId, payableChainId } = (plog as any).args as { paymentId: `0x${string}`; payableChainId: `0x${string}` };
+        const { paymentId, payableChainId } = (plog as any).args as {
+          paymentId: `0x${string}`;
+          payableChainId: `0x${string}`;
+        };
         if (payableChainId === chain.cbChainId) continue;
         const destChain = chainByCbChainId.get(payableChainId);
         if (!destChain) continue;
         const txHash = plog.transactionHash!;
         const alreadyQueued = await jobExistsForTx(txHash, destChain.name);
         if (alreadyQueued) continue;
-        const jobType = chain.hasWormhole && destChain.hasWormhole ? 'PAYMENT_VIA_CIRCLE' : 'PAYMENT_VIA_CCTP_ONLY';
+        const jobType =
+          chain.hasWormhole && destChain.hasWormhole ? 'PAYMENT_VIA_CCTP_WORMHOLE' : 'PAYMENT_VIA_CCTP_ONLY';
         await createJob({
           type: jobType,
           sourceChain: chain.name,
@@ -346,7 +350,10 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
     // ── 7. CCTP payable update relay ────────────────────────────────────────
     const onChainCctpUpdates = Number(cctpStats.emittedCctpPayableUpdateMessagesCount);
     if (onChainCctpUpdates > cursor.cctpPayableUpdatesRelayed) {
-      log.info({ from: cursor.cctpPayableUpdatesRelayed, onChain: onChainCctpUpdates }, 'New CCTP payable updates to relay');
+      log.info(
+        { from: cursor.cctpPayableUpdatesRelayed, onChain: onChainCctpUpdates },
+        'New CCTP payable updates to relay'
+      );
       const updateLogs = await getLogsChunked(client, {
         address: chain.contractAddress,
         event: PAYABLE_UPDATE_BROADCASTED_EVENT,

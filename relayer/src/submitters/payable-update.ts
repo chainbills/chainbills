@@ -143,6 +143,8 @@ export async function submitAdminSyncPayable(
   i += 32;
   const nonce = BigInt('0x' + Buffer.from(encodedVaa.slice(i, i + 8)).toString('hex'));
   i += 8;
+  const initiatedAt = BigInt('0x' + Buffer.from(encodedVaa.slice(i, i + 8)).toString('hex'));
+  i += 8;
 
   let isClosed = false;
   const ataa: { token: `0x${string}`; amount: bigint }[] = [];
@@ -172,6 +174,7 @@ export async function submitAdminSyncPayable(
       payableId,
       actionType,
       nonce: nonce.toString(),
+      initiatedAt: initiatedAt.toString(),
       isClosed,
       ataaCount: ataa.length,
     },
@@ -182,7 +185,7 @@ export async function submitAdminSyncPayable(
     address: destChain.contractAddress,
     abi: mainAbi,
     functionName: 'adminSyncForeignPayable',
-    args: [payableId, sourceChain.cbChainId as `0x${string}`, nonce, actionType, isClosed, ataa],
+    args: [payableId, sourceChain.cbChainId as `0x${string}`, nonce, initiatedAt, actionType, isClosed, ataa],
     account,
   });
 

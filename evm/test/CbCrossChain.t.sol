@@ -19,7 +19,7 @@ import {USDC} from './mocks/MockUSDC.sol';
 
 /// Cross-chain tests covering publishPayableDetails (relayer model),
 /// receivePayableUpdateViaWormhole, handleReceiveFinalizedMessage, and
-/// receivePayableUpdateViaCircle.
+/// receivePayableUpdateViaCctp.
 contract CbCrossChainTest is CbStructs, Test {
   using CbEncodePayablePayload for PayablePayload;
   using CbEncodePaymentPayload for PaymentPayload;
@@ -128,6 +128,7 @@ contract CbCrossChainTest is CbStructs, Test {
         actionType: actionType_,
         payableId: payableId_,
         nonce: nonce_,
+        initiatedAt: 0,
         isClosed: isClosed,
         allowedTokensAndAmounts: emptyAtaa
       }).encode();
@@ -446,20 +447,20 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
-  // receivePayableUpdateViaCircle
+  // receivePayableUpdateViaCctp
   // -------------------------------------------------------------------------
 
   function testReceivePayableUpdateViaCircleRevertsWhenReceiveFails() public {
     mockCircleTransmitter.setReceiveSuccess(false);
     vm.expectRevert(CircleMessageReceivingFailed.selector);
-    chainbills.receivePayableUpdateViaCircle(new bytes(183), bytes(''));
+    chainbills.receivePayableUpdateViaCctp(new bytes(183), bytes(''));
   }
 
   function testReceivePayableUpdateViaCircleSucceedsWhenReceiveReturnsTrue() public {
     // Mock returns true without calling handleReceiveFinalizedMessage.
     // The function must not revert.
     mockCircleTransmitter.setReceiveSuccess(true);
-    chainbills.receivePayableUpdateViaCircle(new bytes(183), bytes(''));
+    chainbills.receivePayableUpdateViaCctp(new bytes(183), bytes(''));
   }
 
   // -------------------------------------------------------------------------
@@ -546,7 +547,7 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
-  // payForeignWithCircle
+  // payForeignViaCctp
   // -------------------------------------------------------------------------
 
   function testPayForeignWithCircleRevertsOnNonexistentForeignPayable() public {
@@ -558,15 +559,15 @@ contract CbCrossChainTest is CbStructs, Test {
 
     vm.prank(payer);
     vm.expectRevert(InvalidPayableId.selector);
-    chainbills.payForeignWithCircle(nonExistentId, address(usdc), 1e6, 0);
+    chainbills.payForeignViaCctp(nonExistentId, address(usdc), 1e6, 0);
   }
 
   function testPayForeignWithCircleRevertsOnClosedForeignPayable() public {
     bytes32 fpId = keccak256('pfc-closed');
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 2, 2, true, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 2, 0, 2, true, new TokenAndAmountForeign[](0));
 
     address payer = makeAddr('payer-pfc-closed');
     deal(address(usdc), payer, 1e6);
@@ -575,7 +576,7 @@ contract CbCrossChainTest is CbStructs, Test {
 
     vm.prank(payer);
     vm.expectRevert(PayableIsClosed.selector);
-    chainbills.payForeignWithCircle(fpId, address(usdc), 1e6, 0);
+    chainbills.payForeignViaCctp(fpId, address(usdc), 1e6, 0);
   }
 
   function testPayForeignWithCircleRevertsOnMatchingTokenNotFound() public {
@@ -583,7 +584,7 @@ contract CbCrossChainTest is CbStructs, Test {
     TokenAndAmountForeign[] memory ataa = new TokenAndAmountForeign[](1);
     ataa[0] = TokenAndAmountForeign({token: foreignToken, amount: 1e6});
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 1, false, ataa);
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 0, 1, false, ataa);
 
     address payer = makeAddr('payer-ataa');
     deal(address(usdc), payer, 2e6);
@@ -592,13 +593,13 @@ contract CbCrossChainTest is CbStructs, Test {
 
     vm.prank(payer);
     vm.expectRevert(MatchingTokenAndAmountNotFound.selector);
-    chainbills.payForeignWithCircle(fpId, address(usdc), 2e6, 0); // wrong amount
+    chainbills.payForeignViaCctp(fpId, address(usdc), 2e6, 0); // wrong amount
   }
 
   function testPayForeignWithCircleSuccess() public {
     bytes32 fpId = keccak256('pfc-success');
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     address payer = makeAddr('payer-success');
     deal(address(usdc), payer, 1e6);
@@ -606,7 +607,7 @@ contract CbCrossChainTest is CbStructs, Test {
     usdc.approve(address(chainbills), 1e6);
 
     vm.prank(payer);
-    (bytes32 userPaymentId,) = chainbills.payForeignWithCircle(fpId, address(usdc), 1e6, 0);
+    (bytes32 userPaymentId,) = chainbills.payForeignViaCctp(fpId, address(usdc), 1e6, 0);
 
     assertTrue(userPaymentId != bytes32(0));
     UserPayment memory up = cbGetters.getUserPayment(userPaymentId);
@@ -621,7 +622,7 @@ contract CbCrossChainTest is CbStructs, Test {
     TokenAndAmountForeign[] memory ataa = new TokenAndAmountForeign[](1);
     ataa[0] = TokenAndAmountForeign({token: foreignToken, amount: 1e6});
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 1, false, ataa);
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 0, 1, false, ataa);
 
     address payer = makeAddr('payer-ataa-match');
     deal(address(usdc), payer, 1e6);
@@ -629,31 +630,35 @@ contract CbCrossChainTest is CbStructs, Test {
     usdc.approve(address(chainbills), 1e6);
 
     vm.prank(payer);
-    (bytes32 userPaymentId,) = chainbills.payForeignWithCircle(fpId, address(usdc), 1e6, 0);
+    (bytes32 userPaymentId,) = chainbills.payForeignViaCctp(fpId, address(usdc), 1e6, 0);
     assertTrue(userPaymentId != bytes32(0));
   }
 
   // -------------------------------------------------------------------------
-  // receiveForeignPaymentWithCircle helpers
+  // receiveForeignPaymentViaCctp helpers
   // -------------------------------------------------------------------------
 
   function _buildCircleBurnMessage(
     uint32 sourceDomain,
     uint32 targetDomain,
     bytes32 nonce,
-    bytes32 depositor,  // Chainbills proxy on source chain — verified from body at byte 248
-    bytes32 recipient,  // this contract — used as destinationCaller in header + mintRecipient in body
+    bytes32 depositor, // Chainbills proxy on source chain — verified from body at byte 248
+    bytes32 recipient, // this contract — used as destinationCaller in header + mintRecipient in body
     uint256 amount
   ) internal pure returns (bytes memory) {
     // CCTP v2 header: version(4)|srcDomain(4)|destDomain(4)|nonce(32)
     //   |sender(32, TokenMessenger — not checked)|recipient(32, TokenMessenger — not checked)
     //   |destinationCaller(32)|minFinalityThreshold(4)|maxFee(4)
     bytes memory header = abi.encodePacked(
-      uint32(0), sourceDomain, targetDomain, nonce,
+      uint32(0),
+      sourceDomain,
+      targetDomain,
+      nonce,
       bytes32(0), // sender = Circle TokenMessenger (not checked by contract)
       bytes32(0), // recipient = Circle TokenMessenger on dest (not checked by contract)
-      recipient,  // destinationCaller = this contract (checked: must == address(this))
-      uint32(2000), uint32(2000)
+      recipient, // destinationCaller = this contract (checked: must == address(this))
+      uint32(2000),
+      uint32(2000)
     );
     // CCTP v2 body: version(4)|burnToken(32)|mintRecipient(32)|amount(32)|depositor(32)
     // depositor is at absolute byte 248 — the contract reads and verifies it here.
@@ -668,13 +673,15 @@ contract CbCrossChainTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: localPayableId,
-        circleNonce: 0,
+        nonce: 0,
+        initiatedAt: 0,
         amount: 1e6,
         payableChainToken: payableChainToken,
         payableChainId: thisCbChainId,
         payer: toWormholeFormat(makeAddr('foreign-payer-rfp')),
         payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     IWormhole.VM memory wormVm = _buildVm(foreignWormholeChainId, foreignEmitter, paymentEncoded, vaaHash);
@@ -690,7 +697,7 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
-  // receiveForeignPaymentWithCircle
+  // receiveForeignPaymentViaCctp
   // -------------------------------------------------------------------------
 
   function testReceiveForeignPaymentRevertsOnInvalidWormholeVAA() public {
@@ -699,7 +706,7 @@ contract CbCrossChainTest is CbStructs, Test {
       foreignCircleDomain, uint32(0), bytes32(0), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
     );
     vm.expectRevert();
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -717,13 +724,15 @@ contract CbCrossChainTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: noLocalPayable,
-        circleNonce: 1,
+        nonce: 1,
+        initiatedAt: 0,
         amount: 1e6,
         payableChainToken: toWormholeFormat(address(usdc)),
         payableChainId: thisCbChainId,
         payer: toWormholeFormat(makeAddr('fp')),
         payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     IWormhole.VM memory wormVm =
@@ -735,7 +744,7 @@ contract CbCrossChainTest is CbStructs, Test {
     );
 
     vm.expectRevert(InvalidPayableId.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -755,13 +764,15 @@ contract CbCrossChainTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: localPayableId,
-        circleNonce: 1,
+        nonce: 1,
+        initiatedAt: 0,
         amount: 1e6,
         payableChainToken: toWormholeFormat(address(usdc)),
         payableChainId: thisCbChainId,
         payer: toWormholeFormat(makeAddr('fp-src')),
         payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     IWormhole.VM memory wormVm =
@@ -774,7 +785,7 @@ contract CbCrossChainTest is CbStructs, Test {
     );
 
     vm.expectRevert(CircleSourceDomainMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -794,13 +805,15 @@ contract CbCrossChainTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: localPayableId,
-        circleNonce: 1,
+        nonce: 1,
+        initiatedAt: 0,
         amount: 1e6,
         payableChainToken: toWormholeFormat(address(usdc)),
         payableChainId: thisCbChainId,
         payer: toWormholeFormat(makeAddr('fp-tgt')),
         payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     IWormhole.VM memory wormVm =
@@ -813,7 +826,47 @@ contract CbCrossChainTest is CbStructs, Test {
     );
 
     vm.expectRevert(CircleTargetDomainMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes('wh'),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: bytes(''),
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  function testReceiveForeignPaymentRevertsOnChainbillsPayableChainIdMismatch() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    bytes memory paymentEncoded = PaymentPayload({
+        payloadType: 2,
+        version: 1,
+        actionType: 5,
+        payableId: localPayableId,
+        nonce: 1,
+        initiatedAt: 0,
+        amount: 1e6,
+        payableChainToken: toWormholeFormat(address(usdc)),
+        payableChainId: bytes32(uint256(99)), // Mismatch!
+        payer: toWormholeFormat(makeAddr('fp-tgt')),
+        payerChainToken: foreignToken,
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
+      }).encode();
+
+    IWormhole.VM memory wormVm =
+      _buildVm(foreignWormholeChainId, foreignEmitter, paymentEncoded, keccak256('rfp-cb-mismatch-hash'));
+    mockWormhole.setPresetVM(wormVm, true, '');
+
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(0), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    vm.expectRevert(ChainbillsPayableChainIdMismatch.selector);
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -833,13 +886,15 @@ contract CbCrossChainTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: localPayableId,
-        circleNonce: 1,
+        nonce: 1,
+        initiatedAt: 0,
         amount: 1e6,
         payableChainToken: toWormholeFormat(address(usdc)),
         payableChainId: thisCbChainId,
         payer: toWormholeFormat(makeAddr('fp-sender')),
         payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     IWormhole.VM memory wormVm =
@@ -852,7 +907,7 @@ contract CbCrossChainTest is CbStructs, Test {
     );
 
     vm.expectRevert(CircleSenderMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -872,13 +927,15 @@ contract CbCrossChainTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: localPayableId,
-        circleNonce: 1,
+        nonce: 1,
+        initiatedAt: 0,
         amount: 1e6,
         payableChainToken: toWormholeFormat(address(usdc)),
         payableChainId: thisCbChainId,
         payer: toWormholeFormat(makeAddr('fp-recip')),
         payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     IWormhole.VM memory wormVm =
@@ -890,7 +947,7 @@ contract CbCrossChainTest is CbStructs, Test {
       _buildCircleBurnMessage(foreignCircleDomain, uint32(0), bytes32(0), foreignEmitter, wrongRecipient, 1e6);
 
     vm.expectRevert(CircleRecipientMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -910,13 +967,15 @@ contract CbCrossChainTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: localPayableId,
-        circleNonce: 1,
+        nonce: 1,
+        initiatedAt: 0,
         amount: 1e6,
         payableChainToken: toWormholeFormat(address(usdc)),
         payableChainId: thisCbChainId,
         payer: toWormholeFormat(makeAddr('fp-token')),
         payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     IWormhole.VM memory wormVm =
@@ -932,7 +991,7 @@ contract CbCrossChainTest is CbStructs, Test {
     mockCircleTokenMinter.setLocalToken(remoteKey, makeAddr('wrong-token'));
 
     vm.expectRevert(CircleTokenMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -951,7 +1010,7 @@ contract CbCrossChainTest is CbStructs, Test {
     mockCircleTransmitter.setReceiveSuccess(false);
 
     vm.expectRevert(CircleMintingFailed.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -970,7 +1029,7 @@ contract CbCrossChainTest is CbStructs, Test {
 
     vm.expectEmit(true, true, false, false);
     emit ReceivedForeignPaymentViaWormhole(localPayableId, foreignCbChainId, bytes32(0), keccak256('rfp-success-hash'));
-    bytes32 payablePaymentId = chainbills.receiveForeignPaymentWithCircle(
+    bytes32 payablePaymentId = chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -985,6 +1044,8 @@ contract CbCrossChainTest is CbStructs, Test {
     assertEq(pp.payableId, localPayableId);
     assertEq(pp.token, address(usdc));
     assertEq(pp.amount, 1e6);
+    // payerPaymentId echoes the value from the PaymentPayload (bytes32(0) in test fixture).
+    assertEq(pp.payerPaymentId, bytes32(0));
   }
 
   function testReceiveForeignPaymentWithAutoWithdraw() public {
@@ -996,7 +1057,7 @@ contract CbCrossChainTest is CbStructs, Test {
 
     bytes memory circleMsg = _setupPaymentVm(localPayableId, 2, keccak256('rfp-autow-hash'));
 
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -1076,13 +1137,15 @@ contract CbCrossChainTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: localPayableId,
-        circleNonce: 1,
+        nonce: 1,
+        initiatedAt: 0,
         amount: 1e6,
         payableChainToken: toWormholeFormat(address(usdc)),
         payableChainId: thisCbChainId,
         payer: toWormholeFormat(makeAddr('fp')),
         payerChainToken: foreignToken,
-        payerChainId: foreignCbChainId
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     IWormhole.VM memory wormVm = _buildVm(foreignWormholeChainId, foreignEmitter, paymentEncoded, keccak256('h-amt'));
@@ -1094,7 +1157,7 @@ contract CbCrossChainTest is CbStructs, Test {
     );
 
     vm.expectRevert(CircleAmountMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes('wh'),
         circleBridgeMessage: circleMsg,
@@ -1135,12 +1198,12 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
-  // receiveForeignPaymentWithCircle — both params empty
+  // receiveForeignPaymentViaCctp — both params empty
   // -------------------------------------------------------------------------
 
   function testReceiveForeignPaymentRevertsOnBothEmpty() public {
     vm.expectRevert(InvalidPayload.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: bytes(''),
@@ -1152,7 +1215,7 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
-  // payForeignWithCircle — unregistered Circle domain
+  // payForeignViaCctp — unregistered Circle domain
   // -------------------------------------------------------------------------
 
   function testPayForeignWithCircleRevertsOnUnregisteredCircleDomain() public {
@@ -1163,7 +1226,7 @@ contract CbCrossChainTest is CbStructs, Test {
     bytes32 unregisteredChain = keccak256('eip155:9999');
     bytes32 fpId = keccak256('pfc-no-circle-domain');
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(fpId, unregisteredChain, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(fpId, unregisteredChain, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     address payer = makeAddr('payer-no-circle');
     deal(address(usdc), payer, 1e6);
@@ -1172,7 +1235,7 @@ contract CbCrossChainTest is CbStructs, Test {
 
     vm.prank(payer);
     vm.expectRevert(InvalidCircleDomain.selector);
-    chainbills.payForeignWithCircle(fpId, address(usdc), 1e6, 0);
+    chainbills.payForeignViaCctp(fpId, address(usdc), 1e6, 0);
   }
 
   // -------------------------------------------------------------------------
@@ -1180,8 +1243,8 @@ contract CbCrossChainTest is CbStructs, Test {
   // -------------------------------------------------------------------------
 
   /// Build a 148-byte CCTP v2 data message header + body.
-  /// Body must be exactly 211 bytes (encoded PaymentPayload).
-  /// Total is 359 bytes — the exact length checked by receiveForeignPaymentWithCircle.
+  /// Body must be exactly 251 bytes (encoded PaymentPayload).
+  /// Total is 399 bytes — the exact length checked by receiveForeignPaymentViaCctp.
   function _buildCircleDataMessage(uint32 srcDomain, bytes32 sender, bytes32 recipient, bytes memory body)
     internal
     pure
@@ -1196,25 +1259,27 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   /// Encode a PaymentPayload for CCTP-only receive tests.
-  /// Returns exactly 211 bytes.
-  function _buildPaymentPayloadBody(bytes32 localPayableId, uint64 amount, address payer_, uint64 circleNonce_)
+  /// Returns exactly 251 bytes.
+  function _buildPaymentPayloadBody(bytes32 localPayableId, uint64 amount, address payer_, uint64 nonce_)
     internal
     view
     returns (bytes memory)
   {
     return PaymentPayload({
-      payloadType: 2,
-      version: 1,
-      actionType: 5,
-      payableId: localPayableId,
-      circleNonce: circleNonce_,
-      amount: amount,
-      payableChainToken: toWormholeFormat(address(usdc)),
-      payableChainId: thisCbChainId,
-      payer: toWormholeFormat(payer_),
-      payerChainToken: foreignToken,
-      payerChainId: foreignCbChainId
-    }).encode();
+        payloadType: 2,
+        version: 1,
+        actionType: 5,
+        payableId: localPayableId,
+        nonce: nonce_,
+        initiatedAt: 0,
+        amount: amount,
+        payableChainToken: toWormholeFormat(address(usdc)),
+        payableChainId: thisCbChainId,
+        payer: toWormholeFormat(payer_),
+        payerChainToken: foreignToken,
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
+      }).encode();
   }
 
   // -------------------------------------------------------------------------
@@ -1235,7 +1300,7 @@ contract CbCrossChainTest is CbStructs, Test {
     );
 
     vm.expectRevert(InvalidCircleDomain.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1260,7 +1325,7 @@ contract CbCrossChainTest is CbStructs, Test {
     );
 
     vm.expectRevert(CircleSenderMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1284,7 +1349,7 @@ contract CbCrossChainTest is CbStructs, Test {
     );
 
     vm.expectRevert(CircleRecipientMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1309,7 +1374,46 @@ contract CbCrossChainTest is CbStructs, Test {
 
     mockCircleTransmitter.setReceiveSuccess(false);
     vm.expectRevert(CircleMessageReceivingFailed.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
+      RedeemCirclePaymentParameters({
+        wormholeEncoded: bytes(''),
+        circleBridgeMessage: circleMsg,
+        circleAttestation: bytes(''),
+        circlePayloadMessage: dataMsg,
+        circlePayloadAttestation: bytes('')
+      })
+    );
+  }
+
+  function testReceiveForeignPaymentCctpOnlyRevertsOnPayableChainIdMismatch() public {
+    vm.prank(host);
+    (bytes32 localPayableId,) = chainbills.createPayable(new TokenAndAmount[](0), false);
+
+    bytes memory payBody = PaymentPayload({
+        payloadType: 2,
+        version: 1,
+        actionType: 5,
+        payableId: localPayableId,
+        nonce: 1,
+        initiatedAt: 0,
+        amount: 1e6,
+        payableChainToken: toWormholeFormat(address(usdc)),
+        payableChainId: bytes32(uint256(99)), // Mismatch!
+        payer: toWormholeFormat(makeAddr('cctp-cb-mismatch-payer')),
+        payerChainToken: foreignToken,
+        payerChainId: foreignCbChainId,
+        payerPaymentId: bytes32(0)
+      }).encode();
+
+    bytes memory dataMsg =
+      _buildCircleDataMessage(foreignCircleDomain, foreignEmitter, toWormholeFormat(address(chainbills)), payBody);
+
+    bytes memory circleMsg = _buildCircleBurnMessage(
+      foreignCircleDomain, uint32(0), bytes32(uint256(200)), foreignEmitter, toWormholeFormat(address(chainbills)), 1e6
+    );
+
+    vm.expectRevert(ChainbillsPayableChainIdMismatch.selector);
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1338,7 +1442,7 @@ contract CbCrossChainTest is CbStructs, Test {
     mockCircleTokenMinter.setLocalToken(remoteKey, address(usdc));
 
     vm.expectRevert(CircleAmountMismatch.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1365,7 +1469,7 @@ contract CbCrossChainTest is CbStructs, Test {
     mockCircleTokenMinter.setLocalToken(remoteKey, address(usdc));
 
     // First call succeeds — burn nonce is now marked consumed.
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1377,7 +1481,7 @@ contract CbCrossChainTest is CbStructs, Test {
 
     // Second call with the same burn nonce must revert.
     vm.expectRevert(CctpBurnNonceAlreadyConsumed.selector);
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1409,7 +1513,7 @@ contract CbCrossChainTest is CbStructs, Test {
     vm.expectEmit(true, true, false, false);
     emit ReceivedForeignPaymentViaCircle(localPayableId, foreignCbChainId, bytes32(0));
 
-    bytes32 payablePaymentId = chainbills.receiveForeignPaymentWithCircle(
+    bytes32 payablePaymentId = chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1425,6 +1529,8 @@ contract CbCrossChainTest is CbStructs, Test {
     assertEq(pp.token, address(usdc));
     assertEq(pp.amount, 1e6);
     assertEq(pp.payerChainId, foreignCbChainId);
+    // payerPaymentId echoes the value from the PaymentPayload (bytes32(0) in test fixture).
+    assertEq(pp.payerPaymentId, bytes32(0));
   }
 
   function testReceiveForeignPaymentCctpOnlyWithAutoWithdraw() public {
@@ -1444,7 +1550,7 @@ contract CbCrossChainTest is CbStructs, Test {
     bytes32 remoteKey = keccak256(abi.encodePacked(foreignCircleDomain, foreignToken));
     mockCircleTokenMinter.setLocalToken(remoteKey, address(usdc));
 
-    chainbills.receiveForeignPaymentWithCircle(
+    chainbills.receiveForeignPaymentViaCctp(
       RedeemCirclePaymentParameters({
         wormholeEncoded: bytes(''),
         circleBridgeMessage: circleMsg,
@@ -1459,7 +1565,7 @@ contract CbCrossChainTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
-  // payForeignWithCircle — Wormhole publish path (CbTransactions.sol:488)
+  // payForeignViaCctp — Wormhole publish path (CbTransactions.sol:488)
   // -------------------------------------------------------------------------
 
   function testPayForeignWithCirclePublishesViaWormhole() public {
@@ -1469,7 +1575,7 @@ contract CbCrossChainTest is CbStructs, Test {
 
     bytes32 fpId = keccak256('pfc-wh-publish');
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     address payer = makeAddr('payer-wh-publish');
     deal(address(usdc), payer, 1e6);
@@ -1478,20 +1584,20 @@ contract CbCrossChainTest is CbStructs, Test {
 
     // MockWormhole.messageFee() == 0 — exact fee is 0, triggers _publishPayloadMessage branch.
     vm.prank(payer);
-    (, uint64 seq) = chainbills.payForeignWithCircle{value: 0}(fpId, address(usdc), 1e6, 0);
+    (, uint64 seq) = chainbills.payForeignViaCctp{value: 0}(fpId, address(usdc), 1e6, 0);
     assertEq(seq, 0);
   }
 
   // -------------------------------------------------------------------------
-  // receivePayableUpdateViaCircle — replay protection (CbPayables.sol:414)
+  // receivePayableUpdateViaCctp — replay protection (CbPayables.sol:414)
   // -------------------------------------------------------------------------
 
   function testReceivePayableUpdateViaCircleRevertsOnReplay() public {
     // First call: nonce bytes32(0) for domain 0 gets marked consumed.
-    chainbills.receivePayableUpdateViaCircle(new bytes(183), bytes(''));
+    chainbills.receivePayableUpdateViaCctp(new bytes(183), bytes(''));
 
     // Same message bytes → same srcDomain and dataNonce → replay revert.
     vm.expectRevert(CctpDataNonceAlreadyConsumed.selector);
-    chainbills.receivePayableUpdateViaCircle(new bytes(183), bytes(''));
+    chainbills.receivePayableUpdateViaCctp(new bytes(183), bytes(''));
   }
 }

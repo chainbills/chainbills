@@ -11,6 +11,7 @@ export class PayablePayment {
   localChainCount: number;
   payer: string;
   payerChainName: ChainName;
+  payerPaymentId: string;
   timestamp: Timestamp;
   token: string;
   amount: number;
@@ -34,6 +35,7 @@ export class PayablePayment {
 
     this.payableCount = Number(onChainData.payableCount);
     this.localChainCount = Number(onChainData.localChainCount);
+    this.payerPaymentId = onChainData.payerPaymentId;
     const { name: token, details } = getTokenDetails(onChainData.token, chain);
     this.token = token;
     this.amount = Number(onChainData.amount) / 10 ** (details[chain.name]?.decimals ?? 0);

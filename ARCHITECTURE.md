@@ -143,6 +143,7 @@ A `PayablePayment` is a record of a payment made to a payable. It is a Payable's
 | `payableCount`    | number   | The nth count of payments that the payable has received at the point when this payment was made.                                                           |
 | `timestamp`       | number   | When this payment was made.                                                                                                                                |
 | `amount`          | number   | The amount of the token that was received.                                                                                                                 |
+| `payerPaymentId`  | 32 bytes | The ID of the `UserPayment` record on the payer's chain. Links the payable's receipt to the payer's receipt for auditability on both same-chain and cross-chain payments. |
 
 The `payer` is 32 bytes type of the payer's wallet address. This synchronises the different wallet types across different block chain networks. [The 32 bytes is gotten from the wallet address depending on the blockchain network and based on how Wormhole formats addresses for cross-chain activity](https://wormhole.com/docs/build/reference/wormhole-formatted-addresses/).
 
@@ -327,13 +328,15 @@ CAIP2=eip155:11155111 forge script script/ComputeCbChainId.s.sol -vvv
 
 Once a payable is created or its settings are updated, Chainbills broadcasts a `PayablePayload` to all registered foreign chains. Depending on which protocols a destination chain supports (configured via `DataMessagingProtocol`), the broadcast goes via Wormhole VAA, Circle CCTP message, or both. When a message is received on a foreign chain, it records the payable as a `PayableForeign`, storing only the bare minimum (`payableId`, `isClosed` status, `allowedTokensAndAmounts`) necessary for cross-chain payments. A monotonically increasing nonce in each `PayablePayload` prevents double-application when both Wormhole and CCTP deliver the same update.
 
-Three receive paths exist on each chain: `receivePayableUpdateViaWormhole(bytes)` for Wormhole VAAs, `receivePayableUpdateViaCircle(bytes, bytes)` for CCTP attestations, and `adminSyncForeignPayable(...)` as an owner-only escape hatch for chains with no common protocol.
+Three receive paths exist on each chain: `receivePayableUpdateViaWormhole(bytes)` for Wormhole VAAs, `receivePayableUpdateViaCctp(bytes, bytes)` for CCTP attestations, and `adminSyncForeignPayable(...)` as an owner-only escape hatch for chains with no common protocol.
 
 ### Cross-Chain Payments
 
 For cross-chain payments, it is always a payment from a user (on their source chain) to a payable (on a target chain). The target chain payable must already exist in the source chain as a `PayableForeign` before the payment can go through.
 
-When a user makes a payment to a payable on a different chain, Chainbills verifies the `PayableForeign` details on the source chain first, then transfers USDC through CCTP to the destination chain. In the same transaction, it records a `UserPayment` on the source chain and publishes a `PaymentPayload` via Wormhole. The destination chain receives both the CCTP funds and the Wormhole message, verifies them, and records a `PayablePayment`. This makes the flow of funds seamless when payer and payable are on different chains.
+When a user makes a payment to a payable on a different chain, Chainbills verifies the `PayableForeign` details on the source chain first, then transfers USDC through CCTP to the destination chain. In the same transaction, it records a `UserPayment` on the source chain and delivers a `PaymentPayload` — either as a Wormhole VAA (when both chains have Wormhole) or as a Circle CCTP data message (CCTP-only path when the source chain has no Wormhole). The destination chain receives the CCTP funds and the payload, verifies both, and records a `PayablePayment`.
+
+The `PaymentPayload` carries a `payerPaymentId` field — the ID of the `UserPayment` created on the source chain. The destination chain stores this in the `PayablePayment.payerPaymentId` field, creating a direct, bidirectional link between the payer's receipt and the payable's receipt without any additional lookups. The payload also carries a `nonce` (the payer's payment count on the source chain) which the destination chain uses for replay protection via `consumedPaymentNonces`.
 
 ## Relayer Service
 
@@ -351,13 +354,13 @@ The relayer uses `viem`'s `getLogs` polling on each chain rather than WebSocket 
 
 Four contract events are indexed per chain:
 
-| Event | Triggers |
-|---|---|
-| `CreatedPayable` | `indexPayable()` — writes payable on-chain data to Firestore |
-| `UserPaid` | `indexUserPayment()` — writes payer receipt; if cross-chain, queues a relay job |
-| `PayableReceived` | `indexPayablePayment()` — writes payable receipt; sends FCM push notification to host |
-| `Withdrew` | `indexWithdrawal()` — writes withdrawal receipt |
-| `PayableUpdateBroadcasted` | Creates relay jobs for each registered foreign chain |
+| Event                      | Triggers                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| `CreatedPayable`           | `indexPayable()` — writes payable on-chain data to Firestore                          |
+| `UserPaid`                 | `indexUserPayment()` — writes payer receipt; if cross-chain, queues a relay job       |
+| `PayableReceived`          | `indexPayablePayment()` — writes payable receipt; sends FCM push notification to host |
+| `Withdrew`                 | `indexWithdrawal()` — writes withdrawal receipt                                       |
+| `PayableUpdateBroadcasted` | Creates relay jobs for each registered foreign chain                                  |
 
 On-chain data is fetched from the `CbGetters` read-only contract (`getPayable`, `getUserPayment`, `getPayablePayment`, `getWithdrawal`) immediately after each event is detected.
 
@@ -367,13 +370,15 @@ Every cross-chain relay action is persisted in Firestore at `/relayerJobs/{jobId
 
 **Job types:**
 
-| Type | Source event | Action |
-|---|---|---|
-| `PAYABLE_UPDATE_VIA_WORMHOLE` | `PayableUpdateBroadcasted` | Fetch VAA → `receivePayableUpdateViaWormhole()` on dest |
-| `PAYABLE_UPDATE_VIA_CCTP` | `PayableUpdateBroadcasted` | Poll Circle Iris API → `receivePayableUpdateViaCircle()` on dest |
-| `PAYMENT_VIA_CIRCLE` | `UserPaid` (cross-chain) | Fetch VAA + attestation in parallel → `receiveForeignPaymentWithCircle()` on dest |
+| Type                          | Source event                            | Action                                                                         |
+| ----------------------------- | --------------------------------------- | ------------------------------------------------------------------------------ |
+| `PAYABLE_UPDATE_VIA_WORMHOLE` | `PayableUpdateBroadcasted`              | Fetch VAA → `receivePayableUpdateViaWormhole()` on dest                        |
+| `PAYABLE_UPDATE_VIA_CCTP`     | `PayableUpdateBroadcasted`              | Poll Circle Iris API → `receivePayableUpdateViaCctp()` on dest                 |
+| `PAYMENT_VIA_CCTP_WORMHOLE`   | `UserPaid` (cross-chain, Wormhole+CCTP) | Fetch VAA + attestation in parallel → `receiveForeignPaymentViaCctp()` on dest |
+| `PAYMENT_VIA_CCTP_ONLY`       | `UserPaid` (cross-chain, CCTP-only)     | Fetch two CCTP attestations → `receiveForeignPaymentViaCctp()` on dest         |
 
 **Job lifecycle:**
+
 ```
 PENDING → PROCESSING → DONE
                     ↘ FAILED (after 5 attempts)

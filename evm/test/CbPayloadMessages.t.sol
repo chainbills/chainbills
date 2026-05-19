@@ -28,6 +28,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         actionType: 1,
         payableId: bytes32(0),
         nonce: 7,
+        initiatedAt: 0,
         isClosed: false,
         allowedTokensAndAmounts: ataa
       }).encode();
@@ -50,6 +51,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         actionType: 1,
         payableId: keccak256('payable'),
         nonce: 42,
+        initiatedAt: 0,
         isClosed: false,
         allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
       }).encode();
@@ -71,6 +73,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         actionType: 2,
         payableId: pid,
         nonce: 13,
+        initiatedAt: 0,
         isClosed: true,
         allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
       }).encode();
@@ -95,6 +98,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         actionType: 3,
         payableId: pid,
         nonce: 99,
+        initiatedAt: 0,
         isClosed: false,
         allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
       }).encode();
@@ -121,6 +125,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         actionType: 4,
         payableId: bytes32(uint256(0xABC)),
         nonce: 5,
+        initiatedAt: 0,
         isClosed: false,
         allowedTokensAndAmounts: ataa
       }).encode();
@@ -144,6 +149,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         actionType: 0,
         payableId: bytes32(0),
         nonce: 1,
+        initiatedAt: 0,
         isClosed: false,
         allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
       }).encode();
@@ -157,6 +163,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         actionType: 5,
         payableId: bytes32(0),
         nonce: 1,
+        initiatedAt: 0,
         isClosed: false,
         allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
       }).encode();
@@ -164,15 +171,17 @@ contract CbPayloadMessagesTest is CbStructs, Test {
 
   function testDecodePayablePayloadInvalidActionTypeReverts() public {
     // Manually craft a payload with action type 0.
-    // Layout: type(1)|version(1)|action(1)|pid(32)|nonce(8)|closed(1)|ataaLen(1)
-    bytes memory bad = abi.encodePacked(uint8(1), uint8(1), uint8(0), bytes32(0), uint64(1), uint8(1), uint8(0));
+    // Layout: type(1)|version(1)|action(1)|pid(32)|nonce(8)|initiatedAt(8)|closed(1)|ataaLen(1)
+    bytes memory bad =
+      abi.encodePacked(uint8(1), uint8(1), uint8(0), bytes32(0), uint64(1), uint64(0), uint8(1), uint8(0));
     vm.expectRevert(InvalidPayablePayloadActionType.selector);
     bad.decodePayablePayload();
   }
 
   function testDecodePayablePayloadInvalidTypeReverts() public {
     // Payload type 2 (PaymentPayload) sent to decodePayablePayload should revert.
-    bytes memory bad = abi.encodePacked(uint8(2), uint8(1), uint8(1), bytes32(0), uint64(1), uint8(1), uint8(0));
+    bytes memory bad =
+      abi.encodePacked(uint8(2), uint8(1), uint8(1), bytes32(0), uint64(1), uint64(0), uint8(1), uint8(0));
     vm.expectRevert(InvalidPayload.selector);
     bad.decodePayablePayload();
   }
@@ -189,6 +198,7 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         actionType: 2,
         payableId: bytes32(0),
         nonce: 1,
+        initiatedAt: 0,
         isClosed: true,
         allowedTokensAndAmounts: new TokenAndAmountForeign[](0)
       }).encode();
@@ -211,28 +221,32 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: bytes32(0),
-        circleNonce: 2,
+        nonce: 2,
+        initiatedAt: 1_700_000_000,
         amount: 100,
         payableChainToken: bytes32(0),
         payableChainId: payableChainId,
         payer: bytes32(0),
         payerChainToken: bytes32(0),
-        payerChainId: payerChainId
+        payerChainId: payerChainId,
+        payerPaymentId: bytes32(0)
       }).encode();
 
     PaymentPayload memory parsed = encoded.decodePaymentPayload();
     assertEq(parsed.version, 1);
     assertEq(parsed.actionType, 5);
     assertEq(parsed.payableId, bytes32(0));
-    assertEq(parsed.circleNonce, 2);
+    assertEq(parsed.nonce, 2);
     assertEq(parsed.amount, 100);
+    assertEq(parsed.initiatedAt, 1_700_000_000);
+    assertEq(parsed.payerPaymentId, bytes32(0));
     assertEq(parsed.payableChainToken, bytes32(0));
     assertEq(parsed.payableChainId, payableChainId);
     assertEq(parsed.payer, bytes32(0));
     assertEq(parsed.payerChainToken, bytes32(0));
     assertEq(parsed.payerChainId, payerChainId);
     assertEq(parsed.amount, 100);
-    assertEq(parsed.circleNonce, 2);
+    assertEq(parsed.nonce, 2);
   }
 
   function testEncodeDecodePaymentPayloadWithNonZeroFields() public pure {
@@ -242,33 +256,38 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     bytes32 payer = bytes32(uint256(uint160(address(0x5678))));
     bytes32 payerChainToken = bytes32(uint256(uint160(address(0xABCD))));
     bytes32 payerChainId = keccak256('eip155:10');
+    bytes32 payerPaymentId_ = keccak256('user-payment-1');
 
     bytes memory encoded = PaymentPayload({
         payloadType: 2,
         version: 1,
         actionType: 5,
         payableId: payableId,
-        circleNonce: 999,
+        nonce: 999,
+        initiatedAt: 1_715_000_000,
         amount: 5e6,
         payableChainToken: payableChainToken,
         payableChainId: payableChainId,
         payer: payer,
         payerChainToken: payerChainToken,
-        payerChainId: payerChainId
+        payerChainId: payerChainId,
+        payerPaymentId: payerPaymentId_
       }).encode();
 
     PaymentPayload memory parsed = encoded.decodePaymentPayload();
     assertEq(parsed.actionType, 5);
     assertEq(parsed.payableId, payableId);
-    assertEq(parsed.circleNonce, 999);
+    assertEq(parsed.nonce, 999);
     assertEq(parsed.amount, 5e6);
+    assertEq(parsed.initiatedAt, 1_715_000_000);
+    assertEq(parsed.payerPaymentId, payerPaymentId_);
     assertEq(parsed.payableChainToken, payableChainToken);
     assertEq(parsed.payableChainId, payableChainId);
     assertEq(parsed.payer, payer);
     assertEq(parsed.payerChainToken, payerChainToken);
     assertEq(parsed.payerChainId, payerChainId);
     assertEq(parsed.amount, 5e6);
-    assertEq(parsed.circleNonce, 999);
+    assertEq(parsed.nonce, 999);
   }
 
   function testDecodePaymentPayloadTrailingBytesReverts() public {
@@ -277,13 +296,15 @@ contract CbPayloadMessagesTest is CbStructs, Test {
         version: 1,
         actionType: 5,
         payableId: bytes32(0),
-        circleNonce: 1,
+        nonce: 1,
+        initiatedAt: 0,
         amount: 100,
         payableChainToken: bytes32(0),
         payableChainId: keccak256('eip155:1'),
         payer: bytes32(0),
         payerChainToken: bytes32(0),
-        payerChainId: keccak256('eip155:2')
+        payerChainId: keccak256('eip155:2'),
+        payerPaymentId: bytes32(0)
       }).encode();
     bytes memory withTrailing = abi.encodePacked(valid, uint8(0xFF));
     vm.expectRevert(InvalidPayload.selector);
@@ -293,18 +314,20 @@ contract CbPayloadMessagesTest is CbStructs, Test {
   function testDecodePaymentPayloadInvalidActionTypeReverts() public {
     // Correct type 2 but incorrect actionType (e.g., 6 instead of 5).
     bytes memory bad = PaymentPayload({
-      payloadType: 2,
-      version: 1,
-      actionType: 6,
-      payableId: bytes32(0),
-      circleNonce: 1,
-      amount: 100,
-      payableChainToken: bytes32(0),
-      payableChainId: keccak256('eip155:1'),
-      payer: bytes32(0),
-      payerChainToken: bytes32(0),
-      payerChainId: keccak256('eip155:2')
-    }).encode();
+        payloadType: 2,
+        version: 1,
+        actionType: 6,
+        payableId: bytes32(0),
+        nonce: 1,
+        initiatedAt: 0,
+        amount: 100,
+        payableChainToken: bytes32(0),
+        payableChainId: keccak256('eip155:1'),
+        payer: bytes32(0),
+        payerChainToken: bytes32(0),
+        payerChainId: keccak256('eip155:2'),
+        payerPaymentId: bytes32(0)
+      }).encode();
 
     vm.expectRevert(InvalidPayload.selector);
     bad.decodePaymentPayload();
@@ -316,13 +339,15 @@ contract CbPayloadMessagesTest is CbStructs, Test {
       version: 1,
       actionType: 5,
       payableId: keccak256('pid'),
-      circleNonce: 123,
+      nonce: 123,
+      initiatedAt: 1_720_000_000,
       amount: 456,
       payableChainToken: bytes32(uint256(1)),
       payableChainId: keccak256('c1'),
       payer: bytes32(uint256(2)),
       payerChainToken: bytes32(uint256(3)),
-      payerChainId: keccak256('c2')
+      payerChainId: keccak256('c2'),
+      payerPaymentId: keccak256('user-pay-123')
     });
 
     bytes memory payload = original.encode();
@@ -335,8 +360,10 @@ contract CbPayloadMessagesTest is CbStructs, Test {
     assertEq(parsed.version, original.version);
     assertEq(parsed.actionType, original.actionType);
     assertEq(parsed.payableId, original.payableId);
-    assertEq(parsed.circleNonce, original.circleNonce);
+    assertEq(parsed.nonce, original.nonce);
     assertEq(parsed.amount, original.amount);
+    assertEq(parsed.initiatedAt, original.initiatedAt);
+    assertEq(parsed.payerPaymentId, original.payerPaymentId);
     assertEq(parsed.payableChainToken, original.payableChainToken);
     assertEq(parsed.payableChainId, original.payableChainId);
     assertEq(parsed.payer, original.payer);

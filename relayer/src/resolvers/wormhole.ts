@@ -72,7 +72,7 @@ export async function getVaaBySequence(
 /**
  * Fetches a signed VAA from WormholeScan by source-chain transaction hash.
  *
- * Used by the job processor for legacy PAYABLE_UPDATE jobs and PAYMENT_VIA_CIRCLE jobs.
+ * Used by the job processor for legacy PAYABLE_UPDATE jobs and PAYMENT_VIA_CCTP_WORMHOLE jobs.
  * Returns the first VAA emitted by this chain in that transaction.
  *
  * @param chain        Source chain config (must have hasWormhole=true).

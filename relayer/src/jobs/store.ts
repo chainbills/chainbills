@@ -23,7 +23,7 @@ import { db } from '../utils/firebase.js';
 export type JobType =
   | 'PAYABLE_UPDATE_VIA_WORMHOLE'
   | 'PAYABLE_UPDATE_VIA_CCTP'
-  | 'PAYMENT_VIA_CIRCLE'
+  | 'PAYMENT_VIA_CCTP_WORMHOLE'
   | 'PAYMENT_VIA_CCTP_ONLY'
   | 'ADMIN_SYNC';
 

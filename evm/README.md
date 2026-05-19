@@ -211,7 +211,7 @@ if (hasCctp()) {
 }
 ```
 
-`destinationCaller = bytes32(0)` for payable updates — anyone can submit them to Circle's transmitter since payable updates carry no funds. For payment data messages in `payForeignWithCircle`, `destinationCaller` is set to the registered Chainbills contract on the destination chain. This means only our contract can submit the burn or data message to Circle on the destination, preventing griefing attacks where an attacker submits the burn directly without our contract recording the payment.
+`destinationCaller = bytes32(0)` for payable updates — anyone can submit them to Circle's transmitter since payable updates carry no funds. For payment data messages in `payForeignViaCctp`, `destinationCaller` is set to the registered Chainbills contract on the destination chain. This means only our contract can submit the burn or data message to Circle on the destination, preventing griefing attacks where an attacker submits the burn directly without our contract recording the payment.
 
 ### Payload Type Discriminator
 
@@ -233,21 +233,23 @@ PayablePayload memory update = messageBody.decodePayablePayload();
 ### Circle CCTP Callbacks (`handleReceiveFinalizedMessage` / `handleReceiveUnfinalizedMessage`)
 
 Circle's `MessageTransmitter` calls the appropriate handler after verifying a data message's attestation:
+
 - `handleReceiveFinalizedMessage` — for messages with `finalityThresholdExecuted ≥ 2000`
 - `handleReceiveUnfinalizedMessage` — for fast messages with `finalityThresholdExecuted < 2000`
 
 Both delegate to the same internal `_handleReceiveCctpMessage` function. Chainbills uses `minFinalityThreshold = 1000` (fast) on all outgoing `sendMessage` and `depositForBurn` calls, so Circle can attest in ~8–20 seconds rather than waiting for source-chain finality.
 
 Dispatch logic (shared):
+
 - **PayablePayload (type 1):** Decoded, nonce-checked against `payableUpdateNonces`, and applied to the `foreignPayables` mapping. Both Wormhole and CCTP deliveries share the same nonce — whichever arrives first wins, and the other is rejected as stale.
-- **PaymentPayload (type 2):** Returns `true` immediately with no state change. The payment was already recorded in `receiveForeignPaymentWithCircle` in the same transaction that submitted this data message. This callback exists only to let Circle consume the data-message nonce for replay protection.
+- **PaymentPayload (type 2):** Returns `true` immediately with no state change. The payment was already recorded in `receiveForeignPaymentViaCctp` in the same transaction that submitted this data message. This callback exists only to let Circle consume the data-message nonce for replay protection.
 - **Unknown type:** Reverts with `InvalidPayload`.
 
 > **Note:** Circle only fires these callbacks for explicit `sendMessage` data messages. Burn messages (`depositForBurn`) are routed to Circle's internal `TokenMessenger` and do **not** trigger callbacks on Chainbills. The type-1 / type-2 dispatch is therefore safe from burn-message interference.
 
 ### Dual-Message Payment Receipt (CCTP-only path)
 
-When a chain has no Wormhole, receiving a cross-chain payment requires two separate Circle messages submitted together in one call to `receiveForeignPaymentWithCircle`:
+When a chain has no Wormhole, receiving a cross-chain payment requires two separate Circle messages submitted together in one call to `receiveForeignPaymentViaCctp`:
 
 - `circleBridgeMessage` — the Circle burn message that triggers USDC minting
 - `circlePayloadMessage` — a Circle data message containing the encoded `PaymentPayload`

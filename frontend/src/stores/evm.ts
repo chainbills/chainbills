@@ -345,7 +345,7 @@ export const useEvmStore = defineStore('evm', () => {
 
   const CIRCLE_IRIS_API = 'https://iris-api-sandbox.circle.com';
 
-  const payForeignWithCircle = async (
+  const payForeignViaCctp = async (
     payableId: string,
     { amount, details }: TokenAndAmount,
     destChain: Chain
@@ -419,7 +419,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract({
       address: contracts[chain.name] as `0x${string}`,
       abi: mainAbi,
-      functionName: 'payForeignWithCircle',
+      functionName: 'payForeignViaCctp',
       args: [payableId, token, BigInt(amount), maxFee],
       value: BigInt(wormholeFee),
     });
@@ -535,7 +535,7 @@ export const useEvmStore = defineStore('evm', () => {
     getUserWithdrawalIdsPaginated,
     getWithdrawalsBulk,
     pay,
-    payForeignWithCircle,
+    payForeignViaCctp,
     sign,
     withdraw,
   };

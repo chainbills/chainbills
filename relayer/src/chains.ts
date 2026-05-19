@@ -84,6 +84,12 @@ export interface ChainConfig {
    */
   pollIntervalMs?: number;
   /**
+   * Minimum age (ms) a CCTP job must reach before attestation polling starts.
+   * Set on chains where the Iris sandbox is slow to attest (e.g. Sepolia testnet).
+   * Remove or set to 0 on mainnet where Circle fast-transfer attestation is near-instant.
+   */
+  cctpAttestationMinAgeMs?: number;
+  /**
    * Minimum native token balance required for this chain's gas.
    * If the balance falls below this amount, the relayer logs a critical warning.
    */
@@ -136,6 +142,7 @@ export const sepolia: ChainConfig = {
   circleDomain: 0, // Circle domain 0 for Ethereum Sepolia
   deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
   pollIntervalMs: 5000, // Sepolia ~12s blocks; poll every 12s
+  cctpAttestationMinAgeMs: 12 * 60 * 1000, // Iris sandbox doesn't do fast pre-finality; wait 12 min
   minGasBalance: parseEther('0.01'), // Warn below 0.05 ETH
   isEvm: true,
   isSolana: false,

@@ -5,7 +5,7 @@ pragma solidity ^0.8.30;
 contract CbErrors {
   /// @notice Thrown when a token amount exceeds the uint64 maximum allowed for cross-chain transfers.
   error AmountExceedsCrossChainLimit();
-  /// @notice Thrown when a CCTP-only payment burn nonce has already been consumed by receiveForeignPaymentWithCircle.
+  /// @notice Thrown when a CCTP-only payment burn nonce has already been consumed by receiveForeignPaymentViaCctp.
   error CctpBurnNonceAlreadyConsumed();
   /// @notice Thrown when a CCTP data message nonce has already been consumed (replay protection for payable updates).
   error CctpDataNonceAlreadyConsumed();
@@ -17,8 +17,6 @@ contract CbErrors {
   error CircleMessageReceivingFailed();
   /// @notice Thrown when Circle token minting operation fails.
   error CircleMintingFailed();
-  /// @notice Thrown when the burn nonce in the PaymentPayload does not match the nonce in the Circle burn message.
-  error CircleNonceMismatch();
   /// @notice Thrown when the caller is not the authorized Circle Transmitter.
   error CircleTransmitterOnly();
   /// @notice Thrown when the Data Messaging Protocol is not valid or supported.
@@ -35,6 +33,8 @@ contract CbErrors {
   error CircleTargetDomainMismatch();
   /// @notice Thrown when the token being minted does not match the expected token in the payload.
   error CircleTokenMismatch();
+  /// @notice Thrown when the same token appears more than once in an allowedTokensAndAmounts array.
+  error DuplicateTokenAndAmount();
   /// @notice Thrown when a message comes from an unregistered Wormhole emitter.
   error EmitterNotRegistered();
   /// @notice Thrown when attempting to process a Wormhole message that was already consumed.

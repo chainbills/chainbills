@@ -30,7 +30,7 @@ export const usePaymentStore = defineStore('payment', () => {
   /**
    * Execute a payment. Automatically routes to:
    * - `evm.pay()` when user and payable are on the same EVM chain
-   * - `evm.payForeignWithCircle()` when user and payable are on different EVM chains
+   * - `evm.payForeignViaCctp()` when user and payable are on different EVM chains
    * - `solana.pay()` when user is on Solana
    *
    * @param payableId  The target payable's ID
@@ -49,7 +49,7 @@ export const usePaymentStore = defineStore('payment', () => {
     } else if (userChain.isEvm && isSameChain) {
       result = await evm.pay(payableId, details);
     } else if (userChain.isEvm && !isSameChain) {
-      result = await evm.payForeignWithCircle(payableId, details, payableChain);
+      result = await evm.payForeignViaCctp(payableId, details, payableChain);
     } else {
       toastError('Unsupported chain combination for payment');
       return null;

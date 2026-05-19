@@ -166,7 +166,7 @@ contract CbGetters is CbErrors, CbStructs {
   /// @return p The PayablePayment struct.
   function getPayablePayment(bytes32 paymentId) public view returns (PayablePayment memory p) {
     if (paymentId == bytes32(0)) revert InvalidPaymentId();
-    (bytes32 a, bytes32 b, address c, uint256 d, bytes32 e, uint256 f, uint256 g, uint256 h, uint256 i) =
+    (bytes32 a, bytes32 b, address c, uint256 d, bytes32 e, uint256 f, uint256 g, uint256 h, uint256 i, bytes32 j) =
       STATE.payablePayments(paymentId);
     if (a == bytes32(0)) revert InvalidPaymentId();
     p = PayablePayment({
@@ -178,7 +178,8 @@ contract CbGetters is CbErrors, CbStructs {
       localChainCount: f,
       payableCount: g,
       timestamp: h,
-      amount: i
+      amount: i,
+      payerPaymentId: j
     });
   }
 

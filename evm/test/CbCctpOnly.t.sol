@@ -16,7 +16,7 @@ import {USDC} from './mocks/MockUSDC.sol';
 
 /// Tests for CCTP-only chains (no Wormhole).
 /// Covers the hasWormhole()==false branches in payable management operations
-/// and the CCTP-only send path in payForeignWithCircle.
+/// and the CCTP-only send path in payForeignViaCctp.
 contract CbCctpOnlyTest is CbStructs, Test {
   Chainbills chainbills;
   CbGetters cbGetters;
@@ -67,7 +67,7 @@ contract CbCctpOnlyTest is CbStructs, Test {
     chainbills.registerForeignContract(foreignCbChainId, foreignEmitter);
     chainbills.setChainDataMessagingProtocol(foreignCbChainId, 2); // CCTP
 
-    // Register matching token so payForeignWithCircle can resolve the foreign token.
+    // Register matching token so payForeignViaCctp can resolve the foreign token.
     foreignToken = toWormholeFormat(makeAddr('foreign-usdc'));
     chainbills.registerMatchingTokenForForeignChain(foreignCbChainId, foreignToken, address(usdc));
 
@@ -143,24 +143,24 @@ contract CbCctpOnlyTest is CbStructs, Test {
   }
 
   // -------------------------------------------------------------------------
-  // payForeignWithCircle — CCTP-only send path (no Wormhole publishMessage)
+  // payForeignViaCctp — CCTP-only send path (no Wormhole publishMessage)
   // -------------------------------------------------------------------------
 
   function testPayForeignWithCircleSendsViaCircle() public {
     // Create a foreign payable on the CCTP-only foreign chain.
     bytes32 fpId = keccak256('cctp-only-foreign-payable');
     vm.prank(owner);
-    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 1, false, new TokenAndAmountForeign[](0));
+    chainbills.adminSyncForeignPayable(fpId, foreignCbChainId, 1, 0, 1, false, new TokenAndAmountForeign[](0));
 
     // Fund and approve payer.
     deal(address(usdc), payer, 1e6);
     vm.prank(payer);
     usdc.approve(address(chainbills), 1e6);
 
-    // payForeignWithCircle: hasWormhole()==false → circleTransmitter().sendMessage() branch.
+    // payForeignViaCctp: hasWormhole()==false → circleTransmitter().sendMessage() branch.
     // MockCircleTransmitter.sendMessage is a no-op so this just verifies no revert.
     vm.prank(payer);
-    (bytes32 userPaymentId, uint64 seq) = chainbills.payForeignWithCircle(fpId, address(usdc), 1e6, 0);
+    (bytes32 userPaymentId, uint64 seq) = chainbills.payForeignViaCctp(fpId, address(usdc), 1e6, 0);
 
     assertEq(seq, 0); // no Wormhole sequence returned
     assertTrue(userPaymentId != bytes32(0));

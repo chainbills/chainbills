@@ -172,6 +172,11 @@ const checkForeignPayableRelayed = async () => {
       life: 4000,
     });
   }
+
+  if (isForeignPayableRelayed && foreignPayableRefreshInterval) {
+    // Stop the 15s refresher
+    clearInterval(foreignPayableRefreshInterval)
+  }
 };
 
 onMounted(async () => {

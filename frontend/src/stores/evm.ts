@@ -337,9 +337,18 @@ export const useEvmStore = defineStore('evm', () => {
     });
   };
 
+  // Circle domain IDs per chain — used to fetch fast-transfer fee from Iris API.
+  const CIRCLE_DOMAINS: Partial<Record<ChainName, number>> = {
+    sepolia: 0,
+    arctestnet: 26,
+  };
+
+  const CIRCLE_IRIS_API = 'https://iris-api-sandbox.circle.com';
+
   const payForeignWithCircle = async (
     payableId: string,
-    { amount, details }: TokenAndAmount
+    { amount, details }: TokenAndAmount,
+    destChain: Chain
   ): Promise<OnChainSuccess | null> => {
     const chain = getCurrentChain();
     if (!chain) {
@@ -354,9 +363,10 @@ export const useEvmStore = defineStore('evm', () => {
 
     const token = details[chain.name]!.address as `0x${string}`;
 
-    // Fetch the Wormhole message fee that must be sent as msg.value
     const viemChain = getViemChain(chain.name);
     const config = createConfig({ chains: [viemChain], transports: { [viemChain.id]: http() } });
+
+    // Fetch Wormhole message fee (msg.value for chains that have Wormhole).
     const wormholeFee = await rawReadContract(config, {
       address: contracts[chain.name] as `0x${string}`,
       abi: mainAbi,
@@ -367,21 +377,41 @@ export const useEvmStore = defineStore('evm', () => {
       toastError('Could not fetch Wormhole message fee');
       return null;
     }
-    const feeBigInt = BigInt(wormholeFee);
 
-    // Check / request ERC-20 approval for the payment token
+    // Fetch Circle fast-transfer fee from Iris API and compute maxFee.
+    // maxFee is passed to depositForBurn so the payer covers the fee rather than the payable host.
+    let maxFee = 0n;
+    const srcDomain = CIRCLE_DOMAINS[chain.name as ChainName];
+    const dstDomain = CIRCLE_DOMAINS[destChain.name as ChainName];
+    if (srcDomain !== undefined && dstDomain !== undefined) {
+      try {
+        const feeRes = await fetch(`${CIRCLE_IRIS_API}/v2/burn/USDC/fees/${srcDomain}/${dstDomain}`);
+        if (feeRes.ok) {
+          const feeData = await feeRes.json();
+          const bps: number = feeData?.minimumFee ?? 0;
+          // fee = amount * bps / 10_000, add 20% buffer. Integer math on BigInt.
+          maxFee = (BigInt(amount) * BigInt(bps) * 120n) / 1_000_000n;
+        }
+      } catch {
+        // Non-fatal: falls back to standard finality with maxFee=0.
+      }
+    }
+
+    const totalRequired = BigInt(amount) + maxFee;
+
+    // Check / request ERC-20 approval for amount + maxFee.
     const allowance = await rawReadContract(config, {
       address: token,
       abi: erc20Abi,
       functionName: 'allowance',
       args: [account.address.value!, contracts[chain.name] as `0x${string}`],
     });
-    if (!allowance || Number(allowance) < amount) {
+    if (!allowance || allowance < totalRequired) {
       const approval = await writeContract({
         address: token,
         abi: erc20Abi,
         functionName: 'approve',
-        args: [contracts[chain.name], amount],
+        args: [contracts[chain.name], totalRequired],
       });
       if (!approval) return null;
     }
@@ -390,9 +420,8 @@ export const useEvmStore = defineStore('evm', () => {
       address: contracts[chain.name] as `0x${string}`,
       abi: mainAbi,
       functionName: 'payForeignWithCircle',
-      args: [payableId, token, BigInt(amount)],
-      // Wormhole fee is required as msg.value
-      value: feeBigInt,
+      args: [payableId, token, BigInt(amount), maxFee],
+      value: BigInt(wormholeFee),
     });
     if (!response) return null;
     return new OnChainSuccess({

@@ -49,7 +49,7 @@ export const usePaymentStore = defineStore('payment', () => {
     } else if (userChain.isEvm && isSameChain) {
       result = await evm.pay(payableId, details);
     } else if (userChain.isEvm && !isSameChain) {
-      result = await evm.payForeignWithCircle(payableId, details);
+      result = await evm.payForeignWithCircle(payableId, details, payableChain);
     } else {
       toastError('Unsupported chain combination for payment');
       return null;

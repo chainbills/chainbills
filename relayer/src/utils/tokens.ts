@@ -34,7 +34,7 @@ export const TOKENS: Token[] = [
     name: 'ETH',
     details: {
       sepolia: {
-        address: '0x875D3FBf298CF2E7537BbBb3213aB990C35655e8',
+        address: '0x676FfD548E993E64018Ee23Ba039BBDB15f84699',
         decimals: 18,
       },
       megaeth: { address: '0x92e67bFE49466b18ccDf2A3A28b234AB68374c60', decimals: 18 },

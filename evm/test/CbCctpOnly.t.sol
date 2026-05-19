@@ -160,7 +160,7 @@ contract CbCctpOnlyTest is CbStructs, Test {
     // payForeignWithCircle: hasWormhole()==false → circleTransmitter().sendMessage() branch.
     // MockCircleTransmitter.sendMessage is a no-op so this just verifies no revert.
     vm.prank(payer);
-    (bytes32 userPaymentId, uint64 seq) = chainbills.payForeignWithCircle(fpId, address(usdc), 1e6);
+    (bytes32 userPaymentId, uint64 seq) = chainbills.payForeignWithCircle(fpId, address(usdc), 1e6, 0);
 
     assertEq(seq, 0); // no Wormhole sequence returned
     assertTrue(userPaymentId != bytes32(0));

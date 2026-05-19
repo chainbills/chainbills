@@ -421,20 +421,9 @@ contract CbPayables is CbUtils {
     emit ConsumedCctpPayableUpdateMessage(payableId, srcCbChainId, srcDomain, dataNonce);
   }
 
-  /// IMessageHandlerV2 callback for finalized CCTP messages. Called by Circle's
-  /// MessageTransmitter after attestation is verified.
-  ///
-  /// @param sourceDomain Circle domain of the source chain.
-  /// @param sender Wormhole-formatted address of the sending contract.
-  /// @param messageBody Encoded PayablePayload (type 0x01) or PaymentPayload (type 0x02).
-  /// @return true on success (required by IMessageHandlerV2 interface).
-  function handleReceiveFinalizedMessage(
-    uint32 sourceDomain,
-    bytes32 sender,
-    uint32, /* finalityThresholdExecuted */
-    bytes calldata messageBody
-  )
-    public
+  /// Shared handler for both finalized and fast (unfinalized) CCTP messages.
+  function _handleReceiveCctpMessage(uint32 sourceDomain, bytes32 sender, bytes calldata messageBody)
+    internal
     returns (bool)
   {
     // Only Circle's MessageTransmitter may call this function.
@@ -479,19 +468,42 @@ contract CbPayables is CbUtils {
     return true;
   }
 
-  /// IMessageHandlerV2 callback for unfinalized CCTP messages. Always returns false
-  /// — we only process finalized (threshold=2000) messages.
-  function handleReceiveUnfinalizedMessage(
-    uint32, /* sourceDomain */
-    bytes32, /* sender */
+  /// IMessageHandlerV2 callback for finalized CCTP messages (threshold=2000). Called by Circle's
+  /// MessageTransmitter after source chain reached max finality for attestation.
+  ///
+  /// @param sourceDomain Circle domain of the source chain.
+  /// @param sender Wormhole-formatted address of the sending contract.
+  /// @param messageBody Encoded PayablePayload (type 0x01) or PaymentPayload (type 0x02).
+  /// @return boolean on success/failure (required by IMessageHandlerV2 interface).
+  function handleReceiveFinalizedMessage(
+    uint32 sourceDomain,
+    bytes32 sender,
     uint32, /* finalityThresholdExecuted */
-    bytes calldata /* messageBody */
+    bytes calldata messageBody
   )
     public
-    pure
     returns (bool)
   {
-    return false;
+    return _handleReceiveCctpMessage(sourceDomain, sender, messageBody);
+  }
+
+  /// IMessageHandlerV2 callback for fast/unfinalized CCTP messages (threshold=1000).
+  //// Called by Circle's MessageTransmitter.
+  ///
+  /// @param sourceDomain Circle domain of the source chain.
+  /// @param sender Wormhole-formatted address of the sending contract.
+  /// @param messageBody Encoded PayablePayload (type 0x01) or PaymentPayload (type 0x02).
+  /// @return boolean on success/failure (required by IMessageHandlerV2 interface).
+  function handleReceiveUnfinalizedMessage(
+    uint32 sourceDomain,
+    bytes32 sender,
+    uint32, /* finalityThresholdExecuted */
+    bytes calldata messageBody
+  )
+    public
+    returns (bool)
+  {
+    return _handleReceiveCctpMessage(sourceDomain, sender, messageBody);
   }
 
   /// Admin escape hatch for syncing foreign payable state on chains that share
@@ -621,7 +633,7 @@ contract CbPayables is CbUtils {
         bytes32 recipient = registeredForeignContracts[chainId];
         // Skip chains where admin hasn't configured both Circle domain and contract address.
         if (recipient != bytes32(0)) {
-          circleTransmitter().sendMessage(domain, recipient, bytes32(0), 2000, encoded);
+          circleTransmitter().sendMessage(domain, recipient, bytes32(0), 1000, encoded);
           cctpStats.emittedCctpPayableUpdateMessagesCount++;
         }
       }

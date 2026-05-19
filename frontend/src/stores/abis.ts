@@ -2705,6 +2705,7 @@ export const mainAbi = [
       { name: '', type: 'bytes32', internalType: 'bytes32' },
       { name: '', type: 'address', internalType: 'address' },
       { name: '', type: 'uint256', internalType: 'uint256' },
+      { name: '', type: 'uint256', internalType: 'uint256' },
     ],
     outputs: [
       { name: 'userPaymentId', type: 'bytes32', internalType: 'bytes32' },

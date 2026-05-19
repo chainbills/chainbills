@@ -86,8 +86,7 @@ contract CbTransactions is CbUtils {
     (destinationCaller, index) = circleBridgeMessage.asBytes32(index); // bytes 108-139
     if (cbChainIdToCircleDomain[payerChainId] != parsedSourceDomain) revert CircleSourceDomainMismatch();
     if (config.circleDomain != parsedTargetDomain) revert CircleTargetDomainMismatch();
-    // TODO: Enforce and test the following
-    // if (config.cbChainId != payableChainId) revert ChainbillsPayableChainIdMismatch();
+    if (config.cbChainId != payableChainId) revert ChainbillsPayableChainIdMismatch();
     // destinationCaller must be this contract — Circle enforces only it can call receiveMessage.
     if (destinationCaller != toWormholeFormat(address(this))) revert CircleRecipientMismatch();
 
@@ -96,10 +95,12 @@ contract CbTransactions is CbUtils {
     (depositor,) = circleBridgeMessage.asBytes32(248);
     if (depositor != registeredForeignContracts[payerChainId]) revert CircleSenderMismatch();
 
-    // Body: amount at 148 + 4 + 32 + 32 = 216.
+    // Body: amount at 148 + 68 = 216, feeExecuted at 148 + 164 = 312.
     uint256 burnAmount;
     (burnAmount,) = circleBridgeMessage.asUint256(216);
-    if (burnAmount != expectedAmount) revert CircleAmountMismatch();
+    uint256 feeExecuted;
+    (feeExecuted,) = circleBridgeMessage.asUint256(312);
+    if (burnAmount - feeExecuted < expectedAmount) revert CircleAmountMismatch();
   }
 
   /// Looks up the local Circle token for the given foreign chain token and
@@ -399,7 +400,7 @@ contract CbTransactions is CbUtils {
   /// @return userPaymentId The ID of the recorded payment from the user.
   /// @return wormholeMessageSequence The sequence number of the Wormhole
   /// message.
-  function payForeignWithCircle(bytes32 payableId, address token, uint256 amount)
+  function payForeignWithCircle(bytes32 payableId, address token, uint256 amount, uint256 maxFee)
     public
     payable
     returns (bytes32 userPaymentId, uint64 wormholeMessageSequence)
@@ -423,8 +424,8 @@ contract CbTransactions is CbUtils {
     uint32 destDomain = cbChainIdToCircleDomain[_payable.chainId];
     if (circleDomainToCbChainId[destDomain] != _payable.chainId) revert InvalidCircleDomain();
 
-    // Guard: amount must fit in uint64 for cross-chain payload encoding.
-    if (amount > type(uint64).max) revert AmountExceedsCrossChainLimit();
+    // Guard: total burn (amount + maxFee) must fit in uint64 for cross-chain payload encoding.
+    if (amount + maxFee > type(uint64).max) revert AmountExceedsCrossChainLimit();
 
     // If this payable specified the tokens and amounts it can accept, ensure
     // that the token and amount are matching.
@@ -444,13 +445,8 @@ contract CbTransactions is CbUtils {
 
     /* STATE CHANGES */
     // Record successful payment and activity from the payer.
-    // All inputs are known before any external calls.
+    // Record amount + maxFee (the actual burn amount taken from the payer's wallet).
     userPaymentId = _recordUserPayment(payableId, _payable.chainId, token, amount);
-
-    // Read the next CCTP burn nonce before calling depositForBurn.
-    // depositForBurn has no return value in CCTP v2; availableNonces gives the
-    // sequential uint64 that Circle will embed as bytes32(uint256(nonce)) in the message.
-    // uint64 burnNonce = circleTransmitter().availableNonces(circleTransmitter().localDomain());
 
     // Build and encode PaymentPayload for cross-chain delivery.
     bytes32 foreignTokenAddr = forTokenAddressMatchingForeignChainTokens[token][_payable.chainId];
@@ -459,7 +455,7 @@ contract CbTransactions is CbUtils {
         version: 1,
         actionType: 5,
         payableId: payableId,
-        circleNonce: 0, // burnNonce,
+        circleNonce: 0,
         amount: SafeCast.toUint64(amount),
         payableChainToken: foreignTokenAddr,
         payableChainId: _payable.chainId,
@@ -469,19 +465,19 @@ contract CbTransactions is CbUtils {
       }).encode();
 
     /* INTERACTIONS */
-    // Pull tokens from payer into this contract.
-    IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+    // Pull amount + maxFee from payer: amount is the payment, maxFee covers Circle's fast fee.
+    IERC20(token).safeTransferFrom(msg.sender, address(this), amount + maxFee);
 
-    // Approve the Circle Bridge to spend tokens.
-    SafeERC20.safeIncreaseAllowance(IERC20(token), config.circleBridge, amount);
+    // Approve the Circle Bridge for the full burn amount.
+    SafeERC20.safeIncreaseAllowance(IERC20(token), config.circleBridge, amount + maxFee);
 
     // destinationCaller is set to the registered Chainbills contract on the destination chain.
     // This restricts the burn and data messages to only be submittable by our own contract,
     // ensures that consume the messaging and receiving the funds are always in one call.
     bytes32 destContract = registeredForeignContracts[_payable.chainId];
 
-    // Burn tokens via Circle CCTP.
-    circleBridge().depositForBurn(amount, destDomain, destContract, token, destContract, 0, 2000);
+    // Burn tokens via Circle CCTP with fast finality (threshold=1000).
+    circleBridge().depositForBurn(amount + maxFee, destDomain, destContract, token, destContract, maxFee, 1000);
 
     // Route the PaymentPayload: use Wormhole when both source and dest support it,
     // otherwise fall back to a CCTP data message (handles CCTP-only sources and
@@ -489,7 +485,7 @@ contract CbTransactions is CbUtils {
     if (hasWormhole() && supportsWormhole(_payable.chainId)) {
       wormholeMessageSequence = _publishPayloadMessage(encodedPayload);
     } else {
-      circleTransmitter().sendMessage(destDomain, destContract, destContract, 2000, encodedPayload);
+      circleTransmitter().sendMessage(destDomain, destContract, destContract, 1000, encodedPayload);
       cctpStats.emittedCctpPaymentMessagesCount++;
       wormholeMessageSequence = 0;
     }

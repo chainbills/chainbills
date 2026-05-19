@@ -205,7 +205,7 @@ if (hasCctp()) {
   for (uint256 i = 0; i < registeredCbChainIds.length; i++) {
     bytes32 chainId = registeredCbChainIds[i];
     if (supportsCctp(chainId)) {
-      circleTransmitter().sendMessage(domain, recipient, bytes32(0), 2000, encoded);
+      circleTransmitter().sendMessage(domain, recipient, bytes32(0), 1000, encoded);
     }
   }
 }
@@ -230,15 +230,18 @@ PayablePayload memory update = messageBody.decodePayablePayload();
 // apply update to foreignPayables state...
 ```
 
-### Circle CCTP Callback (`handleReceiveFinalizedMessage`)
+### Circle CCTP Callbacks (`handleReceiveFinalizedMessage` / `handleReceiveUnfinalizedMessage`)
 
-Circle's `MessageTransmitter` calls `handleReceiveFinalizedMessage` on the `recipient` contract after verifying a data message's attestation. Chainbills implements this callback (required by `IMessageHandlerV2`) in `CbPayables`:
+Circle's `MessageTransmitter` calls the appropriate handler after verifying a data message's attestation:
+- `handleReceiveFinalizedMessage` — for messages with `finalityThresholdExecuted ≥ 2000`
+- `handleReceiveUnfinalizedMessage` — for fast messages with `finalityThresholdExecuted < 2000`
 
+Both delegate to the same internal `_handleReceiveCctpMessage` function. Chainbills uses `minFinalityThreshold = 1000` (fast) on all outgoing `sendMessage` and `depositForBurn` calls, so Circle can attest in ~8–20 seconds rather than waiting for source-chain finality.
+
+Dispatch logic (shared):
 - **PayablePayload (type 1):** Decoded, nonce-checked against `payableUpdateNonces`, and applied to the `foreignPayables` mapping. Both Wormhole and CCTP deliveries share the same nonce — whichever arrives first wins, and the other is rejected as stale.
 - **PaymentPayload (type 2):** Returns `true` immediately with no state change. The payment was already recorded in `receiveForeignPaymentWithCircle` in the same transaction that submitted this data message. This callback exists only to let Circle consume the data-message nonce for replay protection.
 - **Unknown type:** Reverts with `InvalidPayload`.
-
-`handleReceiveUnfinalizedMessage` always returns `false`. Chainbills only processes finalized (threshold = 2000) messages.
 
 > **Note:** Circle only fires these callbacks for explicit `sendMessage` data messages. Burn messages (`depositForBurn`) are routed to Circle's internal `TokenMessenger` and do **not** trigger callbacks on Chainbills. The type-1 / type-2 dispatch is therefore safe from burn-message interference.
 

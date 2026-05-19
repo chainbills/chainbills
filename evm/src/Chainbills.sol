@@ -638,7 +638,9 @@ contract Chainbills is
     /* payableId */
     address,
     /* token */
-    uint256 /* amount */
+    uint256,
+    /* amount */
+    uint256 /* maxFee */
   )
     public
     payable

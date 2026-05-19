@@ -149,6 +149,32 @@ contract Chainbills is
     emit SetupCCTPOnly();
   }
 
+  /// Sets up Wormhole on chains where Circle CCTP is not deployed.
+  /// Call this on Wormhole-only chains (e.g. MegaETH).
+  /// @param wormhole Address of the Wormhole core contract on this chain.
+  /// @param wormholeChainId Wormhole uint16 chain ID for this chain.
+  /// @param wormholeFinality Finality level required before Wormhole guardians sign messages.
+  /// @param cbChainId CAIP-2 chain identifier for this chain
+  ///        (keccak256 of "namespace:reference", e.g. keccak256("eip155:6342")).
+  /// @dev Only the deployer (owner) can invoke this method.
+  function setupWormholeOnly(
+    address wormhole,
+    uint16 wormholeChainId,
+    uint8 wormholeFinality,
+    bytes32 cbChainId
+  ) public onlyOwner {
+    if (wormhole == address(0)) revert InvalidWormholeAddress();
+    if (wormholeChainId == 0) revert InvalidWormholeChainId();
+    if (wormholeFinality == 0) revert InvalidWormholeFinality();
+    if (cbChainId == bytes32(0)) revert InvalidChainId();
+
+    config.wormhole = wormhole;
+    config.wormholeChainId = wormholeChainId;
+    config.wormholeFinality = wormholeFinality;
+    config.cbChainId = cbChainId;
+    emit SetupWormholeOnly();
+  }
+
   /// Configures the data messaging protocol for a registered foreign chain.
   /// This determines how payable updates are broadcast to that chain.
   ///

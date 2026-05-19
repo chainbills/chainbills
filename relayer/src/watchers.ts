@@ -65,6 +65,23 @@ const ZERO_CURSOR: ChainCursor = {
 // In-memory cursors: loaded from Firestore once at startup, never read again.
 const memoryCursors = new Map<string, ChainCursor>();
 
+/** Returns a snapshot of all chain cursors for health/heartbeat reporting. */
+export function getCursorSnapshot(): Record<string, ChainCursor> {
+  return Object.fromEntries(memoryCursors);
+}
+
+/**
+ * Reloads all chain cursors from Firestore into memory.
+ * Called by the heartbeat loop so manual Firestore edits (e.g. cursor resets
+ * for backfills) take effect without restarting the process.
+ */
+export async function reloadCursorsFromFirestore(): Promise<void> {
+  for (const chain of ALL_CHAINS) {
+    const fresh = await loadCursor(chain.name);
+    memoryCursors.set(chain.name, fresh);
+  }
+}
+
 async function loadCursor(chainName: string): Promise<ChainCursor> {
   const snap = await db.doc(`relayerCursors/${chainName}`).get();
   if (!snap.exists) return { ...ZERO_CURSOR };
@@ -118,6 +135,8 @@ export async function startChainWatcher(chain: ChainConfig): Promise<void> {
       payablePaymentsIndexed: cursor.payablePaymentsIndexed,
       withdrawalsIndexed: cursor.withdrawalsIndexed,
       wormholeRelayed: cursor.wormholeRelayed,
+      cctpPayableUpdatesRelayed: cursor.cctpPayableUpdatesRelayed,
+      cctpPaymentsRelayed: cursor.cctpPaymentsRelayed,
     },
     `Starting count-based watcher (poll every ${pollMs}ms)`
   );
@@ -320,17 +339,38 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
         event: USER_PAID_EVENT,
         fromBlock: chain.deploymentBlock,
       });
+      // Count every cross-chain log found (payableChainId != this chain) to verify
+      // the scan was complete. If the RPC missed logs, crossChainLogsFound will be
+      // less than onChainCctpPayments and we hold the cursor back for retry.
+      let crossChainLogsFound = 0;
       for (const plog of paymentLogs) {
         const { paymentId, payableChainId } = (plog as any).args as {
           paymentId: `0x${string}`;
           payableChainId: `0x${string}`;
         };
         if (payableChainId === chain.cbChainId) continue;
+        crossChainLogsFound++;
         const destChain = chainByCbChainId.get(payableChainId);
-        if (!destChain) continue;
+        if (!destChain) {
+          log.warn({ paymentId, payableChainId }, 'CCTP payment targets unknown chain — no relay job created');
+          continue;
+        }
+        if (destChain.network !== chain.network) {
+          log.warn(
+            { paymentId, destChain: destChain.name },
+            'CCTP payment skipped — network mismatch (mainnet/testnet)'
+          );
+          continue;
+        }
         const txHash = plog.transactionHash!;
         const alreadyQueued = await jobExistsForTx(txHash, destChain.name);
-        if (alreadyQueued) continue;
+        if (alreadyQueued) {
+          log.info(
+            { paymentId, destChain: destChain.name, txHash },
+            'CCTP payment relay job already queued — skipping'
+          );
+          continue;
+        }
         const jobType =
           chain.hasWormhole && destChain.hasWormhole ? 'PAYMENT_VIA_CCTP_WORMHOLE' : 'PAYMENT_VIA_CCTP_ONLY';
         await createJob({
@@ -343,8 +383,15 @@ async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnTy
         });
         log.info({ paymentId, destChain: destChain.name, txHash, jobType }, 'Queued cross-chain payment relay job');
       }
-      cursor.cctpPaymentsRelayed = onChainCctpPayments;
-      changed = true;
+      if (crossChainLogsFound >= onChainCctpPayments) {
+        cursor.cctpPaymentsRelayed = onChainCctpPayments;
+        changed = true;
+      } else {
+        log.warn(
+          { crossChainLogsFound, onChainCctpPayments },
+          'CCTP payment log scan incomplete — cursor not advanced, will retry next tick'
+        );
+      }
     }
 
     // ── 7. CCTP payable update relay ────────────────────────────────────────
@@ -385,12 +432,23 @@ async function maybeQueueWormholeRelayJob(
   // Use a synthetic txHash so the dedup check works without a real transaction hash.
   const syntheticKey = `wormhole-seq-${chain.name}-${sequence}`;
 
+  let queued = 0;
   for (const destChain of ALL_CHAINS) {
     if (destChain.name === chain.name) continue;
-    if (!destChain.hasWormhole) continue; // CCTP path handles non-Wormhole dest chains
+    if (destChain.network !== chain.network) continue;
+    if (!destChain.hasWormhole) {
+      log.info(
+        { sequence, destChain: destChain.name },
+        'Wormhole relay skipped — dest has no Wormhole (CCTP path handles it)'
+      );
+      continue;
+    }
 
     const alreadyQueued = await jobExistsForTx(syntheticKey, destChain.name);
-    if (alreadyQueued) continue;
+    if (alreadyQueued) {
+      log.info({ sequence, destChain: destChain.name }, 'Wormhole relay job already queued — skipping');
+      continue;
+    }
 
     await createJob({
       type: 'PAYABLE_UPDATE_VIA_WORMHOLE',
@@ -401,6 +459,10 @@ async function maybeQueueWormholeRelayJob(
       eventData: { sequence: String(sequence) },
     });
     log.info({ sequence, destChain: destChain.name }, 'Queued PAYABLE_UPDATE_VIA_WORMHOLE job');
+    queued++;
+  }
+  if (queued === 0) {
+    log.info({ sequence }, 'Wormhole message processed — no eligible dest chains for relay');
   }
 }
 
@@ -412,12 +474,20 @@ async function maybeQueueCctpPayableUpdateJobs(
   payableId: string,
   log: ReturnType<typeof chainLogger>
 ): Promise<void> {
+  let queued = 0;
   for (const destChain of ALL_CHAINS) {
     if (destChain.name === chain.name) continue;
-    if (!destChain.hasCctp) continue; // dest needs CCTP to receive payable updates via Circle
+    if (destChain.network !== chain.network) continue;
+    if (!destChain.hasCctp) {
+      log.info({ payableId, destChain: destChain.name }, 'CCTP payable update skipped — dest has no CCTP');
+      continue;
+    }
 
     const alreadyQueued = await jobExistsForTx(txHash, destChain.name);
-    if (alreadyQueued) continue;
+    if (alreadyQueued) {
+      log.info({ payableId, destChain: destChain.name, txHash }, 'CCTP payable update job already queued — skipping');
+      continue;
+    }
 
     await createJob({
       type: 'PAYABLE_UPDATE_VIA_CCTP',
@@ -428,6 +498,10 @@ async function maybeQueueCctpPayableUpdateJobs(
       eventData: { payableId },
     });
     log.info({ payableId, destChain: destChain.name, txHash }, 'Queued PAYABLE_UPDATE_VIA_CCTP job');
+    queued++;
+  }
+  if (queued === 0) {
+    log.info({ payableId, txHash }, 'CCTP payable update processed — no eligible dest chains for relay');
   }
 }
 

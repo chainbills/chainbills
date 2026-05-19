@@ -188,6 +188,9 @@ contract CbEvents is CbErrors {
   /// Emitted when owner sets up Circle CCTP only (no Wormhole) on this chain
   event SetupCCTPOnly();
 
+  /// Emitted when owner sets up Wormhole only (no Circle CCTP) on this chain
+  event SetupWormholeOnly();
+
   /// Emitted when a payable update is broadcast to foreign chains via all available protocols
   /// @param payableId The ID of the payable that was updated.
   /// @param nonce The cross-protocol update deduplication nonce.

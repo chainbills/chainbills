@@ -31,9 +31,5 @@ export const createPayable = async (body: any, chain: Chain, walletAddress: stri
 
   // TODO: Send email to host if provided
 
-  // Write to the top-level /payables collection using merge: true.
-  await db.doc(`/payables/${payableId}`).set({ description, ...payable }, { merge: true });
-
-  // Also write to the chain subcollection.
-  await db.doc(`/chains/${chain.name}/payables/${payableId}`).set({ description, ...payable }, { merge: true });
+  await db.doc(`/payables/${payableId}`).set({ description }, { merge: true });
 };

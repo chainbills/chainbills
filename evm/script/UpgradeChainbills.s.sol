@@ -23,7 +23,7 @@ contract UpgradeChainbills is Script {
 
     Options memory opts;
     // Comment out after copying over apprioprate "build-info" json from deploys/v??...
-    // opts.referenceBuildInfoDir = "prev-deploy";
+    opts.referenceBuildInfoDir = "prev-deploy";
 
     // Perform the upgrade using OpenZeppelin's foundry-upgrades library
     // This will deploy the new implementation and call upgradeTo on the proxy

@@ -65,9 +65,19 @@ This file is the reference for every value used during contract setup across all
 
 | Chain            | Proxy Address                                |
 | ---------------- | -------------------------------------------- |
-| Ethereum Sepolia | `0x676FfD548E993E64018Ee23Ba039BBDB15f84699` |
-| Arc Testnet      | `0x535a2C8A5fa922B7a905B5a784A80401535B4eC1` |
-| MegaETH Mainnet  | _(fill after deploy)_                        |
+| Ethereum Sepolia | `0x48353Ab7662Bc8218811Fbbdf247cCc8602fba8A` |
+| Arc Testnet      | `0x0bA837eF7358981967FB2cFcB79bf649b7cACbf4` |
+| MegaETH Mainnet  | `0xc38d1681d34DA821E46508C084D673477E455570` |
+
+---
+
+## Cb Getters Contracts
+
+| Chain            | Proxy Address                                |
+| ---------------- | -------------------------------------------- |
+| Ethereum Sepolia | `0x325D77a09F267A7aF695aB5E68F7ddF0eC530a38` |
+| Arc Testnet      | `0x01656b5968C4b98F05F596344DA7066118d6738a` |
+| MegaETH Mainnet  | `0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8` |
 
 ---
 

@@ -112,9 +112,8 @@ export const arcTestnet: ChainConfig = {
   displayName: 'Arc Testnet',
   viemChain: viemArcTestnet,
   rpcUrl: '', // filled from RPC_ARC_TESTNET at startup
-  // Arc testnet proxy address (deployed)
-  contractAddress: '0x535a2C8A5fa922B7a905B5a784A80401535B4eC1',
-  gettersAddress: '0x93a55c2bce0E7EEF51621B18761565328d66bbE5',
+  contractAddress: '0x0bA837eF7358981967FB2cFcB79bf649b7cACbf4',
+  gettersAddress: '0x01656b5968C4b98F05F596344DA7066118d6738a',
   cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
   network: 'testnet',
   hasWormhole: false, // Wormhole NOT deployed on Arc Testnet
@@ -122,7 +121,7 @@ export const arcTestnet: ChainConfig = {
   circleDomain: 26, // Circle domain 26 for Arc Testnet
   deploymentBlock: 42188119n, // First tx block of latest DeployChainbills broadcast (chain 5042002)
   pollIntervalMs: 2000, // Arc has ~500ms blocks; poll every 2s
-  minGasBalance: parseEther('10'), // Native token is USDC (18 decimals on Arc); warn below 10 units
+  minGasBalance: parseEther('1'), // Native token is USDC (18 decimals on Arc); warn below 10 units
   isEvm: true,
   isSolana: false,
 };
@@ -132,8 +131,8 @@ export const sepolia: ChainConfig = {
   displayName: 'Ethereum Sepolia',
   viemChain: viemSepolia,
   rpcUrl: '', // filled from RPC_SEPOLIA at startup
-  contractAddress: '0x676FfD548E993E64018Ee23Ba039BBDB15f84699',
-  gettersAddress: '0xbb695eF7cda9c6b86EE36049cE2022d15117D113',
+  contractAddress: '0x48353Ab7662Bc8218811Fbbdf247cCc8602fba8A',
+  gettersAddress: '0x325D77a09F267A7aF695aB5E68F7ddF0eC530a38',
   cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
   network: 'testnet',
   hasWormhole: true,
@@ -141,8 +140,7 @@ export const sepolia: ChainConfig = {
   hasCctp: true,
   circleDomain: 0, // Circle domain 0 for Ethereum Sepolia
   deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
-  pollIntervalMs: 5000, // Sepolia ~12s blocks; poll every 12s
-  cctpAttestationMinAgeMs: 12 * 60 * 1000, // Iris sandbox doesn't do fast pre-finality; wait 12 min
+  pollIntervalMs: 2000,
   minGasBalance: parseEther('0.01'), // Warn below 0.05 ETH
   isEvm: true,
   isSolana: false,
@@ -153,9 +151,8 @@ export const megaeth: ChainConfig = {
   displayName: 'MegaETH Mainnet',
   viemChain: viemMegaeth,
   rpcUrl: '', // filled from RPC_MEGAETH at startup
-  // TODO: Update after MegaETH mainnet deployment
-  contractAddress: '0x0000000000000000000000000000000000000000',
-  gettersAddress: '0x0000000000000000000000000000000000000000',
+  contractAddress: '0xc38d1681d34DA821E46508C084D673477E455570',
+  gettersAddress: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
   cbChainId: '0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a',
   network: 'mainnet', // MegaETH is a mainnet chain
   hasWormhole: true,
@@ -163,13 +160,13 @@ export const megaeth: ChainConfig = {
   hasCctp: false, // Circle CCTP NOT deployed on MegaETH (as of May 2026)
   deploymentBlock: 0n,
   pollIntervalMs: 2000, // MegaETH is a real-time chain; poll every 2s
-  minGasBalance: parseEther('0.01'), // Warn below 0.01 ETH
+  minGasBalance: parseEther('0.0001'), // Warn below 0.01 ETH
   isEvm: true,
   isSolana: false,
 };
 
 /** All chains the relayer watches. Add new chains here. */
-export const ALL_CHAINS: ChainConfig[] = [arcTestnet, sepolia /*, megaeth */];
+export const ALL_CHAINS: ChainConfig[] = [arcTestnet, sepolia, megaeth];
 
 /** Look up a chain config by its CAIP-2 cbChainId. */
 export const chainByCbChainId = new Map<string, ChainConfig>(ALL_CHAINS.map((c) => [c.cbChainId, c]));

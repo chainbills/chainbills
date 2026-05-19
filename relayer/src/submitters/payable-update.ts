@@ -95,7 +95,7 @@ export async function submitPayableUpdateViaCctp(
   const { request } = await publicClient.simulateContract({
     address: destChain.contractAddress,
     abi: mainAbi,
-    functionName: 'receivePayableUpdateViaCircle',
+    functionName: 'receivePayableUpdateViaCctp',
     args: [message as `0x${string}`, attestation as `0x${string}`],
     account,
   });

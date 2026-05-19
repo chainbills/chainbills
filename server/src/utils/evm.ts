@@ -4,9 +4,9 @@ import { gettersAbi } from './abis';
 import { ChainName } from './chain';
 
 const getters: Record<ChainName, string> = {
-  arctestnet: '0x93a55c2bce0E7EEF51621B18761565328d66bbE5',
-  megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
-  sepolia: '0xbb695eF7cda9c6b86EE36049cE2022d15117D113',
+  arctestnet: '0x01656b5968C4b98F05F596344DA7066118d6738a',
+  megaeth: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
+  sepolia: '0x325D77a09F267A7aF695aB5E68F7ddF0eC530a38',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
 };
 

@@ -19,9 +19,9 @@ import { processJobs } from './jobs/processor.js';
 import { idleMs } from './utils/activity.js';
 import { makePublicClient, relayerAccount } from './utils/clients.js';
 import { logger } from './utils/logger.js';
-import { startChainWatcher } from './watchers.js';
+import { getCursorSnapshot, reloadCursorsFromFirestore, startChainWatcher } from './watchers.js';
 
-const PROCESSOR_INTERVAL_MS = 30_000; // Run job processor every 30s
+const PROCESSOR_INTERVAL_MS = 1_000; // Run job processor every second
 const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // Log liveness every 15 min if idle
 
 async function main() {
@@ -76,9 +76,11 @@ async function main() {
   const heartbeatLoop = async () => {
     while (true) {
       await new Promise((r) => setTimeout(r, HEARTBEAT_INTERVAL_MS));
-      if (idleMs() >= HEARTBEAT_INTERVAL_MS) {
-        logger.info({ idleMin: Math.round(idleMs() / 60000) }, 'Relayer alive — no recent activity');
-      }
+      await reloadCursorsFromFirestore();
+      logger.info(
+        { idleMin: Math.round(idleMs() / 60000), cursors: getCursorSnapshot() },
+        idleMs() >= HEARTBEAT_INTERVAL_MS ? 'Relayer alive — no recent activity' : 'Relayer heartbeat'
+      );
     }
   };
 

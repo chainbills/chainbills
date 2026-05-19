@@ -435,7 +435,7 @@ onUnmounted(() => {
                     </Button>
                   </p>
                   <div v-if="isRechecking" class="mt-4 flex justify-center">
-                    <IconSpinner class="w-4 h-4 animate-spin text-primary" />
+                    <IconSpinner class="w-12 h-12 animate-spin text-primary" />
                   </div>
                 </div>
               </div>

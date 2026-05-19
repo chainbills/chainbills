@@ -34,10 +34,10 @@ export const TOKENS: Token[] = [
     name: 'ETH',
     details: {
       sepolia: {
-        address: '0x676FfD548E993E64018Ee23Ba039BBDB15f84699',
+        address: '0x48353Ab7662Bc8218811Fbbdf247cCc8602fba8A',
         decimals: 18,
       },
-      megaeth: { address: '0x92e67bFE49466b18ccDf2A3A28b234AB68374c60', decimals: 18 },
+      megaeth: { address: '0xc38d1681d34DA821E46508C084D673477E455570', decimals: 18 },
     },
   },
 ];

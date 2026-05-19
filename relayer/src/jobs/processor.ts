@@ -17,7 +17,6 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { chainByName } from '../chains.js';
-import { recordActivity } from '../utils/activity.js';
 import { waitForAllAttestations, waitForAttestation } from '../resolvers/cctp.js';
 import { getVaaBySequence, getVaaByTxHash } from '../resolvers/wormhole.js';
 import {
@@ -26,6 +25,7 @@ import {
   submitPayableUpdateViaWormhole,
 } from '../submitters/payable-update.js';
 import { submitForeignPayment, submitForeignPaymentViaCctp } from '../submitters/payment.js';
+import { recordActivity } from '../utils/activity.js';
 import { logger } from '../utils/logger.js';
 import { getPendingJobs, markDone, markFailed, markProcessing, patchJob, type RelayerJob } from './store.js';
 
@@ -99,7 +99,7 @@ async function processJob(job: RelayerJob): Promise<void> {
         // Skip non-payable-update VAAs (type 2 = payment, handled via payment relay path).
         const payloadOffset = wormholePayloadOffset(vaaBytes);
         if (payloadOffset !== null && vaaBytes[payloadOffset] !== 1) {
-          log.debug({ payloadType: vaaBytes[payloadOffset] }, 'Skipping non-payable-update VAA');
+          log.info({ payloadType: vaaBytes[payloadOffset] }, 'Skipping non-payable-update VAA');
           await markDone(job.id);
           return;
         }
@@ -187,7 +187,7 @@ async function processJob(job: RelayerJob): Promise<void> {
         // Skip non-payable-update VAAs.
         const payloadOffset = wormholePayloadOffset(vaaBytes);
         if (payloadOffset !== null && vaaBytes[payloadOffset] !== 1) {
-          log.debug({ payloadType: vaaBytes[payloadOffset] }, 'Skipping non-payable-update VAA in ADMIN_SYNC');
+          log.info({ payloadType: vaaBytes[payloadOffset] }, 'Skipping non-payable-update VAA in ADMIN_SYNC');
           await markDone(job.id);
           return;
         }

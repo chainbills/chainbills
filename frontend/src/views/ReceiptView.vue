@@ -92,13 +92,13 @@ onMounted(async () => {
       </p>
     </div>
 
-    <p class="mb-8 leading-tight" v-if="userChain?.name == payableChain?.name">
+    <div class="mb-8 leading-tight" v-if="userChain?.name == payableChain?.name">
       <span>Blockchain Network:</span><br />
       <p class="mt-1 flex gap-x-1.5 items-center">
         <img :src="getChainLogo(userChain!)" class="w-6 h-6" aria-hidden="true" />
         <span class="text-sm text-gray-500">{{ userChain?.displayName }}</span>
       </p>
-    </p>
+    </div>
 
     <div class="mb-8 leading-tight">
       <span>{{ userType }}'s Wallet Address:</span>
@@ -132,13 +132,13 @@ onMounted(async () => {
       </p>
     </div>
 
-    <p class="mb-8 leading-tight" v-if="userChain?.name != payableChain?.name">
+    <div class="mb-8 leading-tight" v-if="userChain?.name != payableChain?.name">
       <span>{{ userType }}'s Chain:</span><br />
       <p class="mt-1 flex gap-x-1.5 items-center">
         <img :src="getChainLogo(userChain!)" class="w-6 h-6" aria-hidden="true" />
         <span class="text-sm text-gray-500">{{ userChain?.displayName }}</span>
       </p>
-    </p>
+    </div>
 
     <div class="mb-8 leading-tight">
       <span>{{ activityType }}:</span>
@@ -182,13 +182,13 @@ onMounted(async () => {
       </p>
     </div>
 
-    <p class="mb-8 leading-tight" v-if="payableChain?.name != userChain?.name">
+    <div class="mb-8 leading-tight" v-if="payableChain?.name != userChain?.name">
       <span>Payable's Chain:</span><br />
       <p class="mt-1 flex gap-x-1.5 items-center">
         <img :src="getChainLogo(payableChain!)" class="w-6 h-6" aria-hidden="true" />
         <span class="text-sm text-gray-500">{{ payableChain?.displayName }}</span>
       </p>
-    </p>
+    </div>
 
     <p class="text-lg text-center max-w-md mx-auto pt-12 mb-8" v-if="!(receipt instanceof Withdrawal)">
       Receive money from anyone on anychain on

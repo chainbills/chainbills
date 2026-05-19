@@ -41,9 +41,9 @@ interface WriteContractResponse {
 }
 
 const getters: Record<ChainName, string> = {
-  arctestnet: '0x93a55c2bce0E7EEF51621B18761565328d66bbE5',
-  megaeth: '0x92e67bfe49466b18ccdf2a3a28b234ab68374c60',
-  sepolia: '0xbb695eF7cda9c6b86EE36049cE2022d15117D113',
+  arctestnet: '0x01656b5968C4b98F05F596344DA7066118d6738a',
+  megaeth: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
+  sepolia: '0x325D77a09F267A7aF695aB5E68F7ddF0eC530a38',
   solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
 };
 
@@ -164,6 +164,24 @@ export const useEvmStore = defineStore('evm', () => {
       })[0].args as any
     )[idField as any];
 
+  const fetchWormholeFee = async (chainName: ChainName): Promise<bigint | null> => {
+    const viemChain = getViemChain(chainName);
+    const config = createConfig({ chains: [viemChain], transports: { [viemChain.id]: http() } });
+    try {
+      const fee = await rawReadContract(config, {
+        address: contracts[chainName] as `0x${string}`,
+        abi: mainAbi,
+        functionName: 'getWormholeMessageFee',
+        args: [],
+      });
+      return fee != null ? BigInt(fee as any) : 0n;
+    } catch {
+      // Contract not set up or Wormhole address misconfigured — treat as 0 fee.
+      // The subsequent writeContract will surface the real revert reason.
+      return 0n;
+    }
+  };
+
   const createPayable = async (tokensAndAmounts: TokenAndAmount[]): Promise<OnChainSuccess | null> => {
     const chain = getCurrentChain();
     if (!chain) {
@@ -171,12 +189,17 @@ export const useEvmStore = defineStore('evm', () => {
       return null;
     }
 
+    const wormholeFee = await fetchWormholeFee(chain.name);
+    console.dir({ wormholeFee });
+    if (wormholeFee === null) return null;
+
     const response = await writeContract({
       address: contracts[chain.name] as `0x${string}`,
       abi: mainAbi,
       functionName: 'createPayable',
       // default false is for autoWithdraw status as false
       args: [tokensAndAmounts.map((t) => t.toOnChain(chain)), false],
+      value: wormholeFee,
     });
     if (!response) return null;
     return new OnChainSuccess({
@@ -363,20 +386,11 @@ export const useEvmStore = defineStore('evm', () => {
 
     const token = details[chain.name]!.address as `0x${string}`;
 
+    const wormholeFee = await fetchWormholeFee(chain.name);
+    if (wormholeFee === null) return null;
+
     const viemChain = getViemChain(chain.name);
     const config = createConfig({ chains: [viemChain], transports: { [viemChain.id]: http() } });
-
-    // Fetch Wormhole message fee (msg.value for chains that have Wormhole).
-    const wormholeFee = await rawReadContract(config, {
-      address: contracts[chain.name] as `0x${string}`,
-      abi: mainAbi,
-      functionName: 'getWormholeMessageFee',
-      args: [],
-    });
-    if (wormholeFee === null) {
-      toastError('Could not fetch Wormhole message fee');
-      return null;
-    }
 
     // Fetch Circle fast-transfer fee from Iris API and compute maxFee.
     // maxFee is passed to depositForBurn so the payer covers the fee rather than the payable host.
@@ -387,8 +401,9 @@ export const useEvmStore = defineStore('evm', () => {
       try {
         const feeRes = await fetch(`${CIRCLE_IRIS_API}/v2/burn/USDC/fees/${srcDomain}/${dstDomain}`);
         if (feeRes.ok) {
-          const feeData = await feeRes.json();
-          const bps: number = feeData?.minimumFee ?? 0;
+          const tiers: { finalityThreshold: number; minimumFee: number }[] = await feeRes.json();
+          const fastTier = tiers.find((t) => t.finalityThreshold === 1000);
+          const bps = fastTier?.minimumFee ?? 0;
           // fee = amount * bps / 10_000, add 20% buffer. Integer math on BigInt.
           maxFee = (BigInt(amount) * BigInt(bps) * 120n) / 1_000_000n;
         }
@@ -421,7 +436,7 @@ export const useEvmStore = defineStore('evm', () => {
       abi: mainAbi,
       functionName: 'payForeignViaCctp',
       args: [payableId, token, BigInt(amount), maxFee],
-      value: BigInt(wormholeFee),
+      value: wormholeFee,
     });
     if (!response) return null;
     return new OnChainSuccess({

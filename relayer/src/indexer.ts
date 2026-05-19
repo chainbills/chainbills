@@ -8,21 +8,11 @@
 //   • The server's POST /payable writes the host-provided description field.
 //   • Whichever lands first, the merge ensures neither overwrites the other.
 //
-// Firestore paths:
-//   Top-level:              /payables/{id}        (includes chainName field)
-//   Chain subcollection:    /chains/{chainName}/payables/{id}
-//
-//   Top-level:              /userPayments/{id}
-//   Chain subcollection:    /chains/{chainName}/userPayments/{id}
-//
-//   Top-level:              /payablePayments/{id}
-//   Chain subcollection:    /chains/{chainName}/payablePayments/{id}
-//
-//   Top-level:              /withdrawals/{id}
-//   Chain subcollection:    /chains/{chainName}/withdrawals/{id}
-//
-// Writes are made to BOTH paths simultaneously (Promise.all) so that
-// queries can be made either globally or scoped to a chain.
+// Firestore paths (top-level only — chainName field enables chain-scoped queries):
+//   /payables/{id}
+//   /userPayments/{id}
+//   /payablePayments/{id}
+//   /withdrawals/{id}
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Timestamp } from 'firebase-admin/firestore';
@@ -38,14 +28,8 @@ import { resolveToken } from './utils/tokens.js';
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-/**
- * Writes `data` to both the top-level collection and the chain subcollection
- * using { merge: true } on both.
- */
-async function writeToDb(topPath: string, chainPath: string, data: Record<string, unknown>): Promise<void> {
-  const topRef = db.doc(topPath);
-  const chainRef = db.doc(chainPath);
-  await Promise.all([topRef.set(data, { merge: true }), chainRef.set(data, { merge: true })]);
+async function writeToDb(path: string, data: Record<string, unknown>): Promise<void> {
+  await db.doc(path).set(data, { merge: true });
 }
 
 /**
@@ -68,8 +52,7 @@ function makeGettersContract(chain: ChainConfig) {
  * Called when CreatedPayable event is detected on a chain.
  *
  * Fetches full data from CbGetters and writes to:
- *   /payables/{payableId}                     (top-level, includes chainName)
- *   /chains/{chainName}/payables/{payableId}  (chain subcollection)
+ *   /payables/{payableId}
  */
 export async function indexPayable(chain: ChainConfig, payableId: `0x${string}`): Promise<void> {
   try {
@@ -86,7 +69,7 @@ export async function indexPayable(chain: ChainConfig, payableId: `0x${string}`)
       createdAt: Timestamp.fromMillis(Number(createdAt) * 1000),
       indexedAt: Timestamp.now(),
     };
-    await writeToDb(`payables/${payableId}`, `chains/${chain.name}/payables/${payableId}`, data);
+    await writeToDb(`payables/${payableId}`, data);
 
     logger.info({ chain: chain.name, payableId: payableId }, 'Indexed payable');
   } catch (err) {
@@ -101,7 +84,6 @@ export async function indexPayable(chain: ChainConfig, payableId: `0x${string}`)
  *
  * Fetches full data from CbGetters and writes to:
  *   /userPayments/{paymentId}
- *   /chains/{chainName}/userPayments/{paymentId}
  */
 export async function indexUserPayment(chain: ChainConfig, paymentId: `0x${string}`): Promise<void> {
   try {
@@ -129,7 +111,7 @@ export async function indexUserPayment(chain: ChainConfig, paymentId: `0x${strin
       indexedAt: Timestamp.now(),
     };
 
-    await writeToDb(`userPayments/${paymentId}`, `chains/${chain.name}/userPayments/${paymentId}`, data);
+    await writeToDb(`userPayments/${paymentId}`, data);
 
     logger.info({ chain: chain.name, paymentId }, 'Indexed userPayment');
   } catch (err) {
@@ -144,7 +126,6 @@ export async function indexUserPayment(chain: ChainConfig, paymentId: `0x${strin
  *
  * Fetches full data from CbGetters and writes to:
  *   /payablePayments/{paymentId}
- *   /chains/{chainName}/payablePayments/{paymentId}
  */
 export async function indexPayablePayment(chain: ChainConfig, paymentId: `0x${string}`): Promise<void> {
   try {
@@ -190,7 +171,7 @@ export async function indexPayablePayment(chain: ChainConfig, paymentId: `0x${st
       indexedAt: Timestamp.now(),
     };
 
-    await writeToDb(`payablePayments/${paymentId}`, `chains/${chain.name}/payablePayments/${paymentId}`, data);
+    await writeToDb(`payablePayments/${paymentId}`, data);
 
     logger.info({ chain: chain.name, paymentId }, 'Indexed payablePayment');
   } catch (err) {
@@ -205,7 +186,6 @@ export async function indexPayablePayment(chain: ChainConfig, paymentId: `0x${st
  *
  * Fetches full data from CbGetters and writes to:
  *   /withdrawals/{withdrawalId}
- *   /chains/{chainName}/withdrawals/{withdrawalId}
  */
 export async function indexWithdrawal(chain: ChainConfig, withdrawalId: `0x${string}`): Promise<void> {
   const id = withdrawalId;
@@ -230,7 +210,7 @@ export async function indexWithdrawal(chain: ChainConfig, withdrawalId: `0x${str
       indexedAt: Timestamp.now(),
     };
 
-    await writeToDb(`withdrawals/${withdrawalId}`, `chains/${chain.name}/withdrawals/${withdrawalId}`, data);
+    await writeToDb(`withdrawals/${withdrawalId}`, data);
 
     logger.info({ chain: chain.name, withdrawalId }, 'Indexed withdrawal');
   } catch (err) {

@@ -3,7 +3,14 @@ import SignInButton from '@/components/SignInButton.vue';
 import TableLoader from '@/components/TableLoader.vue';
 import TransactionsTable from '@/components/TransactionsTable.vue';
 import { type Receipt } from '@/schemas';
-import { useAnalyticsStore, useAuthStore, usePaginatorsStore, usePaymentStore, useWithdrawalStore } from '@/stores';
+import {
+  useAnalyticsStore,
+  useAuthStore,
+  usePaginatorsStore,
+  usePaymentStore,
+  useThemeStore,
+  useWithdrawalStore,
+} from '@/stores';
 import Button from 'primevue/button';
 import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
@@ -12,13 +19,16 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 const auth = useAuthStore();
 const lsCatKey = () => `chainbills::user=>${auth.currentUser?.walletAddress}` + '::activity_table_category';
-const lsPageKey = () => `chainbills::user=>${auth.currentUser?.walletAddress}` + '::activity_table_page';
+const lsPaymentsPageKey = () => `chainbills::user=>${auth.currentUser?.walletAddress}` + '::payments_page';
+const lsWithdrawalsPageKey = () => `chainbills::user=>${auth.currentUser?.walletAddress}` + '::withdrawals_page';
+const lsPageKey = () => (activeCat.value === 0 ? lsPaymentsPageKey() : lsWithdrawalsPageKey());
 
-const activeCat = ref(+(localStorage.getItem(lsCatKey()) ?? '0'));
+const activeCat = ref(0);
 const analytics = useAnalyticsStore();
+const theme = useThemeStore();
 const categories = ['Payments', 'Withdrawals'];
 const countFields = ['payerCount', 'hostCount'];
-const currentTablePage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
+const currentTablePage = ref(0);
 const isLoading = ref(true);
 const paginators = usePaginatorsStore();
 const payments = usePaymentStore();
@@ -59,16 +69,51 @@ const updateTablePage = (page: number) => {
   getTransactions();
 };
 
+const onWindowFocus = async () => {
+  if (!auth.currentUser) return;
+
+  const prevPaymentsCount = auth.currentUser.paymentsCount;
+  const prevWithdrawalsCount = auth.currentUser.withdrawalsCount;
+
+  // Refresh user silently — no loader shown
+  await auth.refreshUser();
+
+  if (!auth.currentUser) return;
+
+  // Compare active-tab count
+  const activeTabCountChanged =
+    activeCat.value === 0
+      ? auth.currentUser.paymentsCount !== prevPaymentsCount
+      : auth.currentUser.withdrawalsCount !== prevWithdrawalsCount;
+
+  if (activeTabCountChanged) {
+    // Only reload if on last page
+    const isOnLastPage =
+      currentTablePage.value ===
+      paginators.getLastPage(activeCat.value === 0 ? prevPaymentsCount : prevWithdrawalsCount);
+    if (isOnLastPage) {
+      currentTablePage.value = paginators.getLastPage(
+        auth.currentUser[activeCat.value === 0 ? 'paymentsCount' : 'withdrawalsCount']
+      );
+      await getTransactions();
+    }
+  }
+};
+
 onMounted(async () => {
   if (auth.currentUser) await getTransactions();
 
+  window.addEventListener('focus', onWindowFocus);
+
   watch(
-    () => auth.currentUser,
-    async (currentUser) => {
-      if (currentUser) {
+    () => auth.currentUser?.walletAddress,
+    async (newAddress, oldAddress) => {
+      if (newAddress && newAddress !== oldAddress) {
         resetTablePage();
         await getTransactions();
-      } else transactions.value = null;
+      } else if (!newAddress) {
+        transactions.value = null;
+      }
     }
   );
 
@@ -132,28 +177,40 @@ onMounted(async () => {
       </p>
     </template>
 
-    <template v-else-if="transactions.length == 0">
-      <p class="text-lg text-center max-w-sm mx-auto mb-4 pt-8">Welcome to Chainbills</p>
-      <p class="text-lg text-center max-w-md mx-auto mb-8">
-        <!--TODO: Update this empty state -->
-        You can make payments here. You can also receive. Get Started with us today by Creating a Payable today.
-      </p>
-      <p class="text-center">
+    <template v-else-if="transactions.length === 0">
+      <div class="text-center pt-12">
+        <img
+          :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
+          alt="Chainbills"
+          class="w-20 h-20 mx-auto mb-4 opacity-40"
+        />
+        <p class="text-lg font-semibold mb-2">
+          {{ activeCat == 0 ? 'No payments made yet' : 'No withdrawals yet' }}
+        </p>
+        <p class="text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-6">
+          {{
+            activeCat == 0
+              ? 'When you make a payment to any payable your history will appear here.'
+              : 'Withdraw from your payables on the Dashboard to see them here.'
+          }}
+        </p>
         <router-link
-          to="/start"
+          v-if="activeCat == 1"
+          to="/dashboard"
           @click="
-            analytics.recordEvent('clicked_get_started', {
+            analytics.recordEvent('clicked_go_to_dashboard_from_empty_state', {
               from: 'user_activity_page',
             })
           "
         >
-          <Button class="px-3 py-2">Get Started</Button>
+          <Button class="px-3 py-2 text-sm">Go to Dashboard</Button>
         </router-link>
-      </p>
+      </div>
     </template>
 
     <template v-else>
       <TransactionsTable
+        :chainColumn="activeCat === 0 ? 'payable' : undefined"
         :countField="countFields[activeCat]"
         :currentPage="currentTablePage"
         :hideUser="true"

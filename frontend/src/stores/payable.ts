@@ -1,13 +1,5 @@
 import { type Chain, chainNamesToChains, Payable, TokenAndAmount } from '@/schemas';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  useCacheStore,
-  useEvmStore,
-  useNotificationsStore,
-  useServerStore,
-  useSolanaStore,
-} from '@/stores';
+import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, useServerStore, useSolanaStore } from '@/stores';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 
@@ -16,7 +8,6 @@ export const usePayableStore = defineStore('payable', () => {
   const auth = useAuthStore();
   const cache = useCacheStore();
   const evm = useEvmStore();
-  const notifications = useNotificationsStore();
   const server = useServerStore();
   const solana = useSolanaStore();
   const toast = useToast();
@@ -69,7 +60,7 @@ export const usePayableStore = defineStore('payable', () => {
       data: { url: result.explorerUrl },
       life: 12000,
     });
-    notifications.ensure();
+    // notifications.ensure();
     analytics.recordEvent('created_payable', {
       payable_id: result.created,
       chain: result.chain.name,
@@ -102,20 +93,23 @@ export const usePayableStore = defineStore('payable', () => {
     const { payablesCount: totalCount } = auth.currentUser;
     if (totalCount === 0) return [];
 
-    let start = (page + 1) * count;
-    const target = page * count + 1;
-    if (start > totalCount) start = target + (totalCount % count) - 1;
     try {
       if (auth.currentUser.chain.isEvm) {
-        const offset = page * count;
+        // Reverse offset: get latest payables first
+        const reverseOffset = Math.max(0, totalCount - (page + 1) * count);
         const ids = await evm.getUserPayableIdsPaginated(
           auth.currentUser.walletAddress,
-          offset,
+          reverseOffset,
           count,
           auth.currentUser.chain.name
         );
-        return ids ? ids : null;
+        return ids ? ids.reverse() : null;
       }
+
+      // Solana path: already counting down from latest
+      let start = (page + 1) * count;
+      const target = page * count + 1;
+      if (start > totalCount) start = target + (totalCount % count) - 1;
 
       const ids = [];
       for (let i = start; i >= target; i--) {

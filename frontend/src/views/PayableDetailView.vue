@@ -14,6 +14,7 @@ import {
   usePaginatorsStore,
   usePayableStore,
   usePaymentStore,
+  useThemeStore,
   useWithdrawalStore,
 } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
@@ -30,26 +31,64 @@ import { useRoute, useRouter } from 'vue-router';
 const payable = ref<Payable | null>(null);
 const route = useRoute();
 
+let skipWatcherNextUpdate = false;
+
 const fetchPayable = async (ignoreErrors: boolean, showLoading = true) => {
   if (!route.params.id) return;
   isLoading.value = showLoading;
+
+  // Capture old counts before fetching
+  const prevPaymentsCount = payable.value?.paymentsCount ?? 0;
+  const prevWithdrawalsCount = payable.value?.withdrawalsCount ?? 0;
+
   const fetched = await payableStore.get(route.params.id as string, ignoreErrors);
-  if (fetched) payable.value = fetched;
+  if (fetched) {
+    // Compare active-tab count
+    const activeTabCountChanged =
+      activeCat.value === 0
+        ? fetched.paymentsCount !== prevPaymentsCount
+        : fetched.withdrawalsCount !== prevWithdrawalsCount;
+
+    if (activeTabCountChanged) {
+      // Only trigger watcher if on last page
+      const isOnLastPage =
+        currentTablePage.value ===
+        paginators.getLastPage(activeCat.value === 0 ? prevPaymentsCount : prevWithdrawalsCount);
+      if (!isOnLastPage) {
+        // Count changed but not on last page, skip loader
+        skipWatcherNextUpdate = true;
+      } else {
+        currentTablePage.value = paginators.getLastPage(
+          activeCat.value === 0 ? fetched.paymentsCount : fetched.withdrawalsCount
+        );
+      }
+      // Otherwise: count changed AND on last page, let watcher fire normally (reload activities)
+    } else {
+      // Count didn't change, skip watcher entirely to prevent activity table reload
+      skipWatcherNextUpdate = true;
+    }
+
+    payable.value = fetched;
+  }
   isLoading.value = false;
 };
 
 const lsCatKey = () => (payable.value && `chainbills::payable=>${payable.value.id}::activity_table_category`) ?? '';
-const lsPageKey = () => (payable.value && `chainbills::payable=>${payable.value.id}::activity_table_page`) ?? '';
+const lsPaymentsPageKey = () => (payable.value && `chainbills::payable=>${payable.value.id}::payments_page`) ?? '';
+const lsWithdrawalsPageKey = () =>
+  (payable.value && `chainbills::payable=>${payable.value.id}::withdrawals_page`) ?? '';
+const lsPageKey = () => (activeCat.value === 0 ? lsPaymentsPageKey() : lsWithdrawalsPageKey());
 
-const activeCat = ref(+(localStorage.getItem(lsCatKey()) ?? '0'));
+const activeCat = ref(0);
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const categories = ['Payments', 'Withdrawals'];
-const currentTablePage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
+const currentTablePage = ref(0);
 const isLoading = ref(true);
 const isLoadingActivities = ref(true);
 const transactions = ref<Receipt[] | null>(null);
 const paginators = usePaginatorsStore();
+const theme = useThemeStore();
 const toast = useToast();
 const { origin } = window.location;
 const link = computed(() => (payable.value && `${origin}/pay/${payable.value.id}`) ?? '');
@@ -179,11 +218,15 @@ onMounted(async () => {
 
   window.addEventListener('focus', async () => await fetchPayable(true, false));
 
-  watch([() => auth.currentUser, () => activeCat.value], (_) => {
+  watch([() => auth.currentUser?.walletAddress, () => activeCat.value], (newVals, oldVals) => {
     if (!payable.value) return;
-    localStorage.setItem(lsCatKey()!, activeCat.value.toString());
-    resetTablePage();
-    getTransactions();
+    if (newVals[1] !== oldVals[1] || newVals[0] !== oldVals[0]) {
+      if (newVals[1] !== oldVals[1]) {
+        localStorage.setItem(lsCatKey()!, activeCat.value.toString());
+      }
+      resetTablePage();
+      getTransactions();
+    }
   });
   watch(
     () => activeCat.value,
@@ -203,7 +246,16 @@ onMounted(async () => {
     }
   );
 
-  watch(() => payable.value, getTransactions);
+  watch(
+    () => payable.value,
+    async () => {
+      if (skipWatcherNextUpdate) {
+        skipWatcherNextUpdate = false;
+        return;
+      }
+      await getTransactions();
+    }
+  );
 });
 </script>
 
@@ -392,14 +444,28 @@ onMounted(async () => {
       </template>
 
       <template v-else-if="transactions.length == 0">
-        <p class="text-lg text-center max-w-sm mx-auto mb-8 pt-8">
-          <!--TODO: Update this empty state -->
-          No {{ activeCat == 0 ? 'Payments' : 'Withdrawals' }} Yet!
-        </p>
+        <div class="text-center pt-12">
+          <img
+            :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
+            alt="Chainbills"
+            class="w-20 h-20 mx-auto mb-4 opacity-40"
+          />
+          <p class="text-lg font-semibold mb-2">
+            {{ activeCat == 0 ? 'No payments received yet' : 'No withdrawals yet' }}
+          </p>
+          <p class="text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-6">
+            {{
+              activeCat == 0
+                ? 'Share your payment link above to start receiving payments.'
+                : 'When you withdraw from your balance, the records will appear here.'
+            }}
+          </p>
+        </div>
       </template>
 
       <template v-else>
         <TransactionsTable
+          :chainColumn="activeCat === 0 ? 'user' : undefined"
           countField="payableCount"
           :currentPage="currentTablePage"
           :hidePayable="true"

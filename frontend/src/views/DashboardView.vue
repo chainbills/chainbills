@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import PayableInfoCard from '@/components/PayableInfoCard.vue';
 import SignInButton from '@/components/SignInButton.vue';
-import { useAnalyticsStore, useAuthStore, usePaginatorsStore, usePayableStore } from '@/stores';
+import { useAnalyticsStore, useAuthStore, usePaginatorsStore, usePayableStore, useThemeStore } from '@/stores';
 import Button from 'primevue/button';
 import Paginator from 'primevue/paginator';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
+const theme = useThemeStore();
 const lsPageKey = () => `chainbills::user=>${auth.currentUser?.walletAddress}` + '::payable_info_cards_page';
+const lsCacheCountKey = () =>
+  `chainbills::user=>${auth.currentUser?.walletAddress}::chain=>${auth.currentUser?.chain.name}::payables_count_cache`;
 
 const currentPage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
 const isLoading = ref(true);
@@ -16,11 +19,45 @@ const payableIds = ref<string[] | null>();
 const payableStore = usePayableStore();
 const paginators = usePaginatorsStore();
 
+// Load cached payables count for placeholder generation
+const cachedPayablesCount = computed(() => {
+  if (!auth.currentUser) return 0;
+  const cached = localStorage.getItem(lsCacheCountKey());
+  return cached ? parseInt(cached, 10) : auth.currentUser.payablesCount;
+});
+
+// Use real count if loaded, fallback to cached
+const displayCount = computed(() => {
+  if (!isLoading.value && payableIds.value !== null) {
+    // Real data loaded
+    return auth.currentUser?.payablesCount ?? 0;
+  }
+  // Still loading, use cached
+  return cachedPayablesCount.value;
+});
+
+// Separate loader count: always count down from displayCount, regardless of pagination
+const getLoaderCount = (index: number): number => {
+  return Math.max(1, displayCount.value - paginators.rowsPerPage * currentPage.value - index);
+};
+
+const expectedCardsCount = computed(() => {
+  if (displayCount.value === 0) return paginators.rowsPerPage;
+  const remaining = displayCount.value - currentPage.value * paginators.rowsPerPage;
+  return Math.max(1, Math.min(paginators.rowsPerPage, remaining));
+});
+
 const generateEmpties = (length: number) => Array.from({ length }, (_) => null);
 
 const getPayableIds = async () => {
   isLoading.value = true;
   payableIds.value = await payableStore.getIdsForCurrentUser(currentPage.value, paginators.rowsPerPage);
+
+  // Cache the latest count when data arrives
+  if (auth.currentUser && payableIds.value !== null) {
+    localStorage.setItem(lsCacheCountKey(), auth.currentUser.payablesCount.toString());
+  }
+
   isLoading.value = false;
 };
 
@@ -72,10 +109,17 @@ onMounted(async () => {
       </p>
     </template>
 
-    <template v-else-if="payableIds && payableIds.length == 0">
-      <p class="text-lg text-center max-w-sm mx-auto mb-4 pt-8">You haven't created any payables.</p>
-      <p class="text-lg text-center max-w-md mx-auto mb-8">Get Started with us today by Creating a Payable today.</p>
-      <p class="text-center">
+    <template v-else-if="(payableIds && payableIds.length == 0) || (payableIds === null && displayCount === 0)">
+      <div class="text-center pt-12">
+        <img
+          :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
+          alt="Chainbills"
+          class="w-20 h-20 mx-auto mb-4 opacity-40"
+        />
+        <p class="text-lg font-semibold mb-2">You haven't created any payables.</p>
+        <p class="text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-6">
+          Get Started with us today by Creating a Payable today.
+        </p>
         <router-link
           to="/start"
           @click="
@@ -84,9 +128,9 @@ onMounted(async () => {
             })
           "
         >
-          <Button class="px-3 py-2">Get Started</Button>
+          <Button class="px-3 py-2 text-sm">Get Started</Button>
         </router-link>
-      </p>
+      </div>
     </template>
 
     <template v-else>
@@ -95,9 +139,9 @@ onMounted(async () => {
           class="grid gap-6 max-sm:!grid-cols-1 max-[992px]:!grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 mb-12 mx-auto"
         >
           <PayableInfoCard
-            v-for="(id, i) in payableIds ?? generateEmpties(paginators.rowsPerPage)"
+            v-for="(id, i) in payableIds ?? generateEmpties(expectedCardsCount)"
             :key="id ?? i"
-            :count="paginators.rowsPerPage * currentPage + ((payableIds?.length ?? paginators.rowsPerPage) - i)"
+            :count="payableIds ? displayCount - paginators.rowsPerPage * currentPage - i : getLoaderCount(i)"
             :payableId="id"
             class="max-lg:max-w-sm w-full max-sm:mx-auto"
           />
@@ -110,7 +154,7 @@ onMounted(async () => {
           :rows="paginators.rowsPerPage"
           :rowsPerPageOptions="paginators.rowsPerPageOptions"
           template="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
-          :totalRecords="auth.currentUser.payablesCount"
+          :totalRecords="displayCount"
           @page="
             (e) => {
               paginators.setRowsPerPage(e.rows);

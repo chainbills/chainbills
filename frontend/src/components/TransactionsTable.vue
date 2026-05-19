@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import { type Receipt, Withdrawal, getTokenLogo, getWalletUrl } from '@/schemas';
+import { getChainLogo, getTokenLogo, getWalletUrl, type Receipt, Withdrawal } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, usePaginatorsStore, useTimeStore } from '@/stores';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
@@ -9,7 +9,8 @@ import DataTable from 'primevue/datatable';
 import { useToast } from 'primevue/usetoast';
 import { computed, ref } from 'vue';
 
-const { countField, currentPage, hidePayable, hideUser, receipts, totalCount } = defineProps<{
+const { chainColumn, countField, currentPage, hidePayable, hideUser, receipts, totalCount } = defineProps<{
+  chainColumn?: 'user' | 'payable';
   countField: string;
   currentPage: number;
   hidePayable?: boolean;
@@ -90,6 +91,20 @@ const sortedReceipts = computed(() => receipts.sort((a, b) => (a.timestamp - b.t
           <img :src="getTokenLogo(data.chain, data.token)" class="w-6 h-6" aria-hidden="true" />
           <span class="font-medium text-lg text-nowrap">
             {{ data.displayDetails() }}
+          </span>
+        </p>
+      </template>
+    </Column>
+    <Column v-if="chainColumn" field="chain" :header="`${chainColumn === 'user' ? 'Payer' : 'Payable'} Chain`">
+      <template #body="{ data }">
+        <p class="flex gap-x-1.5 items-center">
+          <img
+            :src="getChainLogo(chainColumn === 'user' ? data.userChain() : ((data as any).payableChain ?? data.chain))"
+            class="w-6 h-6"
+            aria-hidden="true"
+          />
+          <span class="text-sm text-nowrap">
+            {{ (chainColumn === 'user' ? data.userChain() : ((data as any).payableChain ?? data.chain)).displayName }}
           </span>
         </p>
       </template>

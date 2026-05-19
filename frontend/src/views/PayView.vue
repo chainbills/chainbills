@@ -7,8 +7,10 @@ import { Payable, TokenAndAmount, tokens, type ChainName, type Token } from '@/s
 import { useAnalyticsStore, useAuthStore, useEvmStore, usePayableStore, usePaymentStore } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
+import ProgressBar from 'primevue/progressbar';
 import Select from 'primevue/select';
-import { computed, onMounted, ref, watch } from 'vue';
+import { useToast } from 'primevue/usetoast';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const amount = ref<any>('');
@@ -19,6 +21,9 @@ const evm = useEvmStore();
 const balanceError = ref('');
 const balances = ref<(number | null)[]>([]);
 const isForeignPayableRelayed = ref<boolean | null>(null);
+const isRechecking = ref(false);
+const toast = useToast();
+let foreignPayableRefreshInterval: ReturnType<typeof setInterval> | null = null;
 const isSameChain = computed(() => {
   if (!auth.currentUser || !payable.value) return true;
   return auth.currentUser.chain.name === payable.value.chain.name;
@@ -152,9 +157,21 @@ const pay = async () => {
 const checkForeignPayableRelayed = async () => {
   if (!auth.currentUser || !payable.value) return;
   if (isSameChain.value || !auth.currentUser.chain.isEvm || !payable.value.chain.isEvm) return;
+  isRechecking.value = true;
   isForeignPayableRelayed.value = null;
   const result = await evm.fetchForeignPayable(payable.value.id, auth.currentUser.chain.name as ChainName);
   isForeignPayableRelayed.value = !!result;
+  isRechecking.value = false;
+
+  // If still false after manual check, show info toast
+  if (isForeignPayableRelayed.value === false) {
+    toast.add({
+      severity: 'info',
+      summary: 'Still Processing',
+      detail: 'Relay still in progress. Please wait a moment.',
+      life: 4000,
+    });
+  }
 };
 
 onMounted(async () => {
@@ -162,7 +179,17 @@ onMounted(async () => {
   isLoading.value = false;
 
   await Promise.all([updateBalances(), checkForeignPayableRelayed()]);
-  document.addEventListener('visibilitychange', updateBalances);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkForeignPayableRelayed();
+  });
+
+  // Auto-refresh foreign payable status every 15s while visible
+  foreignPayableRefreshInterval = setInterval(() => {
+    if (!document.hidden && isForeignPayableRelayed.value === false) {
+      checkForeignPayableRelayed();
+    }
+  }, 15000);
+
   watch(() => amount.value, validateAmount);
   watch(
     () => selectedConfig.value,
@@ -185,12 +212,31 @@ onMounted(async () => {
 
       if (!allowsFreePayments.value && aTAAs.value.length == 1) {
         selectedConfig.value = aTAAs.value[0];
+      } else if (allowsFreePayments.value && availableTokens.value.length == 1) {
+        selectToken(availableTokens.value[0]);
+      }
+    }
+  );
+
+  // Watch for relay completion
+  watch(
+    () => isForeignPayableRelayed.value,
+    (newVal, oldVal) => {
+      if (oldVal === false && newVal === true) {
+        toast.add({
+          severity: 'success',
+          summary: 'Relayed!',
+          detail: 'Payable has now been relayed. You can pay now.',
+          life: 5000,
+        });
       }
     }
   );
 
   if (!allowsFreePayments.value && aTAAs.value.length == 1) {
     selectedConfig.value = aTAAs.value[0];
+  } else if (allowsFreePayments.value && availableTokens.value.length == 1) {
+    selectToken(availableTokens.value[0]);
   }
 
   if (allowsFreePayments.value) {
@@ -200,6 +246,10 @@ onMounted(async () => {
       });
     });
   }
+});
+
+onUnmounted(() => {
+  if (foreignPayableRefreshInterval) clearInterval(foreignPayableRefreshInterval);
 });
 </script>
 
@@ -363,20 +413,26 @@ onMounted(async () => {
                 auth.currentUser.chain.networkType === payable.chain.networkType
               "
             >
-              <!-- Still checking if foreign payable has been relayed -->
-              <div v-if="isForeignPayableRelayed === null" class="mt-8 mb-24 flex justify-center">
-                <IconSpinner class="w-8 h-8 animate-spin text-primary" />
-              </div>
-
               <!-- Foreign payable not yet relayed to user's chain -->
-              <div
-                v-else-if="isForeignPayableRelayed === false"
-                class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400"
-              >
-                <p>
-                  This payable hasn't been relayed to <strong>{{ auth.currentUser.chain.displayName }}</strong> yet.
-                  Please try again shortly.
-                </p>
+              <div v-if="!isForeignPayableRelayed" class="mt-8 mb-24">
+                <div class="max-w-lg mx-auto">
+                  <!-- PrimeVue indeterminate progress bar -->
+                  <ProgressBar mode="indeterminate" class="mb-4" :style="{ height: '4px' }" />
+
+                  <p class="text-center text-gray-700 dark:text-gray-400 mb-4">
+                    <span v-if="!isRechecking"> Relayer is bridging this payable across chains. Please wait ... </span>
+                    <span v-else> Rechecking for relaying completion ... </span>
+                  </p>
+
+                  <p class="text-center">
+                    <Button @click="checkForeignPayableRelayed" :disabled="isRechecking" class="text-sm px-4 py-1">
+                      {{ isRechecking ? 'Checking...' : 'Refresh' }}
+                    </Button>
+                  </p>
+                  <div v-if="isRechecking" class="mt-4 flex justify-center">
+                    <IconSpinner class="w-4 h-4 animate-spin text-primary" />
+                  </div>
+                </div>
               </div>
 
               <!-- Foreign payable is available — show pay button -->

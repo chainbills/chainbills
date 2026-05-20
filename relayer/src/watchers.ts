@@ -138,7 +138,10 @@ export async function startChainWatcher(chain: ChainConfig): Promise<void> {
       cctpPayableUpdatesRelayed: cursor.cctpPayableUpdatesRelayed,
       cctpPaymentsRelayed: cursor.cctpPaymentsRelayed,
     },
-    `Starting count-based watcher (poll every ${pollMs}ms)`
+    `Starting watcher :: ${chain.name} :: (poll every ${pollMs}ms) — resuming from: ` +
+      `pybl=${cursor.payablesIndexed} uPay=${cursor.userPaymentsIndexed} ` +
+      `ppPay=${cursor.payablePaymentsIndexed} wdrl=${cursor.withdrawalsIndexed} ` +
+      `whRlyd=${cursor.wormholeRelayed} cctpPay=${cursor.cctpPaymentsRelayed} cctpUpd=${cursor.cctpPayableUpdatesRelayed}`
   );
 
   while (true) {

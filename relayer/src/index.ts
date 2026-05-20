@@ -32,7 +32,7 @@ async function main() {
   logger.info({ port }, 'Health server listening');
 
   logger.info('Chainbills Relayer starting…');
-  logger.info({ chains: ALL_CHAINS.map((c) => c.name) }, `Watching ${ALL_CHAINS.length} chains`);
+  logger.info({ chains: ALL_CHAINS.map((c) => c.name) }, `Watching ${ALL_CHAINS.length} chains :: ${ALL_CHAINS.map(({name}) => name).join(', ')}.`);
 
   // Start one watcher per chain — all run concurrently in parallel async loops.
   const watcherPromises = ALL_CHAINS.map((chain) =>
@@ -83,9 +83,20 @@ async function main() {
     while (true) {
       await new Promise((r) => setTimeout(r, HEARTBEAT_INTERVAL_MS));
       await reloadCursorsFromFirestore();
+      const snapshot = getCursorSnapshot();
+      const cursorSummary = Object.entries(snapshot)
+        .map(
+          ([chain, c]) =>
+            `${chain}: pybl=${c.payablesIndexed} uPay=${c.userPaymentsIndexed} ` +
+            `ppPay=${c.payablePaymentsIndexed} wdrl=${c.withdrawalsIndexed} ` +
+            `whRlyd=${c.wormholeRelayed} cctpPay=${c.cctpPaymentsRelayed} cctpUpd=${c.cctpPayableUpdatesRelayed}`
+        )
+        .join(' | ');
+      const idleMin = Math.round(idleMs() / 60000);
+      const label = idleMs() >= HEARTBEAT_INTERVAL_MS ? 'Relayer alive — no recent activity' : 'Relayer heartbeat';
       logger.info(
-        { idleMin: Math.round(idleMs() / 60000), cursors: getCursorSnapshot() },
-        idleMs() >= HEARTBEAT_INTERVAL_MS ? 'Relayer alive — no recent activity' : 'Relayer heartbeat'
+        { idleMin, cursors: snapshot },
+        `${label} — idle ${idleMin}min — ${cursorSummary}`
       );
     }
   };

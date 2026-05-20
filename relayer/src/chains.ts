@@ -120,7 +120,7 @@ export const arcTestnet: ChainConfig = {
   hasCctp: true,
   circleDomain: 26, // Circle domain 26 for Arc Testnet
   deploymentBlock: 42188119n, // First tx block of latest DeployChainbills broadcast (chain 5042002)
-  pollIntervalMs: 2000, // Arc has ~500ms blocks; poll every 2s
+  pollIntervalMs: 5000, // Arc has ~500ms blocks; poll every 5s
   minGasBalance: parseEther('1'), // Native token is USDC (18 decimals on Arc); warn below 10 units
   isEvm: true,
   isSolana: false,
@@ -140,7 +140,7 @@ export const sepolia: ChainConfig = {
   hasCctp: true,
   circleDomain: 0, // Circle domain 0 for Ethereum Sepolia
   deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
-  pollIntervalMs: 2000,
+  pollIntervalMs: 10_000,
   minGasBalance: parseEther('0.01'), // Warn below 0.05 ETH
   isEvm: true,
   isSolana: false,
@@ -159,7 +159,7 @@ export const megaeth: ChainConfig = {
   wormholeChainId: 64, // Wormhole chain ID for MegaETH
   hasCctp: false, // Circle CCTP NOT deployed on MegaETH (as of May 2026)
   deploymentBlock: 0n,
-  pollIntervalMs: 2000, // MegaETH is a real-time chain; poll every 2s
+  pollIntervalMs: 5000, // MegaETH is a real-time chain; poll every 5s
   minGasBalance: parseEther('0.0001'), // Warn below 0.01 ETH
   isEvm: true,
   isSolana: false,

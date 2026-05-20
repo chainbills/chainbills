@@ -1,6 +1,6 @@
 # Chainbills
 
-Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive cryptocurrency from everybody (payers), powered by WormHole. Chainbills deducts 2% (with a fixed maximum) from all withdrawals for fees and maintenance.
+Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive cryptocurrency from everybody (payers), powered by CCTP and WormHole. Chainbills deducts 2% (with a fixed maximum) from all withdrawals for fees and maintenance.
 
 ## Table Of Contents
 
@@ -69,7 +69,7 @@ Our mission is to provide a seamless payment-receiving experience to content cre
 
 Chainbills does this by allowing users to create payables and make payments and withdrawals on all chain networks (supported ones for now). So a payable can be created on any chain. Withdrawals are on the same chain in which the Payable was created. However, with payments, a payment can be done from the same or different chain as that of the Payable.
 
-When the blockchain networks of the payable and the payer are the same, no cross-chain activity is needed and payment proceeds directly. However, in the case of different chains, we need to reconcile money and data across the involved chains. This is powered by Wormhole and Circle CCTP.
+When the blockchain networks of the payable and the payer are the same, no cross-chain activity is needed and payment proceeds directly. However, in the case of different chains, we need to reconcile money and data across the involved chains. This is powered by CCTP and Wormhole and Circle CCTP.
 
 [Wormhole](https://wormhole.com) is an open source blockchain development platform connecting the decentralized web. Wormhole powers Chainbills by enabling [cross-chain messaging](https://wormhole.com/messaging/) for data transfers. [Circle](https://www.circle.com/) mints and maintains [USDC](https://www.circle.com/usdc) across multiple blockchain networks through [CCTP (Cross-Chain Transfer Protocol)](https://www.circle.com/cross-chain-transfer-protocol). CCTP also powers Chainbills by enabling USDC transfers across chains.
 

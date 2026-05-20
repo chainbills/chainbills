@@ -173,7 +173,7 @@ const checkForeignPayableRelayed = async () => {
     });
   }
 
-  if (isForeignPayableRelayed && foreignPayableRefreshInterval) {
+  if (isForeignPayableRelayed.value && foreignPayableRefreshInterval) {
     // Stop the 15s refresher
     clearInterval(foreignPayableRefreshInterval)
   }

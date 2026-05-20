@@ -13,6 +13,7 @@
 // Load config first — validates env vars and injects RPC URLs into chain configs.
 import './config.js';
 
+import { createServer } from 'node:http';
 import { formatEther } from 'viem';
 import { ALL_CHAINS } from './config.js';
 import { processJobs } from './jobs/processor.js';
@@ -25,6 +26,11 @@ const PROCESSOR_INTERVAL_MS = 1_000; // Run job processor every second
 const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // Log liveness every 15 min if idle
 
 async function main() {
+  // Cloud Run requires a bound HTTP port for health checks.
+  const port = Number(process.env.PORT ?? 8080);
+  createServer((_, res) => res.end('OK')).listen(port);
+  logger.info({ port }, 'Health server listening');
+
   logger.info('Chainbills Relayer starting…');
   logger.info({ chains: ALL_CHAINS.map((c) => c.name) }, `Watching ${ALL_CHAINS.length} chains`);
 

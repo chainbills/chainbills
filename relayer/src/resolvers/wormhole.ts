@@ -36,7 +36,8 @@ export async function getVaaBySequence(
     return null;
   }
 
-  const emitter = chain.contractAddress.replace(/^0x/i, '').padStart(64, '0');
+  const contractAddress = (chain as any).contractAddress as string | undefined;
+  const emitter = (contractAddress ?? '').replace(/^0x/i, '').padStart(64, '0');
   const url = `${getBaseUrl(chain.network)}/api/v1/vaas/${chain.wormholeChainId}/${emitter}/${sequence}`;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {

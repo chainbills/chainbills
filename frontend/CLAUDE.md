@@ -63,18 +63,19 @@ src/
 
 ## Chain Support
 
-| ChainName | Type | networkType | cbChainId |
-|-----------|------|-------------|-----------|
-| `megaeth` | EVM | mainnet | `0x78b4...` |
-| `arctestnet` | EVM | testnet | `0xfcfa...` |
-| `sepolia` | EVM | testnet | `0xafa9...` |
-| `solanadevnet` | Solana | testnet | placeholder — Solana not active |
+| ChainName      | Type   | networkType | cbChainId                       |
+| -------------- | ------ | ----------- | ------------------------------- |
+| `megaeth`      | EVM    | mainnet     | `0x78b4...`                     |
+| `arctestnet`   | EVM    | testnet     | `0xfcfa...`                     |
+| `sepolia`      | EVM    | testnet     | `0xafa9...`                     |
+| `solanadevnet` | Solana | testnet     | placeholder — Solana not active |
 
 `chainNamesEvm = ['megaeth', 'arctestnet', 'sepolia']`
 
 ## Contract Addresses (frontend)
 
 Defined in `src/schemas/tokens.ts → contracts`:
+
 ```
 arctestnet: '0x0bA837eF7358981967FB2cFcB79bf649b7cACbf4'
 megaeth:    '0xc38d1681d34DA821E46508C084D673477E455570'
@@ -96,12 +97,14 @@ Native token = contract address itself (`address(this)`).
 ## Key Store Patterns
 
 ### Auth flow (`stores/auth.ts`)
+
 1. `useAccount()` (wagmi) or `useAnchorWallet()` (Solana) change triggers `updateCurrentUser`.
 2. Fetches on-chain user data via `evm.getCurrentUser()` or `solana.getCurrentUser()`.
 3. Requests wallet signature of `"Authentication"` message; saves to localStorage.
 4. `currentUser` is `User | null`. All other stores check this before acting.
 
 ### EVM store (`stores/evm.ts`)
+
 - All reads go to **CbGetters** contract (not the main proxy).
 - `writeContract()` = simulateContract → writeContract → waitForTransactionReceipt → 3s wait.
 - `readContract()` = rawReadContract via wagmi.
@@ -109,6 +112,7 @@ Native token = contract address itself (`address(this)`).
 - Error handling strips `abi` field from viem errors to avoid console floods.
 
 ### Payment routing (`stores/payment.ts → exec()`)
+
 ```
 userChain == payableChain && isEvm  → evm.pay()
 userChain != payableChain && isEvm  → evm.payForeignViaCctp()
@@ -116,12 +120,15 @@ isSolana                            → solana.pay()
 ```
 
 ### Server store (`stores/server.ts`)
+
 Sends `chain-name`, `wallet-address`, `signature` headers on every call.
+
 - `POST /payable` — upserts description after on-chain creation
 - `GET /payable/:id` — chain discovery (returns `{ chainName, description }`)
 - `POST /notifications` — saves FCM token
 
 ### Cache (`stores/cache.ts`)
+
 Keys: `{chainName}::payable::{id}::payment::{count}`, etc. Used to avoid re-fetching on navigation.
 
 ## Payment UI Flow (`views/PayView.vue`)

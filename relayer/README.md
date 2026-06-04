@@ -96,11 +96,12 @@ Chains are defined in `src/chains/index.ts`. Each chain configuration specifies 
 
 ### Active Chains
 
-| Chain                                | Wormhole        | CCTP          | Network   |
-| ------------------------------------ | --------------- | ------------- | --------- |
-| Arc Testnet (`eip155:5042002`)       | ✗               | ✓ (domain 10) | `Testnet` |
-| Ethereum Sepolia (`eip155:11155111`) | ✓ (chain 10002) | ✓ (domain 0)  | `Testnet` |
-| MegaETH Mainnet (`eip155:4326`)      | ✓ (chain 64)    | ✗             | `Mainnet` |
+| Chain                                         | Wormhole        | CCTP          | Network   |
+| --------------------------------------------- | --------------- | ------------- | --------- |
+| Arc Testnet (`eip155:5042002`)                | ✗               | ✓ (domain 26) | `Testnet` |
+| Ethereum Sepolia (`eip155:11155111`)          | ✓ (chain 10002) | ✓ (domain 0)  | `Testnet` |
+| MegaETH Mainnet (`eip155:4326`)               | ✓ (chain 64)    | ✗             | `Mainnet` |
+| Solana Devnet (`solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1`) | ✓ (chain 1) | ✓ (domain 5) | `Testnet` |
 
 ### Adding a New Chain
 

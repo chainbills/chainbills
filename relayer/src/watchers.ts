@@ -17,8 +17,15 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { type PublicClient, parseAbiItem } from 'viem';
-import type { ChainConfig } from './chains.js';
+import type { ChainConfig, EvmChainConfig, SolanaChainConfig } from './chains.js';
 import { ALL_CHAINS, chainByCbChainId } from './chains.js';
+import {
+  ZERO_SOLANA_CURSOR,
+  loadSolanaCursor,
+  pollSolana,
+  saveSolanaCursor,
+  type SolanaCursor,
+} from './solana/indexer.js';
 import { indexPayable, indexPayablePayment, indexUserPayment, indexWithdrawal } from './indexer.js';
 import { createJob, jobExistsForTx } from './jobs/store.js';
 import { notifyPaymentReceived } from './notify/host.js';
@@ -120,6 +127,55 @@ async function saveCursor(chainName: string, cursor: ChainCursor): Promise<void>
  * and retried on the next tick — the process never crashes from a single error.
  */
 export async function startChainWatcher(chain: ChainConfig): Promise<void> {
+  if (chain.isSolana) {
+    return startSolanaChainWatcher(chain);
+  }
+  return startEvmChainWatcher(chain);
+}
+
+async function startSolanaChainWatcher(chain: SolanaChainConfig): Promise<void> {
+  const log = chainLogger(chain.name);
+  const cursor = await loadSolanaCursor(chain.name);
+  memoryCursors.set(chain.name, {
+    payablesIndexed: cursor.activitiesIndexed,
+    userPaymentsIndexed: 0,
+    payablePaymentsIndexed: 0,
+    withdrawalsIndexed: 0,
+    wormholeRelayed: cursor.wormholeRelayed,
+    cctpPaymentsRelayed: cursor.cctpPaymentsRelayed,
+    cctpPayableUpdatesRelayed: cursor.cctpUpdatesRelayed,
+  });
+
+  const pollMs = chain.pollIntervalMs ?? 5_000;
+  log.info(
+    { activitiesIndexed: cursor.activitiesIndexed, wormholeRelayed: cursor.wormholeRelayed },
+    `Starting Solana watcher :: ${chain.name} :: poll every ${pollMs}ms`
+  );
+
+  while (true) {
+    try {
+      const changed = await pollSolana(chain, cursor, log);
+      if (changed) {
+        await saveSolanaCursor(chain.name, cursor);
+        // Keep in-memory snapshot in sync.
+        memoryCursors.set(chain.name, {
+          payablesIndexed: cursor.activitiesIndexed,
+          userPaymentsIndexed: 0,
+          payablePaymentsIndexed: 0,
+          withdrawalsIndexed: 0,
+          wormholeRelayed: cursor.wormholeRelayed,
+          cctpPaymentsRelayed: cursor.cctpPaymentsRelayed,
+          cctpPayableUpdatesRelayed: cursor.cctpUpdatesRelayed,
+        });
+      }
+    } catch (err) {
+      log.error({ err }, 'Solana watcher tick error — will retry');
+    }
+    await sleep(pollMs);
+  }
+}
+
+async function startEvmChainWatcher(chain: EvmChainConfig): Promise<void> {
   const log = chainLogger(chain.name);
   const client = makePublicClient(chain) as PublicClient;
 
@@ -156,7 +212,11 @@ export async function startChainWatcher(chain: ChainConfig): Promise<void> {
 
 // ── Poll tick ─────────────────────────────────────────────────────────────────
 
-async function pollChain(chain: ChainConfig, client: PublicClient, log: ReturnType<typeof chainLogger>): Promise<void> {
+async function pollChain(
+  chain: EvmChainConfig,
+  client: PublicClient,
+  log: ReturnType<typeof chainLogger>
+): Promise<void> {
   const cursor = memoryCursors.get(chain.name)!;
 
   // One RPC call gets all chain-level counts.

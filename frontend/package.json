@@ -13,6 +13,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
     "@primevue/themes": "^4.3.3",
     "@project-serum/anchor": "^0.26.0",
     "@reown/appkit": "^1.7.3",

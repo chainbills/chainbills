@@ -55,12 +55,12 @@ test/
 
 ## Three Deployed Contracts Per Chain
 
-| Contract | Role |
-|----------|------|
-| `Chainbills` (UUPS proxy) | Entry point; governance; delegates to logic contracts |
-| `CbPayables` (logic) | createPayable, closePayable, reopenPayable, updateATAA, receivePayableUpdate* |
-| `CbTransactions` (logic) | pay, payForeignViaCctp, receiveForeignPaymentViaCctp, withdraw |
-| `CbGetters` (separate, read-only) | Paginated + bulk reads; NOT in proxy |
+| Contract                          | Role                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| `Chainbills` (UUPS proxy)         | Entry point; governance; delegates to logic contracts                          |
+| `CbPayables` (logic)              | createPayable, closePayable, reopenPayable, updateATAA, receivePayableUpdate\* |
+| `CbTransactions` (logic)          | pay, payForeignViaCctp, receiveForeignPaymentViaCctp, withdraw                 |
+| `CbGetters` (separate, read-only) | Paginated + bulk reads; NOT in proxy                                           |
 
 `CbGetters` is queried by both frontend and relayer — never the main proxy for reads.
 
@@ -74,20 +74,24 @@ test/
 ## Cross-Chain Messaging Patterns
 
 ### Chains with both Wormhole + CCTP (Sepolia)
+
 - Payable updates: one Wormhole `publishMessage` covers all registered Wormhole chains.
 - Cross-chain payments: `depositForBurn` (CCTP) + `publishMessage` (Wormhole); relayer delivers both.
 
 ### Chains with CCTP only (Arc Testnet)
+
 - Payable updates: iterate `registeredCbChainIds`, call `circleTransmitter().sendMessage()` per CCTP chain.
 - Cross-chain payments: two CCTP messages — burn message + payload data message. `destinationCaller = address(this)` on both.
 
 ### Chains with Wormhole only (MegaETH)
+
 - Payable updates: one Wormhole `publishMessage`.
 - Cross-chain payments: not yet available (Circle CCTP not on MegaETH as of May 2026).
 
 ## Payload Discriminator
 
 First byte of every cross-chain message body:
+
 - `0x01` = `PayablePayload` (create/close/reopen/updateATAA)
 - `0x02` = `PaymentPayload` (cross-chain payment)
 
@@ -105,6 +109,7 @@ First byte of every cross-chain message body:
 ```solidity
 keccak256(abi.encodePacked(block.chainid, block.timestamp, entity, salt, count))
 ```
+
 All IDs are `bytes32`. Entity salt is `EntityType` enum (Payable/Payment/Withdrawal/Activity).
 
 ## Running Scripts

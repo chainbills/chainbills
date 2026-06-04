@@ -1,5 +1,11 @@
-pub mod payable_payload;
-pub mod payment_payload;
+//! Cross-chain payload encode/decode.
+//! Both PaymentPayload and PayablePayload are byte-for-byte compatible with
+//! EVM. See DESIGN.md §12 for exact byte layouts.
 
-pub use payable_payload::*;
-pub use payment_payload::*;
+pub mod decode;
+pub mod encode;
+pub mod wormhole;
+
+pub use decode::*;
+pub use encode::*;
+pub use wormhole::*;

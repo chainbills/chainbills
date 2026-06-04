@@ -25,7 +25,10 @@ export type JobType =
   | 'PAYABLE_UPDATE_VIA_CCTP'
   | 'PAYMENT_VIA_CCTP_WORMHOLE'
   | 'PAYMENT_VIA_CCTP_ONLY'
-  | 'ADMIN_SYNC';
+  | 'ADMIN_SYNC'
+  // Solana destination jobs — VAA + CCTP receive on Solana
+  | 'SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE'
+  | 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE';
 
 export type JobStatus = 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
 

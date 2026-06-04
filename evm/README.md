@@ -25,7 +25,9 @@ Here you will find engineering specifics that apply to this EVM contract.
 - [Tests](#tests)
 - [About Foundry](#about-foundry)
 - [Script Runner](#script-runner)
+- [Updating Logic Contracts vs. Upgrading the Proxy](#updating-logic-contracts-vs-upgrading-the-proxy)
 - [Deployed Parameters](#deployed-parameters)
+- [Testnet Deployments CHANGELOG](#testnet-deployments-changelog)
 
 ## Native and ERC20 Tokens
 
@@ -215,12 +217,7 @@ if (hasCctp()) {
 
 ### Payload Type Discriminator
 
-Every message body begins with a `payloadType` byte:
-
-- `0x01` = `PayablePayload` (payable creation, close, reopen, or ATAA update)
-- `0x02` = `PaymentPayload` (cross-chain payment details)
-
-Both structs embed this field as their first field so the encoded output is self-describing. The `handleReceiveFinalizedMessage` callback dispatches on this byte:
+Every message body begins with a `payloadType` byte — see [ARCHITECTURE.md](../ARCHITECTURE.md#payload-discriminator) for the byte values and type definitions. The `handleReceiveFinalizedMessage` callback dispatches on this byte:
 
 ```solidity
 uint8 msgType = uint8(messageBody[0]);

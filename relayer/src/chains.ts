@@ -1,42 +1,71 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Relayer — Chain Registry
 //
-// Each entry in this registry fully describes one EVM chain the relayer
-// watches. Adding a new chain (testnet or mainnet) is a matter of adding
-// one object here — no other files need changing.
+// Two chain types:
+//   EvmChainConfig  — EVM chains watched via viem (getLogs, readContract, etc.)
+//   SolanaChainConfig — Solana chains watched via @solana/web3.js + Anchor
 //
-// Design notes:
-//  • deploymentBlock defaults to 0n (BigInt zero) because no mainnet
-//    deployments have happened yet. Update this to the actual deployment
-//    block to skip unnecessary history scanning.
-//  • pollIntervalMs overrides the global POLL_INTERVAL_MS for chains with
-//    faster block times (e.g. Arc Testnet's ~500ms blocks → 2s polling).
+// Adding a new EVM chain: add one EvmChainConfig object here.
+// Adding a new Solana chain: add one SolanaChainConfig object here.
+// No other files need changing for new chains.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { parseEther, type Chain as ViemChain } from 'viem';
 import { arcTestnet as viemArcTestnet, megaeth as viemMegaeth, sepolia as viemSepolia } from 'viem/chains';
 
-/** Identifies a chain name used throughout the relayer and Firestore paths. */
-export type ChainName = 'arctestnet' | 'sepolia' | 'megaeth';
+/** All chain names used throughout the relayer and Firestore paths. */
+export type ChainName = 'arctestnet' | 'sepolia' | 'megaeth' | 'solana';
 
-/**
- * Full configuration for one EVM chain the relayer watches.
- *
- * Fields marked "protocol-specific" (wormholeChainId, circleDomain) are
- * optional because not every chain supports both Wormhole and CCTP.
- */
-export interface ChainConfig {
-  /** Short canonical name — matches the key in server/chain.ts. */
+/** Fields common to all chain types. */
+export interface BaseChainConfig {
+  /** Short canonical name — matches Firestore path keys. */
   name: ChainName;
   /** Human-readable display name for logs and notifications. */
   displayName: string;
-  /** viem chain object used when creating a PublicClient / WalletClient. */
-  viemChain: ViemChain;
   /** RPC URL — read from env at startup (see src/config.ts). */
   rpcUrl: string;
   /**
+   * CAIP-2 cbChainId: keccak256("namespace:reference").
+   * Universal cross-chain key used in all Chainbills contracts and Firestore.
+   */
+  cbChainId: string;
+  /** Network environment — used for Wormhole and CCTP API selection. */
+  network: 'testnet' | 'mainnet';
+  /** Whether Wormhole Core is deployed on this chain. */
+  hasWormhole: boolean;
+  /** Wormhole uint16 chain ID (set if hasWormhole=true). */
+  wormholeChainId?: number;
+  /** Whether Circle CCTP is deployed on this chain. */
+  hasCctp: boolean;
+  /** Circle uint32 domain ID (set if hasCctp=true). */
+  circleDomain?: number;
+  /** How often (ms) to poll this chain. */
+  pollIntervalMs?: number;
+  /** Minimum CCTP attestation age (ms) before polling starts. */
+  cctpAttestationMinAgeMs?: number;
+  /**
+   * Minimum native token balance (in smallest unit) before the relayer warns.
+   * ETH wei for EVM; lamports for Solana.
+   */
+  minGasBalance: bigint;
+  /** True for EVM chains (viem-based). */
+  isEvm: boolean;
+  /** True for Solana chains (web3.js-based). */
+  isSolana: boolean;
+}
+
+/**
+ * Full configuration for one EVM chain the relayer watches.
+ * Uses viem for client creation and ABI-based contract interaction.
+ */
+export interface EvmChainConfig extends BaseChainConfig {
+  isEvm: true;
+  isSolana: false;
+  /** viem chain object used when creating PublicClient / WalletClient. */
+  viemChain: ViemChain;
+  /**
    * Address of the Chainbills UUPS proxy on this chain.
-   * This is the address that emits all events we listen to.
+   * Emits all events the relayer listens to.
    */
   contractAddress: `0x${string}`;
   /**
@@ -45,69 +74,37 @@ export interface ChainConfig {
    */
   gettersAddress: `0x${string}`;
   /**
-   * CAIP-2 cbChainId: keccak256(abi.encodePacked("namespace:reference")).
-   * This is the universal key used in all cross-chain fields inside Chainbills
-   * contracts, and stored in Firestore records to identify the source chain.
-   */
-  cbChainId: `0x${string}`;
-  /** Network environment for this chain — used for Wormhole and CCTP API selection. */
-  network: 'testnet' | 'mainnet';
-  /**
-   * Whether Wormhole Core is deployed on this chain.
-   * Chains without Wormhole skip VAA publishing and VAA fetching.
-   */
-  hasWormhole: boolean;
-  /**
-   * Wormhole uint16 chain ID (protocol-specific, set if hasWormhole=true).
-   * Used to construct EmitterAddress for VAA fetching.
-   */
-  wormholeChainId?: number;
-  /**
-   * Whether Circle CCTP is deployed on this chain.
-   * Chains without CCTP cannot receive/relay CCTP-based payable updates.
-   */
-  hasCctp: boolean;
-  /**
-   * Circle uint32 domain ID (protocol-specific, set if hasCctp=true).
-   * Passed to the Circle Iris API when polling for attestations.
-   */
-  circleDomain?: number;
-  /**
-   * The block number from which to start indexing on first run.
-   * Defaults to 0n (scan from genesis). Update to the actual deployment
-   * transaction block to avoid unnecessary RPC calls on new installs.
+   * Block number from which to start indexing on first run.
+   * Set to actual deployment block to skip unnecessary history scanning.
    */
   deploymentBlock: bigint;
-  /**
-   * How often (ms) to poll this chain's getLogs endpoint.
-   * Overrides the global POLL_INTERVAL_MS for chains with faster block times.
-   */
-  pollIntervalMs?: number;
-  /**
-   * Minimum age (ms) a CCTP job must reach before attestation polling starts.
-   * Set on chains where the Iris sandbox is slow to attest (e.g. Sepolia testnet).
-   * Remove or set to 0 on mainnet where Circle fast-transfer attestation is near-instant.
-   */
-  cctpAttestationMinAgeMs?: number;
-  /**
-   * Minimum native token balance required for this chain's gas.
-   * If the balance falls below this amount, the relayer logs a critical warning.
-   */
-  minGasBalance: bigint;
-  /**
-   * Whether this chain is an EVM or non-EVM chain. Used to determine how to decode addresses.
-   * For EVM chains, addresses are 20-byte values left-padded to 32 bytes and represented as hex strings.
-   * For non-EVM chains, addresses may be variable-length byte arrays and we can use Wormhole decoding.
-   */
-  isEvm: boolean;
-  isSolana: boolean;
 }
 
-// ── Chain Definitions ─────────────────────────────────────────────────────────
-// RPC URLs are injected at runtime from environment variables (see config.ts).
-// The placeholder strings below are replaced before any chain watcher starts.
+/**
+ * Full configuration for the Solana chain the relayer watches.
+ * Uses @solana/web3.js + Anchor for connection and instruction building.
+ */
+export interface SolanaChainConfig extends BaseChainConfig {
+  isSolana: true;
+  isEvm: false;
+  /** Chainbills program ID on Solana. */
+  programId: string;
+  /** USDC mint address on this Solana network. */
+  usdcMint: string;
+  /** Wormhole Core Bridge program address. */
+  wormholeProgramId: string;
+  /** Circle CCTP MessageTransmitter program address. */
+  cctpProgramId: string;
+  /** Wormhole Post-Message Shim program address. */
+  wormholeShimProgramId: string;
+}
 
-export const arcTestnet: ChainConfig = {
+/** Discriminated union of all supported chain types. */
+export type ChainConfig = EvmChainConfig | SolanaChainConfig;
+
+// ── EVM Chain Definitions ─────────────────────────────────────────────────────
+
+export const arcTestnet: EvmChainConfig = {
   name: 'arctestnet',
   displayName: 'Arc Testnet',
   viemChain: viemArcTestnet,
@@ -116,17 +113,17 @@ export const arcTestnet: ChainConfig = {
   gettersAddress: '0x01656b5968C4b98F05F596344DA7066118d6738a',
   cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
   network: 'testnet',
-  hasWormhole: false, // Wormhole NOT deployed on Arc Testnet
+  hasWormhole: false,
   hasCctp: true,
-  circleDomain: 26, // Circle domain 26 for Arc Testnet
-  deploymentBlock: 42188119n, // First tx block of latest DeployChainbills broadcast (chain 5042002)
-  pollIntervalMs: 5000, // Arc has ~500ms blocks; poll every 5s
-  minGasBalance: parseEther('1'), // Native token is USDC (18 decimals on Arc); warn below 10 units
+  circleDomain: 26,
+  deploymentBlock: 42188119n,
+  pollIntervalMs: 5000,
+  minGasBalance: parseEther('1'),
   isEvm: true,
   isSolana: false,
 };
 
-export const sepolia: ChainConfig = {
+export const sepolia: EvmChainConfig = {
   name: 'sepolia',
   displayName: 'Ethereum Sepolia',
   viemChain: viemSepolia,
@@ -136,37 +133,44 @@ export const sepolia: ChainConfig = {
   cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
   network: 'testnet',
   hasWormhole: true,
-  wormholeChainId: 10002, // Wormhole chain ID for Ethereum Sepolia
+  wormholeChainId: 10002,
   hasCctp: true,
-  circleDomain: 0, // Circle domain 0 for Ethereum Sepolia
-  deploymentBlock: 10850296n, // First tx block of latest DeployChainbills broadcast (chain 11155111)
+  circleDomain: 0,
+  deploymentBlock: 10850296n,
   pollIntervalMs: 10_000,
-  minGasBalance: parseEther('0.01'), // Warn below 0.05 ETH
+  minGasBalance: parseEther('0.01'),
   isEvm: true,
   isSolana: false,
 };
 
-export const megaeth: ChainConfig = {
+export const megaeth: EvmChainConfig = {
   name: 'megaeth',
   displayName: 'MegaETH Mainnet',
   viemChain: viemMegaeth,
   rpcUrl: '', // filled from RPC_MEGAETH at startup
-  contractAddress: '0xc38d1681d34DA821E46508C084D673477E455570',
+  contractAddress: '0xc38d1681d34Da821E46508C084D673477E455570',
   gettersAddress: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
   cbChainId: '0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a',
-  network: 'mainnet', // MegaETH is a mainnet chain
+  network: 'mainnet',
   hasWormhole: true,
-  wormholeChainId: 64, // Wormhole chain ID for MegaETH
-  hasCctp: false, // Circle CCTP NOT deployed on MegaETH (as of May 2026)
+  wormholeChainId: 64,
+  hasCctp: false,
   deploymentBlock: 0n,
-  pollIntervalMs: 5000, // MegaETH is a real-time chain; poll every 5s
-  minGasBalance: parseEther('0.0001'), // Warn below 0.01 ETH
+  pollIntervalMs: 5000,
+  minGasBalance: parseEther('0.0001'),
   isEvm: true,
   isSolana: false,
 };
 
+// ── Solana Chain Definitions ──────────────────────────────────────────────────
+
+import { solanaDevnet } from './chains/solana-devnet.js';
+export { solanaDevnet };
+
+// ── All Chains ────────────────────────────────────────────────────────────────
+
 /** All chains the relayer watches. Add new chains here. */
-export const ALL_CHAINS: ChainConfig[] = [arcTestnet, sepolia, megaeth];
+export const ALL_CHAINS: ChainConfig[] = [arcTestnet, sepolia, megaeth, solanaDevnet];
 
 /** Look up a chain config by its CAIP-2 cbChainId. */
 export const chainByCbChainId = new Map<string, ChainConfig>(ALL_CHAINS.map((c) => [c.cbChainId, c]));

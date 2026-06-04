@@ -1,43 +1,64 @@
-use crate::state::TokenAndAmount;
+//! `PayablePayment` — the payable's receipt for a payment. Lives on the
+//! payable's chain. Seeds: `[b"pp", payable: Pubkey, payment_count_le: [u8;8]]`
+
 use anchor_lang::prelude::*;
 
+/// Immutable record of a payment from the payable's perspective.
+/// Created in both same-chain and cross-chain inbound payment flows.
+///
+/// `payer` is stored as `[u8; 32]` (Wormhole-normalized) to support cross-chain
+/// payers:
+/// - Solana payer: `pubkey.to_bytes()`
+/// - EVM payer: `address.to_wormhole_format()` (left-padded 32 bytes)
+///
+/// Seeds: `[PayablePayment::SEED_PREFIX, payable.key(),
+/// payable.payments_count.to_le_bytes()]` where `payments_count` is the value
+/// BEFORE incrementing (0-based index).
 #[account]
-/// Receipt of a payment from any blockchain network (this-chain inclusive)
-/// made to a Payable in this chain.
 pub struct PayablePayment {
-  /// The ID of the Payable to which this Payment was made.
-  pub payable_id: Pubkey, // 32 bytes
+  /// The payable that received this payment.
+  pub payable: Pubkey,
 
-  /// The Wormhole-normalized wallet address that made this Payment.
-  /// If the payer is on Solana, then will be the bytes of their wallet address.
-  pub payer: [u8; 32], // 32 bytes
+  /// Wormhole-normalized payer address (32 bytes).
+  /// Solana: `pubkey.to_bytes()`. EVM: left-padded 20-byte address.
+  pub payer: [u8; 32],
 
-  /// The nth count of payable payments on this chain at the point this payment
-  /// was received.
-  pub chain_count: u64, // 8 bytes
+  /// This payment's index within the payable's payment history (0-based).
+  pub payable_count: u64,
 
-  /// The Wormhole Chain ID of the chain from which the payment was made.
-  pub payer_chain_id: u16, // 2 bytes
+  /// Snapshot of `global_config.total_payable_payments` at time of payment.
+  pub chain_count: u64,
 
-  /// The nth count of payments to this payable from the payment source
-  /// chain at the point this payment was recorded.
-  pub local_chain_count: u64, // 8 bytes
+  /// The token mint credited. `system_program::ID` for native SOL.
+  pub token_mint: Pubkey,
 
-  /// The nth count of payments that the payable has received
-  /// at the point when this payment was made.
-  pub payable_count: u64, // 8 bytes
+  /// Amount received in token base units.
+  pub amount: u64,
 
-  /// When this payment was made.
-  pub timestamp: u64, // 8 bytes
+  /// cbChainId of the payer's chain.
+  pub payer_chain_id: [u8; 32],
 
-  /// The amount and token that the payer paid
-  pub details: TokenAndAmount, // TokenAndAmount::SPACE
+  /// The UserPayment PDA address on the payer's chain (or cross-chain payment
+  /// ID). Stored as bytes for cross-chain compatibility.
+  pub payer_payment_id: [u8; 32],
+
+  /// Unix timestamp of the payment.
+  pub created_at: i64,
 }
 
 impl PayablePayment {
-  // discriminator (8) included
-  pub const SPACE: usize = 2 + (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
-
-  /// AKA `b"payable_payment"`.
+  /// AKA b"payable_payment"
   pub const SEED_PREFIX: &'static [u8] = b"payable_payment";
+  // 8  discriminator
+  // 32 payable
+  // 32 payer (normalized bytes)
+  // 8  payable_count
+  // 8  chain_count
+  // 32 token_mint
+  // 8  amount
+  // 32 payer_chain_id
+  // 32 payer_payment_id
+  // 8  created_at
+  /// Computed account byte space based on all fields.
+  pub const SPACE: usize = 8 + 32 + 32 + 8 + 8 + 32 + 8 + 32 + 32 + 8;
 }

@@ -44,8 +44,10 @@ export const usePaymentStore = defineStore('payment', () => {
     const isSameChain = userChain.name === payableChain.name;
 
     let result;
-    if (userChain.isSolana) {
-      result = await solana['pay'](payableId, details);
+    if (userChain.isSolana && isSameChain) {
+      result = await solana.pay(payableId, details);
+    } else if (userChain.isSolana && !isSameChain) {
+      result = await solana.payForeignViaCctp(payableId, details, payableChain);
     } else if (userChain.isEvm && isSameChain) {
       result = await evm.pay(payableId, details);
     } else if (userChain.isEvm && !isSameChain) {

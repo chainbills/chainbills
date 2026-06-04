@@ -12,7 +12,7 @@ export const contracts: Record<ChainName, string> = {
   arctestnet: '0x0bA837eF7358981967FB2cFcB79bf649b7cACbf4',
   megaeth: '0xc38d1681d34DA821E46508C084D673477E455570',
   sepolia: '0x48353Ab7662Bc8218811Fbbdf247cCc8602fba8A',
-  solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
+  solanadevnet: 'DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk',
 };
 
 export interface TokenChainDetails {
@@ -96,6 +96,10 @@ export const tokens: Token[] = [
       },
       sepolia: {
         address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        decimals: 6,
+      },
+      solanadevnet: {
+        address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
         decimals: 6,
       },
     },

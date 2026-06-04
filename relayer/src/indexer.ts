@@ -17,7 +17,7 @@
 
 import { Timestamp } from 'firebase-admin/firestore';
 import { getContract } from 'viem';
-import type { ChainConfig } from './chains.js';
+import type { EvmChainConfig as ChainConfig } from './chains.js';
 import { chainByCbChainId } from './chains.js';
 import { gettersAbi } from './utils/abis.js';
 import { makePublicClient } from './utils/clients.js';

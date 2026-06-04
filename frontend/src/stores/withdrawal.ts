@@ -7,14 +7,7 @@ import {
   Withdrawal,
   type ChainName,
 } from '@/schemas';
-import {
-  useAnalyticsStore,
-  useAuthStore,
-  useCacheStore,
-  useEvmStore,
-  usePayableStore,
-  useSolanaStore,
-} from '@/stores';
+import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, usePayableStore, useSolanaStore } from '@/stores';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';

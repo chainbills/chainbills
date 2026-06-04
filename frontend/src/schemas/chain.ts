@@ -70,8 +70,7 @@ export const solanadevnet: Chain = {
   isEvm: false,
   isSolana: true,
   networkType: 'testnet',
-  // TODO: Replace with real cbChainId from contract config
-  cbChainId: '0x0000000000000000000000000000000000000000000000000000000000000004',
+  cbChainId: '0x318e886b7d5a2e6f89c50cd1cdc3614e5f66532f673b5f14448b9b58c12e0e6e',
 };
 
 export const chainNamesToChains: Record<ChainName, Chain> = {

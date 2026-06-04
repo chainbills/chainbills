@@ -175,7 +175,7 @@ const checkForeignPayableRelayed = async () => {
 
   if (isForeignPayableRelayed.value && foreignPayableRefreshInterval) {
     // Stop the 15s refresher
-    clearInterval(foreignPayableRefreshInterval)
+    clearInterval(foreignPayableRefreshInterval);
   }
 };
 

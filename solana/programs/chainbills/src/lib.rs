@@ -1,226 +1,348 @@
-pub mod context;
-pub mod error;
-pub mod events;
-pub mod handlers;
-pub mod payload;
-pub mod state;
+//! # Chainbills — Solana Program
+//!
+//! Cross-chain payment gateway powered by Wormhole + Circle CCTP.
+//! Users create payables (public invoices). Anyone on any supported chain pays.
+//! Hosts withdraw funds. 2% fee on withdrawals. Full audit trail on-chain.
+//!
+//! ## Architecture
+//! See `solana/DESIGN.md` for full design, PDA scheme, cross-chain flows,
+//! wire format compatibility with EVM, and stack management strategies.
+//!
+//! ## Cross-chain compatibility
+//! `PaymentPayload` (251 bytes) and `PayablePayload` (variable) are
+//! byte-for-byte identical to EVM contracts. The same relayer processes VAAs
+//! from any chain.
+//!
+//! ## Program IDs
+//! - Devnet:  see `Anchor.toml`
+//! - Mainnet: see `solana/DEPLOYED.md` after deployment
 
-use crate::{context::*, state::TokenAndAmount};
 use anchor_lang::prelude::*;
 
-declare_id!("GazbpBKrionSvJbeqqqbfqCvK8m7prd8eq5P1SK5EZUD");
+pub mod constants;
+pub mod cpi;
+pub mod errors;
+pub mod events;
+pub mod instructions;
+pub mod payload;
+pub mod state;
+pub mod utils;
+
+// Re-export to crate root so Anchor's #[program] macro can find all
+// generated __client_accounts_* types from each #[derive(Accounts)] struct.
+// Must use explicit per-submodule exports — glob chains don't cascade
+// the generated __client_accounts_* modules to the crate root.
+pub use events::*;
+// Instruction accounts structs — each submodule re-exported directly
+pub use instructions::admin::*;
+pub use instructions::{payable::*, payment::*, relay::*, withdraw::*};
+pub use state::*; /* exports Config, Stats, SenderAuthority, and all
+                   * other PDAs */
+
+declare_id!("DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk");
 
 #[program]
 pub mod chainbills {
   use super::*;
 
-  /// Initialize the program. Specifically initialize the program's
-  /// Config and Solana's ChainStats.
-  ///
-  /// Config holds addresses and infos that this program will use to interact
-  /// with Wormhole. Other method handlers would reference properties of
-  /// Config to execute Wormhole-related CPI calls.
-  ///
-  /// ChainStats keeps track of the count of all entities in this program,
-  /// that were created on this chain (and any other chain). Entities include
-  /// Users, Payables, Payments, and Withdrawals. Initializing any other entity
-  /// must increment the appropriate count in the appropriate ChainStats.
-  ///
-  /// ChainStats has to be initialized for each BlockChain Network
-  /// involved in Chainbills. Solana's ChainStats also gets initialized here.
-  /// ChainStats for other chains get initialized when their foreign contracts
-  /// are registered.
+  // ── Admin ──────────────────────────────────────────────────────────────
+
+  /// One-time initialization. Creates GlobalConfig. Only the program's
+  /// upgrade authority may call this.
   #[inline(never)]
   pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-    handlers::initialize_handler(ctx)
+    process_initialize(ctx)
   }
 
-  /// Initialize a User.
-  ///
-  /// A User Account keeps track of the count of all entities associated with
-  /// them. That includes the number of payables they've created and the
-  /// number of payments and withdrawals they've made.
+  /// Create or update a TokenConfig PDA marking a mint as allowed.
   #[inline(never)]
-  pub fn initialize_user(ctx: Context<InitializeUser>) -> Result<()> {
-    handlers::initialize_user_handler(ctx)
+  pub fn allow_token(
+    ctx: Context<AllowToken>,
+    max_withdrawal_fee: u64,
+  ) -> Result<()> {
+    process_allow_token(ctx, max_withdrawal_fee)
   }
 
-  /// Create a Payable
-  ///
-  /// ### args
-  /// * allowed_tokens_and_amounts<Vec<TokenAndAmount>>: The allowed tokens
-  ///         (and their amounts) on this payable. If this vector is empty,
-  ///         then the payable will accept payments in any token.
+  /// Mark a previously allowed token as disallowed.
   #[inline(never)]
-  pub fn create_payable<'info>(
-    ctx: Context<'_, '_, 'info, 'info, CreatePayable>,
+  pub fn disallow_token(ctx: Context<DisallowToken>) -> Result<()> {
+    process_disallow_token(ctx)
+  }
+
+  /// Update global fee settings (fee_bps and fee_collector).
+  #[inline(never)]
+  pub fn update_fee_settings(
+    ctx: Context<UpdateFeeSettings>,
+    fee_bps: u16,
+  ) -> Result<()> {
+    process_update_fee_settings(ctx, fee_bps)
+  }
+
+  /// Register a foreign chain with its Wormhole and/or CCTP identifiers.
+  #[inline(never)]
+  pub fn register_chain(
+    ctx: Context<RegisterChain>,
+    cb_chain_id: [u8; 32],
+    has_wormhole: bool,
+    wormhole_chain_id: u16,
+    has_cctp: bool,
+    circle_domain: u32,
+    registered_contract: [u8; 32],
+  ) -> Result<()> {
+    process_register_chain(
+      ctx,
+      cb_chain_id,
+      has_wormhole,
+      wormhole_chain_id,
+      has_cctp,
+      circle_domain,
+      registered_contract,
+    )
+  }
+
+  /// Update an existing ChainRegistry (add/change Wormhole or CCTP params).
+  #[inline(never)]
+  pub fn update_chain(
+    ctx: Context<UpdateChain>,
+    has_wormhole: bool,
+    wormhole_chain_id: u16,
+    has_cctp: bool,
+    circle_domain: u32,
+    registered_contract: [u8; 32],
+  ) -> Result<()> {
+    process_update_chain(
+      ctx,
+      has_wormhole,
+      wormhole_chain_id,
+      has_cctp,
+      circle_domain,
+      registered_contract,
+    )
+  }
+
+  /// Admin escape hatch: apply a PayablePayload without a VAA.
+  /// Used when no common protocol exists between two chains.
+  #[inline(never)]
+  pub fn admin_sync_foreign_payable(
+    ctx: Context<AdminSyncForeignPayable>,
+    payable_id: [u8; 32],
+    src_cb_chain_id: [u8; 32],
+    nonce: u64,
+    action_type: u8,
+    ataa_data: Vec<u8>,
+  ) -> Result<()> {
+    process_admin_sync_foreign_payable(
+      ctx,
+      payable_id,
+      src_cb_chain_id,
+      nonce,
+      action_type,
+      ataa_data,
+    )
+  }
+
+  // ── Payable ────────────────────────────────────────────────────────────
+
+  /// Create a new payable (public invoice). Records PayableCreated activity.
+  /// Broadcasts PayablePayload to all registered foreign chains.
+  #[inline(never)]
+  pub fn create_payable(
+    ctx: Context<CreatePayable>,
+    allowed_tokens_and_amounts: Vec<TokenAndAmount>,
+    is_auto_withdraw: bool,
+  ) -> Result<()> {
+    process_create_payable(ctx, allowed_tokens_and_amounts, is_auto_withdraw)
+  }
+
+  /// Replace the payable's allowed tokens and amounts list. Reallocates
+  /// the Payable account if the new list is larger. Broadcasts update.
+  #[inline(never)]
+  pub fn update_payable_ataa(
+    ctx: Context<UpdatePayableAtaa>,
     allowed_tokens_and_amounts: Vec<TokenAndAmount>,
   ) -> Result<()> {
-    handlers::create_payable_handler(ctx, allowed_tokens_and_amounts)
+    process_update_payable_ataa(ctx, allowed_tokens_and_amounts)
   }
 
-  /// Transfers the amount of tokens from a payer to a payable
-  ///
-  /// ### args
-  /// * amount<u64>: The amount to be paid
+  /// Flip the auto-withdraw flag. No cross-chain broadcast (local flag only).
+  #[inline(never)]
+  pub fn update_payable_auto_withdraw(
+    ctx: Context<UpdatePayableAutoWithdraw>,
+    is_auto_withdraw: bool,
+  ) -> Result<()> {
+    process_update_payable_auto_withdraw(ctx, is_auto_withdraw)
+  }
+
+  /// Close a payable. Broadcasts close to all foreign chains.
+  #[inline(never)]
+  pub fn close_payable(ctx: Context<ClosePayable>) -> Result<()> {
+    process_close_payable(ctx)
+  }
+
+  /// Reopen a previously closed payable. Broadcasts reopen to all foreign
+  /// chains.
+  #[inline(never)]
+  pub fn reopen_payable(ctx: Context<ReopenPayable>) -> Result<()> {
+    process_reopen_payable(ctx)
+  }
+
+  // ── Payment ────────────────────────────────────────────────────────────
+
+  /// Pay a local payable with an SPL Token or Token-2022 token.
+  /// If is_auto_withdraw is set, triggers immediate withdrawal.
   #[inline(never)]
   pub fn pay(ctx: Context<Pay>, amount: u64) -> Result<()> {
-    handlers::pay(ctx, amount)
+    process_pay(ctx, amount)
   }
 
-  /// Transfers the amount of native tokens (Solana) to a payable
-  ///
-  /// ### args
-  /// * amount<u64>: The Wormhole-normalized amount to be paid
+  /// Pay a local payable with native SOL.
   #[inline(never)]
   pub fn pay_native(ctx: Context<PayNative>, amount: u64) -> Result<()> {
-    handlers::pay_native(ctx, amount)
+    process_pay_native(ctx, amount)
   }
 
-  /// Transfers the amount of tokens from a payable to a host
-  ///
-  /// ### args
-  /// * amount<u64>: The amount to be withdrawn
+  /// Cross-chain outbound payment (Solana → EVM). Burns USDC via CCTP,
+  /// publishes PaymentPayload via Wormhole shim.
+  #[inline(never)]
+  pub fn pay_foreign_via_cctp<'info>(
+    ctx: Context<'_, '_, '_, 'info, PayForeignViaCctp<'info>>,
+    foreign_payable_id: [u8; 32],
+    dest_cb_chain_id: [u8; 32],
+    amount: u64,
+    max_fee: u64,
+  ) -> Result<()> {
+    process_pay_foreign_via_cctp(
+      ctx,
+      foreign_payable_id,
+      dest_cb_chain_id,
+      amount,
+      max_fee,
+    )
+  }
+
+  // ── Withdrawal ─────────────────────────────────────────────────────────
+
+  /// Withdraw SPL Token or Token-2022 from a payable. 2% fee (capped per
+  /// token).
   #[inline(never)]
   pub fn withdraw(ctx: Context<Withdraw>, amount: u64) -> Result<()> {
-    handlers::withdraw(ctx, amount)
+    process_withdraw(ctx, amount)
   }
 
-  /// Transfers the amount of native tokens (Solana) from a payable to a host
-  ///
-  /// ### args
-  /// * amount<u64>: The amount to be withdrawn
+  /// Withdraw native SOL from a payable.
   #[inline(never)]
   pub fn withdraw_native(
     ctx: Context<WithdrawNative>,
     amount: u64,
   ) -> Result<()> {
-    handlers::withdraw_native(ctx, amount)
+    process_withdraw_native(ctx, amount)
   }
 
-  /// Stop a payable from accepting payments. Can be called only
-  /// by the host (user) that owns the payable.
-  #[inline(never)]
-  pub fn close_payable(ctx: Context<UpdatePayable>) -> Result<()> {
-    handlers::close_payable(ctx)
-  }
+  // ── Relay ──────────────────────────────────────────────────────────────
 
-  /// Allow a closed payable to continue accepting payments.
-  /// Can be called only by the host (user) that owns the payable.
+  /// EVM → Solana payment receipt via Wormhole VAA + Circle CCTP.
   #[inline(never)]
-  pub fn reopen_payable(ctx: Context<UpdatePayable>) -> Result<()> {
-    handlers::reopen_payable(ctx)
-  }
-
-  /// Allows a payable's host to update the payable's allowed_tokens_and_amounts.
-  ///
-  /// ### args
-  /// * allowed_tokens_and_amounts: the new set of tokens and amounts that the payable
-  /// will accept.
-  #[inline(never)]
-  pub fn update_payable_allowed_tokens_and_amounts<'info>(
-    ctx: Context<'_, '_, 'info, 'info, UpdatePayableAllowedTokensAndAmounts>,
-    allowed_tokens_and_amounts: Vec<TokenAndAmount>,
+  pub fn recv_payment_via_cctp_wormhole<'info>(
+    ctx: Context<'_, '_, '_, 'info, RecvPaymentViaCctpWormhole<'info>>,
+    vaa_hash: [u8; 32],
+    payer_chain_id: [u8; 32],
+    payer: [u8; 32],
+    payment_nonce: u64,
+    cctp_burn_nonce: [u8; 32],
+    src_domain: u32,
+    burn_message: Vec<u8>,
+    circle_attestation: Vec<u8>,
   ) -> Result<()> {
-    handlers::update_payable_allowed_tokens_and_amounts(
+    process_recv_payment_via_cctp_wormhole(
       ctx,
-      allowed_tokens_and_amounts,
+      vaa_hash,
+      payer_chain_id,
+      payer,
+      payment_nonce,
+      cctp_burn_nonce,
+      src_domain,
+      burn_message,
+      circle_attestation,
     )
   }
 
-  /// Record a foreign payable update.
-  ///
-  /// ### args
-  /// * payable_id<[u8; 32]>: The payable ID to update.
-  /// * ataa_len<u8>: The length of the allowed tokens and amounts.
-  /// * vaa_hash<[u8; 32]>: The hash of the VAA.
+  /// EVM → Solana payment receipt via CCTP only (no Wormhole).
   #[inline(never)]
-  pub fn record_foreign_payable_update(
-    ctx: Context<RecordForeignPayableUpdate>,
-    payable_id: [u8; 32],
-    ataa_len: u8,
+  pub fn recv_payment_via_cctp_only<'info>(
+    ctx: Context<'_, '_, '_, 'info, RecvPaymentViaCctpOnly<'info>>,
+    src_domain: u32,
+    data_nonce: [u8; 32],
+    burn_nonce: [u8; 32],
+    payer_chain_id: [u8; 32],
+    payer: [u8; 32],
+    payment_nonce: u64,
+    data_message: Vec<u8>,
+    data_attestation: Vec<u8>,
+    burn_message: Vec<u8>,
+    burn_attestation: Vec<u8>,
+  ) -> Result<()> {
+    process_recv_payment_via_cctp_only(
+      ctx,
+      src_domain,
+      data_nonce,
+      burn_nonce,
+      payer_chain_id,
+      payer,
+      payment_nonce,
+      data_message,
+      data_attestation,
+      burn_message,
+      burn_attestation,
+    )
+  }
+
+  /// EVM → Solana payable state sync via Wormhole VAA.
+  #[inline(never)]
+  pub fn recv_payable_update_via_wormhole(
+    ctx: Context<RecvPayableUpdateViaWormhole>,
     vaa_hash: [u8; 32],
   ) -> Result<()> {
-    handlers::record_foreign_payable_update_handler(
-      ctx, payable_id, ataa_len, vaa_hash,
-    )
+    process_recv_payable_update_via_wormhole(ctx, vaa_hash)
   }
 
-  /// Updates the local token mint and the foreign token address for a given
-  /// token against a foreign chain.
-  ///
-  /// ### Args
-  /// * chain<u16>: The foreign chain ID.
-  /// * foreign_token<[u8; 32]>: The foreign token address.
-  /// * token<Pubkey>: The token mint to update.
+  /// EVM → Solana payable state sync via CCTP data message (no Wormhole).
   #[inline(never)]
-  pub fn update_token_foreign_chain(
-    ctx: Context<UpdateTokenForeignChain>,
-    chain: u16,
-    foreign_token: [u8; 32],
-    token: Pubkey,
+  pub fn recv_payable_update_via_cctp<'info>(
+    ctx: Context<'_, '_, '_, 'info, RecvPayableUpdateViaCctp<'info>>,
+    src_domain: u32,
+    cctp_nonce: [u8; 32],
+    message: Vec<u8>,
+    attestation: Vec<u8>,
   ) -> Result<()> {
-    handlers::update_token_foreign_chain_handler(
+    process_recv_payable_update_via_cctp(
       ctx,
-      chain,
-      foreign_token,
-      token,
+      src_domain,
+      cctp_nonce,
+      message,
+      attestation,
     )
   }
 
-  /// Updates the maximum withdrawal fees of the given token.
-  ///
-  /// ### Args
-  /// * token<Pubkey>: The address of the token for which its maximum
-  ///                   withdrawal fees is been set.
-  /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+  /// Broadcast this payable's current state to all registered foreign chains.
   #[inline(never)]
-  pub fn update_max_withdrawal_fees(
-    ctx: Context<UpdateMaxWithdrawalFees>,
-    token: Pubkey,
-    max_withdrawal_fees: u64,
+  pub fn broadcast_payable_update<'info>(
+    ctx: Context<'_, '_, '_, 'info, BroadcastPayableUpdate<'info>>,
+    action_type: u8,
   ) -> Result<()> {
-    handlers::update_max_withdrawal_fees(ctx, token, max_withdrawal_fees)
+    process_broadcast_payable_update(ctx, action_type)
   }
 
-  /// Updates the maximum withdrawal fees of the native token (Solana).
+  /// CCTP MessageTransmitter receiver callback (no-op).
   ///
-  /// ### Args
-  /// * max_withdrawal_fees<u64>: The maximum withdrawal fees to set.
+  /// Called by Circle's MessageTransmitter at the end of `receive_message`
+  /// when Chainbills is the designated receiver in a CCTP data message.
+  /// State was already recorded before the `receive_message` CPI was issued;
+  /// this handler exists solely to satisfy the CCTP callback ABI.
   #[inline(never)]
-  pub fn update_max_withdrawal_fees_native(
-    ctx: Context<UpdateMaxWithdrawalFeesNative>,
-    max_withdrawal_fees: u64,
+  pub fn handle_receive_message(
+    ctx: Context<HandleReceiveMessage>,
+    params: HandleReceiveMessageParams,
   ) -> Result<()> {
-    handlers::update_max_withdrawal_fees_native(ctx, max_withdrawal_fees)
-  }
-
-  /// Withdraws fees from this program.
-  /// Should be called only by upgrade authority holder of this program.
-  ///
-  /// ### args
-  /// * amount<u64>: The amount to be withdrawn
-  #[inline(never)]
-  pub fn owner_withdraw(
-    ctx: Context<OwnerWithdraw>,
-    amount: u64,
-  ) -> Result<()> {
-    handlers::owner_withdraw_handler(ctx, amount)
-  }
-
-  /// Register (or update) a trusted contract or Wormhole emitter from another
-  /// chain. Also initialize that chain's ChainStats if need be.
-  ///
-  /// ### Arguments
-  /// * `ctx`     - `RegisterForeignEmitter` context
-  /// * `chain_id`   - Wormhole Chain ID
-  /// * `emitter_address` - Wormhole Emitter Address
-  #[inline(never)]
-  pub fn register_foreign_contract(
-    ctx: Context<RegisterForeignContract>,
-    chain_id: u16,
-    emitter_address: [u8; 32],
-  ) -> Result<()> {
-    handlers::register_foreign_contract_handler(ctx, chain_id, emitter_address)
+    process_handle_receive_message(ctx, params)
   }
 }

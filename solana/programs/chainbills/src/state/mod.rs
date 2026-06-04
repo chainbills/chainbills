@@ -1,45 +1,38 @@
-pub mod activity_record;
-pub mod chain_items;
-pub mod chain_stats;
+//! On-chain account (PDA) types for the Chainbills program.
+//! Each type has SEED_PREFIX, SPACE, and doc comments on every field.
+
+pub mod activity;
+pub mod cctp_data_nonce;
+pub mod cctp_token_burn_nonce;
+pub mod chain_registry;
 pub mod config;
-pub mod registered_foreign_contract;
+pub mod consumed_vaa;
+pub mod foreign_payable;
 pub mod payable;
-pub mod payable_foreign;
-pub mod payable_items;
 pub mod payable_payment;
+pub mod payment_nonce;
+pub mod sender_authority;
+pub mod stats;
 pub mod token_and_amount;
-pub mod token_and_amount_foreign;
-pub mod token_details;
-pub mod token_foreign_chain;
-pub mod user;
-pub mod user_activity_info;
+pub mod token_config;
 pub mod user_payment;
+pub mod user_record;
 pub mod withdrawal;
-pub mod consumed_wormhole_message;
 
-pub use activity_record::*;
-pub use chain_items::*;
-pub use chain_stats::*;
+pub use activity::*;
+pub use cctp_data_nonce::*;
+pub use cctp_token_burn_nonce::*;
+pub use chain_registry::*;
 pub use config::*;
-pub use registered_foreign_contract::*;
+pub use consumed_vaa::*;
+pub use foreign_payable::*;
 pub use payable::*;
-pub use payable_foreign::*;
-pub use payable_items::*;
 pub use payable_payment::*;
+pub use payment_nonce::*;
+pub use sender_authority::*;
+pub use stats::*;
 pub use token_and_amount::*;
-pub use token_and_amount_foreign::*;
-pub use token_foreign_chain::*;
-pub use token_details::*;
-pub use user::*;
-pub use user_activity_info::*;
+pub use token_config::*;
 pub use user_payment::*;
+pub use user_record::*;
 pub use withdrawal::*;
-pub use consumed_wormhole_message::*;
-
-/// AKA `b"sent"`.
-pub const SEED_PREFIX_SENT: &[u8; 4] = b"sent";
-
-use anchor_lang::prelude::*;
-
-#[account]
-pub struct Empty {}

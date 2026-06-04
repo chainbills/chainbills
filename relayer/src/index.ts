@@ -32,7 +32,10 @@ async function main() {
   logger.info({ port }, 'Health server listening');
 
   logger.info('Chainbills Relayer starting…');
-  logger.info({ chains: ALL_CHAINS.map((c) => c.name) }, `Watching ${ALL_CHAINS.length} chains :: ${ALL_CHAINS.map(({name}) => name).join(', ')}.`);
+  logger.info(
+    { chains: ALL_CHAINS.map((c) => c.name) },
+    `Watching ${ALL_CHAINS.length} chains :: ${ALL_CHAINS.map(({ name }) => name).join(', ')}.`
+  );
 
   // Start one watcher per chain — all run concurrently in parallel async loops.
   const watcherPromises = ALL_CHAINS.map((chain) =>
@@ -61,15 +64,36 @@ async function main() {
     while (true) {
       try {
         for (const chain of ALL_CHAINS) {
-          const publicClient = makePublicClient(chain);
-          const balance = await publicClient.getBalance({ address: account.address });
-          if (balance < chain.minGasBalance) {
-            logger.warn(
-              { chain: chain.name, balance: formatEther(balance) },
-              `CRITICAL: Low native token balance on ${chain.name} (${formatEther(balance)} ETH) — Please fund relayer!`
-            );
+          if (chain.isSolana) {
+            // Solana balance check via web3.js
+            try {
+              const { getSolanaRelayerKeypair } = await import('./config.js');
+              const { Connection } = await import('@solana/web3.js');
+              const solKeypair = getSolanaRelayerKeypair();
+              const conn = new Connection(chain.rpcUrl, 'confirmed');
+              const lamports = await conn.getBalance(solKeypair.publicKey);
+              if (BigInt(lamports) < chain.minGasBalance) {
+                logger.warn(
+                  { chain: chain.name, lamports },
+                  `CRITICAL: Low SOL balance on ${chain.name} (${lamports} lamports) — Please fund relayer!`
+                );
+              } else {
+                logger.debug({ chain: chain.name, lamports }, 'Solana gas balance OK');
+              }
+            } catch (solErr) {
+              logger.error({ err: solErr, chain: chain.name }, 'Solana balance check error');
+            }
           } else {
-            logger.debug({ chain: chain.name, balance: formatEther(balance) }, 'Gas balance OK');
+            const publicClient = makePublicClient(chain);
+            const balance = await publicClient.getBalance({ address: account.address });
+            if (balance < chain.minGasBalance) {
+              logger.warn(
+                { chain: chain.name, balance: formatEther(balance) },
+                `CRITICAL: Low native token balance on ${chain.name} (${formatEther(balance)} ETH) — Please fund relayer!`
+              );
+            } else {
+              logger.debug({ chain: chain.name, balance: formatEther(balance) }, 'Gas balance OK');
+            }
           }
         }
       } catch (err) {
@@ -94,10 +118,7 @@ async function main() {
         .join(' | ');
       const idleMin = Math.round(idleMs() / 60000);
       const label = idleMs() >= HEARTBEAT_INTERVAL_MS ? 'Relayer alive — no recent activity' : 'Relayer heartbeat';
-      logger.info(
-        { idleMin, cursors: snapshot },
-        `${label} — idle ${idleMin}min — ${cursorSummary}`
-      );
+      logger.info({ idleMin, cursors: snapshot }, `${label} — idle ${idleMin}min — ${cursorSummary}`);
     }
   };
 

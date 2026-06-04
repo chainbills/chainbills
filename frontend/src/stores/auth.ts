@@ -1,4 +1,12 @@
-import { type Chain, arctestnet, megaeth as megaethInApp, sepolia as sepoliaInApp, solanadevnet, type Token, User } from '@/schemas';
+import {
+  type Chain,
+  arctestnet,
+  megaeth as megaethInApp,
+  sepolia as sepoliaInApp,
+  solanadevnet,
+  type Token,
+  User,
+} from '@/schemas';
 import { useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { defineStore } from 'pinia';

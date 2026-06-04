@@ -63,7 +63,7 @@ After a successful payment, Chainbills generates a receipt with the payment's de
 
 Chainbills permits the same activity set across multiple chains.
 
-For now MegaETH (EVM mainnet), Arc Testnet, and Ethereum Sepolia (EVM testnets) are supported. More chains will be added.
+Currently deployed on MegaETH (EVM mainnet), Arc Testnet, and Ethereum Sepolia (EVM testnets). Solana Devnet support is in active development (program complete, devnet deployment pending).
 
 Our mission is to provide a seamless payment-receiving experience to content creators, merchants, and foundations. To enable them receive money for donations, products, and services from a large user base (across multiple chains). Chainbills also makes money easy by providing all these payments in one dashboard.
 
@@ -103,15 +103,11 @@ Solana's design patterns involves creating PDAs (Program Derived Accounts) for s
 
 ### CosmWasm
 
-[Cosmos](https://cosmos.network/) allow you to build blockchains that can co-interact with the [IBC protocol](https://cosmos.network/ibc/). So just like there are multiple EVM-compatible chains, there are also many Cosmos-based blockchain networks.
-
-Cosmos chains use [CosmWasm](https://cosmos.network/cosmwasm) (WebAssembly) for smart contracts. These cosmwasm contracts are also written in Rust like Solana. However, they have a similarity with EVM/Solidity in that they use a `mappings`-like way to store data and smart contract state.
-
-Chainbills also has a cosmwasm contract built with the [Sylvia](https://cosmwasm.cosmos.network/sylvia) framework. Chainbills' features are split around `query` and `execute` method calls as CosmWasm expects. Find out more in the [`cosmwasm` subdirectory].
+CosmWasm (Cosmos) support is planned but not currently active. The `cosmwasm/` subdirectory contains an earlier prototype that needs to be rebuilt to match the current cross-chain architecture. Contributions welcome.
 
 ## Relayer
 
-The relayer is a standalone, long-lived Node.js process (deployed on Cloud Run with `min-instances=1`) that automates cross-chain event indexing and message relaying for Chainbills EVM chains. It runs independently of the server and the frontend.
+The relayer is a standalone, long-lived Node.js process (deployed on Cloud Run with `min-instances=1`) that automates cross-chain event indexing and message relaying for Chainbills chains (EVM + Solana). It runs independently of the server and the frontend.
 
 **What it does:**
 
@@ -144,11 +140,9 @@ All deployed EVM contract addresses, computed `cbChainId` values, Wormhole chain
 
 ## Roadmap
 
-- Completing Cross-Chain Architecture.
 
-- Making widgets or embeddables that hosts can add to their websites.
-
-- Enabling subscription payments for hosts.
+- **Embeddable widgets** — drop-in payment components hosts can add to their websites.
+- **Subscription payments** — recurring billing support for hosts.
 
 ## Community
 

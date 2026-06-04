@@ -2,7 +2,15 @@
 import ReceiptLoader from '@/components/ReceiptLoader.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import { getChainLogo, getTokenLogo, getWalletUrl, PayablePayment, UserPayment, Withdrawal, type Receipt } from '@/schemas';
+import {
+  getChainLogo,
+  getTokenLogo,
+  getWalletUrl,
+  PayablePayment,
+  UserPayment,
+  Withdrawal,
+  type Receipt,
+} from '@/schemas';
 import {
   useAnalyticsStore,
   useAuthStore,

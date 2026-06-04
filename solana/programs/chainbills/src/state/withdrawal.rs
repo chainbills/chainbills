@@ -1,38 +1,57 @@
-use crate::state::TokenAndAmount;
+//! `Withdrawal` — immutable record of a host withdrawal.
+//! Seeds: `[b"wdl", payable: Pubkey, withdrawal_count_le: [u8;8]]`
+
 use anchor_lang::prelude::*;
 
+/// Immutable record of a withdrawal by a payable host.
+///
+/// Seeds: `[Withdrawal::SEED_PREFIX, payable.key(),
+/// payable.withdrawals_count.to_le_bytes()]` where `withdrawals_count` is the
+/// value BEFORE incrementing (0-based index).
 #[account]
-/// A receipt of a withdrawal made by a Host from a Payable.
 pub struct Withdrawal {
-  /// The address of the Payable from which this Withdrawal was made.
-  pub payable_id: Pubkey, // 32 bytes
+  /// The payable that was withdrawn from.
+  pub payable: Pubkey,
 
-  /// The wallet address (payable's owner) that made this Withdrawal.
-  pub host: Pubkey, // 32 bytes
+  /// The host wallet that performed the withdrawal.
+  pub host: Pubkey,
 
-  /// The nth count of withdrawals on this chain at the point
-  /// this withdrawal was made.
-  pub chain_count: u64, // 8 bytes
+  /// The token mint withdrawn. `system_program::ID` for native SOL.
+  pub token_mint: Pubkey,
 
-  /// The nth count of withdrawals that the host has made
-  /// at the point of making this withdrawal.
-  pub host_count: u64, // 8 bytes
+  /// Gross withdrawal amount (before fee deduction).
+  pub amount: u64,
 
-  /// The nth count of withdrawals that has been made from
-  /// this payable at the point when this withdrawal was made.
-  pub payable_count: u64, // 8 bytes
+  /// Fee deducted (min of percentage-based and max_fee cap).
+  pub fees: u64,
 
-  /// When this withdrawal was made.
-  pub timestamp: u64, // 8 bytes
+  /// Net amount actually received by the host (amount - fees).
+  pub net_amount: u64,
 
-  /// The amount and token that the host withdrew
-  pub details: TokenAndAmount, // TokenAndAmount::SPACE
+  /// This withdrawal's index within the payable's withdrawal history
+  /// (0-based).
+  pub withdrawal_count: u64,
+
+  /// Snapshot of `global_config.total_withdrawals` at time of withdrawal.
+  pub chain_count: u64,
+
+  /// Unix timestamp of the withdrawal.
+  pub created_at: i64,
 }
 
 impl Withdrawal {
-  // discriminator (8) included
-  pub const SPACE: usize = (5 * 8) + (2 * 32) + TokenAndAmount::SPACE;
-
-  /// AKA `b"withdrawal"`.
+  /// AKA b"withdrawal"
   pub const SEED_PREFIX: &'static [u8] = b"withdrawal";
+  // 8  discriminator
+  // 32 payable
+  // 32 host
+  // 32 token_mint
+  // 8  amount
+  // 8  fees
+  // 8  net_amount
+  // 8  withdrawal_count
+  // 8  chain_count
+  // 8  created_at
+  /// Computed account byte space based on all fields.
+  pub const SPACE: usize = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 8;
 }

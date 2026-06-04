@@ -16,9 +16,10 @@
 // For payment jobs we need both the VAA AND the CCTP attestation.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { chainByName } from '../chains.js';
+import { chainByName, type EvmChainConfig } from '../chains.js';
 import { waitForAllAttestations, waitForAttestation } from '../resolvers/cctp.js';
 import { getVaaBySequence, getVaaByTxHash } from '../resolvers/wormhole.js';
+import { submitPayableUpdateToSolana, submitPaymentToSolana } from '../solana/submitter.js';
 import {
   submitAdminSyncPayable,
   submitPayableUpdateViaCctp,
@@ -103,7 +104,7 @@ async function processJob(job: RelayerJob): Promise<void> {
           await markDone(job.id);
           return;
         }
-        await submitPayableUpdateViaWormhole(destChain, vaaBytes);
+        await submitPayableUpdateViaWormhole(destChain as EvmChainConfig, vaaBytes);
         break;
       }
 
@@ -114,7 +115,7 @@ async function processJob(job: RelayerJob): Promise<void> {
         }
         const { message, attestation } = await waitForAttestation(sourceChain, job.txHash);
         await patchJob(job.id, { circleMsg: message, circleAttestation: attestation });
-        await submitPayableUpdateViaCctp(destChain, message, attestation);
+        await submitPayableUpdateViaCctp(destChain as EvmChainConfig, message, attestation);
         break;
       }
 
@@ -140,7 +141,7 @@ async function processJob(job: RelayerJob): Promise<void> {
           circleMsg: message,
           circleAttestation: attestation,
         });
-        await submitForeignPayment(destChain, vaaBytes, message, attestation);
+        await submitForeignPayment(destChain as EvmChainConfig, vaaBytes, message, attestation);
         break;
       }
 
@@ -161,7 +162,7 @@ async function processJob(job: RelayerJob): Promise<void> {
           circleAttestPayload: payloadMsg.attestation,
         });
         await submitForeignPaymentViaCctp(
-          destChain,
+          destChain as EvmChainConfig,
           tokenBurn.message,
           tokenBurn.attestation,
           payloadMsg.message,
@@ -191,7 +192,56 @@ async function processJob(job: RelayerJob): Promise<void> {
           await markDone(job.id);
           return;
         }
-        await submitAdminSyncPayable(sourceChain, destChain, vaaBytes);
+        await submitAdminSyncPayable(sourceChain as EvmChainConfig, destChain as EvmChainConfig, vaaBytes);
+        break;
+      }
+
+      case 'SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE': {
+        if (!destChain.isSolana)
+          throw new Error(`SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE: destChain ${destChain.name} is not Solana`);
+        let vaaBytes: Uint8Array;
+        if (job.vaa) {
+          vaaBytes = Buffer.from(job.vaa, 'hex');
+        } else if (job.eventData?.sequence !== undefined) {
+          const sequence = Number(job.eventData.sequence);
+          log.info({ sequence }, 'Fetching Wormhole VAA by sequence for Solana dest');
+          const fetched = await getVaaBySequence(sourceChain, sequence);
+          if (!fetched) throw new Error('VAA not yet available by sequence, will retry');
+          vaaBytes = fetched;
+          await patchJob(job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
+        } else {
+          const fetched = await getVaaByTxHash(sourceChain, job.txHash);
+          if (!fetched) throw new Error('VAA not yet available, will retry');
+          vaaBytes = fetched;
+          await patchJob(job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
+        }
+        const payloadOffset = wormholePayloadOffset(vaaBytes);
+        if (payloadOffset !== null && vaaBytes[payloadOffset] !== 1) {
+          log.info({ payloadType: vaaBytes[payloadOffset] }, 'Skipping non-payable-update VAA for Solana');
+          await markDone(job.id);
+          return;
+        }
+        await submitPayableUpdateToSolana(destChain, vaaBytes);
+        break;
+      }
+
+      case 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE': {
+        if (!destChain.isSolana)
+          throw new Error(`SOLANA_PAYMENT_VIA_CCTP_WORMHOLE: destChain ${destChain.name} is not Solana`);
+        if (!sourceChain.hasWormhole) throw new Error(`Source ${sourceChain.name} has no Wormhole`);
+        if (!sourceChain.hasCctp) throw new Error(`Source ${sourceChain.name} has no CCTP`);
+        log.info('Fetching VAA + CCTP attestation for Solana payment receive');
+        const [vaaBytes2, { message: solMsg, attestation: solAttest }] = await Promise.all([
+          getVaaByTxHash(sourceChain, job.txHash),
+          waitForAttestation(sourceChain, job.txHash),
+        ]);
+        if (!vaaBytes2) throw new Error('VAA not yet available, will retry');
+        await patchJob(job.id, {
+          vaa: Buffer.from(vaaBytes2).toString('hex'),
+          circleMsg: solMsg,
+          circleAttestation: solAttest,
+        });
+        await submitPaymentToSolana(destChain, vaaBytes2, solMsg, solAttest);
         break;
       }
 

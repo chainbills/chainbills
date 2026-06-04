@@ -6,46 +6,53 @@ Cross-chain payment gateway. Users create **payables** (public invoices). Payers
 
 ## Active Subdirectories
 
-| Dir | Status | Purpose |
-|-----|--------|---------|
-| `evm/` | **Active** | Solidity contracts (Foundry). Deploy target for all EVM chains. |
-| `relayer/` | **Active** | Node.js event indexer + cross-chain relay service (Docker / Cloud Run). |
-| `frontend/` | **Active** | Vue 3 + Pinia + Wagmi SPA. |
-| `server/` | Active (minor) | Firebase Cloud Functions for descriptions + FCM tokens. |
-| `solana_old/` | **Ignore** | Old Solana code — needs rebuilding. |
-| `cosmwasm/` | **Ignore** | Old CosmWasm code — needs rebuilding. |
+| Dir           | Status         | Purpose                                                                                     |
+| ------------- | -------------- | ------------------------------------------------------------------------------------------- |
+| `evm/`        | **Active**     | Solidity contracts (Foundry). Deploy target for all EVM chains.                             |
+| `solana/`     | **Active**     | Anchor 0.32.1 program (Rust). Phases 1–19 complete. Devnet deploy pending (Phase 20).      |
+| `relayer/`    | **Active**     | Node.js event indexer + cross-chain relay service (Docker / Cloud Run). Solana support added. |
+| `frontend/`   | **Active**     | Vue 3 + Pinia + Wagmi SPA. Solana store added.                                              |
+| `server/`     | Active (minor) | Firebase Cloud Functions for descriptions + FCM tokens.                                     |
+| `solana_old/` | **Ignore**     | Old Solana code — superseded by `solana/`.                                                  |
+| `cosmwasm/`   | **Ignore**     | Old CosmWasm code — needs rebuilding.                                                       |
 
 ## Deployed Chains (as of May 2026)
 
-| Chain | Type | cbChainId | Wormhole | CCTP |
-|-------|------|-----------|----------|------|
-| MegaETH Mainnet | mainnet EVM | `0x78b4...` | ✓ (id=64) | ✗ |
-| Ethereum Sepolia | testnet EVM | `0xafa9...` | ✓ (id=10002) | ✓ (domain=0) |
-| Arc Testnet | testnet EVM | `0xfcfa...` | ✗ | ✓ (domain=26) |
+| Chain            | Type        | cbChainId   | Wormhole     | CCTP          |
+| ---------------- | ----------- | ----------- | ------------ | ------------- |
+| MegaETH Mainnet  | mainnet EVM | `0x78b4...` | ✓ (id=64)    | ✗             |
+| Ethereum Sepolia | testnet EVM | `0xafa9...` | ✓ (id=10002) | ✓ (domain=0)  |
+| Arc Testnet      | testnet EVM | `0xfcfa...` | ✗            | ✓ (domain=26) |
 
 Full addresses: `evm/DEPLOYED.md`
 
 ## cbChainId — The Universal Key
 
 All cross-chain references use `cbChainId = keccak256("namespace:reference")` (CAIP-2).
+
 - Ethereum Sepolia: `keccak256("eip155:11155111")`
 - Arc Testnet: `keccak256("eip155:5042002")`
 - MegaETH: `keccak256("eip155:4326")`
+- Solana Mainnet: `keccak256("solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp")`
+- Solana Devnet: `keccak256("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1")`
 
 Never use Wormhole uint16 IDs or Circle uint32 domains as cross-chain keys in app logic — always use cbChainId.
 
 ## Cross-Chain Flow
 
 ### Same-chain payment
+
 `pay(payableId, token, amount)` — direct, no bridge.
 
 ### Cross-chain payment (different EVM chains)
+
 1. Payer calls `payForeignViaCctp(payableId, token, amount, maxFee)` on source chain.
 2. Contract burns USDC via Circle CCTP + publishes Wormhole VAA (or second CCTP message).
 3. Relayer detects `UserPaid` event, creates a `PAYMENT_VIA_CCTP_WORMHOLE` or `PAYMENT_VIA_CCTP_ONLY` job.
 4. Relayer fetches attestations, calls `receiveForeignPaymentViaCctp(params)` on dest chain.
 
 ### Payable update sync
+
 When a payable is created/updated, `PayableUpdateBroadcasted` fires. Relayer creates relay jobs to push the `PayablePayload` to all other chains (via Wormhole VAA or CCTP message).
 
 ## Key Data Structures (shared across all code)
@@ -73,6 +80,12 @@ When a payable is created/updated, `PayableUpdateBroadcasted` fires. Relayer cre
 cd evm && forge build
 cd evm && forge test
 cd evm && ./script/run.sh <chain> <ScriptName>
+
+# Solana
+cd solana && anchor build
+cd solana && npm test                    # Jest + LiteSVM unit tests
+cd solana && cargo test -p chainbills   # Rust unit tests (payload, utils)
+cd solana && anchor deploy --provider.cluster devnet
 
 # Relayer
 cd relayer && npm run dev       # tsx watch (hot reload)

@@ -1,38 +1,46 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Relayer — Global Configuration
 //
-// This module loads environment variables, validates required ones,
-// and resolves the RPC URLs into the chain configs before any watcher starts.
+// Loads + validates env vars, injects RPC URLs into chain configs.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import 'dotenv/config';
-import { ALL_CHAINS, arcTestnet, megaeth, sepolia } from './chains.js';
+import { Keypair } from '@solana/web3.js';
+import { ALL_CHAINS, arcTestnet, megaeth, sepolia, solanaDevnet } from './chains.js';
 
-/**
- * Validates that a required environment variable is set and returns its value.
- * Throws at startup if missing — fast-fail is better than cryptic runtime errors.
- */
 function requireEnv(key: string): string {
   const val = process.env[key];
   if (!val) throw new Error(`Missing required environment variable: ${key}`);
   return val;
 }
 
-/** Relayer wallet private key. Must hold gas + ADMIN_ROLE on all chains. */
+/** Relayer EVM wallet private key. Must hold gas + ADMIN_ROLE on all EVM chains. */
 export const RELAYER_PRIVATE_KEY = requireEnv('RELAYER_PRIVATE_KEY') as `0x${string}`;
 
-/** Default getLogs poll interval in ms (overridden per-chain in chains/index.ts). */
+/**
+ * Solana relayer keypair. Must hold SOL for transaction fees.
+ * Set as a JSON array of 64 numbers (the raw secret key bytes), e.g.:
+ *   SOLANA_RELAYER_KEYPAIR=[1,2,3,...,64]
+ */
+export function getSolanaRelayerKeypair(): Keypair {
+  const raw = requireEnv('SOLANA_RELAYER_KEYPAIR');
+  try {
+    const bytes = JSON.parse(raw) as number[];
+    return Keypair.fromSecretKey(Uint8Array.from(bytes));
+  } catch {
+    throw new Error('SOLANA_RELAYER_KEYPAIR must be a JSON array of 64 numbers');
+  }
+}
+
+/** Default getLogs poll interval in ms (overridden per-chain). */
 export const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? 12_000);
 
 // ── Inject RPC URLs into chain configs ────────────────────────────────────────
-// RPC URLs live in env vars (not hardcoded) so they can be rotated without
-// a code deploy. We inject them into the chain config objects here before
-// any chain client is created.
 arcTestnet.rpcUrl = requireEnv('RPC_ARC_TESTNET');
 sepolia.rpcUrl = requireEnv('RPC_SEPOLIA');
 megaeth.rpcUrl = requireEnv('RPC_MEGAETH');
+solanaDevnet.rpcUrl = requireEnv('SOLANA_RPC_URL');
 
-// Validate that every chain has its RPC URL after injection.
 for (const chain of ALL_CHAINS) {
   if (!chain.rpcUrl) throw new Error(`Missing RPC URL for chain: ${chain.name}`);
 }

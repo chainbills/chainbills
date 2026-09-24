@@ -184,7 +184,7 @@ export const useTxFlowStore = defineStore('tx-flow', () => {
     options?: { subtitle?: string; canRunInBackground?: boolean }
   ): TxFlowHandle => {
     const id = `tx-${++nextFlowId}-${now()}`;
-    const flow: TxFlow = {
+    flows.set(id, {
       id,
       kind,
       title,
@@ -192,8 +192,13 @@ export const useTxFlowStore = defineStore('tx-flow', () => {
       steps: steps.map((s) => ({ status: 'upcoming', ...s })),
       status: 'running',
       canRunInBackground: options?.canRunInBackground,
-    };
-    flows.set(id, flow);
+    });
+    // `flows` is a `reactive()` Map: `.get()` returns a reactive-wrapped view of the
+    // stored object, whose property writes actually notify Vue. The plain object
+    // literal passed to `.set()` above is not itself reactive — every mutation below
+    // (and every one a `TxStepHandle`/`TxFlowHandle` makes later) must go through
+    // this reactive reference, or the UI never re-renders as steps progress.
+    const flow = flows.get(id)!;
     currentId.value = id;
 
     return {
@@ -222,8 +227,7 @@ export const useTxFlowStore = defineStore('tx-flow', () => {
         flow.status = 'failed';
       },
       moveToBackground() {
-        if (currentId.value === id) currentId.value = null;
-        if (!backgroundIds.value.includes(id)) backgroundIds.value = [...backgroundIds.value, id];
+        moveToBackground(id);
       },
     };
   };
@@ -234,10 +238,16 @@ export const useTxFlowStore = defineStore('tx-flow', () => {
     currentId.value = id;
   };
 
+  /** Moves a still-running flow into the background list by id — the same effect as its own handle's `moveToBackground`, exposed here so `TxFlowDialog`'s "Continue in background" button can call it without holding onto the original handle. */
+  const moveToBackground = (id: string) => {
+    if (currentId.value === id) currentId.value = null;
+    if (!backgroundIds.value.includes(id)) backgroundIds.value = [...backgroundIds.value, id];
+  };
+
   /** Dismisses the modal for the current flow without changing its status (used after `succeeded`/`failed`/`cancelled`). */
   const dismiss = () => {
     currentId.value = null;
   };
 
-  return { background, bringToForeground, current, dismiss, flows, start };
+  return { background, bringToForeground, current, dismiss, flows, moveToBackground, start };
 });

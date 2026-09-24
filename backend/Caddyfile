@@ -1,0 +1,12 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Chainbills Backend — Sample Caddyfile (VPS TLS termination)
+#
+# Used only with `docker compose --profile proxy up -d` (SPEC.md §15).
+# Caddy fetches and renews the TLS certificate for api.<domain> automatically
+# and reverse-proxies everything to the `app` container on the compose
+# network. Replace api.chainbills.xyz with the real API host before use.
+# ──────────────────────────────────────────────────────────────────────────────
+
+api.chainbills.xyz {
+	reverse_proxy app:8080
+}

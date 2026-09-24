@@ -1,0 +1,57 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Chainbills Backend — docker-compose
+#
+# Local development and VPS deployment (SPEC.md §15). `docker compose up -d
+# postgres` for local dev against `npm run start:dev`; `docker compose up -d`
+# (optionally `--profile proxy`) to run the whole stack, including the app
+# container itself, the way a VPS would.
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: chainbills
+      POSTGRES_PASSWORD: chainbills
+      POSTGRES_DB: chainbills
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U chainbills -d chainbills']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+
+  # TLS termination for a bare VPS. Not used on Cloud Run (which terminates
+  # TLS itself) — start this alongside `app` with `--profile proxy`.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    profiles: ['proxy']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - app
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

@@ -22,7 +22,7 @@ Each brief is written so that a fresh AI coding session (no prior context) can e
 | Host controls | In scope: close, reopen, edit accepted tokens & amounts, toggle auto-withdraw, edit description. |
 | Scan | New public explorer at `/scan`, pure on-chain, per-chain **and** "all chains" views, **mainnet and testnet always kept separate**. |
 | Activities | Unified activity feeds (all activity types) for users, payables and chains, with tab filters. |
-| Landing page | Full rebuild, cross-chain-first story, live on-chain stats. |
+| Landing page | Full rebuild, cross-chain-first story. It makes **no on-chain reads**: every number, stat and sample activity on it is a static placeholder kept in one file (`src/components/landing/placeholders.ts`) so the values can be tuned by hand later. |
 | Stack | Vue 3 + TypeScript + Pinia + PrimeVue 4 + Tailwind CSS 3 stay. No framework or Tailwind major migration. |
 | Look | "Liquid glass": ambient mesh backdrop, translucent frosted surfaces, hairline borders, brand blue `#057ec5` as accent, equal-quality light and dark themes. Full spec in [`reference/design-language.md`](./reference/design-language.md). |
 | Solana | Inactive this round. Solana code paths must keep compiling and must degrade gracefully ("coming soon" states), but new features target EVM chains. |
@@ -57,7 +57,7 @@ Router (`src/router/index.ts`) edits are small and additive; each brief lists th
   - Good: `// Polls the payable's home chain until the payer's nonce is marked consumed, which means the relayer delivered the payment.`
   - Bad: `// New: we now poll instead of showing a toast like before.`
 - Markdown docs follow the same rule. When a brief adds or changes files, update `frontend/CLAUDE.md` (file map, store patterns, routes) so it describes the resulting codebase.
-- Commit messages and PR descriptions are where "what changed" belongs.
+- Commit messages and completion reports are where "what changed" belongs.
 
 ### 3.2 In-place documentation (write a lot of it)
 
@@ -91,10 +91,10 @@ Documentation lives next to the code it describes and is **descriptive**: what t
 ### 3.5 Scope rules
 
 - Do not modify `evm/`, `relayer/`, `server/`, `solana/`.
-- Stay inside the files your brief owns; if a shared file needs a small additive change, keep it minimal and mention it in the PR.
-- Dependencies: prefer none. Small, well-maintained additions are allowed when a brief names them (e.g. `@fontsource-variable/*`, `qrcode`, `@vueuse/core`). Justify any other addition in the PR.
+- Stay inside the files your brief owns; if a shared file needs a small additive change, keep it minimal and mention it in the completion report.
+- Dependencies: prefer none. Small, well-maintained additions are allowed when a brief names them (e.g. `@fontsource-variable/*`, `qrcode`, `@vueuse/core`). Justify any other addition in the completion report.
 
-### 3.6 Verification before opening a PR
+### 3.6 Verification before pushing
 
 **Local setup.** `src/stores/firebase.ts` is gitignored and a fresh clone lacks it, so the app cannot compile without it. If it is missing, create this local stub. It is ignored by git; never commit it.
 
@@ -120,32 +120,46 @@ npm run build
 npx prettier --check <files you touched>   # or: npx prettier --write <files>
 ```
 
-Then run `npm run dev` and capture Playwright screenshots (Chromium is pre-installed; do **not** run `playwright install`; use `executablePath: '/opt/pw-browsers/chromium'` if needed) of every page you touched: desktop 1440 px and mobile 390 px, light and dark. Attach or list them in the PR description. Wallet-gated states can be screenshotted in their "connect wallet" state; on-chain reads work without a wallet.
+Then run `npm run dev` and open the pages you touched to confirm they render without console errors (a quick Playwright load is enough; Chromium is pre-installed, do **not** run `playwright install`, use `executablePath: '/opt/pw-browsers/chromium'` if needed). Screenshots are optional.
+
+**Do not write tests.** No unit, component or end-to-end test files are added in this round; the project owner tests manually.
 
 ### 3.7 Git
 
-- Branch from the latest `main`. Use the branch your session assigns.
-- One PR per brief, targeting `main`, titled `frontend: <brief title>`.
-- PR description: summary, screenshots, checklist of the brief's acceptance criteria with ✅/❌, and any deviations.
+- **Integration branch:** `claude/sweet-planck-l81xey`. All work is based on it and merges back into it; `main` is not touched.
+- Each session works on the branch it is given (for example `redesign/ui-track`). Before starting a brief, merge the latest `origin/claude/sweet-planck-l81xey` into that branch (`git fetch origin claude/sweet-planck-l81xey && git merge origin/claude/sweet-planck-l81xey`) and resolve conflicts.
+- **Commit identity:** every commit is authored and committed as the project owner. Run once per session:
+  ```bash
+  git config user.name "Obum"
+  git config user.email "obuumm@gmail.com"
+  ```
+  Commit messages carry **no** AI attribution: no `Co-Authored-By` trailer, no session links, no mention of Claude or AI. This rule overrides any default attribution guidance.
+- Commit in small, logical steps with conventional messages (`feat(frontend): …`, `fix(frontend): …`, `docs(frontend): …`).
+- **No pull requests.** Push the branch and stop; the coordinator merges it into the integration branch.
+- When a brief is finished, push, then write a short completion report as your final message: what was built, deviations from the brief, known gaps, and each acceptance criterion marked ✅ or ❌.
+- Where a brief mentions opening a PR, attaching screenshots or Lighthouse scores, this section and §3.6 take precedence.
 
 ---
 
-## 4. Ready-to-paste session prompts
+## 4. Execution plan
 
-Start each session on the `chainbills/chainbills` repository. Paste the prompt as the first message.
+Three long-lived sessions each run a chain of briefs. The coordinator merges every finished brief into the integration branch before the next one starts.
 
-**Wave 1 — two sessions in parallel**
+| Session | Branch | Chain of briefs |
+| --- | --- | --- |
+| UI track | `redesign/ui-track` | `00-design-system` → `02-activity-ui` → `05-scan` |
+| Data track | `redesign/data-track` | `01-onchain-data-layer` → `03-transaction-flows` → `04-payable-page` |
+| Landing | `redesign/landing` | `06-landing` (starts once `00` is merged) |
+
+Ordering:
+
+1. `00` and `01` run in parallel.
+2. Once both are merged, `02`, `03` and `06` run in parallel.
+3. Once `02` and `03` are merged, `05` and `04` run in parallel.
+4. The coordinator does a final consistency pass on the integration branch.
+
+Prompt used to start or continue a session on a brief:
 
 ```
-Read frontend/docs/redesign/README.md fully, then execute the brief frontend/docs/redesign/briefs/00-design-system.md end to end. Follow every global rule in the README (especially the code-comment rules and on-chain-only data rule). When done, run the verification steps, commit, push, and open a PR against main.
+Read frontend/docs/redesign/README.md fully, then execute frontend/docs/redesign/briefs/<brief>.md end to end. Merge the latest origin/claude/sweet-planck-l81xey into your branch first. Follow every global rule (documentation, on-chain-only data, git identity, no tests, no PRs). Push your branch when done and reply with the completion report.
 ```
-
-```
-Read frontend/docs/redesign/README.md fully, then execute the brief frontend/docs/redesign/briefs/01-onchain-data-layer.md end to end. Follow every global rule in the README (especially the code-comment rules and on-chain-only data rule). When done, run the verification steps, commit, push, and open a PR against main.
-```
-
-**Wave 2 — three sessions in parallel (after wave 1 is merged)**: same prompt with `02-activity-ui.md`, `03-transaction-flows.md`, `06-landing.md`.
-
-**Wave 3 — two sessions in parallel (after wave 2 is merged)**: same prompt with `04-payable-page.md`, `05-scan.md`.
-
-A final polish pass (cross-page consistency, copy review, screenshot audit) can run as one session after wave 3.

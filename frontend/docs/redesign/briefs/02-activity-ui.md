@@ -112,7 +112,7 @@ Describe each component, its props, the data flow, and usage examples for each s
 - Glass `EmptyState` with a connect CTA.
 - Also a "Look up any address" input that routes to `/scan/address/:address`.
 
-**Retire** `TransactionsTable.vue` and `TableLoader.vue` once no view imports them. Views owned by other wave-2 briefs may still import them; if so, leave the files in place and note it in the PR.
+**Retire** `TransactionsTable.vue` and `TableLoader.vue` once no view imports them. Views owned by other wave-2 briefs may still import them; if so, leave the files in place and note it in the completion report.
 
 ## Out of scope
 

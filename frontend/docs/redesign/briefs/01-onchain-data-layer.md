@@ -190,7 +190,7 @@ Add a `/_data` dev route (`src/views/DataDebugView.vue`, registered only when `i
 - dumps `payable.get`, `activity.getForPayable/User/Chain`, `stats.getNetworkStats('testnet')` and `payable.availability` results as JSON,
 - has a button that runs a fake tx flow with timed steps, to exercise the engine.
 
-Use it to verify reads against the live testnets. Note in the PR a few real payable ids and addresses you found through `chainPayableIdsPaginated`, so later briefs can use them for screenshots.
+Use it to verify reads against the live testnets. Note in the completion report a few real payable ids and addresses you found through `chainPayableIdsPaginated`, so later briefs can use them for screenshots.
 
 ## Out of scope
 

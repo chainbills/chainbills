@@ -1,17 +1,17 @@
 # Brief 06 — Landing Page Rebuild
 
-**Wave:** 2 (runs in parallel with 02 and 03) · **Depends on:** 00 and 01 merged
+**Wave:** 2 (runs in parallel with 02 and 03) · **Depends on:** 00 merged
 
 ## Read first
 
 1. `frontend/docs/redesign/README.md`: the global rules.
 2. `frontend/docs/redesign/reference/design-language.md`. Read all of it, and especially §4 (backdrop), §5 (type), §6 (motion) and §9 (voice).
-3. `src/components/ui/README.md` and `src/stores/README.md` (stats and activity stores).
+3. `src/components/ui/README.md`.
 4. The current `src/views/HomeView.vue`.
 
 ## Goal
 
-Replace the generic landing page with a bold, cross-chain-first story. The page should make a visitor feel within five seconds that Chainbills means **one payment link, payable from any chain, verifiable on-chain**. It should also prove that with **live on-chain numbers**.
+Replace the generic landing page with a bold, cross-chain-first story. The page should make a visitor feel within five seconds that Chainbills means **one payment link, payable from any chain, verifiable on-chain**. The page makes **no on-chain or server reads**: numbers, stats and sample activity are static placeholders.
 
 ## Positioning
 
@@ -33,10 +33,8 @@ Replace the generic landing page with a bold, cross-chain-first story. The page 
      - The central card cycles through "Received 25 USDC from Sepolia" → "Received 0.01 ETH on MegaETH", with a small counter tick.
    - Pure SVG and CSS, no images. Static under reduced motion.
    - Delete `public/assets/home-hero-*.png` once they are unused.
-2. **Live numbers strip.** `StatTile`s from `stats.getNetworkStats`: payables created, payments, withdrawals, users, and per-token volume received.
-   - A small `SegmentedTabs` switches Mainnet / Testnet (default Mainnet). Mainnet and testnet are never combined.
-   - A caption "Read live from Chainbills contracts" links to `/scan`.
-   - While loading, show skeletons. If the fetch fails, hide the strip gracefully.
+2. **Numbers strip (placeholders).** `StatTile`s showing payables created, payments, withdrawals, users and volume received, with the values read from `src/components/landing/placeholders.ts`. That file holds clearly named constants with a header comment stating that they are hand-maintained placeholder figures shown on the landing page. No network toggle, no fetching.
+   - A caption "Explore live data on Scan" links to `/scan`.
 3. **How it works.** Four step cards with arrow chips on their edges:
    1. Create a payable (choose any amount or exact token amounts).
    2. Share one link.
@@ -56,11 +54,10 @@ Replace the generic landing page with a bold, cross-chain-first story. The page 
    - Public receipts
    - On-chain explorer (Scan)
    - Transparent 2% withdrawal fee
-6. **Live activity ticker.** The latest 8 activities on the selected network, from `activity.getForNetwork`.
+6. **Activity ticker (placeholders).** 8 sample activities (payment received, cross-chain payment, withdrawal, payable created…) defined in `placeholders.ts`.
    - Rendered as compact activity rows in a slow vertical marquee, which pauses on hover and under reduced motion.
-   - Each row links to its payable or receipt.
-   - "Open Scan →".
-7. **Supported chains.** Cards per chain with a `ChainBadge`, a `NetworkPill`, and capabilities read on-chain from `getConfig`: "Wormhole messaging" and "Circle CCTP".
+   - Rows are illustrative and do not link to entities; the section ends with "Open Scan →".
+7. **Supported chains.** Cards per chain with a `ChainBadge`, a `NetworkPill`, and static capability tags: "Wormhole messaging" and "Circle CCTP" (MegaETH: Wormhole; Sepolia: Wormhole + CCTP; Arc Testnet: CCTP).
    - Include a "Solana — coming soon" card.
 8. **For builders and trust.** Non-custodial contracts, open source (GitHub link), cross-chain ids (`cbChainId`), the verifiable Scan, and fee transparency. Include small code-style snippets of real contract function names.
 9. **FAQ.** A PrimeVue Accordion, styled glass, with 6–8 questions:
@@ -81,18 +78,16 @@ Replace the generic landing page with a bold, cross-chain-first story. The page 
 - Use `v-reveal` for scroll reveals, staggered within grids. Honour reduced motion everywhere.
 - Performance:
   - The hero is visible without waiting on RPC calls.
-  - Stats and ticker load after first paint.
   - No layout shift: reserve heights.
-  - Lighthouse performance ≥ 85 on desktop in `npm run preview`. Report the score in the PR.
 - SEO:
   - Update `index.html` `<title>`, meta description and Open Graph/Twitter tags to the new positioning.
   - Keep the existing favicon or logo assets.
-- Analytics: keep `clicked_home_hero_get_started`, and add `clicked_home_explore_scan`, `clicked_home_closing_cta` and `toggled_home_stats_network`.
+- Analytics: keep `clicked_home_hero_get_started`, and add `clicked_home_explore_scan` and `clicked_home_closing_cta`.
 
 ## Acceptance criteria
 
 - [ ] All ten sections exist, in order, responsive from 360 px to 1440 px+, and polished in light and dark themes.
 - [ ] The hero visual animates smoothly, uses no raster images, and is static under reduced motion.
-- [ ] Live numbers and the activity ticker come from on-chain reads, keep networks separate, and fail gracefully.
+- [ ] The numbers strip and activity ticker use placeholder values from `placeholders.ts` only; the landing page performs no network reads.
 - [ ] Copy is concrete and cross-chain-first, with no filler or duplicated text.
-- [ ] Documentation is complete. Type-check and build pass. The Lighthouse score is reported. Screenshots are attached: full page on desktop and mobile, light and dark.
+- [ ] Documentation is complete. Type-check and build pass.

@@ -16,7 +16,9 @@ conventions in [`WORKER_RULES.md`](./WORKER_RULES.md) for everything else.
 
 ### In scope
 
-- Chain indexing into Postgres for all chains in the registry (EVM + Solana).
+- Chain indexing into Postgres for every enabled chain in the registry: EVM
+  chains through the Chainbills ERC-2535 diamond (§6.1), Solana through the
+  existing program.
 - Cross-chain relaying (Wormhole VAAs, Circle CCTP attestations), with the
   same semantics as `relayer/src/`.
 - Wallet sign-in: SIWE (EIP-4361) for EVM and SIWS (Sign-In With Solana).
@@ -36,6 +38,8 @@ conventions in [`WORKER_RULES.md`](./WORKER_RULES.md) for everything else.
   The legacy `relayer/` and `server/` stay in the repository untouched.
 - Browser / push notifications (no FCM, no Web Push).
 - Firestore or any Firebase dependency.
+- Indexing the legacy single-proxy EVM contracts (`evm/legacy/`); `relayer/`
+  keeps serving them until they are retired.
 - Data migration from Firestore. Postgres starts empty; indexing starts from
   each chain's configured deployment block / activity 0.
 - Linking several wallets to one user (schema allows it later; not built now).
@@ -183,7 +187,7 @@ backend/
 5. Secrets are never logged. The pino `redact` list covers auth headers,
    cookies and every secret-bearing key.
 6. `.env.example` lists every variable with a comment; `docs/ENV.md` has the
-   full table. Both are updated in the same PR as any schema change.
+   full table. Both are updated in the same change as any schema change.
 7. Unit tests cover the schema: valid minimal config per role, each required
    var missing, malformed values (bad URL, bad hex key, bad keypair JSON,
    bad duration).
@@ -209,10 +213,8 @@ backend/
 | `COOKIE_DOMAIN`             | –                  | unset (host-only cookie)    | only if the API host differs from the cookie host |
 | `COOKIE_SECURE`             | –                  | `true`                      | `false` only for local http |
 | `SIGN_IN_MESSAGE_TTL`       | –                  | `10m`                       | max age of a SIWE/SIWS `Issued At` |
-| `RPC_ARC_TESTNET`           | every                | –                           | https URL |
-| `RPC_SEPOLIA`               | every                | –                           | https URL |
-| `RPC_MEGAETH`               | every                | –                           | https URL |
-| `RPC_SOLANA_DEVNET`         | every                | –                           | https URL |
+| `ENABLED_CHAINS`            | every                | –                           | comma-separated registry slugs, e.g. `arcmainnet` or `anvil,solanadevnet` (§6.2) |
+| `RPC_<SLUG>`                | every enabled chain  | –                           | https URL per enabled chain: `RPC_ARCMAINNET`, `RPC_ANVIL`, `RPC_SOLANADEVNET` |
 | `RELAYER_PRIVATE_KEY`       | worker, all        | –                           | `0x` + 64 hex |
 | `SOLANA_RELAYER_KEYPAIR`    | worker, all        | –                           | JSON array of 64 integers 0–255 |
 | `POLL_INTERVAL_MS`          | –                  | per-chain registry value    | global override, integer ms |
@@ -227,7 +229,7 @@ backend/
 | `THROTTLE_TTL`              | –                  | `60s`                       | throttler window |
 | `THROTTLE_LIMIT`            | –                  | `120`                       | requests per window per IP |
 
-RPC URLs are required for every role because the API verifies smart-contract
+RPC URLs of every enabled chain are required for every role because the API verifies smart-contract
 wallet signatures (ERC-1271 / ERC-6492) and payable ownership on-chain.
 
 Contract addresses, program IDs, deployment blocks and token addresses are
@@ -236,25 +238,77 @@ versioned with the code that depends on them.
 
 ---
 
-## 6. Chains and tokens
+## 6. Chains, contracts and tokens
 
-`src/chains/registry.ts` ports `relayer/src/chains.ts`,
-`relayer/src/chains/solana-devnet.ts` and `relayer/src/utils/tokens.ts`.
+`src/chains/registry.ts` is the single place that lists chains, contract
+addresses, deployment blocks and tokens.
 
-- **Chain key.** Every chain is identified by its `cbChainId`
-  (`keccak256("namespace:reference")`). Database columns referencing a chain
-  store the `cbChainId` hex string. The human slug (`arctestnet`, `sepolia`,
-  `megaeth`, `solanadevnet`) is for logs and API output only. The Solana devnet
-  slug is `solanadevnet` (matching the frontend), not `solana`.
-- **RPC URLs** are injected from config at module init, not mutated globals.
-- **Tokens** are registered per chain with address (EVM: checksummed hex,
-  native = the Chainbills contract address; Solana: mint base58), symbol and
-  decimals. Solana devnet USDC (6 decimals) is included.
-- **ABIs** (`mainAbi`, `gettersAbi`) and the Solana IDL are copied from
-  `relayer/src/utils/abis.ts` and `relayer/src/solana/chainbills-idl.json`.
-  They must be typed `as const` so viem infers call types.
-- After new contract deployments the owner updates addresses and deployment
-  blocks in this one file.
+### 6.1 EVM contract: the Chainbills diamond
+
+On every EVM chain Chainbills is **one ERC-2535 diamond** (`evm/`). All
+writes, views and events go through the diamond address; there is no separate
+getters contract. The same diamond address is used on every chain deployed with
+the same `CB_SALT` and `OWNER` (CREATE2). `evm/CLAUDE.md` and `evm/README.md`
+describe the contracts; `evm/src/types/CbTypes.sol` defines every struct and
+enum the backend decodes.
+
+- **ABI source of truth:** `evm/abi/chainbills.ts` (`chainbillsAbi`, generated
+  by `evm/script/export-abi.mjs` from `IChainbills`). The backend keeps a
+  verbatim copy at `src/chains/abi/chainbills.ts` and a unit test that fails
+  when the copy differs from `../evm/abi/chainbills.json` (skipped when the
+  `evm/` directory is absent, e.g. inside the Docker build). The legacy
+  `mainAbi` / `gettersAbi` (single-proxy contracts in `evm/legacy/`) are not
+  used by the backend.
+- **Legacy deployments are not indexed.** The old single-proxy contracts on
+  Sepolia, Arc Testnet and MegaETH (`evm/legacy/`, `relayer/`) stay served by
+  `relayer/` until retired. The backend only talks to diamonds.
+- **Relayer permissions:** when the diamond has relaying restricted
+  (`setRelayerRestricted(true)`), the relayer EVM address must hold
+  `RELAYER_ROLE` on every destination diamond. The worker logs a warning at
+  startup (via `hasRole(RELAYER_ROLE, relayer)`) for any enabled chain where it
+  lacks the role while relaying is restricted.
+
+### 6.2 Chain registry
+
+Each EVM entry: `slug`, `displayName`, `caip2`, `cbChainId`, `network`
+(`mainnet` | `testnet` | `local`), viem chain object, `diamondAddress`,
+`deploymentBlock`, `wormholeChainId?`, `circleDomain?`, `pollIntervalMs`,
+`minGasBalance`. Solana entries keep the fields of
+`relayer/src/chains/solana-devnet.ts`.
+
+| Slug | CAIP-2 | cbChainId | Network | Wormhole | CCTP | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `arcmainnet` | `eip155:5042` | `0xb8aed675f862d651b4a8c85f23a045faa0faaa1d162e6eb15d732231df3dc250` | mainnet | not yet (see `evm/DEPLOYED.md`) | V2, domain 26 | diamond address + deployment block filled in after deploy (`evm/deploys/arcmainnet.json`) |
+| `anvil` | `eip155:31337` | `keccak256("eip155:31337")` | local | mock | mock | local development against `evm/script/DeployLocalStack.s.sol` |
+| `solanadevnet` | `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` | `0x318e886b7d5a2e6f89c50cd1cdc3614e5f66532f673b5f14448b9b58c12e0e6e` | testnet | id 1 | V1 program | indexing only, see §8.3 |
+
+Rules:
+
+- **Chain key.** Database columns referencing a chain store the `cbChainId`.
+  The slug is for logs, config and API output only.
+- **Enabled chains.** `ENABLED_CHAINS` (comma-separated slugs, §5.2) selects
+  which registry entries an instance runs; an entry without a diamond address
+  (or program id) cannot be enabled and fails config validation.
+- **Networks never mix.** Relay jobs are created only between chains of the
+  same `network`. A mainnet chain never relays to or from a testnet or local
+  chain (Circle and Wormhole are separate per network anyway).
+- **RPC URLs** come from config (`RPC_<SLUG>` per enabled chain), never
+  mutated globals.
+
+### 6.3 Tokens
+
+- The diamond is the source of truth for **which** tokens are supported
+  (`getSupportedTokens`, `getTokenDetails`). The native token is the diamond
+  address (`nativeToken()`).
+- **Symbol and decimals** come from the code registry per chain (native:
+  chain's native symbol and 18 decimals, or 6 for Arc where USDC is the native
+  gas token as exposed by its ERC-20 interface — confirm against
+  `evm/DEPLOYED.md` when filled in). A token seen on chain but missing from the
+  registry is resolved once via ERC-20 `symbol()` / `decimals()` and cached in
+  memory; failure logs an error and formats with 0 decimals.
+- Solana devnet USDC (6 decimals) stays registered.
+- The Solana IDL is copied from `relayer/src/solana/chainbills-idl.json`
+  (unchanged program).
 
 ---
 
@@ -273,6 +327,8 @@ Conventions:
 - Every model has a doc comment (`///`) on the model and every non-obvious field.
 
 The schema below is normative for names, types, keys and relations. The
+initial migration predates the diamond alignment (phase 1b); phase 1b adds a
+second migration that brings the database to exactly this schema. The
 implementer adds `@map`/`@@map` to snake_case table and column names and any
 extra indexes the queries in §12 need.
 
@@ -284,9 +340,10 @@ extra indexes the queries in §12 need.
 model ChainCursor {
   chainId                   String   @id              // cbChainId
   activitiesIndexed         BigInt   @default(0)
-  wormholeRelayed           BigInt   @default(0)      // published Wormhole messages handled
-  cctpPaymentsRelayed       BigInt   @default(0)
-  cctpPayableUpdatesRelayed BigInt   @default(0)
+  relayScanBlock            BigInt   @default(0)      // EVM: last block scanned for relay-trigger events (§8.2 step 4)
+  wormholeRelayed           BigInt   @default(0)      // Solana only: published Wormhole messages handled
+  cctpPaymentsRelayed       BigInt   @default(0)      // Solana only
+  cctpPayableUpdatesRelayed BigInt   @default(0)      // Solana only
   lastTickAt                DateTime?
   updatedAt                 DateTime @updatedAt
 }
@@ -350,7 +407,8 @@ model UserPayment {
   payableId       String                               // may live on another chain: no FK
   payableChainId  String
   token           String
-  amount          Decimal  @db.Decimal(78, 0)
+  requestedAmount Decimal  @db.Decimal(78, 0)          // price matched against the payable's allowed amounts
+  amount          Decimal  @db.Decimal(78, 0)          // total debited from the payer (incl. transfer-tax buffer / CCTP fee allowance)
   timestamp       DateTime
   indexedAt       DateTime @default(now())
   @@index([payerWalletKey, timestamp])
@@ -371,7 +429,8 @@ model PayablePayment {
   localChainCount BigInt
   payableCount    BigInt
   token           String
-  amount          Decimal  @db.Decimal(78, 0)
+  requestedAmount Decimal  @db.Decimal(78, 0)          // price of the payment
+  amount          Decimal  @db.Decimal(78, 0)          // amount actually credited to the payable
   timestamp       DateTime
   indexedAt       DateTime @default(now())
   @@index([payableId, timestamp])
@@ -389,7 +448,8 @@ model Withdrawal {
   hostCount     BigInt
   payableCount  BigInt
   token         String
-  amount        Decimal  @db.Decimal(78, 0)
+  amount        Decimal  @db.Decimal(78, 0)            // deducted from the payable balance
+  fee           Decimal  @db.Decimal(78, 0)            // sent to the fee collector; host receives amount - fee
   timestamp     DateTime
   indexedAt     DateTime @default(now())
   @@index([payableId, timestamp])
@@ -428,8 +488,7 @@ model Activity {
 enum RelayJobType {
   PAYABLE_UPDATE_VIA_WORMHOLE
   PAYABLE_UPDATE_VIA_CCTP
-  PAYMENT_VIA_CCTP_WORMHOLE
-  PAYMENT_VIA_CCTP_ONLY
+  PAYMENT_VIA_CCTP
   ADMIN_SYNC
   SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE
   SOLANA_PAYMENT_VIA_CCTP_WORMHOLE
@@ -455,10 +514,8 @@ model RelayJob {
   notBefore           DateTime       @default(now())   // earliest next attempt (min-age + backoff)
   lastError           String?
   vaa                 String?
-  circleMsg           String?
-  circleAttestation   String?
-  circleMsgPayload    String?
-  circleAttestPayload String?
+  cctpMessage         String?
+  cctpAttestation     String?
   createdAt           DateTime       @default(now())
   lastAttemptAt       DateTime?
   completedAt         DateTime?
@@ -599,69 +656,109 @@ model Outbox {
 
 ### 8.2 EVM indexing — activity-driven
 
-The current relayer tracks four entity counters. v2 indexes from the single
-activity log instead, so payable state changes (close, reopen, token /
-amount changes, auto-withdraw toggles, balance changes) are captured too.
+v2 indexes from the diamond's single activity log, so payable state changes
+(close, reopen, token / amount changes, auto-withdraw toggles, balance
+changes) are captured along with payments and withdrawals.
 
-Per tick for each EVM chain:
+Per tick for each enabled EVM chain:
 
-1. `getChainStats()` → `activitiesCount`.
-2. If `activitiesCount > cursor.activitiesIndexed`, fetch the new activity ids
-   with `chainActivityIdsPaginated(offset, count)` (page size ≤ 50) and their
-   records with `getActivityRecordsBulk` (or `getActivityRecord`).
-3. For each activity in order, dispatch by `activityType`:
+1. `getChainStats()` → `activitiesCount` (or `getChainActivityCount()`).
+2. If `activitiesCount > cursor.activitiesIndexed`, fetch the next page with
+   `getChainActivities(offset, limit)` (ascending; returns `ids` and
+   `ActivityRecord` items in one call; page size ≤ 50).
+3. For each activity in order, dispatch by `activityType`
+   (`evm/src/types/CbTypes.sol` `ActivityType`, same order as before):
 
 | ActivityType | Action |
 | --- | --- |
-| `InitializedUser` | Store `Activity` only. |
-| `CreatedPayable` | `getPayable`, `getAllowedTokensAndAmounts`, `getBalances` → upsert `Payable` + children. Enqueue `PAYABLE_CREATED` for the host. |
-| `UserPaid` | `getUserPayment` → upsert `UserPayment`. Enqueue `PAYMENT_RECEIPT` for the payer. |
-| `PayableReceived` | `getPayablePayment` → upsert `PayablePayment`; refresh payable counters + balances. Enqueue `PAYMENT_RECEIVED` for the host. |
-| `Withdrew` | `getWithdrawal` → upsert `Withdrawal`; refresh payable counters + balances. Enqueue `WITHDRAWAL_COMPLETED` for the host. |
-| `ClosedPayable`, `ReopenedPayable`, `UpdatedPayableAllowedTokensAndAmounts`, `UpdatedPayableAutoWithdrawStatus` | Refresh the payable (flags, allowed tokens, balances). |
+| `InitializedUser` | Store `Activity` only (`entity` is the user). |
+| `CreatedPayable` | `getPayableView(id)` (info + allowed tokens + balances in one call) → upsert `Payable` + children. Enqueue `PAYABLE_CREATED` for the host. |
+| `UserPaid` | `getUserPayment` → upsert `UserPayment` (with `requestedAmount` and `amount`). Enqueue `PAYMENT_RECEIPT` for the payer. |
+| `PayableReceived` | `getPayablePayment` → upsert `PayablePayment` (with `requestedAmount` and `amount`); refresh the payable via `getPayableView`. Enqueue `PAYMENT_RECEIVED` for the host. |
+| `Withdrew` | `getWithdrawal` → upsert `Withdrawal` (with `amount` and `fee`); refresh the payable. Enqueue `WITHDRAWAL_COMPLETED` for the host. |
+| `ClosedPayable`, `ReopenedPayable`, `UpdatedPayableAllowedTokensAndAmounts`, `UpdatedPayableAutoWithdrawStatus` | Refresh the payable via `getPayableView`. |
 
 Refreshing replaces the payable's `PayableAllowedToken` / `PayableBalance`
-rows with the current on-chain values inside the same transaction.
+rows with the current on-chain values inside the same transaction. Use the
+`*Bulk` views (`getPayableViewsBulk`, `getUserPaymentsBulk`, …) when a page
+references several entities of one kind.
 
-Payer normalisation for `PayablePayment`: port the logic in
-`relayer/src/indexer.ts` (`indexPayablePayment`): an EVM payer is the last 20
-bytes of the bytes32; a Solana payer is the base58 of the 32 bytes.
+Payer normalisation for `PayablePayment.payer` (bytes32): an EVM payer is the
+last 20 bytes; a Solana payer is the base58 of the 32 bytes. The payer's chain
+(`payerChainId`) decides which.
 
-4. Relay-trigger detection: port sections 5–7 of `pollChain` in
-   `relayer/src/watchers.ts` and its helpers (`maybeQueueWormholeRelayJob`,
-   `maybeQueueCctpPayableUpdateJobs`, `getLogsChunked`) unchanged in meaning,
-   writing `RelayJob` rows (dedupe by the unique key; `createMany` with
-   `skipDuplicates` or catch `P2002`).
+4. **Relay-trigger detection by event logs.** Scan the diamond's logs from
+   `cursor.relayScanBlock + 1` to the latest block (9 000-block chunks), then
+   advance `relayScanBlock`. Events and the jobs they create (destination
+   chains must be enabled, registered on the source diamond, and on the same
+   network):
 
-### 8.3 Solana indexing
+| Event | Job(s) | Destination call |
+| --- | --- | --- |
+| `PayableUpdateBroadcasted(payableId, nonce, actionType, wormholeSequence, cctpMessagesCount)` with Wormhole active on the source | one `PAYABLE_UPDATE_VIA_WORMHOLE` per destination chain that has Wormhole | fetch the VAA by (source Wormhole chain id, diamond address as 32-byte emitter, `wormholeSequence`) → `receivePayableUpdateViaWormhole(vaa)` |
+| `SentPayableUpdateViaCctp(payableId, cbChainId, nonce)` | one `PAYABLE_UPDATE_VIA_CCTP` for `cbChainId` | fetch the CCTP V2 message + attestation for the tx → `receivePayableUpdateViaCctp(message, attestation)` |
+| `SentForeignPaymentViaCctp(payableId, payableChainId, userPaymentId, paymentNonce, burnAmount, maxFee, minFinalityThreshold)` | one `PAYMENT_VIA_CCTP` for `payableChainId` | fetch the CCTP V2 burn message + attestation for the tx → `receiveForeignPaymentViaCctp(burnMessage, attestation)` |
 
-Port `relayer/src/solana/*` (indexer, accounts, client, submitter) keeping its
-activity-based strategy, and map each decoded entity into the same tables as
-EVM. Relay-trigger detection for Solana (signature scanning) is ported as is.
-Program id, mints and helper program ids come from the chain registry.
+   A transaction can emit several `SentPayableUpdateViaCctp` events (one per
+   destination); each maps to its own job and its own CCTP message, matched by
+   destination domain in the Iris response. Dedupe with the `RelayJob` unique
+   key (`createMany` with `skipDuplicates` or catch `P2002`).
+
+   The stats counters (`getWormholeStats`, `getCctpStats`) are logged in the
+   heartbeat as a cross-check; they are not used as cursors.
+
+### 8.3 Solana
+
+- **Indexing:** port `relayer/src/solana/*` (indexer, accounts, client) keeping
+  its activity-based strategy, mapping each decoded entity into the same tables
+  as EVM.
+- **Relaying:** the Solana program in `solana/` still uses the previous
+  transport (CCTP V1 plus Wormhole for payments). The EVM diamond uses CCTP V2
+  with the payment carried as burn hook data, so **EVM ↔ Solana payments are
+  not wire-compatible** until the Solana program adopts CCTP V2 hooks. Payable
+  payload bytes are unchanged across VMs, but Solana devnet is a testnet and
+  the only diamond chain is mainnet, so no Solana relay pair is valid today
+  (§6.2 "networks never mix"). Port the Solana relay code (signature scanning,
+  `relayer/src/solana/submitter.ts`) behind a registry switch
+  `relayEnabled: false` on `solanadevnet`, with tests, so it can be enabled once
+  the program and a same-network diamond exist.
 
 ### 8.4 Relay processor
 
-Port `relayer/src/jobs/processor.ts`, `relayer/src/resolvers/*`,
-`relayer/src/submitters/*` and `relayer/src/solana/submitter.ts`.
+Port the processing loop of `relayer/src/jobs/processor.ts` and the resolvers
+in `relayer/src/resolvers/`, adapted to the diamond:
 
+- **Wormhole resolver:** Wormholescan VAA by chain id / emitter / sequence
+  (mainnet and testnet API hosts by network).
+- **CCTP V2 resolver:** Circle Iris `GET /v2/messages/{sourceDomain}?transactionHash={txHash}`
+  (`iris-api.circle.com` for mainnet, `iris-api-sandbox.circle.com` for
+  testnet); wait for `status: "complete"`, pick the message whose destination
+  domain matches the job, store `message` and `attestation` on the job.
+- **EVM submitter:** simulate then send the destination call from §8.2 step 4
+  on the destination diamond with the relayer wallet; wait for the receipt.
 - Pick jobs with `status IN (PENDING, PROCESSING) AND notBefore <= now()`
   ordered by `createdAt`, processed strictly one at a time.
-- A job whose source chain has `cctpAttestationMinAgeMs` gets
-  `notBefore = createdAt + minAge` at creation instead of being polled early.
+- Idempotent outcomes → `DONE` (the message was already applied by another
+  path or an earlier attempt): `StalePayableUpdateNonce`,
+  `WormholeMessageAlreadyConsumed`, `CctpBurnNonceAlreadyConsumed`,
+  `CctpDataNonceAlreadyConsumed`, `PaymentNonceAlreadyConsumed`.
+- `RelayerOnly` → `FAILED` immediately with a clear log (missing `RELAYER_ROLE`).
+- `InsufficientFinality` and "attestation pending" are retryable.
 - On a retryable failure: `attempts++`, `lastError`, `notBefore = now() + backoff`
   (30 s × 2^attempts, capped at 10 min), status back to `PENDING`.
-- After 5 attempts → `FAILED`.
-- Fetched artefacts (`vaa`, `circleMsg`, …) are persisted on the job as soon
-  as they are fetched so a retry does not refetch.
+  After 8 attempts → `FAILED` (CCTP standard finality can take ~15–20 min).
+- Fetched artefacts are persisted on the job as soon as they are fetched so a
+  retry does not refetch.
 
 ### 8.5 Worker housekeeping
 
 Port the gas-balance check (every 5 min, warn below `minGasBalance`) and the
-heartbeat log (every 15 min, cursor summary + idle time) from
-`relayer/src/index.ts`.
+heartbeat log (every 15 min: cursors, diamond stats counters, idle time,
+pending / failed job counts) from `relayer/src/index.ts`, plus the startup
+`RELAYER_ROLE` check from §6.1.
 
 ---
+
 
 ## 9. Authentication
 
@@ -821,6 +918,8 @@ All interpolated values are HTML-escaped. Snapshot tests per template.
 - Cursor pagination: `?limit=` (1–100, default 20) and `?cursor=` (opaque,
   base64url of the last row's sort key). Responses: `{ items, nextCursor }`.
 - Amounts: `{ token, symbol, decimals, amount: "<raw integer string>", formatted: "<decimal string>" }`.
+  Payments expose both `requestedAmount` (price) and `amount` (debited /
+  credited); withdrawals expose `amount`, `fee` and `netAmount` (`amount - fee`).
 - Chains: every chain field is `{ chainId: "<cbChainId>", slug, displayName }`.
 - Addresses output: EVM checksummed, Solana base58.
 - Every controller, DTO and response class has `@ApiTags`, `@ApiOperation`,
@@ -835,7 +934,7 @@ All interpolated values are HTML-escaped. Snapshot tests per template.
 | `GET` | `/chains` | public | Registry: chains, protocols supported, tokens |
 | `GET` | `/payables/:id` | public | Payable with allowed tokens, balances, flags, description, counts |
 | `GET` | `/payables` | public | Filter `host` (address or wallet key), `chain`; newest first |
-| `PUT` | `/payables/:id/description` | host | Body `{ description }` (3–3000 chars, sanitised). If the payable is not indexed yet, ownership is verified on-chain via the getters / program account. |
+| `PUT` | `/payables/:id/description` | host | Body `{ description }` (3–3000 chars, sanitised). If the payable is not indexed yet, ownership is verified on-chain via the diamond's `isPayableHost(payableId, account)` / the Solana payable account. |
 | `GET` | `/payables/:id/payments` | public | `PayablePayment`s of a payable, newest first |
 | `GET` | `/payables/:id/withdrawals` | public | Withdrawals of a payable |
 | `GET` | `/payments/user/:id` | public | One `UserPayment` + the matching `PayablePayment` if indexed (cross-chain status) |
@@ -898,7 +997,7 @@ All interpolated values are HTML-escaped. Snapshot tests per template.
   with seeded data.
 - Chain-facing code is tested with mocked viem / web3 clients; no test needs
   a live RPC.
-- Commands that must pass in every PR: `pnpm lint`, `pnpm build`,
+- Commands that must pass before every merge: `pnpm lint`, `pnpm build`,
   `pnpm test:cov`, `pnpm prisma validate`, and `pnpm test:e2e` where e2e tests exist.
 - **Coverage is enforced** by `vitest.config.ts` thresholds: lines, functions
   and statements ≥ 90 %, branches ≥ 85 %, over all of `src/` except the
@@ -910,16 +1009,22 @@ All interpolated values are HTML-escaped. Snapshot tests per template.
 
 ## 17. Phases
 
-| # | File | Scope | Depends on |
-| --- | --- | --- | --- |
-| 1 | [`phases/01-scaffold.md`](./phases/01-scaffold.md) | Project, config + env docs, full Prisma schema, chain registry, Docker, health, Swagger | – |
-| 2a | [`phases/02a-evm-indexer-relay.md`](./phases/02a-evm-indexer-relay.md) | EVM indexer, relay job store + processor + resolvers + EVM submitters, worker lock + loops | 1 |
-| 2b | [`phases/02b-auth.md`](./phases/02b-auth.md) | Nonce, SIWE, SIWS, sessions, guard | 1 |
-| 3a | [`phases/03a-solana-indexer-relay.md`](./phases/03a-solana-indexer-relay.md) | Solana indexer + Solana submitter | 2a |
-| 3b | [`phases/03b-users-email-outbox.md`](./phases/03b-users-email-outbox.md) | /me, OTP, preferences, outbox, ZeptoMail, templates, unsubscribe | 2a, 2b |
-| 4 | [`phases/04-public-api.md`](./phases/04-public-api.md) | Public read endpoints, description write, OpenAPI completeness | 2a, 2b, 3a |
-| 5 | [`phases/05-docs.md`](./phases/05-docs.md) | README, CLAUDE.md files, root docs entry | all |
+Work happens on one branch per phase, created from `main` in its own git
+worktree, and is merged **locally** into `main` by the reviewer after review
+(no GitHub pull requests). See `WORKER_RULES.md` §2.
 
-Only phase 1 creates or edits `prisma/schema.prisma` and migrations, unless a
-phase file says otherwise. A later phase that genuinely needs a schema change
-adds a new migration and states it in its PR description.
+| # | File | Scope | Depends on | Status |
+| --- | --- | --- | --- | --- |
+| 1 | [`phases/01-scaffold.md`](./phases/01-scaffold.md) | Project, config + env docs, Prisma schema, chain registry, Docker, health, Swagger | – | merged |
+| 1b | [`phases/01b-diamond-alignment.md`](./phases/01b-diamond-alignment.md) | Diamond ABI + registry, `ENABLED_CHAINS`, schema migration, coverage to thresholds | 1 | next |
+| 2a | [`phases/02a-evm-indexer-relay.md`](./phases/02a-evm-indexer-relay.md) | EVM indexer, relay job store + processor + resolvers + EVM submitter, worker lock + loops | 1b | |
+| 2b | [`phases/02b-auth.md`](./phases/02b-auth.md) | Nonce, SIWE, SIWS, sessions, guard | 1b | |
+| 3a | [`phases/03a-solana-indexer-relay.md`](./phases/03a-solana-indexer-relay.md) | Solana indexer; Solana relay ported behind a disabled switch | 2a | |
+| 3b | [`phases/03b-users-email-outbox.md`](./phases/03b-users-email-outbox.md) | /me, OTP, preferences, outbox, ZeptoMail, templates, unsubscribe | 2a, 2b | |
+| 4 | [`phases/04-public-api.md`](./phases/04-public-api.md) | Public read endpoints, description write, OpenAPI completeness | 2a, 2b, 3a | |
+| 5 | [`phases/05-docs.md`](./phases/05-docs.md) | README, CLAUDE.md files, root docs entry | all | |
+
+2a and 2b run in parallel; 3a and 3b run in parallel. Only phases 1 and 1b
+edit `prisma/schema.prisma` and create migrations, unless a phase file says
+otherwise. A later phase that genuinely needs a schema change adds a new
+migration and states it in its handoff note.

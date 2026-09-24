@@ -7,28 +7,40 @@ it. Read this file and [`SPEC.md`](./SPEC.md) fully before starting a phase.
 
 - Work only inside `backend/`. Do not modify `frontend/`, `relayer/`,
   `server/`, `evm/`, `solana/`, `solana_old/` or `cosmwasm/`. Read them freely:
-  `relayer/src/` is the reference implementation for all chain logic.
+  For chain logic, `evm/` (the ERC-2535 diamond: `evm/CLAUDE.md`,
+  `evm/src/interfaces/`, `evm/src/types/CbTypes.sol`, `evm/abi/`) defines the
+  EVM contract interface, and `relayer/src/` is the reference for processing
+  patterns (loops, cursors, job queue, VAA / attestation fetching, Solana).
 - Implement exactly the phase you were given. Do not start work that belongs
   to another phase, even if it looks small.
 - Do not edit `docs/SPEC.md` or other phase files. If the spec is wrong,
   ambiguous or impossible, choose the most conservative option, implement it,
-  and list it under **Spec questions** in the PR description.
-- Only phase 1 edits `prisma/schema.prisma` and `prisma/migrations/` unless the
-  phase file says otherwise.
+  and list it under **Spec questions** in your handoff note (§2).
+- Only phases 1 and 1b edit `prisma/schema.prisma` and `prisma/migrations/`
+  unless the phase file says otherwise.
 
 ## 2. Git
 
-- Before the first commit, set the repository author identity (the container
-  default must not be used):
-  `git config user.name "Obum" && git config user.email "obuumm@gmail.com"`.
-  Check with `git log --format='%an <%ae>' -1` after committing.
-- Start from the latest `backend-v2`:
-  `git fetch origin backend-v2 && git checkout -B <your-branch> origin/backend-v2`.
-- Branch names use a hyphen after `backend-v2` (e.g. `backend-v2-02b-auth`):
-  git cannot hold both a `backend-v2` branch and `backend-v2/…` branches.
-- Push only to the branch named in your phase file.
-- Open one pull request from that branch into **`backend-v2`** (never `main`).
-- Never force-push to `backend-v2` or rewrite its history.
+Everything is merged **locally**; there are no GitHub pull requests.
+
+- Before the first commit, check the author identity is the repository owner:
+  `git config user.name` → `Obum`, `git config user.email` → `obuumm@gmail.com`
+  (set them with `git config` if not). Check `git log --format='%an <%ae>' -1`
+  after committing.
+- Work in your own git worktree on the branch named in your phase file,
+  created from the latest `main`:
+  `git worktree add ../chainbills-<phase> -b <branch> main`
+  (the reviewer usually creates it for you). Never commit on `main` directly.
+- Commit on your branch only. Do not merge, rebase or push `main`, and never
+  rewrite history that someone else may have based work on.
+- When done, stop and hand over a **handoff note** as your final message:
+  - **Summary**: what the branch adds.
+  - **How to verify**: exact commands.
+  - **Env changes**: new / changed variables, or "none".
+  - **Spec questions**: ambiguities and the choice you made, or "none".
+- The reviewer reviews the branch, asks for fixes on the same branch, and
+  merges it into `main` with `git merge --no-ff <branch>` (merge commit
+  subject: `merge(backend): <phase title>`), then pushes `main`.
 
 ### Commit messages
 
@@ -41,15 +53,6 @@ it. Read this file and [`SPEC.md`](./SPEC.md) fully before starting a phase.
 - Do **not** add trailers: no `Co-Authored-By`, no `Claude-Session`, no links
   to chat sessions.
 - Small, coherent commits are preferred over one giant commit.
-
-### Pull request description
-
-- Title in the same style as a commit subject.
-- Body sections: **Summary** (what the PR adds), **How to verify** (exact
-  commands), **Env changes** (new/changed vars, or "none"), **Spec questions**
-  (or "none").
-- No "Generated with …" footer, no session links, no mention of AI or agents.
-- Do not post PR comments or reviews unless replying to a review comment.
 
 ## 3. Code quality
 
@@ -67,7 +70,7 @@ it. Read this file and [`SPEC.md`](./SPEC.md) fully before starting a phase.
   stack traces or email addresses to clients.
 - Log with the injected pino logger and structured fields, never `console.log`.
 
-## 4. Documentation (same PR as the code)
+## 4. Documentation (same branch as the code)
 
 - `backend/CLAUDE.md`: keep the module map, invariants and commands current
   for everything your phase adds.
@@ -109,5 +112,6 @@ local Postgres.
 - Every acceptance criterion in the phase file is met.
 - All checks in §5 pass locally.
 - Docs in §4 are updated.
-- Commits and PR follow §2.
-- The PR into `backend-v2` is open.
+- Commits follow §2 and the branch has no merge commits from `main` unless
+  the reviewer asked for one.
+- The handoff note (§2) is your final message.

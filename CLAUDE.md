@@ -106,4 +106,4 @@ cd frontend && npm run type-check
 
 ## Backend v2 (in progress)
 
-`backend/` is the NestJS + Prisma + PostgreSQL service replacing `relayer/` and `server/` (both stay in the repo until retired manually). Spec: `backend/docs/SPEC.md`. Contributor rules: `backend/docs/WORKER_RULES.md`. Phase tasks: `backend/docs/phases/`. Integration branch: `backend-v2`.
+`backend/` is the NestJS + Prisma + PostgreSQL service (pnpm, Node.js 24, Vitest) that replaces `relayer/` and `server/` for the ERC-2535 diamond contracts in `evm/` (both legacy services stay in the repo until retired manually). Spec: `backend/docs/SPEC.md`. Contributor rules: `backend/docs/WORKER_RULES.md`. Phase tasks and status: `backend/docs/phases/` and SPEC §17. Each phase is built on its own branch in a git worktree from `main` and merged locally into `main` after review — no GitHub pull requests.

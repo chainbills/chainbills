@@ -1,6 +1,9 @@
 # Phase 1 — Scaffold
 
-**Branch:** `backend-v2-01-scaffold` → PR into `backend-v2`
+> **Status: merged into `main`.** The pnpm / Node.js 24 / Vitest tooling and the
+> diamond alignment that follow it are in phase 1b.
+
+**Branch:** `backend-v2-01-scaffold` (worktree from `main`) → merged locally into `main` after review
 **Depends on:** nothing
 **Read first:** `backend/docs/WORKER_RULES.md`, `backend/docs/SPEC.md` (§1–7, §13–16)
 

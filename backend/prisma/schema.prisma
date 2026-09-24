@@ -1,0 +1,442 @@
+// ──────────────────────────────────────────────────────────────────────────────
+// Chainbills Backend — Prisma schema
+//
+// Normative source: backend/docs/SPEC.md §7. Model names, field names, types,
+// relations and enums here are copied verbatim from the spec; the only
+// additions this file makes are `@map`/`@@map` snake_case column/table names
+// (the spec explicitly allows this) and a couple of indexes it names as
+// needed for the query patterns in §12. Do not change a name, type or
+// relation here without updating SPEC.md first — this file must never drift
+// from the spec silently.
+//
+// Conventions (SPEC.md §7):
+//   - bytes32 ids/hashes and EVM addresses are stored as lowercase 0x-hex
+//     strings; Solana addresses are stored as base58, case preserved.
+//   - Token amounts are always `Decimal @db.Decimal(78, 0)` holding the raw
+//     integer amount — never a JS `number`, which cannot hold uint256 safely.
+//   - On-chain timestamps are `DateTime`, converted from unix seconds by the
+//     indexer before writing.
+//   - A "wallet key" is `"evm:0x<lowercase>"` or `"solana:<base58>"`; one EVM
+//     address is the same wallet on every EVM chain.
+// ──────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Chain indexing ────────────────────────────────────────────────────────────
+
+/// Indexing + relay cursors per chain. Counters are high-watermarks of the
+/// on-chain stats counters already processed.
+model ChainCursor {
+  /// cbChainId of the chain this cursor tracks.
+  chainId                   String    @id @map("chain_id")
+  /// High-watermark of `Stats.activitiesCount` already indexed.
+  activitiesIndexed         BigInt    @default(0) @map("activities_indexed")
+  /// High-watermark of published Wormhole messages already relayed.
+  wormholeRelayed           BigInt    @default(0) @map("wormhole_relayed")
+  /// High-watermark of emitted CCTP payment messages already relayed.
+  cctpPaymentsRelayed       BigInt    @default(0) @map("cctp_payments_relayed")
+  /// High-watermark of emitted CCTP payable-update messages already relayed.
+  cctpPayableUpdatesRelayed BigInt    @default(0) @map("cctp_payable_updates_relayed")
+  /// Last time this chain's indexing loop completed a tick (used for /health freshness).
+  lastTickAt                DateTime? @map("last_tick_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+
+  @@map("chain_cursors")
+}
+
+/// A payable on its home chain.
+model Payable {
+  /// bytes32 payable id.
+  id               String   @id
+  /// Home chain cbChainId — where this payable was created and lives.
+  chainId          String   @map("chain_id")
+  /// Host address, in its native chain format (EVM lowercase hex or Solana base58).
+  host             String
+  /// Host wallet key ("evm:0x…" | "solana:…"), for cross-chain host lookups.
+  hostWalletKey    String   @map("host_wallet_key")
+  /// Global per-chain payable counter at creation (matches on-chain `chainCount`).
+  chainCount       BigInt   @map("chain_count")
+  /// Per-host payable counter at creation (matches on-chain `hostCount`).
+  hostCount        BigInt   @map("host_count")
+  paymentsCount    BigInt   @default(0) @map("payments_count")
+  withdrawalsCount BigInt   @default(0) @map("withdrawals_count")
+  isClosed         Boolean  @default(false) @map("is_closed")
+  isAutoWithdraw   Boolean  @default(false) @map("is_auto_withdraw")
+  /// On-chain creation time (block/slot timestamp), not indexing time.
+  createdAt        DateTime @map("created_at")
+  indexedAt        DateTime @default(now()) @map("indexed_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  allowedTokens PayableAllowedToken[]
+  balances      PayableBalance[]
+  payments      PayablePayment[]
+  withdrawals   Withdrawal[]
+
+  @@index([hostWalletKey, createdAt])
+  @@index([chainId, createdAt])
+  @@map("payables")
+}
+
+/// One allowed-token/amount entry of a payable's `allowedTokensAndAmounts`.
+model PayableAllowedToken {
+  payableId String
+  /// Token address (EVM) or mint (Solana); native token is represented by the
+  /// chain's Chainbills contract address (see CLAUDE.md invariant #5).
+  token     String
+  /// Fixed amount required for this token; 0 means any amount is accepted.
+  amount    Decimal @db.Decimal(78, 0)
+  payable   Payable @relation(fields: [payableId], references: [id], onDelete: Cascade)
+
+  @@id([payableId, token])
+  @@map("payable_allowed_tokens")
+}
+
+/// One token balance held by a payable (available for withdrawal).
+model PayableBalance {
+  payableId String
+  token     String
+  amount    Decimal @db.Decimal(78, 0)
+  payable   Payable @relation(fields: [payableId], references: [id], onDelete: Cascade)
+
+  @@id([payableId, token])
+  @@map("payable_balances")
+}
+
+/// Host-written description. Separate from Payable so it can be saved before
+/// the indexer has seen the payable, without racing indexer upserts.
+model PayableDescription {
+  payableId    String   @id @map("payable_id")
+  description  String
+  /// Wallet key that last wrote this description, for audit purposes.
+  updatedByKey String   @map("updated_by_key")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("payable_descriptions")
+}
+
+/// Payer's receipt, on the payer's chain.
+model UserPayment {
+  id             String   @id
+  /// The payer's chain — where this receipt lives (may differ from the payable's chain).
+  chainId        String   @map("chain_id")
+  payer          String
+  payerWalletKey String   @map("payer_wallet_key")
+  /// Per-payer payment counter at payment time.
+  payerCount     BigInt   @map("payer_count")
+  /// Global per-chain payment counter at payment time.
+  chainCount     BigInt   @map("chain_count")
+  /// The payable paid into; may live on another chain, so intentionally no FK.
+  payableId      String   @map("payable_id")
+  payableChainId String   @map("payable_chain_id")
+  token          String
+  amount         Decimal  @db.Decimal(78, 0)
+  timestamp      DateTime
+  indexedAt      DateTime @default(now()) @map("indexed_at")
+
+  @@index([payerWalletKey, timestamp])
+  @@index([payableId])
+  @@map("user_payments")
+}
+
+/// Payable's receipt, on the payable's chain.
+model PayablePayment {
+  id              String   @id
+  /// The payable's chain — where this receipt lives.
+  chainId         String   @map("chain_id")
+  payableId       String   @map("payable_id")
+  payable         Payable  @relation(fields: [payableId], references: [id])
+  /// Denormalised payer address (EVM lowercase hex or Solana base58), decoded
+  /// from the bytes32 on-chain payer field (see SPEC.md §8.2 payer normalisation).
+  payer           String
+  payerChainId    String   @map("payer_chain_id")
+  payerWalletKey  String   @map("payer_wallet_key")
+  /// UserPayment.id of the matching receipt on the payer's chain.
+  payerPaymentId  String   @map("payer_payment_id")
+  /// Global per-chain payment counter at receipt time.
+  chainCount      BigInt   @map("chain_count")
+  /// Per-chain-pair payment counter (payments received on this chain from `payerChainId`).
+  localChainCount BigInt   @map("local_chain_count")
+  /// Per-payable payment counter at receipt time.
+  payableCount    BigInt   @map("payable_count")
+  token           String
+  amount          Decimal  @db.Decimal(78, 0)
+  timestamp       DateTime
+  indexedAt       DateTime @default(now()) @map("indexed_at")
+
+  @@index([payableId, timestamp])
+  @@index([payerPaymentId])
+  @@map("payable_payments")
+}
+
+model Withdrawal {
+  id            String   @id
+  chainId       String   @map("chain_id")
+  payableId     String   @map("payable_id")
+  payable       Payable  @relation(fields: [payableId], references: [id])
+  host          String
+  hostWalletKey String   @map("host_wallet_key")
+  /// Global per-chain withdrawal counter at withdrawal time.
+  chainCount    BigInt   @map("chain_count")
+  /// Per-host withdrawal counter at withdrawal time.
+  hostCount     BigInt   @map("host_count")
+  /// Per-payable withdrawal counter at withdrawal time.
+  payableCount  BigInt   @map("payable_count")
+  token         String
+  amount        Decimal  @db.Decimal(78, 0)
+  timestamp     DateTime
+  indexedAt     DateTime @default(now()) @map("indexed_at")
+
+  @@index([payableId, timestamp])
+  @@index([hostWalletKey, timestamp])
+  @@map("withdrawals")
+}
+
+/// Mirrors the on-chain `ActivityType` enum (contract + program).
+enum ActivityType {
+  INITIALIZED_USER
+  CREATED_PAYABLE
+  USER_PAID
+  PAYABLE_RECEIVED
+  WITHDREW
+  CLOSED_PAYABLE
+  REOPENED_PAYABLE
+  UPDATED_PAYABLE_ALLOWED_TOKENS_AND_AMOUNTS
+  UPDATED_PAYABLE_AUTO_WITHDRAW_STATUS
+
+  @@map("activity_type")
+}
+
+/// Raw on-chain activity log, one row per ActivityRecord — see SPEC.md §8.2
+/// for the per-type dispatch table the indexer uses to populate the tables
+/// below from each activity.
+model Activity {
+  id           String       @id
+  chainId      String       @map("chain_id")
+  /// Global per-chain activity counter (matches on-chain `chainCount`); the cursor for indexing.
+  chainCount   BigInt       @map("chain_count")
+  /// Per-user activity counter at the time of this activity.
+  userCount    BigInt       @map("user_count")
+  /// Per-payable activity counter at the time of this activity (0 when not payable-related).
+  payableCount BigInt       @map("payable_count")
+  /// id of the related payable / payment / withdrawal this activity refers to.
+  entity       String
+  type         ActivityType
+  timestamp    DateTime
+  indexedAt    DateTime     @default(now()) @map("indexed_at")
+
+  @@unique([chainId, chainCount])
+  @@index([entity])
+  @@map("activities")
+}
+
+// ── Relay jobs ────────────────────────────────────────────────────────────────
+
+/// The six ways a cross-chain relay job can be produced — see SPEC.md §8.4
+/// and relayer/CLAUDE.md's job-type table for what each one submits.
+enum RelayJobType {
+  PAYABLE_UPDATE_VIA_WORMHOLE
+  PAYABLE_UPDATE_VIA_CCTP
+  PAYMENT_VIA_CCTP_WORMHOLE
+  PAYMENT_VIA_CCTP_ONLY
+  ADMIN_SYNC
+  SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE
+  SOLANA_PAYMENT_VIA_CCTP_WORMHOLE
+
+  @@map("relay_job_type")
+}
+
+enum RelayJobStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+
+  @@map("relay_job_status")
+}
+
+model RelayJob {
+  id     String         @id @default(cuid())
+  type   RelayJobType
+  status RelayJobStatus @default(PENDING)
+
+  sourceChainId       String    @map("source_chain_id")
+  destChainId         String    @map("dest_chain_id")
+  /// Source transaction hash, or a synthetic "wormhole-seq-<chain>-<seq>" key
+  /// for Wormhole-only chains that have no CCTP tx to key off of.
+  txHash              String    @map("tx_hash")
+  blockNumber         BigInt?   @map("block_number")
+  /// Decoded source event payload the job was created from (job-type specific shape).
+  eventData           Json      @map("event_data")
+  attempts            Int       @default(0)
+  /// Earliest time this job may be attempted again (min-age deferral + backoff).
+  notBefore           DateTime  @default(now()) @map("not_before")
+  lastError           String?   @map("last_error")
+  vaa                 String?
+  circleMsg           String?   @map("circle_msg")
+  circleAttestation   String?   @map("circle_attestation")
+  /// Decoded CCTP message payload, persisted once fetched so a retry never refetches it.
+  circleMsgPayload    String?   @map("circle_msg_payload")
+  /// Decoded CCTP attestation payload, persisted once fetched so a retry never refetches it.
+  circleAttestPayload String?   @map("circle_attest_payload")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  lastAttemptAt       DateTime? @map("last_attempt_at")
+  completedAt         DateTime? @map("completed_at")
+
+  @@unique([type, txHash, destChainId])
+  @@index([status, notBefore])
+  @@map("relay_jobs")
+}
+
+// ── Users and auth ────────────────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  /// Normalised (trimmed, lowercased) email; set only after verification succeeds.
+  email           String?
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  wallets       Wallet[]
+  sessions      Session[]
+  preferences   NotificationPreference[]
+  verifications EmailVerification[]
+
+  @@map("users")
+}
+
+enum WalletNamespace {
+  EVM
+  SOLANA
+
+  @@map("wallet_namespace")
+}
+
+/// One wallet linked to a user. The schema allows several wallets per user;
+/// linking more than one is not built until a later phase (SPEC.md §1).
+model Wallet {
+  /// "evm:0x…" | "solana:…" — the universal cross-module wallet identifier.
+  key          String          @id
+  namespace    WalletNamespace
+  /// Address in its native chain format (EVM lowercase hex, Solana base58).
+  address      String
+  userId       String          @map("user_id")
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now()) @map("created_at")
+  lastSignInAt DateTime?       @map("last_sign_in_at")
+
+  @@index([userId])
+  @@map("wallets")
+}
+
+/// Single-use sign-in nonce (SIWE/SIWS), 5-minute expiry.
+model AuthNonce {
+  nonce     String    @id
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("auth_nonces")
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Wallet key used to sign in for this session.
+  walletKey        String    @map("wallet_key")
+  /// sha256 of the current refresh token; the raw token is never stored.
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  expiresAt        DateTime  @map("expires_at")
+  /// Set when the session is logged out or a rotated refresh token is reused (theft signal).
+  revokedAt        DateTime? @map("revoked_at")
+  userAgent        String?   @map("user_agent")
+  ip               String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  lastUsedAt       DateTime  @default(now()) @map("last_used_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model EmailVerification {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Normalised target address being verified.
+  email      String
+  /// HMAC-SHA256 of the one-time code; the raw code is never stored.
+  codeHash   String    @map("code_hash")
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at")
+  consumedAt DateTime? @map("consumed_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([email, createdAt])
+  @@map("email_verifications")
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+enum NotificationType {
+  PAYABLE_CREATED
+  PAYMENT_RECEIVED
+  PAYMENT_RECEIPT
+  WITHDRAWAL_COMPLETED
+
+  @@map("notification_type")
+}
+
+/// A user's opt-out for one notification type. Absent row = enabled (default on).
+model NotificationPreference {
+  userId String           @map("user_id")
+  type   NotificationType
+  email  Boolean          @default(true)
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, type])
+  @@map("notification_preferences")
+}
+
+enum OutboxStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  SKIPPED
+
+  @@map("outbox_status")
+}
+
+/// Transactional email outbox — see SPEC.md §11. Written in the same
+/// transaction as the indexing write that triggers it; sent asynchronously by
+/// the outbox processor so a slow mail provider never blocks indexing.
+model Outbox {
+  id                String           @id @default(cuid())
+  /// "<TYPE>:<entityId>:<walletKey>" — unique so reprocessing an activity never duplicates a send.
+  dedupeKey         String           @unique @map("dedupe_key")
+  type              NotificationType
+  /// Recipient; resolved to a user + verified email at send time (never cached here).
+  walletKey         String           @map("wallet_key")
+  /// Template data (ids, amounts as strings, chain ids) — never PII beyond the wallet key.
+  payload           Json
+  status            OutboxStatus     @default(PENDING)
+  attempts          Int              @default(0)
+  nextAttemptAt     DateTime         @default(now()) @map("next_attempt_at")
+  lastError         String?          @map("last_error")
+  providerMessageId String?          @map("provider_message_id")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  sentAt            DateTime?        @map("sent_at")
+
+  @@index([status, nextAttemptAt])
+  @@map("outbox")
+}

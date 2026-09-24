@@ -7,7 +7,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Keypair } from '@solana/web3.js';
-import { sepolia as viemSepolia } from 'viem/chains';
+import { anvil as viemAnvil } from 'viem/chains';
 import {
   createEvmPublicClient,
   createEvmWalletClient,
@@ -15,15 +15,15 @@ import {
   evmAccountFromPrivateKey,
   solanaKeypairFromSecretKey,
 } from './clients';
-import { sepolia } from './registry';
+import { anvil } from './registry';
 
-const RPC_URL = 'https://sepolia.example.com';
+const RPC_URL = 'https://anvil.example.com';
 const PRIVATE_KEY = `0x${'1'.repeat(64)}` as const;
 
 describe('createEvmPublicClient', () => {
   it('builds a viem public client bound to the given chain and RPC URL', () => {
-    const client = createEvmPublicClient(sepolia, RPC_URL);
-    expect(client.chain).toBe(viemSepolia);
+    const client = createEvmPublicClient(anvil, RPC_URL);
+    expect(client.chain).toBe(viemAnvil);
     expect(client.transport.url).toBe(RPC_URL);
   });
 });
@@ -39,8 +39,8 @@ describe('evmAccountFromPrivateKey', () => {
 describe('createEvmWalletClient', () => {
   it('builds a viem wallet client bound to the chain, RPC URL and account', () => {
     const account = evmAccountFromPrivateKey(PRIVATE_KEY);
-    const client = createEvmWalletClient(sepolia, RPC_URL, account);
-    expect(client.chain).toBe(viemSepolia);
+    const client = createEvmWalletClient(anvil, RPC_URL, account);
+    expect(client.chain).toBe(viemAnvil);
     expect(client.account).toBe(account);
     expect(client.transport.url).toBe(RPC_URL);
   });

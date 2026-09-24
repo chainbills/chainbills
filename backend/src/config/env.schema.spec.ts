@@ -3,7 +3,8 @@
 //
 // Covers SPEC.md §5.1 item 7: a valid minimal config per role, each required
 // var missing, and malformed values (bad URL, bad hex key, bad keypair JSON,
-// bad duration). Runs with no network / DB access.
+// bad duration). Also covers ENABLED_CHAINS validation: unknown slugs, chains
+// with no diamond address, and missing RPC vars. Runs with no network / DB access.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { envSchema, formatEnvIssues } from './env.schema';
@@ -13,10 +14,8 @@ const REQUIRED_IN_EVERY_ROLE: Record<string, string> = {
   APP_URL: 'https://chainbills.xyz',
   PUBLIC_API_URL: 'https://api.chainbills.xyz',
   DATABASE_URL: 'postgresql://user:pass@localhost:5432/chainbills',
-  RPC_ARC_TESTNET: 'https://arc.example.com',
-  RPC_SEPOLIA: 'https://sepolia.example.com',
-  RPC_MEGAETH: 'https://megaeth.example.com',
-  RPC_SOLANA_DEVNET: 'https://solana-devnet.example.com',
+  ENABLED_CHAINS: 'solanadevnet',
+  RPC_SOLANADEVNET: 'https://solana-devnet.example.com',
   UNSUBSCRIBE_SECRET: 'a'.repeat(32),
 };
 
@@ -244,5 +243,129 @@ describe('envSchema', () => {
         expect(line).toMatch(/^[A-Za-z0-9_.]+: .+/);
       }
     }
+  });
+
+  // ENABLED_CHAINS validation
+  describe('ENABLED_CHAINS validation', () => {
+    it('rejects an unknown slug in ENABLED_CHAINS', () => {
+      const result = parse({
+        ...BASE_ENV,
+        ...API_ONLY_ENV,
+        ...WORKER_ONLY_ENV,
+        ENABLED_CHAINS: 'unknownchain',
+        RPC_UNKNOWNCHAIN: 'https://example.com',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const lines = formatEnvIssues(result.error);
+        expect(lines.some((l) => l.includes('unknown chain slugs'))).toBe(true);
+      }
+    });
+
+    it('rejects enabling a chain with no diamond address', () => {
+      const result = parse({
+        ...BASE_ENV,
+        ...API_ONLY_ENV,
+        ...WORKER_ONLY_ENV,
+        ENABLED_CHAINS: 'arcmainnet',
+        RPC_ARCMAINNET: 'https://arc.example.com',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const lines = formatEnvIssues(result.error);
+        expect(lines.some((l) => l.includes('no deployed diamond address'))).toBe(true);
+      }
+    });
+
+    it('rejects when RPC var is missing for an enabled chain', () => {
+      const result = parse({
+        ...BASE_ENV,
+        ...API_ONLY_ENV,
+        ...WORKER_ONLY_ENV,
+        ENABLED_CHAINS: 'solanadevnet',
+        // RPC_SOLANADEVNET is omitted
+        RPC_SOLANADEVNET: undefined,
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const lines = formatEnvIssues(result.error);
+        expect(lines.some((l) => l.startsWith('RPC_SOLANADEVNET'))).toBe(true);
+      }
+    });
+
+    it('reports multiple ENABLED_CHAINS problems at once', () => {
+      const result = parse({
+        ...BASE_ENV,
+        ...API_ONLY_ENV,
+        ...WORKER_ONLY_ENV,
+        ENABLED_CHAINS: 'badslug1,badslug2',
+        RPC_BADSLUG1: 'https://example.com',
+        RPC_BADSLUG2: 'https://example.com',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const msg = formatEnvIssues(result.error).join('\n');
+        expect(msg).toContain('badslug1');
+        expect(msg).toContain('badslug2');
+      }
+    });
+
+    it('accepts solanadevnet with its RPC var', () => {
+      const result = parse({
+        ...BASE_ENV,
+        ...API_ONLY_ENV,
+        ...WORKER_ONLY_ENV,
+        ENABLED_CHAINS: 'solanadevnet',
+        RPC_SOLANADEVNET: 'https://solana-devnet.example.com',
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+});
+
+import { validateEnv, rpcVarName } from './env.schema';
+
+describe('rpcVarName', () => {
+  it('converts a slug to its RPC_ env var name', () => {
+    expect(rpcVarName('arcmainnet')).toBe('RPC_ARCMAINNET');
+    expect(rpcVarName('solanadevnet')).toBe('RPC_SOLANADEVNET');
+    expect(rpcVarName('anvil')).toBe('RPC_ANVIL');
+  });
+});
+
+describe('validateEnv', () => {
+  it('returns a typed Env on valid input', () => {
+    const env = validateEnv({
+      ...BASE_ENV,
+      ...API_ONLY_ENV,
+      ...WORKER_ONLY_ENV,
+      NODE_ENV: 'development',
+    });
+    expect(env.role).toBe('all');
+    expect(env.enabledChainSlugs).toEqual(['solanadevnet']);
+    expect(env.rpcBySlug['solanadevnet']).toBe('https://solana-devnet.example.com');
+  });
+
+  it('exits the process when the env is invalid', () => {
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit called');
+    });
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    expect(() => validateEnv({})).toThrow('process.exit called');
+    expect(stderrSpy).toHaveBeenCalled();
+    exitSpy.mockRestore();
+    stderrSpy.mockRestore();
+  });
+
+  it('populates rpcBySlug from enabled chain vars', () => {
+    const env = validateEnv({
+      ...BASE_ENV,
+      ...API_ONLY_ENV,
+      ...WORKER_ONLY_ENV,
+      NODE_ENV: 'development',
+      ENABLED_CHAINS: 'solanadevnet',
+      RPC_SOLANADEVNET: 'https://solana.example.com',
+    });
+    expect(env.rpcBySlug).toEqual({ solanadevnet: 'https://solana.example.com' });
   });
 });

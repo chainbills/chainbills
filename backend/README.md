@@ -12,9 +12,13 @@ Requires Node.js 24 (see `.nvmrc`), pnpm (enable with `corepack enable`; the ver
 ```bash
 cd backend
 cp .env.example .env
-# Fill in RPC_*, and either real secrets or any 32+ character placeholder
-# strings for JWT_ACCESS_SECRET / OTP_HMAC_SECRET / UNSUBSCRIBE_SECRET —
-# see docs/ENV.md for exactly what each variable needs and where to get it.
+# Set ENABLED_CHAINS=anvil (once you fill in the diamond address after running
+# evm/script/DeployLocalStack.s.sol) or ENABLED_CHAINS=solanadevnet for Solana
+# devnet indexing. Set RPC_<SLUG> for each enabled chain (e.g. RPC_ANVIL=http://127.0.0.1:8545
+# or RPC_SOLANADEVNET=https://api.devnet.solana.com). Fill in either real
+# secrets or any 32+ character placeholder strings for JWT_ACCESS_SECRET /
+# OTP_HMAC_SECRET / UNSUBSCRIBE_SECRET — see docs/ENV.md for exactly what
+# each variable needs.
 
 pnpm install
 docker compose up -d postgres

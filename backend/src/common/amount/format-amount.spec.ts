@@ -26,6 +26,10 @@ describe('formatAmount', () => {
     expect(formatAmount('123', 0)).toBe('123');
   });
 
+  it('formats a negative integer with 0 decimals', () => {
+    expect(formatAmount('-123', 0)).toBe('-123');
+  });
+
   it('strips leading zeros from the raw integer', () => {
     expect(formatAmount('007', 0)).toBe('7');
     expect(formatAmount('000000', 6)).toBe('0');

@@ -39,6 +39,8 @@ model ChainCursor {
   chainId                   String    @id @map("chain_id")
   /// High-watermark of `Stats.activitiesCount` already indexed.
   activitiesIndexed         BigInt    @default(0) @map("activities_indexed")
+  /// Last EVM block scanned for relay-trigger events (SPEC.md §8.2 step 4).
+  relayScanBlock            BigInt    @default(0) @map("relay_scan_block")
   /// High-watermark of published Wormhole messages already relayed.
   wormholeRelayed           BigInt    @default(0) @map("wormhole_relayed")
   /// High-watermark of emitted CCTP payment messages already relayed.
@@ -137,6 +139,8 @@ model UserPayment {
   payableId      String   @map("payable_id")
   payableChainId String   @map("payable_chain_id")
   token          String
+  /// Price matched against the payable's allowed amounts.
+  requestedAmount Decimal @map("requested_amount") @db.Decimal(78, 0)
   amount         Decimal  @db.Decimal(78, 0)
   timestamp      DateTime
   indexedAt      DateTime @default(now()) @map("indexed_at")
@@ -167,6 +171,8 @@ model PayablePayment {
   /// Per-payable payment counter at receipt time.
   payableCount    BigInt   @map("payable_count")
   token           String
+  /// Price of the payment as matched against the payable's allowed amounts.
+  requestedAmount Decimal  @map("requested_amount") @db.Decimal(78, 0)
   amount          Decimal  @db.Decimal(78, 0)
   timestamp       DateTime
   indexedAt       DateTime @default(now()) @map("indexed_at")
@@ -191,6 +197,8 @@ model Withdrawal {
   payableCount  BigInt   @map("payable_count")
   token         String
   amount        Decimal  @db.Decimal(78, 0)
+  /// Portion sent to the fee collector; host receives amount minus fee.
+  fee           Decimal  @db.Decimal(78, 0)
   timestamp     DateTime
   indexedAt     DateTime @default(now()) @map("indexed_at")
 
@@ -239,13 +247,11 @@ model Activity {
 
 // ── Relay jobs ────────────────────────────────────────────────────────────────
 
-/// The six ways a cross-chain relay job can be produced — see SPEC.md §8.4
-/// and relayer/CLAUDE.md's job-type table for what each one submits.
+/// The ways a cross-chain relay job can be produced — see SPEC.md §8.4.
 enum RelayJobType {
   PAYABLE_UPDATE_VIA_WORMHOLE
   PAYABLE_UPDATE_VIA_CCTP
-  PAYMENT_VIA_CCTP_WORMHOLE
-  PAYMENT_VIA_CCTP_ONLY
+  PAYMENT_VIA_CCTP
   ADMIN_SYNC
   SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE
   SOLANA_PAYMENT_VIA_CCTP_WORMHOLE
@@ -267,28 +273,26 @@ model RelayJob {
   type   RelayJobType
   status RelayJobStatus @default(PENDING)
 
-  sourceChainId       String    @map("source_chain_id")
-  destChainId         String    @map("dest_chain_id")
+  sourceChainId String   @map("source_chain_id")
+  destChainId   String   @map("dest_chain_id")
   /// Source transaction hash, or a synthetic "wormhole-seq-<chain>-<seq>" key
   /// for Wormhole-only chains that have no CCTP tx to key off of.
-  txHash              String    @map("tx_hash")
-  blockNumber         BigInt?   @map("block_number")
+  txHash        String   @map("tx_hash")
+  blockNumber   BigInt?  @map("block_number")
   /// Decoded source event payload the job was created from (job-type specific shape).
-  eventData           Json      @map("event_data")
-  attempts            Int       @default(0)
+  eventData     Json     @map("event_data")
+  attempts      Int      @default(0)
   /// Earliest time this job may be attempted again (min-age deferral + backoff).
-  notBefore           DateTime  @default(now()) @map("not_before")
-  lastError           String?   @map("last_error")
-  vaa                 String?
-  circleMsg           String?   @map("circle_msg")
-  circleAttestation   String?   @map("circle_attestation")
-  /// Decoded CCTP message payload, persisted once fetched so a retry never refetches it.
-  circleMsgPayload    String?   @map("circle_msg_payload")
-  /// Decoded CCTP attestation payload, persisted once fetched so a retry never refetches it.
-  circleAttestPayload String?   @map("circle_attest_payload")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  lastAttemptAt       DateTime? @map("last_attempt_at")
-  completedAt         DateTime? @map("completed_at")
+  notBefore     DateTime @default(now()) @map("not_before")
+  lastError     String?  @map("last_error")
+  vaa           String?
+  /// Raw CCTP burn/data message hex, persisted once fetched so a retry never refetches it.
+  cctpMessage   String?  @map("cctp_message")
+  /// CCTP attestation hex, persisted once fetched so a retry never refetches it.
+  cctpAttestation String? @map("cctp_attestation")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  lastAttemptAt   DateTime? @map("last_attempt_at")
+  completedAt     DateTime? @map("completed_at")
 
   @@unique([type, txHash, destChainId])
   @@index([status, notBefore])

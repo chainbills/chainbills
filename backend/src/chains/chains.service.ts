@@ -9,22 +9,20 @@
 
 import { Injectable } from '@nestjs/common';
 import { AppConfigService } from '../config/app-config.service';
-import { CHAIN_BY_CB_CHAIN_ID, CHAIN_BY_SLUG, CHAINS, EVM_CHAINS, SOLANA_CHAINS } from './registry';
+import { CHAIN_BY_CB_CHAIN_ID, CHAIN_BY_SLUG, CHAINS, enabledChains, EVM_CHAINS, SOLANA_CHAINS } from './registry';
 import type { ChainConfig, ChainSlug } from './types';
 
 @Injectable()
 export class ChainsService {
+  /** The chains enabled for this instance, resolved from ENABLED_CHAINS at construction. */
+  readonly enabled: readonly ChainConfig[];
+
   /** slug -> RPC URL, assembled once from config at construction. */
-  private readonly rpcUrlBySlug: ReadonlyMap<ChainSlug, string>;
+  private readonly rpcUrlBySlug: ReadonlyMap<string, string>;
 
   constructor(config: AppConfigService) {
-    const { rpc } = config.env;
-    this.rpcUrlBySlug = new Map<ChainSlug, string>([
-      ['arctestnet', rpc.arcTestnet],
-      ['sepolia', rpc.sepolia],
-      ['megaeth', rpc.megaeth],
-      ['solanadevnet', rpc.solanaDevnet],
-    ]);
+    this.enabled = enabledChains(config.env.enabledChainSlugs);
+    this.rpcUrlBySlug = new Map(Object.entries(config.env.rpcBySlug));
   }
 
   /** Every chain in the registry. */
@@ -57,7 +55,7 @@ export class ChainsService {
     const url = this.rpcUrlBySlug.get(chain.slug);
     if (!url) {
       // Unreachable given env.schema.ts requires every RPC_* var for every
-      // role, but fail loudly rather than silently returning an empty URL.
+      // enabled chain, but fail loudly rather than silently returning an empty URL.
       throw new Error(`no RPC URL configured for chain: ${chain.slug}`);
     }
     return url;

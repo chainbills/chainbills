@@ -3,22 +3,25 @@
 //
 // Covers the RPC-url map built once at construction from AppConfigService,
 // every registry getter, and getRpcUrl's success and throwing paths.
+// enabledChains() is tested separately in registry.spec.ts.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { AppConfigService } from '../config/app-config.service';
 import { ChainsService } from './chains.service';
-import { arcTestnet, CHAINS, EVM_CHAINS, megaeth, sepolia, SOLANA_CHAINS, solanaDevnet } from './registry';
+import { anvil, arcmainnet, CHAINS, EVM_CHAINS, SOLANA_CHAINS, solanaDevnet } from './registry';
 import type { ChainConfig } from './types';
 
-const RPC = {
-  arcTestnet: 'https://arc.example.com',
-  sepolia: 'https://sepolia.example.com',
-  megaeth: 'https://megaeth.example.com',
-  solanaDevnet: 'https://solana-devnet.example.com',
+const RPC_BY_SLUG = {
+  solanadevnet: 'https://solana-devnet.example.com',
 };
 
-function makeConfig(rpc: typeof RPC = RPC): AppConfigService {
-  return { env: { rpc } } as unknown as AppConfigService;
+function makeConfig(rpcBySlug: Record<string, string> = RPC_BY_SLUG): AppConfigService {
+  return {
+    env: {
+      enabledChainSlugs: Object.keys(rpcBySlug),
+      rpcBySlug,
+    },
+  } as unknown as AppConfigService;
 }
 
 describe('ChainsService', () => {
@@ -39,7 +42,7 @@ describe('ChainsService', () => {
 
   it('looks up a chain by cbChainId', () => {
     const service = new ChainsService(makeConfig());
-    expect(service.byCbChainId(sepolia.cbChainId)).toBe(sepolia);
+    expect(service.byCbChainId(solanaDevnet.cbChainId)).toBe(solanaDevnet);
   });
 
   it('returns undefined for an unknown cbChainId', () => {
@@ -49,20 +52,24 @@ describe('ChainsService', () => {
 
   it('looks up a chain by slug', () => {
     const service = new ChainsService(makeConfig());
-    expect(service.bySlug('megaeth')).toBe(megaeth);
+    expect(service.bySlug('solanadevnet')).toBe(solanaDevnet);
+    expect(service.bySlug('arcmainnet')).toBe(arcmainnet);
+    expect(service.bySlug('anvil')).toBe(anvil);
   });
 
-  it('returns the configured RPC URL for each chain', () => {
+  it('returns the configured RPC URL for each enabled chain', () => {
     const service = new ChainsService(makeConfig());
-    expect(service.getRpcUrl(arcTestnet)).toBe(RPC.arcTestnet);
-    expect(service.getRpcUrl(sepolia)).toBe(RPC.sepolia);
-    expect(service.getRpcUrl(megaeth)).toBe(RPC.megaeth);
-    expect(service.getRpcUrl(solanaDevnet)).toBe(RPC.solanaDevnet);
+    expect(service.getRpcUrl(solanaDevnet)).toBe(RPC_BY_SLUG.solanadevnet);
+  });
+
+  it('sets enabled to the chains from enabledChainSlugs', () => {
+    const service = new ChainsService(makeConfig());
+    expect(service.enabled).toEqual([solanaDevnet]);
   });
 
   it('throws when a chain has no configured RPC URL', () => {
     const service = new ChainsService(makeConfig());
-    const bogusChain = { ...arcTestnet, slug: 'bogus' } as unknown as ChainConfig;
+    const bogusChain = { ...solanaDevnet, slug: 'bogus' } as unknown as ChainConfig;
     expect(() => service.getRpcUrl(bogusChain)).toThrow(/no RPC URL configured for chain: bogus/);
   });
 });

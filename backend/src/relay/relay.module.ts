@@ -1,18 +1,17 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// Chainbills Backend — Health module
+// Chainbills Backend — Relay module
 //
-// Registered for every role (SPEC.md §2.1) — imported unconditionally by
-// AppModule, unlike WorkerModule/ApiModule.
+// Provides RelayProcessor. Imported by WorkerModule.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module } from '@nestjs/common';
-import { AppConfigModule } from '../config/config.module';
 import { ChainsModule } from '../chains/chains.module';
 import { PrismaModule } from '../prisma/prisma.module';
-import { HealthController } from './health.controller';
+import { RelayProcessor } from './relay.processor';
 
 @Module({
-  imports: [PrismaModule, AppConfigModule, ChainsModule],
-  controllers: [HealthController],
+  imports: [PrismaModule, ChainsModule],
+  providers: [RelayProcessor],
+  exports: [RelayProcessor],
 })
-export class HealthModule {}
+export class RelayModule {}

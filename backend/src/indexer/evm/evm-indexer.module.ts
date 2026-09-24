@@ -1,18 +1,18 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// Chainbills Backend — Health module
+// Chainbills Backend — EVM indexer module
 //
-// Registered for every role (SPEC.md §2.1) — imported unconditionally by
-// AppModule, unlike WorkerModule/ApiModule.
+// Provides EvmIndexer. Imported by WorkerModule.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module } from '@nestjs/common';
-import { AppConfigModule } from '../config/config.module';
-import { ChainsModule } from '../chains/chains.module';
-import { PrismaModule } from '../prisma/prisma.module';
-import { HealthController } from './health.controller';
+import { AppConfigModule } from '../../config/config.module';
+import { ChainsModule } from '../../chains/chains.module';
+import { PrismaModule } from '../../prisma/prisma.module';
+import { EvmIndexer } from './evm.indexer';
 
 @Module({
-  imports: [PrismaModule, AppConfigModule, ChainsModule],
-  controllers: [HealthController],
+  imports: [PrismaModule, ChainsModule, AppConfigModule],
+  providers: [EvmIndexer],
+  exports: [EvmIndexer],
 })
-export class HealthModule {}
+export class EvmIndexerModule {}

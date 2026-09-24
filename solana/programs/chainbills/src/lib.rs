@@ -39,7 +39,7 @@ pub use instructions::{payable::*, payment::*, relay::*, withdraw::*};
 pub use state::*; /* exports Config, Stats, SenderAuthority, and all
                    * other PDAs */
 
-declare_id!("DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk");
+declare_id!("5w94LHNPj1UXDLdvRE4GeQQDNDfHGnVebmBD1hDTdGvX");
 
 #[program]
 pub mod chainbills {

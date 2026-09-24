@@ -1,13 +1,22 @@
+// stores/withdrawal.ts
+//
+// Withdrawal execution and lookup. `exec()` drives the `'withdraw'`
+// tx-flow (just `sign` → `confirm` — a withdrawal never crosses chains).
+// `get()` resolves a withdrawal id without knowing its chain up front by
+// probing every EVM chain in parallel.
+//
+// Used by: `views/PayableDetailView.vue`, `views/ReceiptView.vue`,
+// `views/UserActivityView.vue`, `stores/activity.ts`.
+import { chainNames, chainNamesToChains, Payable, TokenAndAmount, Withdrawal, type ChainName } from '@/schemas';
 import {
-  chainNames,
-  chainNamesEvm,
-  chainNamesToChains,
-  Payable,
-  TokenAndAmount,
-  Withdrawal,
-  type ChainName,
-} from '@/schemas';
-import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, usePayableStore, useSolanaStore } from '@/stores';
+  useAnalyticsStore,
+  useAuthStore,
+  useCacheStore,
+  useEvmStore,
+  usePayableStore,
+  useSolanaStore,
+  useTxFlowStore,
+} from '@/stores';
 import { PublicKey } from '@solana/web3.js';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
@@ -20,24 +29,40 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const evm = useEvmStore();
   const payableStore = usePayableStore();
   const solana = useSolanaStore();
+  const txFlow = useTxFlowStore();
   const toast = useToast();
 
   const cacheKey = (chain: string, id: string) => `${chain}::withdrawal::${id}`;
 
+  /** Withdraws `details` from a payable's balance. The flow title includes the net amount after the 2% withdrawal fee, capped by `maxWithdrawalFees`. */
   const exec = async (payableId: string, details: TokenAndAmount): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
-    const result = await {
-      arctestnet: evm,
-      megaeth: evm,
-      sepolia: evm,
-      solanadevnet: solana,
-    }[auth.currentUser.chain.name]['withdraw'](payableId, details);
+    if (auth.currentUser.chain.isSolana) {
+      const result = await solana.withdraw(payableId, details);
+      return await finishExec(result);
+    }
+
+    const flow = txFlow.start('withdraw', `Withdraw ${details.display(auth.currentUser.chain)}`, [
+      { key: 'sign', title: 'Sign transaction', description: 'Waiting to sign…' },
+      { key: 'confirm', title: 'Confirm on-chain', description: 'Waiting for confirmation…' },
+    ]);
+    const result = await evm.withdraw(
+      payableId,
+      details,
+      { sign: flow.step('sign'), confirm: flow.step('confirm') },
+      flow
+    );
+    if (!result) return null; // flow is already 'failed' or 'cancelled' — evm.writeContract recorded which.
+    flow.finish({ withdrawalId: result.created });
+    return await finishExec(result);
+  };
+
+  const finishExec = async (
+    result: { created: string; explorerUrl: string; chain: any } | null
+  ): Promise<string | null> => {
     if (!result) return null;
     await auth.refreshUser();
-
-    console.log(`Made Withdrawal Transaction Details: ${result.explorerUrl}`);
-
     toast.add({
       severity: 'success',
       summary: 'Successfully Withdrew',
@@ -45,10 +70,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       data: { url: result.explorerUrl },
       life: 12000,
     });
-    analytics.recordEvent('made_withdrawal', {
-      withdrawal_id: result.created,
-      chain: result.chain.name,
-    });
+    analytics.recordEvent('made_withdrawal', { withdrawal_id: result.created, chain: result.chain.name });
     return result.created;
   };
 
@@ -83,42 +105,44 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   const get = async (id: string, chainName?: ChainName, ignoreErrors = false): Promise<Withdrawal | null> => {
     if (chainName) {
       // Check if the withdrawal is already in the cache and return if so.
-      let withdrawal = await getFromCache(id, chainName);
+      const withdrawal = await getFromCache(id, chainName);
       if (withdrawal) return withdrawal;
 
       // Fetch from on-chain and return directly
       return await getFromOnChain(id, chainName, ignoreErrors);
-    } else {
-      // Check if the withdrawal is already in the cache and return if so.
-      // Looping through known chain names as the chain is not known (straight from browser URL)
-      for (let chainName of chainNames) {
-        let withdrawal = await getFromCache(id, chainName);
-        if (withdrawal) return withdrawal;
-      }
-
-      // Determine the kind of chain to use to fetch the payment
-      let isEvm = false;
-      let isSolana = false;
-      try {
-        new PublicKey(id);
-        isSolana = true;
-      } catch (_) {
-        if (encoding.hex.valid(id)) isEvm = true;
-        // If it's not a valid Solana public key or it is not a hex string,
-        // then it's not a valid ID.
-        else return null;
-      }
-      const _chainNames = [...(isEvm ? chainNamesEvm : []), ...(isSolana ? ['solanadevnet'] : [])] as ChainName[];
-
-      // Fetch the Payment directly from the chain and return
-      for (let chainName of _chainNames) {
-        const withdrawal = await getFromOnChain(id, chainName, ignoreErrors);
-        if (withdrawal) return withdrawal;
-      }
-
-      // If nothing was found from cache nor could not fetch from network, then return null
-      return null;
     }
+
+    // Check if the withdrawal is already in the cache and return if so.
+    // Looping through known chain names as the chain is not known (straight from browser URL)
+    for (const name of chainNames) {
+      const withdrawal = await getFromCache(id, name);
+      if (withdrawal) return withdrawal;
+    }
+
+    // Determine the kind of chain to use to fetch the withdrawal
+    let isEvm = false;
+    let isSolana = false;
+    try {
+      new PublicKey(id);
+      isSolana = true;
+    } catch (_) {
+      if (encoding.hex.valid(id)) isEvm = true;
+      // If it's not a valid Solana public key or it is not a hex string,
+      // then it's not a valid ID.
+      else return null;
+    }
+
+    // Probe every candidate chain in parallel — never sequentially.
+    if (isEvm) {
+      const hit = await evm.probeEntityChain('getWithdrawal', id);
+      if (!hit) return null;
+      const chain = chainNamesToChains[hit.chainName];
+      const withdrawal = new Withdrawal(id, chain, hit.raw);
+      await cache.save(cacheKey(hit.chainName, id), withdrawal);
+      return withdrawal;
+    }
+    if (isSolana) return await getFromOnChain(id, 'solanadevnet', ignoreErrors);
+    return null;
   };
 
   const getManyForCurrentUser = async (page: number, count: number): Promise<Withdrawal[] | null> => {

@@ -10,7 +10,7 @@ Vue 3 SPA. Stack: Vue 3 + Pinia + Vue Router + Wagmi/viem (EVM) + Solana Wallets
 src/
   main.ts              App bootstrap: Wagmi config (incl. the "liquid glass" PrimeVue preset), Pinia, Firebase init
   App.vue              Root: AmbientBackdrop, glass refraction filter, Header/Sidebar/Footer, router-view, Toast
-  router/index.ts      Routes: /, /start, /dashboard, /activity, /payable/:id, /pay/:id, /receipt/:id, (+ /_ui in dev only)
+  router/index.ts      Routes: /, /start, /dashboard, /activity, /payable/:id (public — no auth guard), /pay/:id, /receipt/:id, /scan, /scan/address/:address, (+ /_ui and /_data in dev only)
   directives/
     reveal.ts          v-reveal — scroll-entrance directive, registered globally in main.ts
     README.md          Directive usage reference
@@ -38,6 +38,7 @@ src/
     payment.ts         usePaymentStore — exec payment (routes same/cross-chain), get payments, trackArrival
     withdrawal.ts       useWithdrawalStore — withdraw, get withdrawals
     activity.ts        useActivityStore — unified activity feeds, entity resolution, cross-chain k-way merge
+    scan.ts            useScanStore — Scan entity paginators (per-chain + network k-way merge), search, address-page lookups
     stats.ts           useStatsStore — chain/network statistics, 30s memoized
     tx-flow.ts         useTxFlowStore — the transaction-flow step engine
     server.ts          useServerStore — calls Firebase server (descriptions, notifications)
@@ -54,26 +55,31 @@ src/
     index.ts           Re-exports all stores
   views/
     HomeView.vue          Landing page
-    CreatePayableView.vue  Create payable form, two-column with a live preview card, drives the 'create-payable' flow
+    CreatePayableView.vue  Create payable form, two-column with a live preview card, drives the 'create-payable' flow; uses PaymentRulesEditor from components/payable/
     DashboardView.vue      Host dashboard: stats row, grid of PayableInfoCards, pagination
     UserActivityView.vue   User's payment + withdrawal history
-    PayableDetailView.vue  Payable detail: payments received, host controls, opens WithdrawDialog
+    PayableDetailView.vue  Public payable detail page (no auth required); hero + two-column layout (main column + sticky side rail); host sees balances, withdraw and host controls; non-hosts see description, settings, availability and activity only
     PayView.vue            Payer's payment UI: same-chain/cross-chain/mismatch/unsupported routes, drives 'pay'/'pay-cross-chain'
     ReceiptView.vue        Payment/withdrawal receipt (public), with a live cross-chain delivery tracker
     DataDebugView.vue      Dev-only self-test page for the data layer (`/_data`, `import.meta.env.DEV` only) — also stages a fake tx-flow
     NotFoundView.vue       404, built from the `EmptyState` primitive
     UiGalleryView.vue      Dev-only (`/_ui`) showcase of every component in `components/ui/`
+    scan/
+      ScanView.vue         Chainbills Scan overview: network/chain selector, stats, five entity tabs, search (`/scan`)
+      ScanAddressView.vue  Address detail: per-chain presence cards, merged activity, entity tabs (`/scan/address/:address`)
   components/
     Header.vue, Footer.vue, Sidebar.vue    App shell — see "Design System" below
     PayableInfoCard.vue      One glass card in the dashboard grid
     TransactionsTable.vue
-    MakePaymentLoader.vue, PayableDetailLoader.vue, ReceiptLoader.vue, TableLoader.vue
+    MakePaymentLoader.vue, PayableDetailLoader.vue (rebuilt with Skeleton — mirrors the payable detail two-column layout), ReceiptLoader.vue, TableLoader.vue
     Shimmer.vue              Pre-redesign shimmer loader (vue3-loading-shimmer); new code uses `ui/Skeleton.vue` instead
     SignInButton.vue
     ThemeMenu.vue
     activity/                Unified activity feed UI (`ActivityFeed`, `ActivityTable`/`ActivityList`, shared row/icon/detail building blocks) — see `components/activity/README.md`
     ui/                      The "liquid glass" primitive library — see `components/ui/README.md` and "Design System" below
     tx/                      Transaction-progress UI (TxFlowDialog, TxBackgroundTray, ApprovalGate, CrossChainRoute, WithdrawDialog) — see `components/tx/README.md` and "Payment UI Flow" below
+    payable/                 Payable detail page components: hero band, settings card, availability card, balances card, host controls, payment rules editor, description editor — see `components/payable/README.md`
+    scan/                    Scan explorer components (ScanHeader, ScanStats, ScanEntityTable, entity table wrappers, ScanSearch, ChainBreakdownBar) — see `components/scan/README.md`
   icons/                   SVG icon components (IconArc, IconEthereum, IconMegaETH, etc.)
 ```
 
@@ -211,6 +217,18 @@ Sends `chain-name`, `wallet-address`, `signature` headers on every call.
 ### Cache (`stores/cache.ts`)
 
 Keys: `{chainName}::payable::{id}::payment::{count}`, etc. Used to avoid re-fetching immutable entities (payments, withdrawals, activity records, chain-discovery results) on navigation. Payables are never cached — their state changes.
+
+### Scan store (`stores/scan.ts`)
+
+All Scan entity paginators and search logic live here. Single-chain paginators
+(`getChainPayables`, `getChainUserPayments`, etc.) use the reverse-offset maths
+from `reference/onchain-data.md §2` to return newest-first pages. Network-wide
+functions (`getNetworkPayables`, `getNetworkPayments`, `getNetworkWithdrawals`,
+`getNetworkUsers`) k-way-merge each chain's own stream into one using a
+`ScanMultiChainCursor` that survives "Load more" calls without gaps or
+duplicates. `search(q, networkType, signal?)` detects the query kind (EVM
+address, 32-byte id, chain/token name, free text) and returns a typed
+`SearchResult`. The `DEFAULT_NETWORK` constant (`'testnet'`) lives here.
 
 ## Payment UI Flow
 

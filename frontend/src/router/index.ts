@@ -50,7 +50,7 @@ const router = createRouter({
       path: '/payable/:id',
       name: 'payable',
       component: () => import('../views/PayableDetailView.vue'),
-      meta: { title: `Payable's Details | ${baseTitle}` },
+      meta: { title: `Payable | ${baseTitle}` },
     },
     {
       path: '/pay/:id',
@@ -107,6 +107,18 @@ const router = createRouter({
         window.location.replace('https://drive.google.com/file/d/1aD4MmylCYxy75GjZA0bNg1TYg0ljBYsj/view?usp=sharing');
         return to;
       },
+    },
+    {
+      path: '/scan',
+      name: 'scan',
+      component: () => import('../views/scan/ScanView.vue'),
+      meta: { title: `Chainbills Scan | ${baseTitle}` },
+    },
+    {
+      path: '/scan/address/:address',
+      name: 'scan-address',
+      component: () => import('../views/scan/ScanAddressView.vue'),
+      meta: { title: `Address | Chainbills Scan | ${baseTitle}` },
     },
     {
       path: '/:pathMatch(.*)*',

@@ -1,13 +1,13 @@
 <script setup lang="ts">
 /**
- * src/views/CreatePayableView.vue — `/start`. The form a host fills in to
+ * src/views/CreatePayableView.vue: `/start`. The form a host fills in to
  * create a new payable: a description, payment rules (any amount, or a
  * fixed list of accepted token/amount options), and the auto-withdraw
  * toggle. A live preview card on the right mirrors what the resulting
  * payable page will look like. Submitting drives the `'create-payable'`
- * tx-flow (`stores/payable.ts` → `create`); `TxFlowDialog` (mounted in
+ * tx-flow (`stores/payable.ts`, `create`); `TxFlowDialog` (mounted in
  * `App.vue`) shows its progress and, on success, offers "Open payable" and
- * "Copy payment link" — this view does not navigate away on its own, so the
+ * "Copy payment link". This view does not navigate away on its own, so the
  * form stays available to create another payable while the flow's `sync`
  * step keeps broadcasting to the other chains in the background.
  */
@@ -18,25 +18,17 @@ import {
   GlassCard,
   PayableAvatar,
   SectionHeader,
-  SegmentedTabs,
   StatusPill,
   TokenAmount,
 } from '@/components/ui';
+import PaymentRulesEditor from '@/components/payable/PaymentRulesEditor.vue';
 import SignInButton from '@/components/SignInButton.vue';
-import IconClose from '@/icons/IconClose.vue';
-import { chainNamesEvm, chainNamesToChains, parseTokenAmount, TokenAndAmount, tokens, type Token } from '@/schemas';
+import { chainNamesEvm, chainNamesToChains, TokenAndAmount } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, usePayableStore } from '@/stores';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
-import Select from 'primevue/select';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { computed, ref } from 'vue';
-
-/** One row of the "specific tokens and amounts" rule builder. `amount` stays a raw string while typed; it is only parsed to a `bigint` for validation and submission. */
-interface RuleRow {
-  token: Token | null;
-  amount: string;
-}
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
@@ -52,63 +44,15 @@ const descriptionError = computed(() => {
   return '';
 });
 
-const ruleOptions = [
-  { label: 'Any token, any amount', value: 'any' },
-  { label: 'Specific tokens and amounts', value: 'specific' },
-];
-const ruleMode = ref<'any' | 'specific'>('any');
-const rows = ref<RuleRow[]>([]);
-
-const addRow = () => {
-  rows.value.push({ token: null, amount: '' });
-  analytics.recordEvent('selected_create_ataa_token');
-};
-const removeRow = (index: number) => {
-  rows.value.splice(index, 1);
-  analytics.recordEvent('removed_create_ataa_token');
-};
-
 const homeChain = computed(() => auth.currentUser?.chain ?? null);
 
-const availableTokens = computed(() =>
-  homeChain.value ? tokens.filter((t) => !!t.details[homeChain.value!.name]) : tokens
-);
+/** The parsed, validated tokens and amounts to submit. An empty array means "any token, any amount". */
+const tokensAndAmounts = ref<TokenAndAmount[]>([]);
 
-/** Parses one row against the home chain's decimals, or `'invalid'` for a non-positive/unparseable amount, or `null` while the row is still incomplete. */
-const parseRow = (row: RuleRow): { token: Token; amount: bigint } | 'invalid' | null => {
-  if (!row.token || !homeChain.value || !row.amount.trim()) return null;
-  try {
-    const decimals = row.token.details[homeChain.value.name]?.decimals ?? 0;
-    const amount = parseTokenAmount(row.amount, decimals);
-    return amount > 0n ? { token: row.token, amount } : 'invalid';
-  } catch {
-    return 'invalid';
-  }
-};
+/** Validation error from PaymentRulesEditor. Empty when valid. */
+const configError = ref('');
 
-const configError = computed(() => {
-  if (ruleMode.value === 'any') return '';
-  if (rows.value.length === 0) return 'Add at least one token and amount, or switch to "Any token, any amount".';
-
-  const parsed: { token: Token; amount: bigint }[] = [];
-  for (const row of rows.value) {
-    const result = parseRow(row);
-    if (result === null) return 'Choose a token and enter an amount for every row.';
-    if (result === 'invalid') return 'Enter a positive amount for every row.';
-    parsed.push(result);
-  }
-  const keys = parsed.map((p) => `${p.token.name}:${p.amount}`);
-  if (new Set(keys).size !== keys.length) return 'Remove duplicate token and amount pairs.';
-  return '';
-});
-
-/** The parsed, validated tokens and amounts to submit — empty (meaning "any amount") until every row is valid. */
-const tokensAndAmounts = computed<TokenAndAmount[]>(() => {
-  if (ruleMode.value === 'any' || configError.value || !homeChain.value) return [];
-  return rows.value.map((row) => TokenAndAmount.parse(row.token!, row.amount, homeChain.value!));
-});
-
-/** The other EVM chains of the connected wallet's network — where this payable will sync to once created, per `payable.availability`'s own "same network, EVM" rule. No payable exists yet to probe `getForeignPayable` on, so this mirrors that rule statically instead of calling it. */
+/** The other EVM chains of the connected wallet's network. These are where this payable will sync once created, per `payable.availability`'s "same network, EVM" rule. No payable exists yet to probe `getForeignPayable` on, so this mirrors that rule statically. */
 const syncChains = computed(() => {
   if (!homeChain.value) return [];
   return chainNamesEvm
@@ -125,8 +69,8 @@ const canSubmit = computed(
 
 const resetForm = () => {
   description.value = '';
-  ruleMode.value = 'any';
-  rows.value = [];
+  tokensAndAmounts.value = [];
+  configError.value = '';
   isAutoWithdraw.value = false;
 };
 
@@ -190,43 +134,13 @@ const previewTitle = computed(() => `Payable preview`);
           <div>
             <span class="text-sm font-medium text-fg">Payment rules</span>
             <p class="text-xs text-muted mb-3">What can payers send this payable?</p>
-            <SegmentedTabs v-model="ruleMode" :options="ruleOptions" />
-
-            <div v-if="ruleMode === 'specific'" class="mt-4 flex flex-col gap-2">
-              <div v-for="(row, i) in rows" :key="i" class="flex items-center gap-2">
-                <Select
-                  v-model="row.token"
-                  :options="availableTokens"
-                  optionLabel="name"
-                  placeholder="Token"
-                  class="w-32 shrink-0"
-                  aria-label="Token"
-                />
-                <input
-                  v-model="row.amount"
-                  type="number"
-                  min="0"
-                  step="any"
-                  placeholder="Amount"
-                  aria-label="Amount"
-                  class="w-full rounded-xl border border-glass-border bg-glass-tint px-3 py-2 text-sm text-fg outline-none focus:border-accent"
-                />
-                <button
-                  type="button"
-                  class="shrink-0 p-1.5 rounded-full text-muted hover:text-danger hover:bg-danger/10"
-                  :aria-label="`Remove option ${i + 1}`"
-                  title="Remove option"
-                  @click="removeRow(i)"
-                >
-                  <IconClose class="w-4 h-4" />
-                </button>
-              </div>
-              <button type="button" class="self-start text-sm text-accent hover:underline" @click="addRow">
-                + Add option
-              </button>
-              <p v-if="configError" class="text-xs text-danger">{{ configError }}</p>
-            </div>
-            <p v-else class="mt-3 text-xs text-muted">Payers can pay any supported token, in any amount.</p>
+            <PaymentRulesEditor
+              v-if="homeChain"
+              :home-chain="homeChain"
+              v-model="tokensAndAmounts"
+              @update:error="configError = $event"
+            />
+            <p v-else class="mt-3 text-xs text-muted">Connect your wallet to configure payment rules.</p>
           </div>
 
           <label class="flex items-start gap-3">
@@ -254,7 +168,7 @@ const previewTitle = computed(() => `Payable preview`);
           </div>
 
           <Button type="submit" :disabled="!canSubmit || isSubmitting" class="self-end px-6">
-            {{ isSubmitting ? 'Creating…' : 'Create payable' }}
+            {{ isSubmitting ? 'Creating...' : 'Create payable' }}
           </Button>
         </form>
       </GlassCard>
@@ -274,7 +188,7 @@ const previewTitle = computed(() => `Payable preview`);
 
         <div class="mb-4">
           <p class="text-xs uppercase tracking-wider text-muted mb-1.5">Accepts</p>
-          <p v-if="ruleMode === 'any'" class="text-sm text-fg">Any supported token, any amount</p>
+          <p v-if="tokensAndAmounts.length === 0" class="text-sm text-fg">Any supported token, any amount</p>
           <div v-else-if="tokensAndAmounts.length && homeChain" class="flex flex-wrap gap-2">
             <span
               v-for="(ta, i) in tokensAndAmounts"

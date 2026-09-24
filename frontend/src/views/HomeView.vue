@@ -19,14 +19,12 @@ import FaqSection from '@/components/landing/FaqSection.vue';
 import FeaturesBento from '@/components/landing/FeaturesBento.vue';
 import HowItWorks from '@/components/landing/HowItWorks.vue';
 import LandingHero from '@/components/landing/LandingHero.vue';
-import NumbersStrip from '@/components/landing/NumbersStrip.vue';
 import SupportedChains from '@/components/landing/SupportedChains.vue';
 </script>
 
 <template>
   <div class="max-w-7xl mx-auto">
     <LandingHero />
-    <NumbersStrip />
     <HowItWorks />
     <CrossChainDeepDive />
     <FeaturesBento />

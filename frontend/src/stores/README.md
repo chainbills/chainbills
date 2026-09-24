@@ -133,6 +133,31 @@ Builds the unified activity feed from raw `ActivityRecord`s.
 - `byCategory`/`byTypes`/`loadUntil` — client-side filtering helpers, since
   there is no server-side filter on-chain.
 
+### `scan.ts` — `useScanStore`
+
+The data layer for the Chainbills Scan explorer (`/scan` and
+`/scan/address/:address`). Provides:
+
+- **Single-chain paginators:** `getChainPayables`, `getChainPayablePayments`,
+  `getChainUserPayments`, `getChainWithdrawals`, `getChainUsers` — one
+  newest-first page per call (`pageOffsetAndLimit` reverse-offset maths),
+  with a bulk-getter call and a per-id fallback.
+- **Network-wide k-way merges:** `getNetworkPayables`, `getNetworkPayments`,
+  `getNetworkWithdrawals`, `getNetworkUsers` — interleave several chains'
+  streams into one newest-first result (timestamped entities use
+  `mergeTimestampedStreams`; users, which have no timestamp, use
+  `mergeOrderedStreams` grouped by chain order).
+- **Per-user paginators for the address page:** `getUserPayables`,
+  `getUserPaymentsForAddress`, `getUserWithdrawalsForAddress`.
+- **`search(q, networkType, signal?)`** — detects the query kind (EVM address,
+  32-byte id, chain name, token symbol, or free text) and returns a typed
+  `SearchResult`. 32-byte id probes call all five entity getters on every
+  chain of both networks in parallel; an `AbortSignal` cancels stale probes.
+
+Everything works without a connected wallet (`evm.publicClientFor`). Mainnet
+and testnet data are never mixed. The `DEFAULT_NETWORK` constant lives here
+so the scan page's query-param default can reference it.
+
 ### `stats.ts` — `useStatsStore`
 
 `getChainStats(chain)` (`getChainStats()` + `getConfig()`),

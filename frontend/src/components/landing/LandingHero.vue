@@ -13,25 +13,10 @@
  *
  * Usage: `<LandingHero />` inside `HomeView.vue`, as the first section.
  */
-import { chainNamesEvm, chainNamesToChains } from '@/schemas';
 import { useAnalyticsStore } from '@/stores';
-import { ChainBadge } from '@/components/ui';
 import Button from 'primevue/button';
-import { computed } from 'vue';
-import ChainConstellation from './ChainConstellation.vue';
 
 const analytics = useAnalyticsStore();
-
-/** The active EVM chains, for the trust row and the eyebrow's "Live on …" list. */
-const liveChains = chainNamesEvm.map((name) => chainNamesToChains[name]);
-
-/** "MegaETH, Sepolia & Arc Testnet" — a natural-language join of the live
- *  chain names for the eyebrow pill. */
-const liveChainsLabel = computed(() => {
-  const names = liveChains.map((c) => c.displayName);
-  if (names.length < 2) return names.join('');
-  return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`;
-});
 </script>
 
 <template>
@@ -40,7 +25,7 @@ const liveChainsLabel = computed(() => {
       <span
         class="inline-flex items-center gap-2 rounded-full border border-glass-border bg-glass-tint px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-accent mb-6"
       >
-        Cross-chain payments · Live on {{ liveChainsLabel }}
+        Cross-chain payments
       </span>
 
       <h1 class="font-display text-display-xl text-fg mb-6">
@@ -71,13 +56,7 @@ const liveChainsLabel = computed(() => {
           </Button>
         </router-link>
       </div>
-
-      <div class="flex flex-wrap items-center gap-2">
-        <ChainBadge v-for="chain in liveChains" :key="chain.name" :chain="chain" size="sm" />
-      </div>
     </div>
-
-    <ChainConstellation />
   </section>
 </template>
 

@@ -13,6 +13,7 @@ export * from './payment';
 export * from './server';
 export * from './sidebar';
 export * from './solana';
+export * from './scan';
 export * from './stats';
 export * from './theme';
 export * from './time';

@@ -168,7 +168,7 @@ const demoPayable = new Payable('0xdemo00000000000000000000000000000000000000000
       <h3 class="font-display text-display-md mb-4">Amounts and identity</h3>
       <div class="flex flex-wrap gap-6 items-center">
         <TokenAmount :token="usdc" :amount="1500000n" :chain="sepolia" />
-        <TokenAmount :amount="new TokenAndAmount(usdc, 2500000)" :chain="sepolia" size="sm" />
+        <TokenAmount :amount="new TokenAndAmount(usdc, 2500000n)" :chain="sepolia" size="sm" />
         <AddressChip value="0x1234567890abcdef1234567890abcdef12345678" :chain="sepolia" kind="address" />
         <AddressChip value="a1b2c3d4e5f6" kind="id" to="/payable/a1b2c3d4e5f6" />
         <PayableAvatar id="payable-one" size="sm" />

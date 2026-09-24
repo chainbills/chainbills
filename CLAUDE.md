@@ -97,3 +97,13 @@ cd frontend && npm run dev
 cd frontend && npm run build
 cd frontend && npm run type-check
 ```
+
+## Commit and PR Conventions
+
+- Conventional Commits (`feat(scope): …`, `fix(scope): …`, `docs(scope): …`), present tense, describing what the change adds or does.
+- Never mention AI, assistants, agents, sessions, Claude, models, test status, or history ("changed X from Y", "fixed previous") in commit messages, PR titles or PR bodies.
+- No `Co-Authored-By` or `Claude-Session` trailers in commits; no "Generated with …" footers or session links in PR bodies.
+
+## Backend v2 (in progress)
+
+`backend/` is the NestJS + Prisma + PostgreSQL service replacing `relayer/` and `server/` (both stay in the repo until retired manually). Spec: `backend/docs/SPEC.md`. Contributor rules: `backend/docs/WORKER_RULES.md`. Phase tasks: `backend/docs/phases/`. Integration branch: `backend-v2`.

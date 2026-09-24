@@ -1,3 +1,4 @@
+export * from './activity';
 export * from './chain';
 export * from './payable';
 export * from './payable-payment';

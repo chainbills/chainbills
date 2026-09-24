@@ -1,14 +1,15 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// Chainbills Backend — API module (placeholder)
+// Chainbills Backend — API module
 //
 // Imported by AppModule only when ROLE is "api" or "all" (SPEC.md §2.1).
-// Intentionally empty in phase 1 — auth (2b), users/notifications (3b) and
-// the public read API (4) register their controllers here in later phases.
-// `HealthController` lives outside this module and is registered for every
-// role, since even a worker-only deployment answers `/health`.
+// Registers AuthModule (phase 2b). Later phases add UsersModule (3b) and the
+// public read controllers (4).
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 
-@Module({})
+@Module({
+  imports: [AuthModule],
+})
 export class ApiModule {}

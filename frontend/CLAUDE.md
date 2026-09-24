@@ -2,7 +2,7 @@
 
 ## Overview
 
-Vue 3 SPA. Stack: Vue 3 + Pinia + Vue Router + Wagmi/viem (EVM) + Solana Wallets Vue + PrimeVue + TailwindCSS + Firebase. Talks to: EVM contracts (via wagmi/viem), Solana program (via Anchor), Firebase server, Firestore.
+Vue 3 SPA. Stack: Vue 3 + Pinia + Vue Router + Wagmi/viem (EVM) + Solana Wallets Vue + PrimeVue + TailwindCSS + Firebase. Talks to: EVM contracts (via wagmi/viem), Solana program (via Anchor), the Firebase server (descriptions + FCM tokens only). All lists, counts, statuses, balances, settings and statistics are read from the Chainbills contracts — see **Data rules** below.
 
 ## File Map
 
@@ -10,32 +10,38 @@ Vue 3 SPA. Stack: Vue 3 + Pinia + Vue Router + Wagmi/viem (EVM) + Solana Wallets
 src/
   main.ts              App bootstrap: Wagmi config, PrimeVue, Pinia, Firebase init
   App.vue              Root: ToastService, ConfirmDialog, router-view
-  router/index.ts      Routes: /, /start, /dashboard, /activity, /payable/:id, /pay/:id, /receipt/:id
+  router/index.ts      Routes: /, /start, /dashboard, /activity, /payable/:id, /pay/:id, /receipt/:id, /_data (dev only)
   schemas/
-    chain.ts           Chain type, ChainName, chain constants (megaeth/arctestnet/sepolia/solanadevnet)
-    tokens.ts          Token type, tokens array (USDC/ETH/SOL), TokenAndAmount class, contracts map
+    activity.ts        ActivityType enum + display metadata, Activity class
+    chain.ts           Chain type, ChainName, chain constants, explorer URL helpers, OnChainSuccess
+    tokens.ts          Token type, tokens array (USDC/ETH/SOL), TokenAndAmount (bigint amounts), format/parse helpers
     payable.ts         Payable class
     payment.ts         Payment interface
     user-payment.ts    UserPayment class
     payable-payment.ts PayablePayment class
     withdrawal.ts      Withdrawal class
     user.ts            User class
-    receipt.ts         Receipt helpers
+    receipt.ts         Receipt interface (shared by UserPayment/PayablePayment/Withdrawal)
     index.ts           Re-exports all schemas
-  stores/
+  composables/
+    usePoller.ts       Generic visibility-aware polling loop (see composables/README.md)
+  stores/              See stores/README.md for the full store-by-store breakdown.
     auth.ts            useAuthStore — wallet connect/disconnect, signature, currentUser
     evm.ts             useEvmStore — all EVM contract reads + writes (wagmi/viem)
-    solana.ts          useSolanaStore — Solana reads + writes (Anchor)
-    payable.ts         usePayableStore — create/get payable, paginated IDs
-    payment.ts         usePaymentStore — exec payment (routes same/cross-chain), get payments
-    withdrawal.ts      useWithdrawalStore — withdraw, get withdrawals
+    solana.ts          useSolanaStore — Solana reads + writes (Anchor) — inactive this round
+    payable.ts         usePayableStore — chain discovery, create/get, host-control writes
+    payment.ts         usePaymentStore — exec payment (routes same/cross-chain), get payments, trackArrival
+    withdrawal.ts       useWithdrawalStore — withdraw, get withdrawals
+    activity.ts        useActivityStore — unified activity feeds, entity resolution, cross-chain k-way merge
+    stats.ts           useStatsStore — chain/network statistics, 30s memoized
+    tx-flow.ts         useTxFlowStore — the transaction-flow step engine
     server.ts          useServerStore — calls Firebase server (descriptions, notifications)
-    cache.ts           useCacheStore — in-memory cache with localStorage backing
+    cache.ts           useCacheStore — IndexedDB-backed cache for immutable entities
     paginators.ts      usePaginatorsStore — shared rowsPerPage state
     abis.ts            mainAbi (Chainbills proxy) + gettersAbi (CbGetters) + erc20Abi
     analytics.ts       useAnalyticsStore — Firebase Analytics event recording
     notifications.ts   usePaginatorsStore — FCM notification token setup
-    encoding.ts        hex/b58 encode/decode utilities
+    encoding.ts        hex/b58/bignum/bytes encode/decode utilities
     idl.ts             Solana IDL (Anchor)
     sidebar.ts         Sidebar open/close state
     theme.ts           Light/dark theme toggle
@@ -49,6 +55,7 @@ src/
     PayableDetailView.vue  Payable detail: payments received, host controls
     PayView.vue            Payer's payment UI
     ReceiptView.vue        Payment receipt (public)
+    DataDebugView.vue      Dev-only self-test page for the data layer (`/_data`, `import.meta.env.DEV` only)
     NotFoundView.vue       404
   components/
     Header.vue, Footer.vue, Sidebar.vue
@@ -64,7 +71,7 @@ src/
 ## Chain Support
 
 | ChainName      | Type   | networkType | cbChainId                       |
-| -------------- | ------ | ----------- | ------------------------------- |
+| -------------- | ------ | ----------- | -------------------------------- |
 | `megaeth`      | EVM    | mainnet     | `0x78b4...`                     |
 | `arctestnet`   | EVM    | testnet     | `0xfcfa...`                     |
 | `sepolia`      | EVM    | testnet     | `0xafa9...`                     |
@@ -94,49 +101,99 @@ SOL:  solanadevnet only  (9 decimals — Solana inactive)
 
 Native token = contract address itself (`address(this)`).
 
+## Data rules
+
+- **On-chain only.** Every list, count, status, balance, setting and statistic is read from the Chainbills contracts (`CbGetters` + the main proxy's public mappings) — never Firestore, a relayer API, or an indexer, from the frontend.
+- **The one off-chain exception is a payable's description**, read/written through the server (`server.getPayable`/`server.createPayable`). It is optional decoration: a missing or failed fetch never blocks a page from rendering.
+- **Chain discovery is on-chain**, not via the server. `payable.resolveChain(id)` (and the equivalent probing in `payment.ts`/`withdrawal.ts`) finds which chain an id lives on by calling that entity's single-entity getter on every EVM chain **in parallel** and taking whichever one succeeds — ids give no other clue which chain they're on (`reference/onchain-data.md` §5.3).
+- **Amounts are `bigint` end to end.** `TokenAndAmount.amount` is a `bigint`; conversions go through `parseTokenAmount`/`formatTokenAmount`/`TokenAndAmount.parse`/`.format()` (viem's `parseUnits`/`formatUnits` under the hood) — never `number * 10 ** decimals` or `Number(bigint)` for anything that feeds a comparison or a transaction.
+- **Mainnet and testnet data are never mixed** in one list, total or chart (`stores/stats.ts`'s `getNetworkStats` takes an explicit network type and only aggregates that network's chains).
+- Reads work **without a connected wallet** — every EVM read goes through a cached, wallet-less viem `PublicClient` per chain (`evm.publicClientFor`).
+
 ## Key Store Patterns
+
+See `src/stores/README.md` for the full store-by-store breakdown (public API, which contract calls each function makes). Summary of the cross-cutting patterns:
 
 ### Auth flow (`stores/auth.ts`)
 
 1. `useAccount()` (wagmi) or `useAnchorWallet()` (Solana) change triggers `updateCurrentUser`.
 2. Fetches on-chain user data via `evm.getCurrentUser()` or `solana.getCurrentUser()`.
 3. Requests wallet signature of `"Authentication"` message; saves to localStorage.
-4. `currentUser` is `User | null`. All other stores check this before acting.
+4. `currentUser` is `User | null`. All other stores check this before acting — except the public-data reads in `payable.ts`/`payment.ts`/`withdrawal.ts`/`activity.ts`/`stats.ts`, which work with no signed-in user at all.
 
 ### EVM store (`stores/evm.ts`)
 
-- All reads go to **CbGetters** contract (not the main proxy).
-- `writeContract()` = simulateContract → writeContract → waitForTransactionReceipt → 3s wait.
-- `readContract()` = rawReadContract via wagmi.
-- `payForeignViaCctp()`: fetches Circle Iris API for fast-transfer fee before calling contract.
-- Error handling strips `abi` field from viem errors to avoid console floods.
+- All reads go to **CbGetters** (`readGetter`) or the proxy's public mappings (`readMain`) — never require a connected wallet.
+- `writeContract()` reports its phases (simulate → wallet prompt → hash received → receipt confirmed) onto the optional `TxStepHandle`s it is given, then does `simulateContract` → `writeContract` → `waitForTransactionReceipt` → 3s settle wait.
+- `payForeignViaCctp()`: fetches Circle Iris API for fast-transfer fee before calling the contract.
+- Error handling strips the `abi` field from viem errors to avoid console floods.
 
 ### Payment routing (`stores/payment.ts → exec()`)
 
 ```
-userChain == payableChain && isEvm  → evm.pay()
-userChain != payableChain && isEvm  → evm.payForeignViaCctp()
-isSolana                            → solana.pay()
+userChain == payableChain && isEvm  → evm.pay()              (tx-flow 'pay')
+userChain != payableChain && isEvm  → evm.payForeignViaCctp() (tx-flow 'pay-cross-chain')
+isSolana                            → solana.pay() / solana.payForeignViaCctp() (no tx-flow this round)
 ```
+
+### The transaction-flow engine (`stores/tx-flow.ts`)
+
+Every multi-step write (create/close/reopen/update a payable, pay, withdraw)
+is modeled as a `TxFlow`: an ordered list of `TxStep`s, each with a
+`status` (`upcoming → active/waiting → done`, or `skipped`/`failed`). A
+store action calls `txFlow.start(kind, title, steps)`, gets back a
+`TxFlowHandle`, and drives each step through `flow.step(key)` — most often
+by handing that step handle straight to `evm.writeContract`, which
+understands the `sign`/`confirm` phase split itself. `txFlow.current` is
+the flow a modal renders; `txFlow.background` lists flows whose write
+already succeeded but are still waiting on a relay or a cross-chain sync —
+the app shell can surface those separately instead of blocking navigation
+on them. A wallet rejection cancels the flow with no error toast.
+
+### Cross-chain pollers (`composables/usePoller.ts`)
+
+Cross-chain payment arrival and payable-sync status are never pushed to
+the browser — they are polled. `payment.trackArrival(userPayment)` polls
+`consumedPaymentNonces` on the payable's chain until the relayer has
+delivered a cross-chain payment, then locates the resulting
+`PayablePayment`; it works standalone, so the receipt page can call it
+directly for any cross-chain `UserPayment` regardless of whether a
+`'pay-cross-chain'` flow is still tracking it. `payable.trackSync(payableId,
+homeChain, nonce?)` reports per-chain sync status for a payable's settings.
+Both are built on `usePoller`, which pauses while the tab is hidden and
+backs off from a 6s to a 20s interval after 3 minutes (see
+`reference/onchain-data.md` §5).
+
+### The activity model (`stores/activity.ts`)
+
+Every on-chain `ActivityRecord` becomes an `Activity` (see
+`schemas/activity.ts`), with its concrete entity (`Payable`/`UserPayment`/
+`PayablePayment`/`Withdrawal`/`User`) resolved by `activity.resolveEntities`.
+`getForPayable`/`getForUser`/`getForChain` return one chain's own
+newest-first feed; `getForUserAcrossChains`/`getForNetwork` k-way-merge
+several chains' feeds into one, via a cursor that survives "load more"
+calls with no duplicates. There is no server-side filter on-chain —
+`byCategory`/`byTypes`/`loadUntil` filter whatever window has already been
+loaded, loading more pages as needed.
 
 ### Server store (`stores/server.ts`)
 
 Sends `chain-name`, `wallet-address`, `signature` headers on every call.
 
-- `POST /payable` — upserts description after on-chain creation
-- `GET /payable/:id` — chain discovery (returns `{ chainName, description }`)
+- `POST /payable` — upserts a payable's off-chain **description** (host-verified on-chain by the server)
+- `GET /payable/:id` — description lookup only, with `ignoreErrors` — **not** used for chain discovery, which is on-chain (see **Data rules**)
 - `POST /notifications` — saves FCM token
 
 ### Cache (`stores/cache.ts`)
 
-Keys: `{chainName}::payable::{id}::payment::{count}`, etc. Used to avoid re-fetching on navigation.
+Keys: `{chainName}::payable::{id}::payment::{count}`, etc. Used to avoid re-fetching immutable entities (payments, withdrawals, activity records, chain-discovery results) on navigation. Payables are never cached — their state changes.
 
 ## Payment UI Flow (`views/PayView.vue`)
 
-1. Load payable via `server.getPayable(id)` → get chainName.
-2. Fetch on-chain payable data → check `isClosed`, allowedTokensAndAmounts.
-3. If same-chain: `evm.pay()`. If cross-chain EVM: `evm.payForeignViaCctp()`.
-4. Success → redirect to `/receipt/:paymentId`.
+1. Load the payable via `payable.get(id)` — chain discovery is on-chain, not via the server.
+2. Check `isClosed`, `allowedTokensAndAmounts`.
+3. `payment.exec(...)` routes same-chain vs. cross-chain automatically and drives the matching tx-flow.
+4. Success → redirect to `/receipt/:paymentId`. A cross-chain payment's relay/arrival tracking (`payment.trackArrival`) continues in the background; the receipt page also calls it directly on load.
 
 ## Environment Variables
 
@@ -156,10 +213,12 @@ npm run lint          # eslint --fix
 npm run format        # prettier --write src/
 ```
 
+`/_data` (dev only, `import.meta.env.DEV`) is a plain-HTML self-test page for the on-chain data layer — see `views/DataDebugView.vue`.
+
 ## Important Notes
 
-- Solana store (`stores/solana.ts`) and `solanadevnet` chain exist in code but Solana is **not active** — needs rebuilding. Don't extend Solana functionality.
+- Solana store (`stores/solana.ts`) and `solanadevnet` chain exist in code but Solana is **not active** — needs rebuilding. Don't extend Solana functionality; unsupported operations should degrade to a "Coming soon on Solana" toast.
 - `stores/idl.ts` contains Solana Anchor IDL — also stale.
 - PrimeVue toast: `severity: 'error'` for all errors, `life: 12000ms`.
-- `3000ms` artificial delay after `waitForTransactionReceipt` in `evm.writeContract` — intentional, lets block propagate.
-- Cross-chain payment UX: toast says "Funds will arrive after relaying" — user doesn't wait on-page for relay completion.
+- `3000ms` artificial delay after `waitForTransactionReceipt` in `evm.writeContract` — intentional, lets block propagate; shown to the user as the tx-flow's "Finalizing…" step.
+- Cross-chain payment UX: the toast says funds will arrive after relaying, and the user does not have to stay on the page — `payment.trackArrival` keeps watching in the background and the receipt page re-checks on load.

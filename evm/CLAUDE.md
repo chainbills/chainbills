@@ -157,13 +157,30 @@ Wire formats (unchanged across VMs; the Solana program decodes the same bytes):
 
 ```bash
 forge build
-forge test
-FOUNDRY_PROFILE=lite forge test
+forge test -j 1                        # -j 1: test/script/*.t.sol share process env via vm.setEnv
+FOUNDRY_PROFILE=lite forge test -j 1
 forge test --match-path 'test/payments/*' -vvv
 forge coverage --ir-minimum
 forge fmt
 cast index-erc7201 chainbills.<domain>
+node script/export-abi.mjs             # after forge build; writes abi/
 ```
+
+## Scripts
+
+Every deployment (the six linked libraries, every facet, `DiamondCutFacet`, `ChainbillsDiamondInit`, the diamond
+itself) goes through the CREATE2 deployer under one salt (`CB_SALT`), so the same salt and owner produce the same
+diamond address on every chain — see `script/base/CbScript.sol` and the README's Deterministic deployment section.
+
+- `script/DeployChainbills.s.sol` — full deterministic deploy plus optional CCTP/Wormhole/token/relayer config.
+- `script/PredictAddresses.s.sol` — every address a deploy would produce, without deploying.
+- `script/DiamondCutUpgrade.s.sol` — redeploys named facets (`FACETS=Cb...,Cb...`) and diffs their selectors
+  against the diamond's current routing into one Add/Replace/Remove cut.
+- `script/DeployLocalStack.s.sol` — two wired diamonds with mocks, for manual anvil runs.
+- `script/admin/` — one contract per admin operation, each a thin env-driven call through `IChainbills`.
+- `script/run.sh <chain> <ScriptName> [<target-chain>] [--dry-run]` — loads `script/env/<chain>.env` (+
+  `.env.local`), derives `FOREIGN_*` vars from a target chain's env, and defaults `DIAMOND` from
+  `deploys/<chain>.json`.
 
 ## Commits
 

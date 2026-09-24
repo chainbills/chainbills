@@ -1,94 +1,74 @@
 # Chainbills EVM — Deployed Parameters
 
-This file is the reference for every value used during contract setup across all deployed EVM chains. Update it after each deployment or admin call.
+Reference for the values used to configure Chainbills on every EVM chain it is deployed to. Update this file after
+every deployment or admin call — `deploys/<chain>.json` (written by `DeployChainbills`) is the source of truth for
+contract addresses; this file is the source of truth for the external protocol addresses and IDs that go into
+`script/env/<chain>.env`.
 
-> **Sources**: [Wormhole docs](https://wormhole.com/docs/products/reference/contract-addresses/) · [Circle CCTP V2 docs](https://developers.circle.com/stablecoins/docs/evm-cctp-contracts) · [Arc network docs](https://docs.arc.network/arc/references/contract-addresses)
+> **Sources**: [Wormhole docs](https://wormhole.com/docs/products/reference/contract-addresses/) ·
+> [Circle CCTP V2 docs](https://developers.circle.com/stablecoins/docs/evm-cctp-contracts) ·
+> [Arc network docs](https://docs.arc.network/arc/references/contract-addresses)
 
 ---
 
-## Chain Parameters
+## Chain parameters
 
-| Chain            | CAIP-2 String     | cbChainId (bytes32)                                                | Wormhole Chain ID       | Circle Domain           |
-| ---------------- | ----------------- | ------------------------------------------------------------------ | ----------------------- | ----------------------- |
-| MegaETH Mainnet  | `eip155:4326`     | 0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a | 64                      | — (CCTP not on MegaETH) |
-| Arc Testnet      | `eip155:5042002`  | 0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd | — (Wormhole not on Arc) | 26                      |
-| Ethereum Sepolia | `eip155:11155111` | 0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7 | 10002                   | 0                       |
+| Chain        | CAIP-2 String | cbChainId (bytes32)                                                 | Wormhole Chain ID           | Circle Domain |
+| ------------ | ------------- | -------------------------------------------------------------------- | ---------------------------- | ------------- |
+| Arc Mainnet  | `eip155:5042` | `0xb8aed675f862d651b4a8c85f23a045faa0faaa1d162e6eb15d732231df3dc250` | TODO(owner): not confirmed live on Arc mainnet yet | 26 |
 
 > Compute any cbChainId with:
 >
 > ```shell
-> CAIP2=eip155:11155111 forge script script/ComputeCbChainId.s.sol -vvv
+> CAIP2=eip155:5042 ./script/run.sh arcmainnet ComputeCbChainId
 > ```
 
-> **Note on MegaETH**: Circle CCTP is not deployed on MegaETH mainnet as of May 2026. Chainbills on MegaETH can only do same-chain payments in the meantime. Monitor [Circle's supported chains](https://developers.circle.com/stablecoins/docs/cctp-supported-blockchains) for updates.
+---
+
+## Wormhole contracts
+
+| Chain       | Core Contract        | Wormhole Chain ID | Finality |
+| ----------- | --------------------- | ------------------ | -------- |
+| Arc Mainnet | TODO(owner): confirm whether Wormhole is live on Arc mainnet, and if so its core bridge address | TODO(owner) | TODO(owner) |
+
+> Wormhole reference: https://wormhole.com/docs/products/reference/contract-addresses/. Until this is filled in,
+> leave `WORMHOLE_ADDRESS` empty in `script/env/arcmainnet.env` — `DeployChainbills` and `SetupWormhole` both skip
+> Wormhole configuration when it is unset.
 
 ---
 
-## Wormhole Contracts
+## Circle CCTP contracts
 
-| Chain            | Core Contract                                | Wormhole Chain ID | Finality  |
-| ---------------- | -------------------------------------------- | ----------------- | --------- |
-| MegaETH Mainnet  | `0xaBf89de706B583424328B54dD05a8fC986750Da8` | `64`              | Finalized |
-| Ethereum Sepolia | `0x4a8bc80Ed5a4067f1CCf107057b8270E0cC11A78` | `10002`           | Finalized |
-| Arc Testnet      | — (not deployed)                             | —                 | —         |
+### Arc Mainnet (Circle Domain: 26)
 
-> Wormhole reference: https://wormhole.com/docs/products/reference/contract-addresses/
+| Contract            | Address                                       |
+| -------------------- | ---------------------------------------------- |
+| TokenMessenger       | TODO(owner): Circle TokenMessengerV2 on Arc mainnet |
+| MessageTransmitter   | TODO(owner): Circle MessageTransmitterV2 on Arc mainnet (read from TokenMessenger's own wiring; not passed to `SetupCctp` directly) |
+| USDC (native, ERC-20 interface) | TODO(owner): USDC address on Arc mainnet |
 
----
-
-## Circle CCTP Contracts
-
-> Circle CCTP V2 is deployed on Sepolia and Arc Testnet. It is **not** deployed on MegaETH mainnet.
-
-### Ethereum Sepolia (Circle Domain: 0)
-
-| Contract           | Address                                      |
-| ------------------ | -------------------------------------------- |
-| TokenMessenger     | `0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA` |
-| MessageTransmitter | `0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275` |
-| USDC               | `0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238` |
-
-### Arc Testnet (Circle Domain: 26)
-
-| Contract                        | Address                                      |
-| ------------------------------- | -------------------------------------------- |
-| TokenMessenger                  | `0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA` |
-| MessageTransmitter              | `0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275` |
-| USDC (native, ERC-20 interface) | `0x3600000000000000000000000000000000000000` |
-
-> On Arc, USDC is the native gas token. The address above is the ERC-20 interface (6 decimals).
-> Circle reference: https://docs.arc.network/arc/references/contract-addresses
+> On Arc, USDC is the native gas token; the address above is its ERC-20 interface. Circle reference:
+> https://docs.arc.network/arc/references/contract-addresses
 
 ---
 
-## Chainbills Contracts
+## Chainbills contracts
 
-| Chain            | Proxy Address                                |
-| ---------------- | -------------------------------------------- |
-| Ethereum Sepolia | `0x48353Ab7662Bc8218811Fbbdf247cCc8602fba8A` |
-| Arc Testnet      | `0x0bA837eF7358981967FB2cFcB79bf649b7cACbf4` |
-| MegaETH Mainnet  | `0xc38d1681d34DA821E46508C084D673477E455570` |
+Filled in from `deploys/arcmainnet.json` after the first deploy — same diamond address on every chain that shares
+`CB_SALT` and `OWNER` (see the README's [Deterministic deployment](./README.md#deterministic-deployment)).
 
----
-
-## Cb Getters Contracts
-
-| Chain            | Proxy Address                                |
-| ---------------- | -------------------------------------------- |
-| Ethereum Sepolia | `0x325D77a09F267A7aF695aB5E68F7ddF0eC530a38` |
-| Arc Testnet      | `0x01656b5968C4b98F05F596344DA7066118d6738a` |
-| MegaETH Mainnet  | `0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8` |
+| Chain       | Diamond Address |
+| ----------- | ---------------- |
+| Arc Mainnet | TODO(owner): fill in from `deploys/arcmainnet.json` after deploying |
 
 ---
 
-## Cross-Chain Registration Matrix
+## Cross-chain registration matrix
 
-Both `RegisterForeignChain` and `RegisterMatchingToken` are **one-sided**: they teach the current chain about a foreign chain. This means you must run both scripts on each chain in the pair (4 runs total for a 2-chain setup).
+`RegisterForeignChain` and `RegisterMatchingToken` are **one-sided**: each teaches the chain it runs on about a
+foreign chain. Registering a pair of chains against each other needs both scripts run on each side (4 runs total
+for a 2-chain setup). No foreign chain pair is registered yet.
 
-The only viable cross-chain pair right now is **Arc Testnet ↔ Ethereum Sepolia** (both have CCTP).
-MegaETH mainnet cannot participate in cross-chain payments until Circle deploys CCTP there.
-
-| On chain         | Registering        | RegisterForeignChain | RegisterMatchingToken |
-| ---------------- | ------------------ | -------------------- | --------------------- |
-| Arc Testnet      | → Ethereum Sepolia | ☐                    | ☐                     |
-| Ethereum Sepolia | → Arc Testnet      | ☐                    | ☐                     |
+| On chain    | Registering | RegisterForeignChain | RegisterMatchingToken |
+| ----------- | ------------ | --------------------- | ----------------------- |
+| Arc Mainnet | TODO(owner): add a row per foreign chain once one is deployed | ☐ | ☐ |

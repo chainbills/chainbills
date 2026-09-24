@@ -32,6 +32,11 @@ export interface Chain {
   networkType: ChainNetworkType;
   /** `keccak256("namespace:reference")` (CAIP-2) — the universal cross-chain key for this chain. */
   cbChainId: string;
+  /** The chain's official brand colour (hex). Used only for chain identity
+   *  (ChainBadge tints, cross-chain rails, chain-scoped stat accents) — never
+   *  as a button or text accent, which always stays the app's own accent
+   *  colour (`--accent` in `src/assets/main.css`). */
+  brandColor: string;
 }
 
 /**
@@ -74,6 +79,7 @@ export const megaeth: Chain = {
   isSolana: false,
   networkType: 'mainnet',
   cbChainId: '0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a',
+  brandColor: '#c6f135',
 };
 
 /** Arc Testnet — testnet EVM chain, CCTP-enabled (domain 26), no Wormhole. */
@@ -84,6 +90,7 @@ export const arctestnet: Chain = {
   isSolana: false,
   networkType: 'testnet',
   cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
+  brandColor: '#00d2ff',
 };
 
 /** Ethereum Sepolia — testnet EVM chain, Wormhole- and CCTP-enabled (domain 0). */
@@ -94,6 +101,7 @@ export const sepolia: Chain = {
   isSolana: false,
   networkType: 'testnet',
   cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
+  brandColor: '#627eea',
 };
 
 /** Solana Devnet — inactive this round; kept only so Solana code paths keep compiling. */
@@ -104,6 +112,7 @@ export const solanadevnet: Chain = {
   isSolana: true,
   networkType: 'testnet',
   cbChainId: '0x318e886b7d5a2e6f89c50cd1cdc3614e5f66532f673b5f14448b9b58c12e0e6e',
+  brandColor: '#9945ff',
 };
 
 /** Every known chain, keyed by its `ChainName`. */

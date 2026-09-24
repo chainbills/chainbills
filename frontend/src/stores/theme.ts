@@ -11,6 +11,22 @@ const isThemeMode = (value: any): value is ThemeMode => themes.includes(value);
 
 const getHtml = () => document.querySelector('html')!;
 
+/** Runs `apply` (a synchronous DOM mutation) inside `document.startViewTransition`
+ *  when the browser supports it, which cross-fades the old and new pixels over
+ *  the 240ms `::view-transition-old/new(root)` duration set in `main.css`.
+ *  Falls back to calling `apply` directly on unsupported browsers, and skips
+ *  the transition under `prefers-reduced-motion: reduce` so the theme swap is
+ *  instant rather than animated for users who asked for less motion. */
+const withViewTransition = (apply: () => void) => {
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const supportsViewTransition = typeof document.startViewTransition === 'function';
+  if (reducedMotion || !supportsViewTransition) {
+    apply();
+  } else {
+    document.startViewTransition(apply);
+  }
+};
+
 export const useThemeStore = defineStore('theme', () => {
   const analytics = useAnalyticsStore();
   const icon = ref<ThemeMode>('Dark Theme');
@@ -38,7 +54,7 @@ export const useThemeStore = defineStore('theme', () => {
   const set = (value: ThemeMode) => {
     mode.value = value;
     localStorage.setItem('chainbills::theme', value);
-    css();
+    withViewTransition(css);
   };
 
   onMounted(() => {
@@ -48,7 +64,7 @@ export const useThemeStore = defineStore('theme', () => {
     css();
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      if (mode.value == 'System Mode') css();
+      if (mode.value == 'System Mode') withViewTransition(css);
     });
 
     setWalletConnectTheme(isDisplayDark.value ? 'dark' : 'light');

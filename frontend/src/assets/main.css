@@ -1,3 +1,22 @@
+/**
+ * src/assets/main.css — global styles and the "liquid glass" design system.
+ *
+ * This file is the single source of truth for:
+ *  - the CSS custom properties ("tokens") that every colour, glass surface and
+ *    shadow in the app reads from, defined once for light (`:root`) and once
+ *    for dark (`html.dark`, toggled by `src/stores/theme.ts`);
+ *  - the glass surface recipes (`.glass-*` classes) described in
+ *    `frontend/docs/redesign/reference/design-language.md` §3, implemented as
+ *    Tailwind `components` so they can be combined with utility classes
+ *    (`class="glass-surface glass-frost rounded-2xl"`);
+ *  - a few legacy aliases (`--app-bg`, `--text`, `--shadow`, `--primary`) kept
+ *    so pages that have not been redesigned yet keep rendering correctly.
+ *
+ * `tailwind.config.js` maps most of these tokens into Tailwind's colour
+ * palette (`bg-fg/5`, `text-accent/80`, …); this file only defines the raw
+ * values. See that file's header comment for how the two fit together.
+ */
+
 @layer tailwind-base, primevue, tailwind-utilities;
 
 @layer tailwind-base {
@@ -14,32 +33,239 @@
   src: url('/assets/Inter-var.ttf');
 }
 
+/**
+ * Light theme tokens (the default, applied whenever `html` does not carry
+ * the `.dark` class). Every colour token also has a "-rgb" twin holding the
+ * same colour as a space-separated `R G B` triple; `tailwind.config.js` uses
+ * those triples to build `rgb(var(--x-rgb) / <alpha-value>)` colours so that
+ * Tailwind opacity modifiers (`bg-fg/5`, `text-accent/80`) work for `bg`,
+ * `fg`, `muted`, `accent`, `accent-2` and `accent-fg`.
+ */
 :root {
-  --app-bg: #fff;
-  --shadow: rgb(0 0 0 / 0.1);
-  --text: #28282e;
-  --primary: #057ec5;
+  /* Surface and text */
+  --bg: #f6f8fb;
+  --bg-rgb: 246 248 251;
+  --fg: #0b1220;
+  --fg-rgb: 11 18 32;
+  --muted: #5b6474;
+  --muted-rgb: 91 100 116;
+
+  /* Brand accent (blue) and its secondary glow (teal/violet), used for
+     ambient washes, gradients and rare dual-tone accents. */
+  --accent: #057ec5;
+  --accent-rgb: 5 126 197;
+  --accent-fg: #ffffff;
+  --accent-fg-rgb: 255 255 255;
+  --accent-2: #7c5cff;
+  --accent-2-rgb: 124 92 255;
+
+  /* Glass surfaces: the translucent fill, hairline border and top sheen
+     shared by every card, popover and dialog. */
+  --glass-tint: rgb(255 255 255 / 0.6);
+  --glass-border: rgb(11 18 32 / 0.08);
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.35), rgb(255 255 255 / 0));
+  --popover-bg: rgb(255 255 255 / 0.92);
+  --shadow-glass:
+    0 8px 32px rgb(15 23 42 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.5);
+
+  /* Status tones. Each is a "700"-weight text colour; components pair it
+     with a `/15` background tint and a `/30` ring of the same hue. */
+  --success: #047857;
+  --warning: #b45309;
+  --danger: #be123c;
+  --info: #0369a1;
+
+  /* Motion easings shared by transitions, the `v-reveal` directive and
+     hand-written keyframes (ambient backdrop, rail sweeps). */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Legacy aliases: pre-redesign code (pages not yet touched by later
+     briefs) still reads these names directly. They mirror the tokens above
+     so old and new code stay visually consistent. */
+  --app-bg: var(--bg);
+  --text: var(--fg);
+  --shadow: var(--glass-border);
+  --primary: var(--accent);
+
   font-family: 'Inter var', sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   font-variation-settings: normal;
 }
 
-html {
-  background-color: var(--app-bg);
-  color: var(--text);
+/** Dark theme tokens. `stores/theme.ts` toggles the `.dark` class on `<html>`
+    based on the saved preference or `prefers-color-scheme`. */
+html.dark {
+  --bg: #07090d;
+  --bg-rgb: 7 9 13;
+  --fg: #f3f6fb;
+  --fg-rgb: 243 246 251;
+  --muted: #98a2b3;
+  --muted-rgb: 152 162 179;
+
+  --accent: #38a8ec;
+  --accent-rgb: 56 168 236;
+  --accent-fg: #04121c;
+  --accent-fg-rgb: 4 18 28;
+  --accent-2: #8b7bff;
+  --accent-2-rgb: 139 123 255;
+
+  --glass-tint: rgb(17 22 30 / 0.55);
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent);
+  --popover-bg: rgb(14 18 25 / 0.94);
+  --shadow-glass:
+    0 8px 32px rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+
+  --success: #6ee7b7;
+  --warning: #fcd34d;
+  --danger: #fda4af;
+  --info: #7dd3fc;
+
+  --app-bg: var(--bg);
+  --text: var(--fg);
+  --shadow: var(--glass-border);
+  --primary: var(--accent);
 }
 
-html.dark {
-  --app-bg: #0f0f0f;
-  --shadow: rgb(255 255 255 / 0.05);
-  --text: #fff;
+/** Users who ask the OS for less transparency get flat, opaque surfaces
+    instead of blurred glass. Blur itself is skipped per-surface via the
+    `@supports not (backdrop-filter: ...)` fallback inside `.glass-surface`;
+    this block only swaps the fill colour so `.glass-*` classes stay opaque
+    even on platforms that do support `backdrop-filter`. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-tint: #ffffff;
+    --popover-bg: #ffffff;
+  }
+  html.dark {
+    --glass-tint: #11161e;
+    --popover-bg: #11161e;
+  }
+}
+
+html {
+  background-color: var(--bg);
+  color: var(--fg);
 }
 
 #app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding-top: 64px;
+}
+
+/**
+ * Glass surface recipes — see `design-language.md` §3 for the visual spec.
+ * Usage: an outer `glass-surface glass-frost rounded-2xl overflow-hidden`,
+ * a `<span class="glass-sheen">` for the top highlight, then content in a
+ * `relative` wrapper so it sits above the sheen (`GlassCard.vue` builds this
+ * structure for every card in the app).
+ */
+@layer tailwind-utilities {
+  /* Base fill + hairline border shared by every glass variant. `isolation:
+     isolate` gives the sheen pseudo-layer its own stacking context so it
+     never bleeds over child content that sets its own z-index. */
+  .glass-surface {
+    position: relative;
+    background: var(--glass-tint);
+    border: 1px solid var(--glass-border);
+    isolation: isolate;
+  }
+
+  /* Default card blur: strong blur, boosted saturation so colours behind the
+     glass stay vivid instead of washing out grey. */
+  .glass-frost {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* Focal panels only (hero, pay widget): lighter blur plus the SVG
+     displacement filter mounted once in `App.vue` (`#glass-displace`), which
+     gives the panel a subtle liquid-lens refraction at its edges. */
+  .glass-refract {
+    backdrop-filter: blur(10px) saturate(180%) url('#glass-displace');
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+  }
+
+  /* Data tables and long lists: a denser, less see-through fill so dozens of
+     stacked rows stay legible instead of compounding transparency. */
+  .glass-dense {
+    backdrop-filter: blur(10px) saturate(160%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    background: color-mix(in srgb, var(--glass-tint) 76%, var(--bg) 24%);
+  }
+
+  /* Top highlight overlay. Absolutely positioned, sits at z-index 0 behind
+     content (which should be wrapped in a `relative` element) and never
+     intercepts pointer events. */
+  .glass-sheen {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--glass-sheen);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Menus, dialogs and toasts: an almost-opaque fill (so text stays readable
+     over any backdrop) plus the strongest blur and a soft elevation shadow. */
+  .glass-popover {
+    background: var(--popover-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    box-shadow: var(--shadow-glass);
+  }
+
+  /* Opt-in hover lift for clickable cards. Kept separate from `.glass-surface`
+     so static panels (stat tiles that aren't links) don't move on hover. */
+  .glass-hover-lift {
+    transition:
+      transform 220ms var(--ease-spring),
+      box-shadow 220ms;
+  }
+  .glass-hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Browsers without `backdrop-filter` support (or with it disabled) fall
+     back to a fully opaque surface rather than a see-through one. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-surface {
+      background: var(--bg);
+    }
+  }
+}
+
+/**
+ * PrimeVue Tabs restyle: the component design tokens in `main.ts` set every
+ * colour, but the token system has no field for the tab-list's own padding
+ * and radius, so this adds just those two, turning the default underlined
+ * strip into the segmented pill control from design-language.md §7.2.
+ */
+@layer tailwind-utilities {
+  .p-tablist-tab-list {
+    border-radius: 9999px;
+    border: 1px solid var(--glass-border);
+    padding: 4px;
+    gap: 2px;
+  }
+  .p-tab {
+    border-radius: 9999px;
+  }
+}
+
+/**
+ * View Transitions cross-fade used by `stores/theme.ts` when toggling light
+ * and dark mode (`document.startViewTransition`). Browsers without support
+ * simply skip straight to the new theme with no transition.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
 }
 
 .swv-modal {
@@ -50,17 +276,12 @@ html.dark {
 .swv-button.swv-button-trigger,
 .swv-button.swv-button-trigger:hover {
   background-color: var(--primary);
-  color: var(--app-bg);
+  color: var(--accent-fg);
   font-family: 'Inter var', sans-serif;
   font-weight: normal;
   height: unset;
   line-height: unset;
   padding: 0.5rem 1rem;
-}
-
-html.dark .swv-button.swv-button-trigger,
-html.dark .swv-button.swv-button-trigger:hover {
-  background-color: #2f94cf; /* "400" variant of primary palette. See main.ts file */
 }
 
 textarea[description] {

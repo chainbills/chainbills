@@ -34,7 +34,7 @@ export default defineConfig({
         'src/main.ts',
         'src/**/*.module.ts',
         'src/**/*.dto.ts',
-        'src/chains/abis.ts',
+        'src/chains/abi/chainbills.ts',
         'src/chains/idl/**',
         'src/chains/types.ts',
       ],

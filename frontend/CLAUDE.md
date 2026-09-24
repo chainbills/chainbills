@@ -56,7 +56,7 @@ src/
     HomeView.vue          Landing page
     CreatePayableView.vue  Create payable form
     DashboardView.vue      Host dashboard: list payables, balances, withdraw
-    UserActivityView.vue   User's payment + withdrawal history
+    UserActivityView.vue   The connected wallet's unified activity feed ("this chain" vs. merged-network scope), built on `components/activity/ActivityFeed.vue`
     PayableDetailView.vue  Payable detail: payments received, host controls
     PayView.vue            Payer's payment UI
     ReceiptView.vue        Payment receipt (public)
@@ -70,6 +70,7 @@ src/
     Shimmer.vue              Pre-redesign shimmer loader (vue3-loading-shimmer); new code uses `ui/Skeleton.vue` instead
     SignInButton.vue
     ThemeMenu.vue
+    activity/                Unified activity feed UI (`ActivityFeed`, `ActivityTable`/`ActivityList`, shared row/icon/detail building blocks) — see `components/activity/README.md`
     ui/                      The "liquid glass" primitive library — see `components/ui/README.md` and "Design System" below
   icons/                   SVG icon components (IconArc, IconEthereum, IconMegaETH, etc.)
 ```
@@ -185,6 +186,12 @@ several chains' feeds into one, via a cursor that survives "load more"
 calls with no duplicates. There is no server-side filter on-chain —
 `byCategory`/`byTypes`/`loadUntil` filter whatever window has already been
 loaded, loading more pages as needed.
+
+The UI layer on top of this store lives in `components/activity/` —
+`ActivityFeed.vue` is the smart container every activity-feed page renders
+(pointed at a payable, a user, a chain or a whole network), with
+`ActivityTable`/`ActivityList` as its desktop/mobile presentations. See
+`components/activity/README.md`.
 
 ### Server store (`stores/server.ts`)
 

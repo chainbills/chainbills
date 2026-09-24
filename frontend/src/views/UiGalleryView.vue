@@ -10,6 +10,7 @@
  * Not a place for real app logic — every value on this page is a static
  * fixture chosen to exercise a component's props, not real on-chain data.
  */
+import { ActivityFeed } from '@/components/activity';
 import {
   AddressChip,
   ChainBadge,
@@ -33,7 +34,7 @@ import {
   TokenAmount,
 } from '@/components/ui';
 import IconWallet from '@/icons/IconWallet.vue';
-import { arctestnet, megaeth, sepolia, solanadevnet, TokenAndAmount, tokens } from '@/schemas';
+import { arctestnet, megaeth, Payable, sepolia, solanadevnet, TokenAndAmount, tokens } from '@/schemas';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
@@ -80,6 +81,21 @@ const steppers = [
 
 const fireToast = (severity: 'success' | 'info' | 'warn' | 'error') =>
   toast.add({ severity, summary: 'Payment received', detail: '25 USDC from Sepolia', life: 6000 });
+
+/** A fixture `Payable` — never actually created on-chain — purely to exercise `ActivityFeed`'s `'payable'` source kind here. */
+const demoPayable = new Payable('0xdemo000000000000000000000000000000000000000000000000000000001', sepolia, '', {
+  chainCount: 1,
+  host: '0x1234567890abcdef1234567890abcdef12345678',
+  hostCount: 1,
+  allowedTokensAndAmounts: [],
+  balances: [],
+  createdAt: Math.floor(Date.now() / 1000),
+  paymentsCount: 0,
+  withdrawalsCount: 0,
+  activitiesCount: 0,
+  isClosed: false,
+  isAutoWithdraw: false,
+});
 </script>
 
 <template>
@@ -223,6 +239,30 @@ const fireToast = (severity: 'success' | 'info' | 'warn' | 'error') =>
       ></GlassCard>
       <GlassCard><ErrorState message="Couldn't load this payable from the chain." @retry="() => {}" /></GlassCard>
     </div>
+
+    <!-- Activity feed: the three source kinds that need no connected wallet. -->
+    <GlassCard>
+      <h3 class="font-display text-display-md mb-4">Activity feed</h3>
+      <div class="space-y-10">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-muted mb-3">Payable source</p>
+          <ActivityFeed
+            :source="{ kind: 'payable', payable: demoPayable }"
+            searchable
+            filterable
+            persist-key="gallery-payable"
+          />
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wider text-muted mb-3">Chain source</p>
+          <ActivityFeed :source="{ kind: 'chain', chain: sepolia }" :tabs="['all', 'payments']" />
+        </div>
+        <div>
+          <p class="text-xs uppercase tracking-wider text-muted mb-3">Network source (merged across chains)</p>
+          <ActivityFeed :source="{ kind: 'network', networkType: 'testnet' }" filterable />
+        </div>
+      </div>
+    </GlassCard>
 
     <!-- Stepper -->
     <GlassCard>

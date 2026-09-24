@@ -2,9 +2,9 @@
 // Chainbills Backend — Health controller
 //
 // The only HTTP surface every role exposes, including "worker" (SPEC.md
-// §2.1's table: worker = "health only"). Chain-freshness reporting
-// (`chains: [{ slug, lastTickAt }]`) arrives in phase 2a once a worker
-// actually has cursors to report on; this phase only checks Postgres.
+// §2.1). Returns per-chain freshness data when cursors exist. Marks 503
+// when any enabled chain's lastTickAt is older than 5× its poll interval
+// (SPEC §14).
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Controller, Get, HttpStatus, Logger, Res } from '@nestjs/common';
@@ -15,7 +15,8 @@ import type { Response as ExpressResponse } from 'express';
 import { AppConfigService } from '../config/app-config.service';
 import { Public } from '../common/decorators/public.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { HealthResponseDto } from './health-response.dto';
+import { ChainsService } from '../chains/chains.service';
+import { HealthResponseDto, ChainHealthDto } from './health-response.dto';
 
 @ApiTags('health')
 @Controller('health')
@@ -24,18 +25,30 @@ export class HealthController {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: AppConfigService
+    private readonly config: AppConfigService,
+    private readonly chains: ChainsService
   ) {}
 
   @Public()
   @Get()
-  @ApiOperation({ summary: 'Liveness/readiness check — verifies Postgres connectivity.' })
+  @ApiOperation({ summary: 'Liveness/readiness check — verifies Postgres connectivity and chain freshness.' })
   @ApiResponse({ status: 200, description: 'Healthy.', type: HealthResponseDto })
-  @ApiResponse({ status: 503, description: 'Postgres is unreachable.', type: HealthResponseDto })
+  @ApiResponse({ status: 503, description: 'Postgres is unreachable or a chain is stale.', type: HealthResponseDto })
   async check(@Res({ passthrough: true }) res: ExpressResponse): Promise<HealthResponseDto> {
     const db = await this.checkDatabase();
-    const body: HealthResponseDto = { status: db === 'ok' ? 'ok' : 'error', role: this.config.env.role, db };
-    res.status(body.status === 'ok' ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE);
+    const chainStatuses = await this.checkChainFreshness();
+
+    const anyStale = chainStatuses.some((c) => c.stale);
+    const overallOk = db === 'ok' && !anyStale;
+
+    const body: HealthResponseDto = {
+      status: overallOk ? 'ok' : 'error',
+      role: this.config.env.role,
+      db,
+      chains: chainStatuses,
+    };
+
+    res.status(overallOk ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE);
     return body;
   }
 
@@ -52,5 +65,38 @@ export class HealthController {
       this.logger.error({ err }, 'database health check failed');
       return 'error';
     }
+  }
+
+  /**
+   * Checks per-chain cursor freshness. A chain is stale when its lastTickAt
+   * is older than 5x the chain's poll interval. Only enabled EVM chains are
+   * checked (Solana indexer arrives in a later phase).
+   */
+  private async checkChainFreshness(): Promise<ChainHealthDto[]> {
+    const result: ChainHealthDto[] = [];
+
+    for (const chain of this.chains.enabled) {
+      if (!chain.isEvm) continue;
+
+      try {
+        const cursor = await this.prisma.chainCursor.findUnique({
+          where: { chainId: chain.cbChainId },
+          select: { lastTickAt: true },
+        });
+
+        const lastTickAt = cursor?.lastTickAt ?? null;
+        const pollIntervalMs = this.config.env.pollIntervalMsOverride ?? chain.pollIntervalMs ?? 12_000;
+        const stalenessThresholdMs = 5 * pollIntervalMs;
+
+        const stale = lastTickAt === null || Date.now() - lastTickAt.getTime() > stalenessThresholdMs;
+
+        result.push({ slug: chain.slug, lastTickAt: lastTickAt?.toISOString() ?? null, stale });
+      } catch (err) {
+        this.logger.error({ chain: chain.slug, err }, 'chain freshness check failed');
+        result.push({ slug: chain.slug, lastTickAt: null, stale: true });
+      }
+    }
+
+    return result;
   }
 }

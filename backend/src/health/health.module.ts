@@ -7,11 +7,12 @@
 
 import { Module } from '@nestjs/common';
 import { AppConfigModule } from '../config/config.module';
+import { ChainsModule } from '../chains/chains.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { HealthController } from './health.controller';
 
 @Module({
-  imports: [PrismaModule, AppConfigModule],
+  imports: [PrismaModule, AppConfigModule, ChainsModule],
   controllers: [HealthController],
 })
 export class HealthModule {}

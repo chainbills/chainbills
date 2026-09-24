@@ -49,12 +49,12 @@ export const useAuthStore = defineStore('auth', () => {
     })[(chain ?? currentUser.value!.chain).name];
 
   /**
-   * Fetches and Returns the UI-formatted balance of a token based on the
-   * current chain.
+   * Fetches and returns the raw on-chain balance (smallest unit, as a
+   * `bigint`) of `token` for the current user's connected chain.
    * @param token The token to fetch its balance
-   * @returns The UI formatted balance of the token
+   * @returns The raw balance, or `null` if not signed in or the read failed
    */
-  const balance = async (token: Token): Promise<number | null> => {
+  const balance = async (token: Token): Promise<bigint | null> => {
     if (!currentUser.value) return null;
     return await getChainStore()['balance'](token);
   };

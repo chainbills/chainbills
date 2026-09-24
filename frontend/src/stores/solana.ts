@@ -98,19 +98,19 @@ export const useSolanaStore = defineStore('solana', () => {
     }
   };
 
-  /** Balance of the given token for the connected wallet. Returns null on error. */
-  const balance = async (token: Token): Promise<number | null> => {
+  /** Raw on-chain balance (lamports, or the SPL token's smallest unit) of the given token for the connected wallet. Returns null on error. */
+  const balance = async (token: Token): Promise<bigint | null> => {
     try {
       if (!anchorWallet.value) return null;
       if (!token.details.solanadevnet) return null;
       const addr = token.details.solanadevnet.address;
       if (isNativeSol(addr)) {
-        return (await connection.getBalance(anchorWallet.value.publicKey)) / 1e9;
+        return BigInt(await connection.getBalance(anchorWallet.value.publicKey));
       }
       const ata = getATA(new PublicKey(addr), anchorWallet.value.publicKey);
-      return (await connection.getTokenAccountBalance(ata)).value.uiAmount;
+      return BigInt((await connection.getTokenAccountBalance(ata)).value.amount);
     } catch (e) {
-      if (`${e}`.includes('could not find account')) return 0;
+      if (`${e}`.includes('could not find account')) return 0n;
       toastError(`Couldn't fetch balance: ${e}`);
       return null;
     }
@@ -262,7 +262,7 @@ export const useSolanaStore = defineStore('solana', () => {
     if (isNativeSol(tokenAddr)) {
       return callContractWrapper(
         prog.methods
-          .payNative(new BN(amount))
+          .payNative(new BN(amount.toString()))
           .accounts({
             payer: signer,
             userRecord: userRecordPDA(signer),
@@ -295,7 +295,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
     return callContractWrapper(
       prog.methods
-        .pay(new BN(amount))
+        .pay(new BN(amount.toString()))
         .accounts({
           payer: signer,
           userRecord: userRecordPDA(signer),
@@ -364,7 +364,7 @@ export const useSolanaStore = defineStore('solana', () => {
         .payForeignViaCctp(
           Array.from(foreignPayableIdBytes),
           Array.from(destCbChainIdBytes),
-          new BN(amount),
+          new BN(amount.toString()),
           new BN(0) // max_fee=0 → standard CCTP transfer
         )
         .accounts({
@@ -421,7 +421,7 @@ export const useSolanaStore = defineStore('solana', () => {
     if (isNativeSol(tokenAddr)) {
       return callContractWrapper(
         prog.methods
-          .withdrawNative(new BN(amount))
+          .withdrawNative(new BN(amount.toString()))
           .accounts({
             host: signer,
             userRecord: userRecordPDA(signer),
@@ -446,7 +446,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
     return callContractWrapper(
       prog.methods
-        .withdraw(new BN(amount))
+        .withdraw(new BN(amount.toString()))
         .accounts({
           host: signer,
           userRecord: userRecordPDA(signer),

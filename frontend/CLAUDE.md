@@ -72,6 +72,7 @@ src/
     ThemeMenu.vue
     activity/                Unified activity feed UI (`ActivityFeed`, `ActivityTable`/`ActivityList`, shared row/icon/detail building blocks) — see `components/activity/README.md`
     ui/                      The "liquid glass" primitive library — see `components/ui/README.md` and "Design System" below
+    landing/                 Landing page (`/`) sections and placeholder data — see `components/landing/README.md`
   icons/                   SVG icon components (IconArc, IconEthereum, IconMegaETH, etc.)
 ```
 

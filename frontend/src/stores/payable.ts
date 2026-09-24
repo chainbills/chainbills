@@ -331,7 +331,7 @@ export const usePayableStore = defineStore('payable', () => {
         const results = await Promise.all(
           targets.map(async (chainName) => ({
             chainName,
-            synced: (await evm.payableUpdateNonce(chainName, payableId, homeChain.cbChainId)) >= nonce,
+            synced: (await evm.payableUpdateNonce(chainName, payableId)) >= nonce,
           }))
         );
         for (const r of results) if (r.synced) pending.delete(r.chainName);
@@ -530,7 +530,7 @@ export const usePayableStore = defineStore('payable', () => {
       targets.map(async (chainName) => {
         const chain = chainNamesToChains[chainName];
         if (nonce !== undefined) {
-          const current = await evm.payableUpdateNonce(chainName, payableId, homeChain.cbChainId);
+          const current = await evm.payableUpdateNonce(chainName, payableId);
           return { chain, synced: current >= nonce };
         }
         const foreign = await evm.fetchForeignPayable(payableId, chainName);

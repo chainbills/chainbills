@@ -86,11 +86,11 @@ export const useActivityStore = defineStore('activity', () => {
 
     let fetchedRaws: any[] | null = null;
     if (missingIds.length) {
-      fetchedRaws = await evm.getActivityRecordsBulk(missingIds, chain.name);
+      fetchedRaws = await evm.getActivitiesBulk(missingIds, chain.name);
       if (!fetchedRaws) {
         // The bulk call reverted outright — fall back to individually ignoring per-id errors.
         fetchedRaws = await Promise.all(
-          missingIds.map((id) => evm.readGetter(chain.name, 'getActivityRecord', [id], { ignoreErrors: true }))
+          missingIds.map((id) => evm.readGetter(chain.name, 'getActivity', [id], { ignoreErrors: true }))
         );
       }
       await Promise.all(

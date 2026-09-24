@@ -5,12 +5,10 @@
 //
 // Reads never require a connected wallet: `publicClientFor(chainName)`
 // hands out one cached viem `PublicClient` per chain (`http()` transport,
-// no wallet), and `readGetter`/`readMain` are thin wrappers around it for
-// the two contracts the app reads from — `CbGetters` (`gettersAbi`) and the
-// Chainbills proxy's own public state (`mainAbi`: `consumedPaymentNonces`,
-// `payableUpdateNonces`, `getWormholeMessageFee`). Every other read helper
-// in this file (`fetchPayable`, the bulk getters, the paginated id-list
-// wrappers, the chain-probing helpers) is built on top of these two.
+// no wallet), and `readGetter` is a thin wrapper around it for the diamond
+// contract (`chainbillsAbi`) at `contracts[chainName]`. Every other read
+// helper in this file (`fetchPayable`, the bulk getters, the paginated
+// id-list wrappers, the chain-probing helpers) is built on top of it.
 //
 // Writes go through `writeContract`, which needs a connected wallet
 // (wagmi). It reports the phases of a single transaction — simulate,
@@ -38,7 +36,7 @@ import {
   type ChainName,
   type Token,
 } from '@/schemas';
-import { erc20Abi, gettersAbi, mainAbi, useAnalyticsStore } from '@/stores';
+import { chainbillsAbi, erc20Abi, useAnalyticsStore } from '@/stores';
 import type { TxFlowHandle, TxStepHandle } from '@/stores/tx-flow';
 import {
   createConfig,
@@ -76,14 +74,6 @@ export interface WriteSteps {
   sign?: TxStepHandle;
   confirm?: TxStepHandle;
 }
-
-/** CbGetters contract address on each EVM chain. */
-const getters: Record<ChainName, string> = {
-  arctestnet: '0x01656b5968C4b98F05F596344DA7066118d6738a',
-  megaeth: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
-  sepolia: '0x325D77a09F267A7aF695aB5E68F7ddF0eC530a38',
-  solanadevnet: '25DUdGkxQgDF7uN58viq6Mjegu3Ajbq2tnQH3zmgX2ND',
-};
 
 // Circle domain IDs per chain — used to fetch fast-transfer fee from Iris API and to build maxFee for CCTP burns.
 const CIRCLE_DOMAINS: Partial<Record<ChainName, number>> = {
@@ -145,7 +135,7 @@ export const useEvmStore = defineStore('evm', () => {
   };
 
   /**
-   * Reads a `CbGetters` function on `chainName`, without needing a
+   * Reads a diamond view function on `chainName`, without needing a
    * connected wallet. Every single-entity getter (`getPayable`,
    * `getUserPayment`, ...) reverts when the entity does not exist — pass
    * `ignoreErrors: true` when that revert is an expected "not on this
@@ -162,38 +152,8 @@ export const useEvmStore = defineStore('evm', () => {
       // functionName/args are dynamic across many call sites — cast the whole params object rather than
       // fight viem's per-function overload types; the ABI itself keeps the actual contract calls type-safe.
       return await publicClientFor(chainName).readContract({
-        address: getters[chainName] as `0x${string}`,
-        abi: gettersAbi,
-        functionName,
-        args,
-      } as any);
-    } catch (e) {
-      if (opts?.rethrowError) throw e;
-      if (!opts?.ignoreErrors) {
-        logError(e);
-        toastError(`${e}`);
-      }
-      return null;
-    }
-  };
-
-  /**
-   * Reads a public value straight off the Chainbills proxy on `chainName`
-   * (`mainAbi`): `consumedPaymentNonces`, `payableUpdateNonces` and
-   * `getWormholeMessageFee` are the only reads that live here rather than
-   * on `CbGetters`.
-   */
-  const readMain = async (
-    chainName: ChainName,
-    functionName: string,
-    args: any[] = [],
-    opts?: { ignoreErrors?: boolean; rethrowError?: boolean }
-  ): Promise<any> => {
-    try {
-      // See readGetter — same dynamic functionName/args cast.
-      return await publicClientFor(chainName).readContract({
         address: contracts[chainName] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName,
         args,
       } as any);
@@ -249,13 +209,13 @@ export const useEvmStore = defineStore('evm', () => {
 
   const extractNewId = (
     logs: any[],
-    eventName: ContractEventName<typeof mainAbi>,
-    idField: ContractEventArgs<typeof mainAbi>
+    eventName: ContractEventName<typeof chainbillsAbi>,
+    idField: ContractEventArgs<typeof chainbillsAbi>
   ) =>
     (
       parseEventLogs({
         logs,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         eventName: [eventName],
       })[0].args as any
     )[idField as any];
@@ -268,14 +228,14 @@ export const useEvmStore = defineStore('evm', () => {
    * updateTokens write to know which nonce to poll for on other chains.
    */
   const extractBroadcastNonce = (logs: any[]): bigint | null => {
-    const events = parseEventLogs({ logs, abi: mainAbi, eventName: ['PayableUpdateBroadcasted'] });
+    const events = parseEventLogs({ logs, abi: chainbillsAbi, eventName: ['PayableUpdateBroadcasted'] });
     return events.length ? BigInt((events[0].args as any).nonce) : null;
   };
 
   /** Reads the Wormhole message fee (in wei) a write must send as `msg.value` on `chainName`. `0n` on a chain with no Wormhole. */
   const fetchWormholeFee = async (chainName: ChainName): Promise<bigint | null> => {
     try {
-      const fee = await readMain(chainName, 'getWormholeMessageFee', [], { rethrowError: true });
+      const fee = await readGetter(chainName, 'getWormholeMessageFee', [], { rethrowError: true });
       return fee != null ? BigInt(fee as any) : 0n;
     } catch {
       // Contract not set up or Wormhole address misconfigured — treat as 0 fee.
@@ -354,17 +314,26 @@ export const useEvmStore = defineStore('evm', () => {
       confirmStep?.done({ txHash: hash, explorerUrl });
       return { hash, receipt, result };
     } catch (e: any) {
-      if (!`${e}`.toLowerCase().includes('user rejected')) {
-        const message = `${e}`.toLowerCase().includes('failed to fetch')
+      const raw = `${e}`.toLowerCase();
+      if (!raw.includes('user rejected')) {
+        const message = raw.includes('failed to fetch')
           ? 'Network Error'
-          : (e['details'] ?? e['shortMessage'] ?? e['message'] ?? `${e}`).split('()')[0]; // Message just before the EVM Revert error
+          : (e['details'] ?? e['shortMessage'] ?? e['message'] ?? `${e}`).split('()')[0];
         toastError(message);
         (confirmStep ?? steps?.sign)?.fail(message);
-        analytics.recordEvent('failed_evm_transaction');
+        const errorType = raw.includes('insufficient') ? 'insufficient_funds'
+          : raw.includes('revert') ? 'contract_revert'
+          : raw.includes('failed to fetch') ? 'network_error'
+          : 'unknown';
+        analytics.recordEvent('failed_evm_transaction', {
+          error_type: errorType,
+          chain: chain?.name,
+          message: message.slice(0, 200),
+        });
         logError(e);
       } else {
         flow?.cancel();
-        analytics.recordEvent('rejected_evm_transaction');
+        analytics.recordEvent('rejected_evm_transaction', { chain: chain?.name });
       }
       return null;
     }
@@ -388,7 +357,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract(
       {
         address: contracts[chain.name] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName: 'createPayable',
         args: [tokensAndAmounts.map((t) => t.toOnChain(chain)), isAutoWithdraw],
         value: wormholeFee,
@@ -418,7 +387,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract(
       {
         address: contracts[chain.name] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName: 'closePayable',
         args: [id],
         value: wormholeFee,
@@ -448,7 +417,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract(
       {
         address: contracts[chain.name] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName: 'reopenPayable',
         args: [id],
         value: wormholeFee,
@@ -483,7 +452,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract(
       {
         address: contracts[chain.name] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName: 'updatePayableAllowedTokensAndAmounts',
         args: [id, tokensAndAmounts.map((t) => t.toOnChain(chain))],
         value: wormholeFee,
@@ -515,7 +484,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract(
       {
         address: contracts[chain.name] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName: 'updatePayableAutoWithdraw',
         args: [id, isAutoWithdraw],
       },
@@ -530,13 +499,13 @@ export const useEvmStore = defineStore('evm', () => {
   const fetchPayable = async (id: string, chainName: ChainName, ignoreErrors?: boolean) => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
     const client = publicClientFor(chainName);
-    const address = getters[chainName] as `0x${string}`;
+    const address = contracts[chainName] as `0x${string}`;
     try {
       const [raw, aTAAs, balances] = await client.multicall({
         contracts: [
-          { address, abi: gettersAbi, functionName: 'getPayable', args: [xId] },
-          { address, abi: gettersAbi, functionName: 'getAllowedTokensAndAmounts', args: [xId] },
-          { address, abi: gettersAbi, functionName: 'getBalances', args: [xId] },
+          { address, abi: chainbillsAbi, functionName: 'getPayable', args: [xId] },
+          { address, abi: chainbillsAbi, functionName: 'getAllowedTokensAndAmounts', args: [xId] },
+          { address, abi: chainbillsAbi, functionName: 'getBalances', args: [xId] },
         ] as const,
         allowFailure: false,
       });
@@ -573,7 +542,7 @@ export const useEvmStore = defineStore('evm', () => {
    * raw on-chain struct — or `null` if the id exists on none of them.
    */
   const probeEntityChain = async (
-    getterFn: 'getPayable' | 'getUserPayment' | 'getPayablePayment' | 'getWithdrawal' | 'getActivityRecord',
+    getterFn: 'getPayable' | 'getUserPayment' | 'getPayablePayment' | 'getWithdrawal' | 'getActivity',
     id: string
   ): Promise<{ chainName: ChainName; raw: any } | null> => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
@@ -618,28 +587,28 @@ export const useEvmStore = defineStore('evm', () => {
     offset: number,
     count: number,
     chainName: ChainName
-  ): Promise<string[] | null> => readGetter(chainName, 'userPayableIdsPaginated', [walletAddress, offset, count]);
+  ): Promise<string[] | null> => readGetter(chainName, 'getUserPayableIds', [walletAddress, offset, count]);
 
   const getUserPaymentIdsPaginated = async (
     walletAddress: string,
     offset: number,
     count: number,
     chainName: ChainName
-  ): Promise<string[] | null> => readGetter(chainName, 'userPaymentIdsPaginated', [walletAddress, offset, count]);
+  ): Promise<string[] | null> => readGetter(chainName, 'getUserPaymentIds', [walletAddress, offset, count]);
 
   const getUserWithdrawalIdsPaginated = async (
     walletAddress: string,
     offset: number,
     count: number,
     chainName: ChainName
-  ): Promise<string[] | null> => readGetter(chainName, 'userWithdrawalIdsPaginated', [walletAddress, offset, count]);
+  ): Promise<string[] | null> => readGetter(chainName, 'getUserWithdrawalIds', [walletAddress, offset, count]);
 
   const getUserActivityIdsPaginated = async (
     walletAddress: string,
     offset: number,
     count: number,
     chainName: ChainName
-  ): Promise<string[] | null> => readGetter(chainName, 'userActivityIdsPaginated', [walletAddress, offset, count]);
+  ): Promise<string[] | null> => readGetter(chainName, 'getUserActivityIds', [walletAddress, offset, count]);
 
   const getPayablePaymentIdsPaginated = async (
     payableId: string,
@@ -647,7 +616,7 @@ export const useEvmStore = defineStore('evm', () => {
     count: number,
     chainName: ChainName
   ): Promise<string[] | null> =>
-    readGetter(chainName, 'payablePaymentIdsPaginated', [payableId as `0x${string}`, offset, count]);
+    readGetter(chainName, 'getPayablePaymentIds', [payableId as `0x${string}`, offset, count]);
 
   const getPayableWithdrawalIdsPaginated = async (
     payableId: string,
@@ -655,7 +624,7 @@ export const useEvmStore = defineStore('evm', () => {
     count: number,
     chainName: ChainName
   ): Promise<string[] | null> =>
-    readGetter(chainName, 'payableWithdrawalIdsPaginated', [payableId as `0x${string}`, offset, count]);
+    readGetter(chainName, 'getPayableWithdrawalIds', [payableId as `0x${string}`, offset, count]);
 
   const getPayableActivityIdsPaginated = async (
     payableId: string,
@@ -663,7 +632,7 @@ export const useEvmStore = defineStore('evm', () => {
     count: number,
     chainName: ChainName
   ): Promise<string[] | null> =>
-    readGetter(chainName, 'payableActivityIdsPaginated', [payableId as `0x${string}`, offset, count]);
+    readGetter(chainName, 'getPayableActivityIds', [payableId as `0x${string}`, offset, count]);
 
   /** Payments a payable received *from a specific source chain* (used to locate the destination-side record of a cross-chain payment). */
   const getPayableChainPaymentIdsPaginated = async (
@@ -673,31 +642,31 @@ export const useEvmStore = defineStore('evm', () => {
     count: number,
     chainName: ChainName
   ): Promise<string[] | null> =>
-    readGetter(chainName, 'payableChainPaymentIdsPaginated', [payableId, sourceCbChainId, offset, count]);
+    readGetter(chainName, 'getPayableChainPaymentIds', [payableId, sourceCbChainId, offset, count]);
 
   const getPayableChainPaymentsCount = async (
     payableId: string,
     sourceCbChainId: string,
     chainName: ChainName
-  ): Promise<bigint | null> => readGetter(chainName, 'getPayableChainPaymentsCount', [payableId, sourceCbChainId]);
+  ): Promise<bigint | null> => readGetter(chainName, 'getPayableChainPaymentCount', [payableId, sourceCbChainId]);
 
   const getChainActivityIdsPaginated = async (
     offset: number,
     count: number,
     chainName: ChainName
-  ): Promise<string[] | null> => readGetter(chainName, 'chainActivityIdsPaginated', [offset, count]);
+  ): Promise<string[] | null> => readGetter(chainName, 'getChainActivityIds', [offset, count]);
 
   const getChainPayableIdsPaginated = async (
     offset: number,
     count: number,
     chainName: ChainName
-  ): Promise<string[] | null> => readGetter(chainName, 'chainPayableIdsPaginated', [offset, count]);
+  ): Promise<string[] | null> => readGetter(chainName, 'getChainPayableIds', [offset, count]);
 
   const getChainUserAddressesPaginated = async (
     offset: number,
     count: number,
     chainName: ChainName
-  ): Promise<string[] | null> => readGetter(chainName, 'chainUserAddressesPaginated', [offset, count]);
+  ): Promise<string[] | null> => readGetter(chainName, 'getChainUserAddresses', [offset, count]);
 
   const getUserPaymentsBulk = async (ids: string[], chainName: ChainName): Promise<any[] | null> =>
     readGetter(chainName, 'getUserPaymentsBulk', [ids], { ignoreErrors: true });
@@ -711,8 +680,8 @@ export const useEvmStore = defineStore('evm', () => {
   const getPayablesBulk = async (ids: string[], chainName: ChainName): Promise<any[] | null> =>
     readGetter(chainName, 'getPayablesBulk', [ids], { ignoreErrors: true });
 
-  const getActivityRecordsBulk = async (ids: string[], chainName: ChainName): Promise<any[] | null> =>
-    readGetter(chainName, 'getActivityRecordsBulk', [ids], { ignoreErrors: true });
+  const getActivitiesBulk = async (ids: string[], chainName: ChainName): Promise<any[] | null> =>
+    readGetter(chainName, 'getActivitiesBulk', [ids], { ignoreErrors: true });
 
   const getUsersBulk = async (wallets: string[], chainName: ChainName): Promise<any[] | null> =>
     readGetter(chainName, 'getUsersBulk', [wallets], { ignoreErrors: true });
@@ -722,7 +691,7 @@ export const useEvmStore = defineStore('evm', () => {
     readGetter(chainName, 'getChainStats', []);
 
   /** `getConfig()` — Wormhole/CCTP wiring and the withdrawal fee, used by `stores/stats.ts`. */
-  const fetchChainConfig = async (chainName: ChainName): Promise<any | null> => readGetter(chainName, 'getConfig', []);
+  const fetchChainConfig = async (chainName: ChainName): Promise<any | null> => readGetter(chainName, 'getProtocolConfig', []);
 
   /** `getTokenDetails(token)` — per-token on-chain volume counters, used by `stores/stats.ts`. Reverts (returns null) for a token this chain has no details for. */
   const getTokenDetailsOnChain = async (tokenAddress: string, chainName: ChainName): Promise<any | null> =>
@@ -739,22 +708,18 @@ export const useEvmStore = defineStore('evm', () => {
     payerLeftPadded: string,
     payerCount: bigint
   ): Promise<boolean> =>
-    !!(await readMain(payableChainName, 'consumedPaymentNonces', [sourceCbChainId, payerLeftPadded, payerCount], {
+    !!(await readGetter(payableChainName, 'isPaymentNonceConsumed', [sourceCbChainId, payerLeftPadded, payerCount], {
       ignoreErrors: true,
     }));
 
   /**
-   * Reads `payableUpdateNonces(payableId, homeCbChainId)` on a destination
-   * chain — compares against the nonce from a `PayableUpdateBroadcasted`
-   * event to know whether a payable's sync has landed there yet.
+   * Reads `getForeignPayableUpdateNonce(payableId)` on a destination chain —
+   * compares against the nonce from a `PayableUpdateBroadcasted` event to
+   * know whether a payable's sync has landed there yet.
    */
-  const payableUpdateNonce = async (
-    destChainName: ChainName,
-    payableId: string,
-    homeCbChainId: string
-  ): Promise<bigint> =>
+  const payableUpdateNonce = async (destChainName: ChainName, payableId: string): Promise<bigint> =>
     BigInt(
-      (await readMain(destChainName, 'payableUpdateNonces', [payableId, homeCbChainId], { ignoreErrors: true })) ?? 0n
+      (await readGetter(destChainName, 'getForeignPayableUpdateNonce', [payableId], { ignoreErrors: true })) ?? 0n
     );
 
   const pay = async (
@@ -786,12 +751,14 @@ export const useEvmStore = defineStore('evm', () => {
       })) as bigint;
       // Request Approval if not enough allowance
       if (allowance < amount) {
+        analytics.recordEvent('approval_initiated', { chain: chain.name });
         const approval = await writeContract(
           { address: token, abi: erc20Abi, functionName: 'approve', args: [contracts[chain.name], amount] },
           { sign: steps?.approve },
           flow
         );
         if (!approval) return null;
+        analytics.recordEvent('approval_completed', { chain: chain.name });
       } else {
         steps?.approve?.skip();
       }
@@ -802,7 +769,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract(
       {
         address: contracts[chain.name] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName: 'pay',
         args: [payableId, token, amount],
         ...(token == contracts[chain.name] ? { value: amount } : {}),
@@ -888,12 +855,14 @@ export const useEvmStore = defineStore('evm', () => {
       args: [account.address.value!, contracts[chain.name] as `0x${string}`],
     })) as bigint;
     if (allowance < totalRequired) {
+      analytics.recordEvent('approval_initiated', { chain: chain.name });
       const approval = await writeContract(
         { address: token, abi: erc20Abi, functionName: 'approve', args: [contracts[chain.name], totalRequired] },
         { sign: steps?.approve },
         flow
       );
       if (!approval) return null;
+      analytics.recordEvent('approval_completed', { chain: chain.name });
     } else {
       steps?.approve?.skip();
     }
@@ -901,7 +870,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract(
       {
         address: contracts[chain.name] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName: 'payForeignViaCctp',
         args: [payableId, token, amount, maxFee],
         value: wormholeFee,
@@ -954,7 +923,7 @@ export const useEvmStore = defineStore('evm', () => {
     const response = await writeContract(
       {
         address: contracts[chain.name] as `0x${string}`,
-        abi: mainAbi,
+        abi: chainbillsAbi,
         functionName: 'withdraw',
         args: [payableId, details[chain.name]!.address, amount],
       },
@@ -982,7 +951,7 @@ export const useEvmStore = defineStore('evm', () => {
     fetchPayable,
     fetchUserOnChain,
     fetchWormholeFee,
-    getActivityRecordsBulk,
+    getActivitiesBulk,
     getChainActivityIdsPaginated,
     getChainPayableIdsPaginated,
     getChainUserAddressesPaginated,
@@ -1012,7 +981,6 @@ export const useEvmStore = defineStore('evm', () => {
     publicClientFor,
     readContract,
     readGetter,
-    readMain,
     reopenPayable,
     sign,
     updatePayableAllowedTokensAndAmounts,

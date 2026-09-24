@@ -15904,5 +15904,4 @@ export const IDL: Chainbills =
       }
     }
   ]
-}
- as Chainbills;
+} as unknown as Chainbills;

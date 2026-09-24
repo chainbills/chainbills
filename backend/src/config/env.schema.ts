@@ -344,3 +344,16 @@ export function validateEnv(raw: Record<string, string | undefined>): Env {
   }
   return toEnv(result.data);
 }
+
+/**
+ * Validates and returns the current process environment. This is the one
+ * place outside `ConfigModule.forRoot({ validate: validateEnv })` allowed to
+ * read `process.env` directly (it still only ever does so from inside
+ * `src/config/`): `app.module.ts` needs `Env.role` synchronously, before Nest
+ * builds the DI graph, to decide whether to include `WorkerModule` /
+ * `ApiModule` at all (SPEC.md §2.1) — a decision Nest's module system can
+ * only make at class-decoration time, not through injected providers.
+ */
+export function loadEnv(): Env {
+  return validateEnv(process.env);
+}

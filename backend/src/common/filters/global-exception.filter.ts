@@ -7,7 +7,8 @@
 // leaking a stack trace, a secret or an internal message (WORKER_RULES.md §3).
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';
+import { STATUS_CODES } from 'node:http';
 // Aliased: Node 18+ defines global `Request`/`Response` (the fetch API),
 // which would otherwise collide with express's same-named types here.
 import type { Request as ExpressRequest, Response as ExpressResponse } from 'express';
@@ -58,9 +59,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 }
 
-/** `HttpStatus` is a numeric enum, so it has a built-in reverse (code -> name) mapping. */
 function httpStatusName(statusCode: number): string {
-  return (HttpStatus as unknown as Record<number, string>)[statusCode] ?? 'Error';
+  return STATUS_CODES[statusCode] ?? 'Error';
 }
 
 function isStringOrStringArray(value: unknown): value is string | string[] {

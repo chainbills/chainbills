@@ -108,7 +108,7 @@ checker (every 5 min), one heartbeat (every 15 min).
 
 | Concern         | Choice                                                                 |
 | --------------- | ---------------------------------------------------------------------- |
-| Runtime         | Node.js 22 LTS, TypeScript `strict: true`                              |
+| Runtime         | Node.js 24 LTS (`.nvmrc`), TypeScript `strict: true`                   |
 | Framework       | NestJS (latest stable major) on the Express adapter                    |
 | ORM / DB        | Prisma (latest stable major) + PostgreSQL 16                           |
 | Validation      | `zod` for env; `class-validator` + `class-transformer` for request DTOs |
@@ -119,8 +119,8 @@ checker (every 5 min), one heartbeat (every 15 min).
 | EVM             | `viem`                                                                  |
 | Solana          | `@solana/web3.js` v1, `@coral-xyz/anchor` 0.32.x, `@solana/spl-token`   |
 | Email           | ZeptoMail HTTP API via `fetch` behind a `MailProvider` interface        |
-| Tests           | Jest (Nest default) + `supertest` for e2e; Postgres via docker compose  |
-| Package manager | npm, exact versions pinned in `package.json`, lockfile committed        |
+| Tests           | Vitest (SWC transform for decorator metadata) + `@vitest/coverage-v8`; `supertest` for e2e; Postgres via docker compose |
+| Package manager | pnpm via Corepack (`packageManager` field), exact versions pinned, `pnpm-lock.yaml` committed; install scripts allowed only via `pnpm-workspace.yaml#allowBuilds` |
 
 Use the versions current at implementation time; follow each library's
 official docs for its current API (notably Prisma's generator/config format).
@@ -190,27 +190,29 @@ backend/
 
 ### 5.2 Variables
 
+"every" = required whatever `ROLE` is; otherwise the listed roles.
+
 | Name                        | Roles requiring it | Default                     | Format / notes |
 | --------------------------- | ------------------ | --------------------------- | -------------- |
 | `NODE_ENV`                  | –                  | `production`                | `development` \| `test` \| `production` |
 | `ROLE`                      | –                  | `all`                       | `all` \| `api` \| `worker` |
 | `PORT`                      | –                  | `8080`                      | integer |
 | `LOG_LEVEL`                 | –                  | `info`                      | pino level |
-| `APP_URL`                   | all                | –                           | `https://chainbills.xyz`; SIWE/SIWS domain + URI, email links |
-| `PUBLIC_API_URL`            | all                | –                           | `https://api.chainbills.xyz`; OpenAPI server URL, unsubscribe links |
+| `APP_URL`                   | every                | –                           | `https://chainbills.xyz`; SIWE/SIWS domain + URI, email links |
+| `PUBLIC_API_URL`            | every                | –                           | `https://api.chainbills.xyz`; OpenAPI server URL, unsubscribe links |
 | `CORS_ORIGINS`              | api, all           | –                           | comma-separated origins |
-| `DATABASE_URL`              | all                | –                           | Postgres URL (Neon: pooled URL) |
-| `DIRECT_URL`                | all                | = `DATABASE_URL`            | Direct (non-pooled) URL for migrations |
+| `DATABASE_URL`              | every                | –                           | Postgres URL (Neon: pooled URL) |
+| `DIRECT_URL`                | every                | = `DATABASE_URL`            | Direct (non-pooled) URL for migrations |
 | `JWT_ACCESS_SECRET`         | api, all           | –                           | ≥ 32 chars |
 | `ACCESS_TOKEN_TTL`          | –                  | `15m`                       | duration (`30s`, `15m`, `12h`, `30d`) |
 | `REFRESH_TOKEN_TTL`         | –                  | `30d`                       | duration |
 | `COOKIE_DOMAIN`             | –                  | unset (host-only cookie)    | only if the API host differs from the cookie host |
 | `COOKIE_SECURE`             | –                  | `true`                      | `false` only for local http |
 | `SIGN_IN_MESSAGE_TTL`       | –                  | `10m`                       | max age of a SIWE/SIWS `Issued At` |
-| `RPC_ARC_TESTNET`           | all                | –                           | https URL |
-| `RPC_SEPOLIA`               | all                | –                           | https URL |
-| `RPC_MEGAETH`               | all                | –                           | https URL |
-| `RPC_SOLANA_DEVNET`         | all                | –                           | https URL |
+| `RPC_ARC_TESTNET`           | every                | –                           | https URL |
+| `RPC_SEPOLIA`               | every                | –                           | https URL |
+| `RPC_MEGAETH`               | every                | –                           | https URL |
+| `RPC_SOLANA_DEVNET`         | every                | –                           | https URL |
 | `RELAYER_PRIVATE_KEY`       | worker, all        | –                           | `0x` + 64 hex |
 | `SOLANA_RELAYER_KEYPAIR`    | worker, all        | –                           | JSON array of 64 integers 0–255 |
 | `POLL_INTERVAL_MS`          | –                  | per-chain registry value    | global override, integer ms |
@@ -220,7 +222,7 @@ backend/
 | `MAIL_FROM_ADDRESS`         | if `zeptomail`     | –                           | e.g. `notify@notify.chainbills.xyz` |
 | `MAIL_FROM_NAME`            | –                  | `Chainbills`                | |
 | `OTP_HMAC_SECRET`           | api, all           | –                           | ≥ 32 chars |
-| `UNSUBSCRIBE_SECRET`        | all                | –                           | ≥ 32 chars |
+| `UNSUBSCRIBE_SECRET`        | every                | –                           | ≥ 32 chars |
 | `EMAIL_MAX_EVENT_AGE`       | –                  | `1h`                        | on-chain events older than this never produce emails |
 | `THROTTLE_TTL`              | –                  | `60s`                       | throttler window |
 | `THROTTLE_LIMIT`            | –                  | `120`                       | requests per window per IP |
@@ -870,7 +872,7 @@ All interpolated values are HTML-escaped. Snapshot tests per template.
 
 ## 15. Deployment
 
-- **Dockerfile:** multi-stage (`node:22-slim`), `npm ci`, `prisma generate`,
+- **Dockerfile:** multi-stage (`node:24-slim`, pnpm via Corepack), `pnpm install --frozen-lockfile`, `prisma generate`,
   `nest build`; runtime stage copies `dist/`, production `node_modules` and
   `prisma/`; runs as non-root; `CMD` runs `prisma migrate deploy` then
   `node dist/main.js`. Honours `PORT`. Handles `SIGTERM`.
@@ -896,8 +898,13 @@ All interpolated values are HTML-escaped. Snapshot tests per template.
   with seeded data.
 - Chain-facing code is tested with mocked viem / web3 clients; no test needs
   a live RPC.
-- Commands that must pass in every PR: `npm run lint`, `npm run build`,
-  `npm test`, `npx prisma validate`, and `npm run test:e2e` where e2e tests exist.
+- Commands that must pass in every PR: `pnpm lint`, `pnpm build`,
+  `pnpm test:cov`, `pnpm prisma validate`, and `pnpm test:e2e` where e2e tests exist.
+- **Coverage is enforced** by `vitest.config.ts` thresholds: lines, functions
+  and statements ≥ 90 %, branches ≥ 85 %, over all of `src/` except the
+  entry point, module wiring, DTO classes and copied chain artefacts. Every
+  phase keeps coverage above the thresholds with the code it adds; lowering a
+  threshold or widening the exclusions is not allowed.
 
 ---
 

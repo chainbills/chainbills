@@ -1,6 +1,6 @@
 # Phase 1 — Scaffold
 
-**Branch:** `backend-v2/01-scaffold` → PR into `backend-v2`
+**Branch:** `backend-v2-01-scaffold` → PR into `backend-v2`
 **Depends on:** nothing
 **Read first:** `backend/docs/WORKER_RULES.md`, `backend/docs/SPEC.md` (§1–7, §13–16)
 
@@ -13,7 +13,7 @@ docker compose. No indexing, auth, email or API business logic yet.
 
 ## Tasks
 
-1. **Project.** Create `backend/` as a NestJS project (npm, Node 22,
+1. **Project.** Create `backend/` as a NestJS project (pnpm, Node 24,
    TypeScript strict, ESLint + Prettier matching `relayer/` style: 2 spaces,
    single quotes, 120 columns). Scripts: `start`, `start:dev`, `build`,
    `lint`, `test`, `test:e2e`, `prisma:generate`, `prisma:migrate`
@@ -70,12 +70,12 @@ docker compose. No indexing, auth, email or API business logic yet.
 10. **Docs.** `backend/CLAUDE.md` (overview, module map, invariants, commands,
     link to SPEC and WORKER_RULES) and a short `backend/README.md` (local quick
     start: copy `.env.example`, `docker compose up -d postgres`,
-    `npm run prisma:migrate`, `npm run start:dev`, open `/docs`).
+    `pnpm prisma:migrate`, `pnpm start:dev`, open `/docs`).
 
 ## Acceptance criteria
 
-- `npm run lint`, `npm run build`, `npm test`, `npx prisma validate` pass.
-- With Postgres from compose and a valid `.env`, `npm run start:dev` boots,
+- `pnpm lint`, `pnpm build`, `pnpm test:cov`, `pnpm prisma validate` pass.
+- With Postgres from compose and a valid `.env`, `pnpm start:dev` boots,
   `GET /health` returns `200` with `db: "ok"`, `/docs` renders.
 - Starting with a missing / malformed required var prints every problem and
   exits 1; with `ROLE=api` the relayer keys are not required.

@@ -85,6 +85,14 @@ prisma/
 - **Global exception filter never leaks internals.** Anything that is not a
   Nest `HttpException` becomes a bare `500 Internal Server Error` to the
   client; the real error is logged server-side only.
+- **Tooling is Node.js 24 + pnpm + Vitest.** Never use npm/yarn or commit a
+  `package-lock.json`. Dependency install scripts run only when approved in
+  `pnpm-workspace.yaml#allowBuilds`. Vitest uses SWC (`unplugin-swc`)
+  because esbuild drops the decorator metadata Nest's DI needs.
+- **Coverage thresholds are enforced** in `vitest.config.ts` (lines /
+  functions / statements ≥ 90 %, branches ≥ 85 %). New code ships with tests
+  that keep it there; thresholds are never lowered and exclusions are never
+  widened.
 - **Prisma schema and migrations are phase-1-owned.** A later phase that
   needs a schema change adds a new migration and says so in its PR
   description, per SPEC.md §17 — it does not rewrite this one.
@@ -93,28 +101,33 @@ prisma/
 
 ```bash
 cd backend
-npm run start:dev       # nest start --watch
-npm run build            # nest build -> dist/
-npm run start             # node dist/main.js (after build)
-npm run lint / lint:fix
-npm test                  # unit tests (no DB/network needed)
-npm run test:e2e          # e2e tests (needs: docker compose up -d postgres)
-npm run prisma:generate   # prisma generate
-npm run prisma:migrate    # prisma migrate dev (local, creates a new migration)
-npm run prisma:deploy     # prisma migrate deploy (applies existing migrations)
+corepack enable           # once; pnpm version is pinned in package.json#packageManager
+pnpm install
+pnpm start:dev            # nest start --watch
+pnpm build                # nest build -> dist/
+pnpm start                # node dist/main.js (after build)
+pnpm lint / lint:fix
+pnpm test                 # Vitest unit tests (no DB/network needed)
+pnpm test:cov             # unit tests + enforced coverage thresholds (see vitest.config.ts)
+pnpm test:e2e             # Vitest e2e tests (needs: docker compose up -d postgres)
+pnpm prisma:generate      # prisma generate
+pnpm prisma:migrate       # prisma migrate dev (local, creates a new migration)
+pnpm prisma:deploy        # prisma migrate deploy (applies existing migrations)
 ```
 
 ## Docker / Compose
 
 ```bash
 docker build -t chainbills-backend .
-docker compose up -d postgres            # Postgres only, for local `npm run start:dev`
+docker compose up -d postgres            # Postgres only, for local `pnpm start:dev`
 docker compose up -d                     # Postgres + app
 docker compose --profile proxy up -d     # + Caddy (TLS termination for a VPS)
 ```
 
-The image is multi-stage (`deps` -> `build` -> `runtime`), runs as a
-non-root user, and its `CMD` runs `prisma migrate deploy` before starting
+The image is multi-stage (`base` -> `build` -> `runtime`) on `node:24-slim`
+with pnpm via Corepack. `node_modules` is taken from the build stage after
+`pnpm prune --prod`, so the generated Prisma client ships and dev
+dependencies do not. It runs as a non-root user, and its `CMD` runs `prisma migrate deploy` before starting
 the server (`exec node dist/main.js`, so `SIGTERM` reaches Nest's shutdown
 hooks directly).
 

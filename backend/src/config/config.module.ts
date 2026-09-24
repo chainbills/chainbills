@@ -16,7 +16,7 @@ import { validateEnv } from './env.schema';
   imports: [
     NestConfigModule.forRoot({
       isGlobal: true,
-      // `npm run start:dev` reads `.env` directly (via the bundled dotenv
+      // `pnpm start:dev` reads `.env` directly (via the bundled dotenv
       // loader) for local development. Docker / Cloud Run / docker-compose
       // instead inject real process env vars before Node starts, which
       // dotenv never overwrites, so both paths converge on the same

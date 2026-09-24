@@ -1,6 +1,6 @@
 # Phase 3a — Solana Indexer and Relay
 
-**Branch:** `backend-v2/03a-solana-indexer-relay` → PR into `backend-v2`
+**Branch:** `backend-v2-03a-solana-indexer-relay` → PR into `backend-v2`
 **Depends on:** phase 2a merged into `backend-v2`
 **Runs in parallel with:** phase 3b (do not touch `src/users/`, `src/notifications/` except calling the outbox writer)
 **Read first:** `WORKER_RULES.md`, `SPEC.md` §6–8, §11.1; reference code in

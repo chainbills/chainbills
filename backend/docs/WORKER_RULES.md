@@ -24,6 +24,8 @@ it. Read this file and [`SPEC.md`](./SPEC.md) fully before starting a phase.
   Check with `git log --format='%an <%ae>' -1` after committing.
 - Start from the latest `backend-v2`:
   `git fetch origin backend-v2 && git checkout -B <your-branch> origin/backend-v2`.
+- Branch names use a hyphen after `backend-v2` (e.g. `backend-v2-02b-auth`):
+  git cannot hold both a `backend-v2` branch and `backend-v2/…` branches.
 - Push only to the branch named in your phase file.
 - Open one pull request from that branch into **`backend-v2`** (never `main`).
 - Never force-push to `backend-v2` or rewrite its history.
@@ -80,15 +82,27 @@ it. Read this file and [`SPEC.md`](./SPEC.md) fully before starting a phase.
 Before pushing, all of these must succeed from `backend/`:
 
 ```bash
-npm run lint
-npm run build
-npm test
-npx prisma validate
-npm run test:e2e   # when the phase has e2e tests (needs: docker compose up -d postgres)
+corepack enable      # once per machine; pnpm version comes from package.json
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm build
+pnpm test:cov        # unit tests + enforced coverage thresholds
+pnpm prisma validate
+pnpm test:e2e        # when the phase has e2e tests (needs: docker compose up -d postgres)
 ```
 
-Add the tests your phase file lists. Tests must not depend on live RPCs,
-live email providers or network access beyond the local Postgres.
+Tooling: Node.js 24 (`.nvmrc`), pnpm only (never npm or yarn; never commit a
+`package-lock.json`), Vitest for all tests. New dependencies are added with
+`pnpm add` at an exact version; a dependency that needs an install script
+must be approved in `pnpm-workspace.yaml#allowBuilds` with a comment saying why.
+
+Add the tests your phase file lists, plus whatever else keeps coverage above
+the thresholds in `vitest.config.ts` (lines / functions / statements ≥ 90 %,
+branches ≥ 85 %). Every service, guard, controller, processor loop and
+helper you add ships with unit tests covering its success paths, error paths
+and edge cases. Never lower a threshold or add coverage exclusions. Tests must
+not depend on live RPCs, live email providers or network access beyond the
+local Postgres.
 
 ## 6. Definition of done
 

@@ -1,6 +1,6 @@
 # Phase 2b — Authentication (SIWE + SIWS)
 
-**Branch:** `backend-v2/02b-auth` → PR into `backend-v2`
+**Branch:** `backend-v2-02b-auth` → PR into `backend-v2`
 **Depends on:** phase 1 merged into `backend-v2`
 **Runs in parallel with:** phase 2a (do not touch `src/indexer/`, `src/relay/`, `src/worker/`)
 **Read first:** `WORKER_RULES.md`, `SPEC.md` §5, §7 (User, Wallet, AuthNonce, Session), §9, §13

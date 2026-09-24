@@ -1,6 +1,6 @@
 # Phase 5 — Documentation and Handover
 
-**Branch:** `backend-v2/05-docs` → PR into `backend-v2`
+**Branch:** `backend-v2-05-docs` → PR into `backend-v2`
 **Depends on:** all previous phases merged into `backend-v2`
 **Read first:** `WORKER_RULES.md`, `SPEC.md`
 

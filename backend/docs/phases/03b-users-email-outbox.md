@@ -1,6 +1,6 @@
 # Phase 3b — Users, Email Verification, Outbox and ZeptoMail
 
-**Branch:** `backend-v2/03b-users-email-outbox` → PR into `backend-v2`
+**Branch:** `backend-v2-03b-users-email-outbox` → PR into `backend-v2`
 **Depends on:** phases 2a and 2b merged into `backend-v2`
 **Runs in parallel with:** phase 3a (do not touch `src/indexer/`, `src/relay/`)
 **Read first:** `WORKER_RULES.md`, `SPEC.md` §5, §7 (User, EmailVerification,

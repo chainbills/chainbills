@@ -1,6 +1,6 @@
 # Phase 2a — EVM Indexer and Relay
 
-**Branch:** `backend-v2/02a-evm-indexer-relay` → PR into `backend-v2`
+**Branch:** `backend-v2-02a-evm-indexer-relay` → PR into `backend-v2`
 **Depends on:** phase 1 merged into `backend-v2`
 **Runs in parallel with:** phase 2b (do not touch `src/auth/`)
 **Read first:** `WORKER_RULES.md`, `SPEC.md` §2, §6–8, §11.1, §14;

@@ -7,7 +7,7 @@ API. See [`docs/SPEC.md`](docs/SPEC.md) for the full specification and
 
 ## Local quick start
 
-Requires Node.js 22 and Docker.
+Requires Node.js 24 (see `.nvmrc`), pnpm (enable with `corepack enable`; the version is pinned in `package.json#packageManager`) and Docker.
 
 ```bash
 cd backend
@@ -16,10 +16,10 @@ cp .env.example .env
 # strings for JWT_ACCESS_SECRET / OTP_HMAC_SECRET / UNSUBSCRIBE_SECRET —
 # see docs/ENV.md for exactly what each variable needs and where to get it.
 
-npm install
+pnpm install
 docker compose up -d postgres
-npm run prisma:migrate     # applies prisma/migrations/ to your local DB
-npm run start:dev          # nest start --watch
+pnpm prisma:migrate        # applies prisma/migrations/ to your local DB
+pnpm start:dev             # nest start --watch
 
 # in another terminal
 curl http://localhost:8080/health
@@ -29,11 +29,11 @@ open http://localhost:8080/docs   # Swagger UI
 ## Tests
 
 ```bash
-npm run lint
-npm run build
-npm test                # unit tests — no DB or network required
-npx prisma validate
-npm run test:e2e         # needs: docker compose up -d postgres
+pnpm lint
+pnpm build
+pnpm test:cov           # unit tests + enforced coverage thresholds — no DB or network required
+pnpm prisma validate
+pnpm test:e2e           # needs: docker compose up -d postgres
 ```
 
 ## Deploying

@@ -2,7 +2,7 @@
 # Chainbills Backend — docker-compose
 #
 # Local development and VPS deployment (SPEC.md §15). `docker compose up -d
-# postgres` for local dev against `npm run start:dev`; `docker compose up -d`
+# postgres` for local dev against `pnpm start:dev`; `docker compose up -d`
 # (optionally `--profile proxy`) to run the whole stack, including the app
 # container itself, the way a VPS would.
 # ──────────────────────────────────────────────────────────────────────────────

@@ -39,7 +39,7 @@ value below.
 | Name           | Roles requiring it | Default          | Format / notes                                                        |
 | -------------- | ------------------- | ----------------- | ------------------------------------------------------------------------ |
 | `DATABASE_URL` | all                  | –                 | Postgres URL, e.g. `postgresql://user:pass@host:5432/db?schema=public` (Neon: the pooled URL). |
-| `DIRECT_URL`   | all                  | = `DATABASE_URL` | Direct (non-pooled) Postgres URL, used for migrations.                |
+| `DIRECT_URL`   | all                  | = `DATABASE_URL` | Direct (non-pooled) Postgres URL, used for migrations. Read by the Prisma CLI itself; the Docker `CMD` applies the fallback, so set it explicitly when running `pnpm prisma:*` outside the container. |
 
 ## Auth
 

@@ -1,6 +1,6 @@
 # Phase 4 — Public API
 
-**Branch:** `backend-v2/04-public-api` → PR into `backend-v2`
+**Branch:** `backend-v2-04-public-api` → PR into `backend-v2`
 **Depends on:** phases 2a, 2b, 3a merged into `backend-v2`
 **Read first:** `WORKER_RULES.md`, `SPEC.md` §7, §12, §13
 

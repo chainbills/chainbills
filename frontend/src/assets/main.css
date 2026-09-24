@@ -65,9 +65,7 @@
   --glass-border: rgb(11 18 32 / 0.08);
   --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.35), rgb(255 255 255 / 0));
   --popover-bg: rgb(255 255 255 / 0.92);
-  --shadow-glass:
-    0 8px 32px rgb(15 23 42 / 0.08),
-    inset 0 1px 0 rgb(255 255 255 / 0.5);
+  --shadow-glass: 0 8px 32px rgb(15 23 42 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.5);
 
   /* Status tones. Each is a "700"-weight text colour; components pair it
      with a `/15` background tint and a `/30` ring of the same hue. */
@@ -115,9 +113,7 @@ html.dark {
   --glass-border: rgb(255 255 255 / 0.08);
   --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent);
   --popover-bg: rgb(14 18 25 / 0.94);
-  --shadow-glass:
-    0 8px 32px rgb(0 0 0 / 0.35),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --shadow-glass: 0 8px 32px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.06);
 
   --success: #6ee7b7;
   --warning: #fcd34d;

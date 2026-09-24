@@ -1,66 +1,106 @@
 <script setup lang="ts">
+/**
+ * src/components/Header.vue — the sticky top navigation bar.
+ *
+ * Transparent at the very top of a page (letting `AmbientBackdrop` show
+ * through), and fades in a frosted-glass fill with a hairline bottom border
+ * once the page scrolls past 8px, per design-language.md §7.7. Holds the
+ * logo, the primary nav (Dashboard, Activity, Scan, Blog), the wallet pill
+ * (`SignInButton`) and the theme toggle (`ThemeMenu`) on desktop, and a
+ * hamburger button that opens `Sidebar` on mobile.
+ */
 import ThemeMenu from '@/components/ThemeMenu.vue';
 import IconMenu from '@/icons/IconMenu.vue';
 import { useAnalyticsStore, useSidebarStore, useThemeStore } from '@/stores';
 import Button from 'primevue/button';
+import { onMounted, onUnmounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 import SignInButton from './SignInButton.vue';
 
 const analytics = useAnalyticsStore();
+const route = useRoute();
 const sidebar = useSidebarStore();
 const theme = useThemeStore();
+
+/** Whether the page has scrolled past 8px — controls the header's glass
+ *  fill fading in (see the `<style>` block below). Read once on mount in
+ *  case the page loads already scrolled (e.g. a hash link or back/forward
+ *  navigation), then kept live via a passive scroll listener. */
+const scrolled = ref(window.scrollY > 8);
+const onScroll = () => (scrolled.value = window.scrollY > 8);
+
+onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }));
+onUnmounted(() => window.removeEventListener('scroll', onScroll));
+
+/** The primary nav links. `Scan` points to `/scan`, added by a later brief —
+ *  until then it resolves to the 404 page, which is an acceptable interim
+ *  state per the design system brief. */
+const navLinks = [
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/activity', label: 'Activity' },
+  { to: '/scan', label: 'Scan' },
+];
+
+const isActive = (to: string) => route.path === to || route.path.startsWith(`${to}/`);
 </script>
 
 <template>
-  <header class="max-md:py-4 py-2 px-8 lg:px-12 fixed top-0 left-0 right-0 z-10 h-16 bg-app-bg">
-    <div class="flex justify-between max-w-screen-xl mx-auto md:items-start">
-      <h1 class="text-2xl font-bold max-md:pt-0 pt-2">
-        <router-link to="/" class="flex items-center">
-          <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`" class="mr-1 h-8 w-8" />
-          <span>Chainbills</span>
-        </router-link>
-      </h1>
+  <header class="sticky top-0 z-40 h-16">
+    <!-- Glass fill, faded in once the page has scrolled. Kept as its own
+         layer (rather than toggling classes on the header itself) so the
+         opacity transition doesn't also have to animate `backdrop-filter`,
+         which not every browser interpolates smoothly. -->
+    <div
+      class="absolute inset-0 border-b transition-opacity duration-300"
+      :class="scrolled ? 'opacity-100' : 'opacity-0'"
+      style="
+        background: var(--glass-tint);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-color: var(--glass-border);
+      "
+      aria-hidden="true"
+    ></div>
 
-      <div class="max-md:hidden">
-        <nav>
-          <ul class="flex items-center">
-            <li class="mr-6">
-              <a
-                href="https://blog.chainbills.xyz"
-                rel="noopener noreferrer"
-                target="_blank"
-                @click="analytics.recordNavigation('/blog', 'blog')"
-                >Blog
-              </a>
-            </li>
-            <li class="mr-6">
-              <router-link to="/dashboard">Dashboard</router-link>
-            </li>
-            <li class="mr-6">
-              <router-link to="/activity">Activity</router-link>
-            </li>
-            <li class="mr-4"><SignInButton id="header" /></li>
-            <li><ThemeMenu :full="false" /></li>
-          </ul>
-        </nav>
+    <div class="relative h-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
+      <router-link to="/" class="flex items-center gap-2 shrink-0">
+        <img
+          :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
+          class="h-8 w-8"
+          alt="Chainbills"
+        />
+        <span class="font-display text-lg text-fg">Chainbills</span>
+      </router-link>
+
+      <nav class="max-md:hidden">
+        <ul class="flex items-center gap-6">
+          <li v-for="link in navLinks" :key="link.to">
+            <router-link :to="link.to" :class="isActive(link.to) ? 'text-accent' : 'text-muted hover:text-fg'">
+              {{ link.label }}
+            </router-link>
+          </li>
+          <li>
+            <a
+              href="https://blog.chainbills.xyz"
+              rel="noopener noreferrer"
+              target="_blank"
+              class="text-muted hover:text-fg"
+              @click="analytics.recordNavigation('/blog', 'blog')"
+            >
+              Blog
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <div class="max-md:hidden flex items-center gap-2">
+          <SignInButton id="header" />
+          <ThemeMenu />
+        </div>
+        <Button @click="sidebar.open" text rounded aria-label="Open menu" title="Open menu" class="md:hidden text-fg">
+          <IconMenu />
+        </Button>
       </div>
-      <Button @click="sidebar.open" class="bg-transparent border-none text-current -mr-4 md:hidden"
-        ><IconMenu
-      /></Button>
     </div>
   </header>
 </template>
-
-<style scoped>
-header {
-  box-shadow:
-    0 1px 1.5px 0 var(--shadow),
-    0 1px 1px -1px var(--shadow);
-}
-
-nav .router-link-active::after {
-  background-color: var(--primary);
-  content: ' ';
-  display: block;
-  height: 1px;
-}
-</style>

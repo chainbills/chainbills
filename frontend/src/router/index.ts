@@ -4,6 +4,20 @@ import { useAnalyticsStore } from '@/stores';
 
 const baseTitle = 'Chainbills';
 
+// Dev-only component gallery (`src/views/UiGalleryView.vue`), screenshot
+// surface for the design system. Only spread into `routes` in development
+// builds so it never ships to production.
+const devRoutes = import.meta.env.DEV
+  ? [
+      {
+        path: '/_ui',
+        name: 'ui-gallery',
+        component: () => import('../views/UiGalleryView.vue'),
+        meta: { title: `Component Gallery | ${baseTitle}` },
+      },
+    ]
+  : [];
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -13,6 +27,7 @@ const router = createRouter({
       component: HomeView,
       meta: { title: baseTitle },
     },
+    ...devRoutes,
     {
       path: '/start',
       name: 'start',

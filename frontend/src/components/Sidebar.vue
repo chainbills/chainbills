@@ -1,9 +1,18 @@
 <script setup lang="ts">
+/**
+ * src/components/Sidebar.vue — the mobile navigation drawer, opened by the
+ * hamburger button in `Header.vue` (`useSidebarStore.open`).
+ *
+ * A PrimeVue `Drawer` that inherits the glass popover treatment from the
+ * PrimeVue preset (`main.ts`), holding the same links as the desktop header
+ * nav (Dashboard, Activity, Scan, Blog) plus the wallet pill and the theme
+ * control at the bottom.
+ */
 import ThemeMenu from '@/components/ThemeMenu.vue';
 import IconBlog from '@/icons/IconBlog.vue';
 import IconDashboard from '@/icons/IconDashboard.vue';
+import IconGlobe from '@/icons/IconGlobe.vue';
 import IconReplay from '@/icons/IconReplay.vue';
-import IconWallet from '@/icons/IconWallet.vue';
 import { useAnalyticsStore, useSidebarStore, useThemeStore } from '@/stores';
 import Drawer from 'primevue/drawer';
 import SignInButton from './SignInButton.vue';
@@ -11,55 +20,58 @@ import SignInButton from './SignInButton.vue';
 const analytics = useAnalyticsStore();
 const sidebar = useSidebarStore();
 const theme = useThemeStore();
+
+const navLinks = [
+  { to: '/dashboard', label: 'Dashboard', icon: IconDashboard },
+  { to: '/activity', label: 'Activity', icon: IconReplay },
+  { to: '/scan', label: 'Scan', icon: IconGlobe },
+];
 </script>
 
 <template>
-  <Drawer v-model:visible="sidebar.status" position="right" blockScroll>
+  <Drawer v-model:visible="sidebar.status" position="right" blockScroll class="glass-popover">
     <template #header>
-      <div class="flex items-center pl-1">
-        <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`" class="mr-1 h-8 w-8" />
-        <h4 class="text-2xl font-bold">Chainbills</h4>
-      </div>
+      <router-link to="/" @click="sidebar.close" class="flex items-center gap-2">
+        <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`" class="h-8 w-8" alt="" />
+        <span class="font-display text-lg text-fg">Chainbills</span>
+      </router-link>
     </template>
+
     <nav class="pt-2">
-      <ul>
-        <li class="mb-1">
-          <router-link to="/" @click="sidebar.close" class="flex items-center w-full p-2 rounded-md" v-ripple
-            ><IconDashboard class="mr-2" /><span>Home</span>
+      <ul class="flex flex-col gap-1">
+        <li v-for="link in navLinks" :key="link.to">
+          <router-link
+            :to="link.to"
+            @click="sidebar.close"
+            class="flex items-center gap-3 w-full p-2.5 rounded-xl text-fg hover:bg-fg/5"
+            active-class="text-accent bg-accent/10"
+            v-ripple
+          >
+            <component :is="link.icon" class="w-5 h-5" />
+            <span>{{ link.label }}</span>
           </router-link>
         </li>
-        <li class="mb-1">
+        <li>
           <a
             href="https://blog.chainbills.xyz"
             rel="noopener noreferrer"
             target="_blank"
-            class="flex items-center w-full p-2 rounded-md"
+            class="flex items-center gap-3 w-full p-2.5 rounded-xl text-fg hover:bg-fg/5"
             v-ripple
             @click="analytics.recordNavigation('/blog', 'blog')"
-            ><IconBlog class="mr-2" /><span>Blog</span>
+          >
+            <IconBlog class="w-5 h-5" />
+            <span>Blog</span>
           </a>
         </li>
-        <li class="mb-1">
-          <router-link to="/dashboard" @click="sidebar.close" class="flex items-center w-full p-2 rounded-md" v-ripple
-            ><IconWallet class="mr-2 stroke-current" /><span>Dashboard</span>
-          </router-link>
-        </li>
-        <li class="mb-1">
-          <router-link to="/activity" @click="sidebar.close" class="flex items-center w-full p-2 rounded-md" v-ripple
-            ><IconReplay class="mr-2" /><span>Activity</span>
-          </router-link>
-        </li>
-        <li class="w-full p-2 rounded-md" v-ripple>
-          <ThemeMenu :full="true" />
-        </li>
-        <li class="mt-4"><SignInButton /></li>
       </ul>
+
+      <div class="h-px my-3 bg-fg/5"></div>
+
+      <div class="flex flex-col gap-2 p-2.5">
+        <SignInButton />
+        <ThemeMenu :full="true" />
+      </div>
     </nav>
   </Drawer>
 </template>
-
-<style scoped>
-.router-link-active {
-  font-weight: bold;
-}
-</style>

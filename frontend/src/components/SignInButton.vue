@@ -1,4 +1,20 @@
 <script setup lang="ts">
+/**
+ * src/components/SignInButton.vue — the wallet connect/status control shown
+ * in the header, sidebar and dialogs.
+ *
+ * Three visual states: a loading spinner while a previous session's wallet
+ * is being restored, an accent "Sign In" pill when disconnected, and — once
+ * connected — a pill showing the current chain's logo plus the truncated
+ * wallet address, which opens a glass popover menu (copy address, view in
+ * explorer, switch chain, disconnect). Sign-in itself first asks which EVM
+ * chain to connect on (via a glass dialog), then hands off to Reown AppKit's
+ * own connect flow.
+ *
+ * Props:
+ *  - `id`: suffix appended to internal element ids, so the header and
+ *    sidebar copies of this component (both rendered at once) don't clash.
+ */
 const { id } = defineProps(['id']);
 import IconArc from '@/icons/IconArc.vue';
 import IconCopy from '@/icons/IconCopy.vue';
@@ -197,13 +213,17 @@ onMounted(() => {
 
     <Menu ref="walletMenu" id="wallet-menu" :model="walletItems()" :popup="true">
       <template #item="{ item, props }">
-        <p v-if="!item.command" class="px-2 py-1 text-lg text-gray-500">
+        <p v-if="!item.command" class="px-2 py-1.5 text-xs uppercase tracking-wider text-muted">
           {{ item.label }}
         </p>
-        <Button class="flex items-center bg-transparent border-none hover:text-current" v-bind="props.action" v-else>
-          <component :is="item.customIcon" class="w-5 h-5 mr-1" />
+        <button
+          class="flex items-center gap-2.5 w-full px-2 py-1.5 rounded-xl text-sm text-fg hover:bg-fg/5"
+          v-bind="props.action"
+          v-else
+        >
+          <component :is="item.customIcon" class="w-4 h-4" />
           <span>{{ item.label }}</span>
-        </Button>
+        </button>
       </template>
     </Menu>
 
@@ -214,21 +234,24 @@ onMounted(() => {
       class="max-sm:m-8 w-full max-w-sm"
       @hide="() => (selectedChainName = null)"
     >
-      <p class="mb-4 sm:mb-6">First Select a Blockchain Network</p>
+      <p class="mb-4 sm:mb-6 text-sm text-muted">First select a blockchain network</p>
 
-      <Button
+      <button
         v-for="chain of [megaethInApp, arctestnet, sepoliaInApp]"
-        :class="
-          'text-current border-none shadow-md dark:shadow-[#ffffff0a] flex items-center px-3 py-2 mb-4 text-lg ' +
-          (selectedChainName == chain.name ? 'bg-primary bg-opacity-30' : 'bg-transparent')
-        "
+        type="button"
+        :class="[
+          'w-full flex items-center gap-2.5 rounded-xl border px-3 py-2.5 mb-3 text-sm font-medium transition-colors',
+          selectedChainName == chain.name
+            ? 'bg-accent/15 border-accent text-accent'
+            : 'bg-fg/5 border-glass-border text-fg hover:bg-fg/10',
+        ]"
         @click="selectedChainName = chain.name"
       >
-        <component :is="icons[chain.name]" :id="`connect-wallet-menu-${id}`" class="w-5 h-5 mr-1.5" />
+        <component :is="icons[chain.name]" :id="`connect-wallet-menu-${id}`" class="w-5 h-5" />
         <span>{{ chain.displayName }}</span>
-      </Button>
+      </button>
 
-      <p class="text-center pt-4 pb-2"><Button class="px-4 py-2" @click="onClickEvm"> Connect Wallet </Button></p>
+      <p class="text-center pt-4 pb-2"><Button @click="onClickEvm"> Connect Wallet </Button></p>
     </Dialog>
   </div>
 </template>

@@ -3,8 +3,8 @@
 Global Vue directives, registered once in `main.ts` and usable in any
 component template without an import.
 
-| File | Directive | Usage |
-| --- | --- | --- |
+| File        | Directive  | Usage                                                                                                                                                                                                                                                                                                                                         |
+| ----------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `reveal.ts` | `v-reveal` | `<div v-reveal>` or `<div v-reveal="{ delay: 120 }">` fades and slides an element up 24px the first time it scrolls into view, then never animates it again. No-ops entirely under `prefers-reduced-motion: reduce`. See the doc comment at the top of `reveal.ts` for the exact timing and the shared-`IntersectionObserver` implementation. |
 
 ## Adding a new directive

@@ -14,12 +14,22 @@ import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet, useWallet as useSolanaWallet } from 'solana-wallets-vue';
 
-const PROGRAM_ID = new PublicKey(contracts.solanadevnet);
 const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 
 // ── PDA derivation helpers ─────────────────────────────────────────────────────
 
-const pda = (seeds: (Uint8Array | Buffer)[]): PublicKey => PublicKey.findProgramAddressSync(seeds, PROGRAM_ID)[0];
+// `contracts` (from `@/schemas`) is read lazily, on first call, rather than at
+// module top level: `@/schemas` and `@/stores` import each other (this very
+// file imports `@/schemas`, and `@/schemas/payable-payment.ts` imports
+// `@/stores`), so whichever module loads first sees the other's exports as
+// live bindings that are not yet initialized. Reading `contracts.solanadevnet`
+// inside a function defers that read until well after both module graphs
+// have finished loading, avoiding a "Cannot access 'contracts' before
+// initialization" error.
+let programId: PublicKey | undefined;
+const getProgramId = (): PublicKey => (programId ??= new PublicKey(contracts.solanadevnet));
+
+const pda = (seeds: (Uint8Array | Buffer)[]): PublicKey => PublicKey.findProgramAddressSync(seeds, getProgramId())[0];
 
 const le8 = (n: bigint): Buffer => {
   const b = Buffer.alloc(8);

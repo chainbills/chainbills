@@ -8,9 +8,14 @@ Vue 3 SPA. Stack: Vue 3 + Pinia + Vue Router + Wagmi/viem (EVM) + Solana Wallets
 
 ```
 src/
-  main.ts              App bootstrap: Wagmi config, PrimeVue, Pinia, Firebase init
-  App.vue              Root: ToastService, ConfirmDialog, router-view
-  router/index.ts      Routes: /, /start, /dashboard, /activity, /payable/:id, /pay/:id, /receipt/:id, /_data (dev only)
+  main.ts              App bootstrap: Wagmi config (incl. the "liquid glass" PrimeVue preset), Pinia, Firebase init
+  App.vue              Root: AmbientBackdrop, glass refraction filter, Header/Sidebar/Footer, router-view, Toast
+  router/index.ts      Routes: /, /start, /dashboard, /activity, /payable/:id, /pay/:id, /receipt/:id, (+ /_ui in dev only)
+  directives/
+    reveal.ts          v-reveal — scroll-entrance directive, registered globally in main.ts
+    README.md          Directive usage reference
+  assets/
+    main.css           Design tokens (light/dark CSS vars) + glass surface utility classes — see "Design System" below
   schemas/
     activity.ts        ActivityType enum + display metadata, Activity class
     chain.ts           Chain type, ChainName, chain constants, explorer URL helpers, OnChainSuccess
@@ -55,16 +60,17 @@ src/
     PayableDetailView.vue  Payable detail: payments received, host controls
     PayView.vue            Payer's payment UI
     ReceiptView.vue        Payment receipt (public)
-    DataDebugView.vue      Dev-only self-test page for the data layer (`/_data`, `import.meta.env.DEV` only)
-    NotFoundView.vue       404
+    NotFoundView.vue       404, built from the `EmptyState` primitive
+    UiGalleryView.vue      Dev-only (`/_ui`) showcase of every component in `components/ui/`
   components/
-    Header.vue, Footer.vue, Sidebar.vue
+    Header.vue, Footer.vue, Sidebar.vue    App shell — see "Design System" below
     PayableInfoCard.vue
     TransactionsTable.vue
     MakePaymentLoader.vue, PayableDetailLoader.vue, ReceiptLoader.vue, TableLoader.vue
-    Shimmer.vue
+    Shimmer.vue              Pre-redesign shimmer loader (vue3-loading-shimmer); new code uses `ui/Skeleton.vue` instead
     SignInButton.vue
     ThemeMenu.vue
+    ui/                      The "liquid glass" primitive library — see `components/ui/README.md` and "Design System" below
   icons/                   SVG icon components (IconArc, IconEthereum, IconMegaETH, etc.)
 ```
 
@@ -78,6 +84,10 @@ src/
 | `solanadevnet` | Solana | testnet     | placeholder — Solana not active |
 
 `chainNamesEvm = ['megaeth', 'arctestnet', 'sepolia']`
+
+Each `Chain` also carries a `brandColor` (hex). It is identity-only — chain
+badges, cross-chain rails and chain-scoped stat accents — and never doubles
+as a button or text accent, which always stays the app's own `--accent`.
 
 ## Contract Addresses (frontend)
 
@@ -199,7 +209,7 @@ Keys: `{chainName}::payable::{id}::payment::{count}`, etc. Used to avoid re-fetc
 
 ```
 VITE_SERVER_URL=https://...      Firebase Cloud Function base URL
-VITE_REOWN_PROJECT_ID=...        WalletConnect project ID (for Wagmi/Reown AppKit)
+VITE_WC_PROJECT_ID=...           WalletConnect project ID (for Wagmi/Reown AppKit)
 VITE_FIREBASE_*                  Firebase config for Firestore + Analytics + FCM
 ```
 
@@ -213,12 +223,98 @@ npm run lint          # eslint --fix
 npm run format        # prettier --write src/
 ```
 
-`/_data` (dev only, `import.meta.env.DEV`) is a plain-HTML self-test page for the on-chain data layer — see `views/DataDebugView.vue`.
+## Design System ("liquid glass")
+
+The full visual spec lives in `frontend/docs/redesign/reference/design-language.md`;
+this section is the pointer to where it's implemented in code.
+
+### Tokens (`src/assets/main.css`)
+
+Every colour is a CSS custom property, defined once for light (`:root`) and
+once for dark (`html.dark`, toggled by `stores/theme.ts`):
+
+```
+--bg, --fg, --muted                 page background / primary text / secondary text
+--accent, --accent-fg, --accent-2   brand blue, text-on-accent, secondary glow (teal/violet)
+--glass-tint, --glass-border,       glass fill / hairline border / top-highlight gradient
+--glass-sheen, --popover-bg         (popover-bg is a heavier, near-opaque fill for menus/dialogs/toasts)
+--shadow-glass                      elevation shadow for glass-popover
+--success, --warning, --danger, --info   status tones (emerald/amber/rose/sky)
+--ease-out-expo, --ease-spring      motion easing curves
+```
+
+`--bg`, `--fg`, `--muted`, `--accent`, `--accent-2` and `--accent-fg` each
+have a `-rgb` twin (`--fg-rgb: 11 18 32`, …); `tailwind.config.js` maps those
+into `rgb(var(--x-rgb) / <alpha-value>)` Tailwind colours (`bg`, `fg`,
+`muted`, `accent`, `accent-2`, `accent-fg`) so opacity modifiers work
+(`bg-fg/5`, `text-accent/80`). `glass-tint`/`glass-border`/`popover-bg` map to
+plain `var()` references instead, since their tokens already carry their own
+alpha. Legacy aliases `--app-bg`, `--text`, `--shadow`, `--primary` still
+exist (mirroring `--bg`/`--fg`/`--glass-border`/`--accent`) so pages this
+redesign hasn't reached yet keep rendering correctly.
+`@media (prefers-reduced-transparency: reduce)` swaps `--glass-tint`/`--popover-bg`
+for flat opaque colours.
+
+### Glass surfaces
+
+Utility classes in `main.css` (`@layer tailwind-utilities`): `.glass-surface`
+(base fill + hairline border) combined with one of `.glass-frost` (default
+card blur), `.glass-refract` (focal panels only — adds the `#glass-displace`
+SVG filter mounted once in `App.vue`) or `.glass-dense` (tables/long lists).
+`.glass-sheen` is the top-highlight overlay, `.glass-popover` is the
+menu/dialog/toast fill, `.glass-hover-lift` adds the 2px hover lift for
+clickable cards. `GlassCard.vue` wraps the standard structure (surface +
+sheen + padded content) so most code never writes these classes directly.
+
+### Typography and motion
+
+Body text is Inter var; headings and big numerals use the display face
+(`font-display` → Space Grotesk Variable, via `@fontsource-variable/space-grotesk`).
+Fluid sizes `text-display-xl/lg/md` (Tailwind, `tailwind.config.js`). Numerals
+that align or update use `tabular-nums`.
+
+`v-reveal` (`src/directives/reveal.ts`, registered globally in `main.ts`) is a
+scroll-entrance directive — `v-reveal` or `v-reveal="{ delay: 120 }"` — that
+replaces the removed AOS dependency; see its doc comment for the exact
+behaviour. Theme switches (`stores/theme.ts`) cross-fade via
+`document.startViewTransition` when the browser supports it. Everything
+motion-related no-ops under `prefers-reduced-motion: reduce`.
+
+### PrimeVue preset (`main.ts`)
+
+`definePreset(Aura, {...})` restyles the Aura theme: a primitive border-radius
+scale (md 12px / lg 16px / xl 24px), the brand-derived primary palette, glass
+form fields (translucent fill, hairline border, accent border on focus),
+`--popover-bg`-filled overlays (Select/Dialog/Drawer/Menu/Toast), a
+transparent DataTable meant to sit inside a `.glass-surface.glass-dense`
+wrapper, Tabs restyled as a segmented pill control (`.p-tablist-tab-list`/
+`.p-tab` in `main.css` add the padding/radius tokens can't reach), and fully
+rounded (`rounded-full`) buttons everywhere.
+
+### UI primitives (`src/components/ui/`)
+
+The full component library — `GlassCard`, `SectionHeader`, `StatTile`,
+`ChainBadge`, `NetworkPill`, `TokenAmount`, `AddressChip`, `StatusPill`,
+`IconChip`, `FilterChips`, `SegmentedTabs`, `SearchInput`, `EmptyState`,
+`ErrorState`, `Skeleton`, `PayableAvatar`, `Stepper`, `InFlightIndicator`,
+`KeyValueList`, `QrCode`, `AmbientBackdrop` — is documented component-by-component
+in `src/components/ui/README.md`; import from the barrel
+(`import { GlassCard, StatTile } from '@/components/ui'`). Every later brief
+builds pages from these rather than hand-rolling cards, badges or skeletons.
+
+### Dev component gallery
+
+`/_ui` (`src/views/UiGalleryView.vue`) renders every primitive above in every
+state, plus a sample of the restyled PrimeVue components. The route is only
+registered when `import.meta.env.DEV` is true (see `router/index.ts`), so
+it's absent from production builds — open it locally after touching anything
+in `components/ui/` or the PrimeVue preset.
 
 ## Important Notes
 
-- Solana store (`stores/solana.ts`) and `solanadevnet` chain exist in code but Solana is **not active** — needs rebuilding. Don't extend Solana functionality; unsupported operations should degrade to a "Coming soon on Solana" toast.
-- `stores/idl.ts` contains Solana Anchor IDL — also stale.
-- PrimeVue toast: `severity: 'error'` for all errors, `life: 12000ms`.
-- `3000ms` artificial delay after `waitForTransactionReceipt` in `evm.writeContract` — intentional, lets block propagate; shown to the user as the tx-flow's "Finalizing…" step.
-- Cross-chain payment UX: the toast says funds will arrive after relaying, and the user does not have to stay on the page — `payment.trackArrival` keeps watching in the background and the receipt page re-checks on load.
+- Solana store (`stores/solana.ts`) and `solanadevnet` chain exist in code but Solana is **not active** — needs rebuilding. Don't extend Solana functionality.
+- `stores/idl.ts` contains Solana Anchor IDL — also stale. Its generated `IDL` constant is cast `as unknown as Chainbills` rather than a direct `as Chainbills`, working around a TypeScript parser issue on a same-newline `as` after this file's very large object literal; the constant's shape is otherwise untouched.
+- AOS is fully removed; scroll-entrance animation is the `v-reveal` directive (see "Design System" above).
+- PrimeVue toast: `severity: 'error'` for all errors, `life: 12000ms`. Toasts render as a glass popover with an `IconChip` for severity and a countdown bar (custom template in `App.vue`).
+- `3000ms` artificial delay after `waitForTransactionReceipt` in `evm.writeContract` — intentional, lets block propagate.
+- Cross-chain payment UX: toast says "Funds will arrive after relaying" — user doesn't wait on-page for relay completion.

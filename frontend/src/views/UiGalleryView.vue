@@ -265,7 +265,7 @@ const fireToast = (severity: 'success' | 'info' | 'warn' | 'error') =>
         <div class="flex gap-2">
           <Button label="Open dialog" size="small" @click="dialogOpen = true" />
           <Button label="Open drawer" size="small" @click="drawerOpen = true" />
-          <Button label="Open menu" size="small" @click="menu.toggle" />
+          <Button label="Open menu" size="small" @click="(event: Event) => menu.toggle(event)" />
         </div>
       </div>
 

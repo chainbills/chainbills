@@ -424,7 +424,7 @@ onMounted(async () => {
         <div class="max-sm:flex justify-end">
           <Tabs v-model:value="activeCat">
             <TabList>
-              <Tab v-for="(category, i) of categories" :value="i" class="bg-app-bg">{{ category }}</Tab>
+              <Tab v-for="(category, i) of categories" :value="i">{{ category }}</Tab>
             </TabList>
           </Tabs>
         </div>

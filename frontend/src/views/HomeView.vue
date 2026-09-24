@@ -136,7 +136,7 @@ const analytics = useAnalyticsStore();
     <h2 class="text-2xl sm:text-5xl text-center mb-8 sm:mb-16">Why you should choose Chainbills</h2>
 
     <div class="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mb-8 max-w-screen-xl mx-auto">
-      <div data-aos="fade-up">
+      <div v-reveal>
         <div class="bg-primary rounded-full p-2.5 w-fit mb-4 max-sm:mx-auto">
           <IconLock class="fill-white dark:fill-black" />
         </div>
@@ -145,7 +145,7 @@ const analytics = useAnalyticsStore();
           Your transactions are secure and transparent on the blockchain
         </p>
       </div>
-      <div data-aos="fade-up">
+      <div v-reveal="{ delay: 80 }">
         <div class="bg-primary rounded-full p-2.5 w-fit mb-4 max-sm:mx-auto">
           <IconMobileFriendly class="fill-white dark:fill-black" />
         </div>
@@ -154,7 +154,7 @@ const analytics = useAnalyticsStore();
           Intuitive design makes managing crypto simple for everyone
         </p>
       </div>
-      <div data-aos="fade-up">
+      <div v-reveal="{ delay: 160 }">
         <div class="bg-primary rounded-full p-2.5 w-fit mb-4 max-sm:mx-auto">
           <IconFastForward class="fill-white dark:fill-black" />
         </div>
@@ -163,7 +163,7 @@ const analytics = useAnalyticsStore();
           Save time with quick and easy transaction management
         </p>
       </div>
-      <div data-aos="fade-up">
+      <div v-reveal="{ delay: 240 }">
         <div class="bg-primary rounded-full p-2.5 w-fit mb-4 max-sm:mx-auto">
           <IconContactSupport class="fill-white dark:fill-black" />
         </div>
@@ -177,7 +177,7 @@ const analytics = useAnalyticsStore();
 
   <section
     class="px-4 py-8 sm:px-8 sm:py-12 mb-16 sm:mb-32 rounded-3xl text-white bg-primary text-center md:mx-16 lg:mx-32"
-    data-aos="fade-up"
+    v-reveal
   >
     <h2 class="font-medium text-2xl sm:text-4xl mb-4">Join Us Today</h2>
     <p class="mb-8 max-w-lg sm:text-xl mx-auto">

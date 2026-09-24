@@ -47,7 +47,7 @@ const navLinks = [
             active-class="text-accent bg-accent/10"
             v-ripple
           >
-            <component :is="link.icon" class="w-5 h-5" />
+            <component :is="link.icon" class="w-5 h-5 stroke-current" />
             <span>{{ link.label }}</span>
           </router-link>
         </li>

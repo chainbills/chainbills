@@ -7,7 +7,7 @@ import IconCopy from '@/icons/IconCopy.vue';
 import IconForward from '@/icons/IconForward.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
-import { Payable, type Receipt, TokenAndAmount } from '@/schemas';
+import { Payable, parseTokenAmount, type Receipt, TokenAndAmount } from '@/schemas';
 import {
   useAnalyticsStore,
   useAuthStore,
@@ -25,7 +25,7 @@ import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
 import Tabs from 'primevue/tabs';
 import { useToast } from 'primevue/usetoast';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const payable = ref<Payable | null>(null);
@@ -130,7 +130,7 @@ const selectedBalance = ref<TokenAndAmount | null>(null);
 
 const openWithdrawModal = (balance: TokenAndAmount) => {
   selectedBalance.value = balance;
-  withdrawAmount.value = balance.format(payable.value!.chain);
+  withdrawAmount.value = Number(balance.format(payable.value!.chain));
   showWithdrawModal.value = true;
 };
 
@@ -172,9 +172,9 @@ const withdraw = async () => {
 
   const chain = payable.value.chain;
   const decimals = selectedBalance.value.details[chain.name]?.decimals ?? 0;
-  const rawAmount = withdrawAmount.value * 10 ** decimals;
+  const rawAmount = parseTokenAmount(withdrawAmount.value, decimals);
 
-  if (rawAmount <= 0) {
+  if (rawAmount <= 0n) {
     toast.add({
       severity: 'warn',
       summary: 'Invalid Amount',
@@ -210,13 +210,18 @@ const withdraw = async () => {
   } else isWithdrawing.value = false;
 };
 
+/** Silently refreshes the payable whenever the tab regains focus — named so it can be removed on unmount. */
+const onWindowFocus = async () => await fetchPayable(true, false);
+
+onUnmounted(() => window.removeEventListener('focus', onWindowFocus));
+
 onMounted(async () => {
   await fetchPayable(true);
 
   resetTablePage();
   await getTransactions();
 
-  window.addEventListener('focus', async () => await fetchPayable(true, false));
+  window.addEventListener('focus', onWindowFocus);
 
   watch([() => auth.currentUser?.walletAddress, () => activeCat.value], (newVals, oldVals) => {
     if (!payable.value) return;
@@ -497,7 +502,7 @@ onMounted(async () => {
           v-model="withdrawAmount"
           class="flex-auto"
           :min="0"
-          :max="selectedBalance.format(payable!.chain)"
+          :max="Number(selectedBalance.format(payable!.chain))"
           :maxFractionDigits="selectedBalance.details[payable!.chain.name]?.decimals ?? 2"
           fluid
         />
@@ -505,7 +510,7 @@ onMounted(async () => {
           <small class="text-xs text-surface-500">Available: {{ selectedBalance.display(payable!.chain) }}</small>
           <button
             class="text-xs text-primary underline bg-transparent border-none cursor-pointer p-0"
-            @click="withdrawAmount = selectedBalance!.format(payable!.chain)"
+            @click="withdrawAmount = Number(selectedBalance!.format(payable!.chain))"
           >
             Max
           </button>

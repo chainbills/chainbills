@@ -49,12 +49,12 @@ const payableChain = computed(() =>
 );
 
 const isPaymentLink = computed(() => {
-  return auth.currentUser?.walletAddress != receipt.value?.user() || !(receipt instanceof Withdrawal);
+  return auth.currentUser?.walletAddress != receipt.value?.user() || !(receipt.value instanceof Withdrawal);
 });
 
 const payableRoute = computed(() => {
   const isMine = auth.currentUser?.walletAddress == receipt.value?.user();
-  return `/${receipt instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` + receipt.value?.payableId;
+  return `/${receipt.value instanceof Withdrawal && isMine ? 'payable' : 'pay'}/` + receipt.value?.payableId;
 });
 
 const copy = (text: string, context: string, eventContext: string) => {

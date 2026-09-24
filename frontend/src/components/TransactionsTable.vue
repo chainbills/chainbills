@@ -51,7 +51,8 @@ const payableRoute = (receipt: Receipt) => {
 
 const shorten = (v: string) => `${v.substring(0, 5)}...${v.substring(v.length - 5)}`;
 
-const sortedReceipts = computed(() => receipts.sort((a, b) => (a.timestamp - b.timestamp) * sortOrder.value));
+// Copies the prop array before sorting — `Array.prototype.sort` mutates in place, and mutating a prop directly is forbidden.
+const sortedReceipts = computed(() => [...receipts].sort((a, b) => (a.timestamp - b.timestamp) * sortOrder.value));
 </script>
 
 <template>

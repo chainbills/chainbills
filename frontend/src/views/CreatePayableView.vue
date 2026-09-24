@@ -20,7 +20,8 @@ const availableTokens = computed(() =>
   tokens.filter((t) => !auth.currentUser || !!t.details[auth.currentUser.chain.name])
 );
 const configError = ref('');
-const displayedConfig = ref<TokenAndAmount[]>([]);
+// Purely for the "this payable will accept ..." preview text — not sent on-chain, so it stays plain numbers rather than bigint.
+const displayedConfig = ref<{ name: string; amount: number }[]>([]);
 const isCreating = ref(false);
 const description = ref('');
 const descriptionError = ref('');
@@ -56,7 +57,7 @@ const chooseToken = (token: any) => {
 };
 
 const updateDisplayedConfig = () => {
-  const tokensAndAmounts: TokenAndAmount[] = [];
+  const preview: { name: string; amount: number }[] = [];
   if (!allowsFreePayments.value) {
     for (let i = 0; i < amounts.value.length; i++) {
       amountErrors.value[i].value = validateAmount(amounts.value[i].value);
@@ -64,10 +65,10 @@ const updateDisplayedConfig = () => {
         displayedConfig.value = [];
         return;
       } else {
-        tokensAndAmounts.push(new TokenAndAmount(selectedTokens.value[i], amounts.value[i].value));
+        preview.push({ name: selectedTokens.value[i].name, amount: amounts.value[i].value });
       }
     }
-    displayedConfig.value = tokensAndAmounts;
+    displayedConfig.value = preview;
   }
 };
 
@@ -116,16 +117,14 @@ const create = async () => {
       if (amountErrors.value[i].value) return;
       else
         tokensAndAmounts.push(
-          new TokenAndAmount(
-            selectedTokens.value[i],
-            amounts.value[i].value * 10 ** selectedTokens.value[i].details[auth.currentUser.chain.name]!.decimals
-          )
+          TokenAndAmount.parse(selectedTokens.value[i], amounts.value[i].value, auth.currentUser.chain)
         );
     }
   }
 
   isCreating.value = true;
-  const id = await payable.create(DomPurify.sanitize(description.value.trim()), tokensAndAmounts);
+  // No auto-withdraw toggle in this form yet (visual work for a later brief) — payables created here default to manual withdrawal.
+  const id = await payable.create(DomPurify.sanitize(description.value.trim()), tokensAndAmounts, false);
   isCreating.value = false;
 
   if (id) router.push(`/payable/${id}`);

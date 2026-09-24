@@ -49,6 +49,16 @@ const router = createRouter({
       component: () => import('../views/ReceiptView.vue'),
       meta: { title: `Receipt | ${baseTitle}` },
     },
+    ...(import.meta.env.DEV
+      ? [
+          {
+            path: '/_data',
+            name: 'data-debug',
+            component: () => import('../views/DataDebugView.vue'),
+            meta: { title: `Data Debug | ${baseTitle}` },
+          },
+        ]
+      : []),
     {
       path: '/pitch',
       name: 'pitch',

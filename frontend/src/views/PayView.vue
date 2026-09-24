@@ -3,7 +3,17 @@ import MakePaymentLoader from '@/components/MakePaymentLoader.vue';
 import SignInButton from '@/components/SignInButton.vue';
 import IconSpinner from '@/icons/IconSpinner.vue';
 import IconWallet from '@/icons/IconWallet.vue';
-import { Payable, TokenAndAmount, tokens, type ChainName, type Token } from '@/schemas';
+import {
+  chainNamesToChains,
+  Payable,
+  parseTokenAmount,
+  roundedTokenAmount,
+  TokenAndAmount,
+  tokens,
+  type Chain,
+  type ChainName,
+  type Token,
+} from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useEvmStore, usePayableStore, usePaymentStore } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
@@ -19,7 +29,7 @@ const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const evm = useEvmStore();
 const balanceError = ref('');
-const balances = ref<(number | null)[]>([]);
+const balances = ref<(bigint | null)[]>([]);
 const isForeignPayableRelayed = ref<boolean | null>(null);
 const isRechecking = ref(false);
 const toast = useToast();
@@ -78,8 +88,14 @@ const selectToken = (token: Token) => {
     choiceChainName = Object.keys(token.details)[0] as ChainName;
   }
 
-  selectedConfig.value = new TokenAndAmount(token, amount.value * 10 ** token.details[choiceChainName]!.decimals);
+  selectedConfig.value = TokenAndAmount.parse(token, amount.value, chainNamesToChains[choiceChainName]);
   updateBalances();
+};
+
+/** Rounded human-readable balance for display next to a token, e.g. "12.34567". Empty string when the balance is unknown. */
+const displayBalance = (bal: bigint | null, token: Token, chain: Chain): string => {
+  if (bal === null) return '';
+  return `${roundedTokenAmount(bal, token.details[chain.name]?.decimals ?? 0)}`;
 };
 
 const validateAmount = () => {
@@ -91,7 +107,7 @@ const validateAmount = () => {
   else amountError.value = '';
   if (allowsFreePayments.value && selectedConfig.value) {
     const chain = auth.currentUser?.chain ?? payable.value.chain;
-    selectedConfig.value.amount = v * 10 ** (selectedConfig.value.details[chain.name]?.decimals ?? 0);
+    selectedConfig.value.amount = parseTokenAmount(v, selectedConfig.value.details[chain.name]?.decimals ?? 0);
   }
   validateBalance();
 };
@@ -109,12 +125,11 @@ const updateBalances = async () => {
 };
 
 const validateBalance = async () => {
-  balanceError.value == '';
+  balanceError.value = '';
   if (!auth.currentUser) return;
   if (selectedConfig.value) {
-    const amt = selectedConfig.value.format(auth.currentUser.chain);
     const bal = await auth.balance(selectedConfig.value.token());
-    balanceError.value = bal && bal < amt ? 'Insufficient Funds' : '';
+    balanceError.value = bal !== null && bal < selectedConfig.value.amount ? 'Insufficient Funds' : '';
   }
 };
 
@@ -184,9 +199,7 @@ onMounted(async () => {
   isLoading.value = false;
 
   await Promise.all([updateBalances(), checkForeignPayableRelayed()]);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) checkForeignPayableRelayed();
-  });
+  document.addEventListener('visibilitychange', onVisibilityChange);
 
   // Auto-refresh foreign payable status every 15s while visible
   foreignPayableRefreshInterval = setInterval(() => {
@@ -253,8 +266,14 @@ onMounted(async () => {
   }
 });
 
+/** Re-checks relay status as soon as the tab becomes visible again — named so it can be removed on unmount. */
+const onVisibilityChange = () => {
+  if (!document.hidden) checkForeignPayableRelayed();
+};
+
 onUnmounted(() => {
   if (foreignPayableRefreshInterval) clearInterval(foreignPayableRefreshInterval);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
 });
 </script>
 
@@ -332,7 +351,9 @@ onUnmounted(() => {
                 <p v-if="selectedToken && balances.length == 1 && balances[0]">
                   <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
                   <span class="text-[10px] text-gray-500">
-                    {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{ selectedToken.name }}
+                    {{ displayBalance(balances[0], selectedToken, auth.currentUser?.chain ?? payable.chain) }}&nbsp;{{
+                      selectedToken.name
+                    }}
                   </span>
                 </p>
                 <small class="text-xs block text-red-500">{{ configError }}</small>
@@ -354,7 +375,9 @@ onUnmounted(() => {
               <p v-if="balances.length == 1 && balances[0]">
                 <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
                 <span class="text-[10px] text-gray-500">
-                  {{ Math.trunc(balances[0] * 10 ** 5) / 10 ** 5 }}&nbsp;{{ aTAAs[0].name }}
+                  {{ displayBalance(balances[0], aTAAs[0].token(), auth.currentUser?.chain ?? payable.chain) }}&nbsp;{{
+                    aTAAs[0].name
+                  }}
                 </span>
               </p>
             </div>
@@ -380,7 +403,9 @@ onUnmounted(() => {
                 <p v-if="balances.length == compatibleATAAs.length && balances[i]">
                   <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
                   <span class="text-[10px] text-gray-500">
-                    {{ Math.trunc(balances[i]! * 10 ** 5) / 10 ** 5 }}&nbsp;{{ taa.name }}</span
+                    {{ displayBalance(balances[i], taa.token(), auth.currentUser?.chain ?? payable.chain) }}&nbsp;{{
+                      taa.name
+                    }}</span
                   >
                 </p>
               </div>

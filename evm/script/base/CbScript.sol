@@ -40,7 +40,7 @@ abstract contract CbScript is Script {
   /// @param salt CREATE2 salt.
   /// @param initCode Full creation code, including constructor arguments and every library already linked.
   /// @return Predicted address.
-  function _predict(bytes32 salt, bytes memory initCode) internal view returns (address) {
+  function _predict(bytes32 salt, bytes memory initCode) internal pure returns (address) {
     return vm.computeCreate2Address(salt, keccak256(initCode), CREATE2_DEPLOYER);
   }
 
@@ -64,6 +64,8 @@ abstract contract CbScript is Script {
     _requireCreate2Deployer();
     (bool ok, bytes memory ret) = CREATE2_DEPLOYER.call(abi.encodePacked(salt, initCode));
     if (!ok || ret.length != 20) revert Create2DeploymentFailed();
+    // casting to 'bytes20' is safe because the length check above already rejects anything but a 20-byte address
+    // forge-lint: disable-next-line(unsafe-typecast)
     address actual = address(bytes20(ret));
     if (actual != addr) revert Create2AddressMismatch(addr, actual);
 
@@ -154,6 +156,8 @@ abstract contract CbScript is Script {
     bytes memory out = new bytes(40);
     uint160 a = uint160(addr);
     for (uint256 i; i < 20; i++) {
+      // casting to 'uint8' is safe because the right shift by a multiple of 8 leaves exactly one byte in range
+      // forge-lint: disable-next-line(unsafe-typecast)
       uint8 b = uint8(a >> (8 * (19 - i)));
       out[2 * i] = hexAlphabet[b >> 4];
       out[2 * i + 1] = hexAlphabet[b & 0x0f];

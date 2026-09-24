@@ -77,15 +77,13 @@ contract DiamondCutUpgrade is CbFacetDeployer {
 
     newCount = count;
     if (replaceSelectors.length > 0) {
-      cuts[newCount++] =
-        IDiamondCut.FacetCut(newImpl, IDiamondCut.FacetCutAction.Replace, replaceSelectors);
+      cuts[newCount++] = IDiamondCut.FacetCut(newImpl, IDiamondCut.FacetCutAction.Replace, replaceSelectors);
     }
     if (addSelectors.length > 0) {
       cuts[newCount++] = IDiamondCut.FacetCut(newImpl, IDiamondCut.FacetCutAction.Add, addSelectors);
     }
     if (removeSelectors.length > 0) {
-      cuts[newCount++] =
-        IDiamondCut.FacetCut(address(0), IDiamondCut.FacetCutAction.Remove, removeSelectors);
+      cuts[newCount++] = IDiamondCut.FacetCut(address(0), IDiamondCut.FacetCutAction.Remove, removeSelectors);
     }
   }
 
@@ -102,8 +100,9 @@ contract DiamondCutUpgrade is CbFacetDeployer {
     revert(string.concat('DiamondCutUpgrade: unknown facet ', facetName));
   }
 
-  /// Splits `newSelectors` into `Replace` (already routed elsewhere), `Add` (routed nowhere yet), and finds
-  /// `Remove` (selectors the old implementation of this facet served that `newSelectors` no longer includes). The
+  /// Splits `newSelectors` into `Replace` (currently routed to some other address), `Add` (currently routed
+  /// nowhere), and silently drops whichever are already routed to `newImpl` (nothing to cut). Separately finds
+  /// `Remove`: selectors the old implementation of this facet served that `newSelectors` no longer includes. The
   /// old implementation is whichever address currently serves a selector in `newSelectors`, other than `newImpl`.
   function _diff(IChainbills diamond, bytes4[] memory newSelectors, address newImpl)
     internal
@@ -119,20 +118,22 @@ contract DiamondCutUpgrade is CbFacetDeployer {
       }
     }
 
-    bytes4[] memory oldSelectors = oldImpl == address(0) ? new bytes4[](0) : diamond.facetFunctionSelectors(oldImpl);
-
     bytes4[] memory replaceBuf = new bytes4[](newSelectors.length);
     bytes4[] memory addBuf = new bytes4[](newSelectors.length);
     uint256 replaceCount;
     uint256 addCount;
     for (uint256 i; i < newSelectors.length; i++) {
-      if (_contains(oldSelectors, newSelectors[i])) {
-        replaceBuf[replaceCount++] = newSelectors[i];
-      } else {
+      address current = diamond.facetAddress(newSelectors[i]);
+      if (current == newImpl) {
+        continue; // already correctly routed; nothing to cut for this selector
+      } else if (current == address(0)) {
         addBuf[addCount++] = newSelectors[i];
+      } else {
+        replaceBuf[replaceCount++] = newSelectors[i];
       }
     }
 
+    bytes4[] memory oldSelectors = oldImpl == address(0) ? new bytes4[](0) : diamond.facetFunctionSelectors(oldImpl);
     bytes4[] memory removeBuf = new bytes4[](oldSelectors.length);
     uint256 removeCount;
     for (uint256 i; i < oldSelectors.length; i++) {
@@ -165,7 +166,8 @@ contract DiamondCutUpgrade is CbFacetDeployer {
       console.log('---');
       console.log('facet', cuts[i].facetAddress);
       console.log(
-        'action', cuts[i].action == IDiamondCut.FacetCutAction.Add
+        'action',
+        cuts[i].action == IDiamondCut.FacetCutAction.Add
           ? 'Add'
           : cuts[i].action == IDiamondCut.FacetCutAction.Replace ? 'Replace' : 'Remove'
       );

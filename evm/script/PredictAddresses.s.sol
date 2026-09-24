@@ -27,14 +27,17 @@ contract PredictAddresses is CbFacetDeployer {
       console.log(entries[i].name, facetImpls[i]);
     }
 
-    address diamondCutFacet = _predict(salt, _rawCode('DiamondCutFacet'));
-    console.log('DiamondCutFacet', diamondCutFacet);
-
-    address init = _predict(salt, _rawCode('ChainbillsDiamondInit'));
-    console.log('ChainbillsDiamondInit', init);
-
-    bytes memory diamondInitCode = abi.encodePacked(_rawCode('Diamond'), abi.encode(owner, diamondCutFacet));
-    address diamond = _predict(salt, diamondInitCode);
+    (, address diamond) = predictDiamond(salt, owner);
     console.log('Diamond', diamond);
+  }
+
+  /// Predicts the diamond address for `salt` and `owner`, without deploying anything. Usable directly (e.g. from
+  /// tests) as well as from `run()`.
+  /// @return diamondCutFacet Predicted `DiamondCutFacet` address (a diamond constructor argument).
+  /// @return diamond Predicted diamond address.
+  function predictDiamond(bytes32 salt, address owner) public view returns (address diamondCutFacet, address diamond) {
+    diamondCutFacet = _predict(salt, _rawCode('DiamondCutFacet'));
+    bytes memory diamondInitCode = abi.encodePacked(_rawCode('Diamond'), abi.encode(owner, diamondCutFacet));
+    diamond = _predict(salt, diamondInitCode);
   }
 }

@@ -22,3 +22,6 @@ lcov.info
 
 # Holds temporary copied out build-info json to use in upgrade
 prev-deploy
+
+# Fixture deploy records written by test/script/*.t.sol
+deploys/test-fixture-*.json

@@ -1,0 +1,626 @@
+[
+  {
+    "type": "function",
+    "name": "cbChainId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAllStats",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "chainStats",
+        "type": "tuple",
+        "internalType": "struct ChainStats",
+        "components": [
+          {
+            "name": "usersCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payablesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "foreignPayablesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "userPaymentsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payablePaymentsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "withdrawalsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "activitiesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "wormholeStats",
+        "type": "tuple",
+        "internalType": "struct WormholeStats",
+        "components": [
+          {
+            "name": "publishedWormholeMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "consumedWormholeMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      },
+      {
+        "name": "cctpStats",
+        "type": "tuple",
+        "internalType": "struct CctpStats",
+        "components": [
+          {
+            "name": "emittedCctpPaymentMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "emittedCctpPayableUpdateMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "receivedCctpPaymentMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "receivedCctpPayableUpdateMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCctpConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct CctpConfig",
+        "components": [
+          {
+            "name": "tokenMessenger",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "messageTransmitter",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "tokenMinter",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "domain",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "isEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCctpStats",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct CctpStats",
+        "components": [
+          {
+            "name": "emittedCctpPaymentMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "emittedCctpPayableUpdateMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "receivedCctpPaymentMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "receivedCctpPayableUpdateMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainStats",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ChainStats",
+        "components": [
+          {
+            "name": "usersCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payablesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "foreignPayablesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "userPaymentsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "payablePaymentsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "withdrawalsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "activitiesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getProtocolConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ProtocolConfig",
+        "components": [
+          {
+            "name": "cbChainId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "feeCollector",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "withdrawalFeeBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "maxAllowedTokensAndAmounts",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "isRelayerRestricted",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isPublishPayableRestricted",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getProtocolOverview",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ProtocolOverview",
+        "components": [
+          {
+            "name": "protocol",
+            "type": "tuple",
+            "internalType": "struct ProtocolConfig",
+            "components": [
+              {
+                "name": "cbChainId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "feeCollector",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "withdrawalFeeBps",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "maxAllowedTokensAndAmounts",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isRelayerRestricted",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isPublishPayableRestricted",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "wormhole",
+            "type": "tuple",
+            "internalType": "struct WormholeConfig",
+            "components": [
+              {
+                "name": "wormhole",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "wormholeChainId",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "finality",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "cctp",
+            "type": "tuple",
+            "internalType": "struct CctpConfig",
+            "components": [
+              {
+                "name": "tokenMessenger",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "messageTransmitter",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "tokenMinter",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "domain",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "isEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "chainStats",
+            "type": "tuple",
+            "internalType": "struct ChainStats",
+            "components": [
+              {
+                "name": "usersCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "payablesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "foreignPayablesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "userPaymentsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "payablePaymentsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "withdrawalsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "activitiesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "wormholeStats",
+            "type": "tuple",
+            "internalType": "struct WormholeStats",
+            "components": [
+              {
+                "name": "publishedWormholeMessagesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "consumedWormholeMessagesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "cctpStats",
+            "type": "tuple",
+            "internalType": "struct CctpStats",
+            "components": [
+              {
+                "name": "emittedCctpPaymentMessagesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "emittedCctpPayableUpdateMessagesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "receivedCctpPaymentMessagesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "receivedCctpPayableUpdateMessagesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "isPaused",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "pausedFeatures",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "foreignChainsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "registeredTokensCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "lastPayableUpdateNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getWormholeConfig",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct WormholeConfig",
+        "components": [
+          {
+            "name": "wormhole",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "wormholeChainId",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "finality",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "isEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getWormholeMessageFee",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getWormholeStats",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct WormholeStats",
+        "components": [
+          {
+            "name": "publishedWormholeMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "consumedWormholeMessagesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hasCctp",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hasWormhole",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isInitialized",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "nativeToken",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

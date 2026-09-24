@@ -1,0 +1,2088 @@
+[
+  {
+    "type": "function",
+    "name": "foreignPayableExists",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getAllowedTokensAndAmounts",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct TokenAndAmount[]",
+        "components": [
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBalance",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBalanceTokens",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBalances",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct TokenAndAmount[]",
+        "components": [
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainForeignPayableCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainForeignPayableIdAt",
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainForeignPayableIds",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainForeignPayableIdsDesc",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainForeignPayables",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct ForeignPayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct PayableForeign",
+            "components": [
+              {
+                "name": "chainId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "lastUpdateNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastUpdateInitiatedAt",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastSyncedAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmountForeign[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "amount",
+                "type": "uint64",
+                "internalType": "uint64"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainForeignPayablesDesc",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct ForeignPayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct PayableForeign",
+            "components": [
+              {
+                "name": "chainId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "lastUpdateNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastUpdateInitiatedAt",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastSyncedAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmountForeign[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "amount",
+                "type": "uint64",
+                "internalType": "uint64"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainPayableCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainPayableIdAt",
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainPayableIds",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainPayableIdsDesc",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainPayables",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct PayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct Payable",
+            "components": [
+              {
+                "name": "host",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "chainCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "hostCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "createdAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paymentsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "withdrawalsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "activitiesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "balancesCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isAutoWithdraw",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "balances",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getChainPayablesDesc",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct PayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct Payable",
+            "components": [
+              {
+                "name": "host",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "chainCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "hostCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "createdAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paymentsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "withdrawalsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "activitiesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "balancesCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isAutoWithdraw",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "balances",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayable",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PayableForeign",
+        "components": [
+          {
+            "name": "chainId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "allowedTokensAndAmountsCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "isClosed",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "lastUpdateNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "lastUpdateInitiatedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "lastSyncedAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayableAllowedTokensAndAmounts",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct TokenAndAmountForeign[]",
+        "components": [
+          {
+            "name": "token",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "amount",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayableCountByChain",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayableIdByChainAt",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayableIdsByChain",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayableIdsByChainDesc",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayableView",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ForeignPayableView",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct PayableForeign",
+            "components": [
+              {
+                "name": "chainId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "lastUpdateNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastUpdateInitiatedAt",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastSyncedAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmountForeign[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "amount",
+                "type": "uint64",
+                "internalType": "uint64"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayableViewsBulk",
+    "inputs": [
+      {
+        "name": "payableIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct ForeignPayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct PayableForeign",
+            "components": [
+              {
+                "name": "chainId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "lastUpdateNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastUpdateInitiatedAt",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastSyncedAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmountForeign[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "amount",
+                "type": "uint64",
+                "internalType": "uint64"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayablesBulk",
+    "inputs": [
+      {
+        "name": "payableIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct PayableForeign[]",
+        "components": [
+          {
+            "name": "chainId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "allowedTokensAndAmountsCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "isClosed",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "lastUpdateNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "lastUpdateInitiatedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "lastSyncedAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayablesByChain",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct ForeignPayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct PayableForeign",
+            "components": [
+              {
+                "name": "chainId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "lastUpdateNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastUpdateInitiatedAt",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastSyncedAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmountForeign[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "amount",
+                "type": "uint64",
+                "internalType": "uint64"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignPayablesByChainDesc",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct ForeignPayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct PayableForeign",
+            "components": [
+              {
+                "name": "chainId",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "lastUpdateNonce",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastUpdateInitiatedAt",
+                "type": "uint64",
+                "internalType": "uint64"
+              },
+              {
+                "name": "lastSyncedAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmountForeign[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "amount",
+                "type": "uint64",
+                "internalType": "uint64"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPayable",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct Payable",
+        "components": [
+          {
+            "name": "host",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "chainCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "hostCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "createdAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "paymentsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "withdrawalsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "activitiesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "allowedTokensAndAmountsCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "balancesCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "isClosed",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isAutoWithdraw",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPayableView",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct PayableView",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct Payable",
+            "components": [
+              {
+                "name": "host",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "chainCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "hostCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "createdAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paymentsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "withdrawalsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "activitiesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "balancesCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isAutoWithdraw",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "balances",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPayableViewsBulk",
+    "inputs": [
+      {
+        "name": "payableIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct PayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct Payable",
+            "components": [
+              {
+                "name": "host",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "chainCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "hostCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "createdAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paymentsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "withdrawalsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "activitiesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "balancesCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isAutoWithdraw",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "balances",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPayablesBulk",
+    "inputs": [
+      {
+        "name": "payableIds",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct Payable[]",
+        "components": [
+          {
+            "name": "host",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "chainCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "hostCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "createdAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "paymentsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "withdrawalsCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "activitiesCount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "allowedTokensAndAmountsCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "balancesCount",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "isClosed",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isAutoWithdraw",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserPayableCount",
+    "inputs": [
+      {
+        "name": "host",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserPayableIdAt",
+    "inputs": [
+      {
+        "name": "host",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserPayableIds",
+    "inputs": [
+      {
+        "name": "host",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserPayableIdsDesc",
+    "inputs": [
+      {
+        "name": "host",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserPayables",
+    "inputs": [
+      {
+        "name": "host",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct PayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct Payable",
+            "components": [
+              {
+                "name": "host",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "chainCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "hostCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "createdAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paymentsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "withdrawalsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "activitiesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "balancesCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isAutoWithdraw",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "balances",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserPayablesDesc",
+    "inputs": [
+      {
+        "name": "host",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct PayableView[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "info",
+            "type": "tuple",
+            "internalType": "struct Payable",
+            "components": [
+              {
+                "name": "host",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "chainCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "hostCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "createdAt",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "paymentsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "withdrawalsCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "activitiesCount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "allowedTokensAndAmountsCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "balancesCount",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "isClosed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isAutoWithdraw",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "allowedTokensAndAmounts",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "balances",
+            "type": "tuple[]",
+            "internalType": "struct TokenAndAmount[]",
+            "components": [
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isPayableHost",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "payableExists",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

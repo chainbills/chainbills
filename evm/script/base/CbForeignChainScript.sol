@@ -23,7 +23,7 @@ abstract contract CbForeignChainScript is CbAdminScript {
   /// (bool, default true), `FINALITY_OUTBOUND_UPDATE`, `FINALITY_OUTBOUND_PAYMENT`, `FINALITY_MIN_INBOUND_UPDATE`,
   /// `FINALITY_MIN_INBOUND_PAYMENT` (uint32, default `2000`), `MAX_OUTBOUND_CCTP_FEE_BPS` (uint16, unset by
   /// default).
-  function _buildForeignChainConfig(address target) internal returns (ForeignChainConfig memory config) {
+  function _buildForeignChainConfig(address target) internal view returns (ForeignChainConfig memory config) {
     bytes32 targetBytes32 = _toBytes32(target);
 
     bool hasWormhole = vm.envExists('FOREIGN_WORMHOLE_CHAIN_ID');

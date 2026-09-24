@@ -23,9 +23,10 @@ contract AdminSyncForeignPayable is CbAdminScript {
     TokenAndAmountForeign[] memory allowedTokensAndAmounts = _readAllowedTokensAndAmounts();
 
     vm.startBroadcast();
-    _diamond().adminSyncForeignPayable(
-      payableId, foreignChainId, nonce, initiatedAt, actionType, isClosed, allowedTokensAndAmounts
-    );
+    _diamond()
+      .adminSyncForeignPayable(
+        payableId, foreignChainId, nonce, initiatedAt, actionType, isClosed, allowedTokensAndAmounts
+      );
     vm.stopBroadcast();
 
     console.log('Synced foreign payable');

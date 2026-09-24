@@ -1,0 +1,525 @@
+[
+  {
+    "type": "function",
+    "name": "registerForeignChain",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct ForeignChainConfig",
+        "components": [
+          {
+            "name": "protocolIds",
+            "type": "tuple",
+            "internalType": "struct ForeignChainProtocolIds",
+            "components": [
+              {
+                "name": "wormholeChainId",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "hasWormholeChainId",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "circleDomain",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "hasCircleDomain",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "addresses",
+            "type": "tuple",
+            "internalType": "struct ForeignChainAddresses",
+            "components": [
+              {
+                "name": "wormholeEmitter",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpMessageSender",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpBurnSender",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpRecipient",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpMintRecipient",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpDestinationCaller",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              }
+            ]
+          },
+          {
+            "name": "switches",
+            "type": "tuple",
+            "internalType": "struct ForeignChainSwitches",
+            "components": [
+              {
+                "name": "isCctpUpdateEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isInboundUpdateEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isOutboundPaymentEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isInboundPaymentEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "finality",
+            "type": "tuple",
+            "internalType": "struct ForeignChainFinality",
+            "components": [
+              {
+                "name": "outboundUpdateFinality",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "outboundPaymentFinality",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "minInboundUpdateFinality",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "minInboundPaymentFinality",
+                "type": "uint32",
+                "internalType": "uint32"
+              }
+            ]
+          },
+          {
+            "name": "limits",
+            "type": "tuple",
+            "internalType": "struct ForeignChainLimits",
+            "components": [
+              {
+                "name": "hasMaxOutboundCctpFeeBps",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "maxOutboundCctpFeeBps",
+                "type": "uint16",
+                "internalType": "uint16"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setForeignChainAddresses",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "addresses",
+        "type": "tuple",
+        "internalType": "struct ForeignChainAddresses",
+        "components": [
+          {
+            "name": "wormholeEmitter",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "cctpMessageSender",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "cctpBurnSender",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "cctpRecipient",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "cctpMintRecipient",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "cctpDestinationCaller",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setForeignChainFinality",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "finality",
+        "type": "tuple",
+        "internalType": "struct ForeignChainFinality",
+        "components": [
+          {
+            "name": "outboundUpdateFinality",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "outboundPaymentFinality",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "minInboundUpdateFinality",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "minInboundPaymentFinality",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setForeignChainLimits",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "limits",
+        "type": "tuple",
+        "internalType": "struct ForeignChainLimits",
+        "components": [
+          {
+            "name": "hasMaxOutboundCctpFeeBps",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "maxOutboundCctpFeeBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setForeignChainProtocolIds",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "protocolIds",
+        "type": "tuple",
+        "internalType": "struct ForeignChainProtocolIds",
+        "components": [
+          {
+            "name": "wormholeChainId",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "hasWormholeChainId",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "circleDomain",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "hasCircleDomain",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setForeignChainSwitches",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "switches",
+        "type": "tuple",
+        "internalType": "struct ForeignChainSwitches",
+        "components": [
+          {
+            "name": "isCctpUpdateEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isInboundUpdateEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isOutboundPaymentEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isInboundPaymentEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unregisterForeignChain",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateForeignChain",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "config",
+        "type": "tuple",
+        "internalType": "struct ForeignChainConfig",
+        "components": [
+          {
+            "name": "protocolIds",
+            "type": "tuple",
+            "internalType": "struct ForeignChainProtocolIds",
+            "components": [
+              {
+                "name": "wormholeChainId",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "hasWormholeChainId",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "circleDomain",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "hasCircleDomain",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "addresses",
+            "type": "tuple",
+            "internalType": "struct ForeignChainAddresses",
+            "components": [
+              {
+                "name": "wormholeEmitter",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpMessageSender",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpBurnSender",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpRecipient",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpMintRecipient",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              },
+              {
+                "name": "cctpDestinationCaller",
+                "type": "bytes32",
+                "internalType": "bytes32"
+              }
+            ]
+          },
+          {
+            "name": "switches",
+            "type": "tuple",
+            "internalType": "struct ForeignChainSwitches",
+            "components": [
+              {
+                "name": "isCctpUpdateEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isInboundUpdateEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isOutboundPaymentEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isInboundPaymentEnabled",
+                "type": "bool",
+                "internalType": "bool"
+              }
+            ]
+          },
+          {
+            "name": "finality",
+            "type": "tuple",
+            "internalType": "struct ForeignChainFinality",
+            "components": [
+              {
+                "name": "outboundUpdateFinality",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "outboundPaymentFinality",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "minInboundUpdateFinality",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "minInboundPaymentFinality",
+                "type": "uint32",
+                "internalType": "uint32"
+              }
+            ]
+          },
+          {
+            "name": "limits",
+            "type": "tuple",
+            "internalType": "struct ForeignChainLimits",
+            "components": [
+              {
+                "name": "hasMaxOutboundCctpFeeBps",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "maxOutboundCctpFeeBps",
+                "type": "uint16",
+                "internalType": "uint16"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  }
+]

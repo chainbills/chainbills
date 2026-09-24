@@ -1,0 +1,8 @@
+{
+  "name": "@chainbills/evm",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "abi:export": "node script/export-abi.mjs"
+  }
+}

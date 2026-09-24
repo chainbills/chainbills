@@ -1,0 +1,156 @@
+[
+  {
+    "type": "function",
+    "name": "adminSyncForeignPayable",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "nonce",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "initiatedAt",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "actionType",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "isClosed",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "allowedTokensAndAmounts",
+        "type": "tuple[]",
+        "internalType": "struct TokenAndAmountForeign[]",
+        "components": [
+          {
+            "name": "token",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "amount",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "handleReceiveFinalizedMessage",
+    "inputs": [
+      {
+        "name": "sourceDomain",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "sender",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "finalityThresholdExecuted",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "messageBody",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "handleReceiveUnfinalizedMessage",
+    "inputs": [
+      {
+        "name": "sourceDomain",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "sender",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "finalityThresholdExecuted",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "messageBody",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "receivePayableUpdateViaCctp",
+    "inputs": [
+      {
+        "name": "message",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "attestation",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "receivePayableUpdateViaWormhole",
+    "inputs": [
+      {
+        "name": "encodedVaa",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  }
+]

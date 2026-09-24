@@ -1,0 +1,1197 @@
+[
+  {
+    "type": "function",
+    "name": "getEffectiveWithdrawalFeeBps",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignChain",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ForeignChain",
+        "components": [
+          {
+            "name": "cbChainId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "isRegistered",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "registeredAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "config",
+            "type": "tuple",
+            "internalType": "struct ForeignChainConfig",
+            "components": [
+              {
+                "name": "protocolIds",
+                "type": "tuple",
+                "internalType": "struct ForeignChainProtocolIds",
+                "components": [
+                  {
+                    "name": "wormholeChainId",
+                    "type": "uint16",
+                    "internalType": "uint16"
+                  },
+                  {
+                    "name": "hasWormholeChainId",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "circleDomain",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "hasCircleDomain",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              },
+              {
+                "name": "addresses",
+                "type": "tuple",
+                "internalType": "struct ForeignChainAddresses",
+                "components": [
+                  {
+                    "name": "wormholeEmitter",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpMessageSender",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpBurnSender",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpRecipient",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpMintRecipient",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpDestinationCaller",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  }
+                ]
+              },
+              {
+                "name": "switches",
+                "type": "tuple",
+                "internalType": "struct ForeignChainSwitches",
+                "components": [
+                  {
+                    "name": "isCctpUpdateEnabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "isInboundUpdateEnabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "isOutboundPaymentEnabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "isInboundPaymentEnabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              },
+              {
+                "name": "finality",
+                "type": "tuple",
+                "internalType": "struct ForeignChainFinality",
+                "components": [
+                  {
+                    "name": "outboundUpdateFinality",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "outboundPaymentFinality",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "minInboundUpdateFinality",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "minInboundPaymentFinality",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  }
+                ]
+              },
+              {
+                "name": "limits",
+                "type": "tuple",
+                "internalType": "struct ForeignChainLimits",
+                "components": [
+                  {
+                    "name": "hasMaxOutboundCctpFeeBps",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "maxOutboundCctpFeeBps",
+                    "type": "uint16",
+                    "internalType": "uint16"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignChainCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignChainIdAt",
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignChainIdByCircleDomain",
+    "inputs": [
+      {
+        "name": "circleDomain",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignChainIdByWormholeChainId",
+    "inputs": [
+      {
+        "name": "wormholeChainId",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignChainIds",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getForeignChains",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct ForeignChain[]",
+        "components": [
+          {
+            "name": "cbChainId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "isRegistered",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "registeredAt",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "config",
+            "type": "tuple",
+            "internalType": "struct ForeignChainConfig",
+            "components": [
+              {
+                "name": "protocolIds",
+                "type": "tuple",
+                "internalType": "struct ForeignChainProtocolIds",
+                "components": [
+                  {
+                    "name": "wormholeChainId",
+                    "type": "uint16",
+                    "internalType": "uint16"
+                  },
+                  {
+                    "name": "hasWormholeChainId",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "circleDomain",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "hasCircleDomain",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              },
+              {
+                "name": "addresses",
+                "type": "tuple",
+                "internalType": "struct ForeignChainAddresses",
+                "components": [
+                  {
+                    "name": "wormholeEmitter",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpMessageSender",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpBurnSender",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpRecipient",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpMintRecipient",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  },
+                  {
+                    "name": "cctpDestinationCaller",
+                    "type": "bytes32",
+                    "internalType": "bytes32"
+                  }
+                ]
+              },
+              {
+                "name": "switches",
+                "type": "tuple",
+                "internalType": "struct ForeignChainSwitches",
+                "components": [
+                  {
+                    "name": "isCctpUpdateEnabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "isInboundUpdateEnabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "isOutboundPaymentEnabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "isInboundPaymentEnabled",
+                    "type": "bool",
+                    "internalType": "bool"
+                  }
+                ]
+              },
+              {
+                "name": "finality",
+                "type": "tuple",
+                "internalType": "struct ForeignChainFinality",
+                "components": [
+                  {
+                    "name": "outboundUpdateFinality",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "outboundPaymentFinality",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "minInboundUpdateFinality",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  },
+                  {
+                    "name": "minInboundPaymentFinality",
+                    "type": "uint32",
+                    "internalType": "uint32"
+                  }
+                ]
+              },
+              {
+                "name": "limits",
+                "type": "tuple",
+                "internalType": "struct ForeignChainLimits",
+                "components": [
+                  {
+                    "name": "hasMaxOutboundCctpFeeBps",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "maxOutboundCctpFeeBps",
+                    "type": "uint16",
+                    "internalType": "uint16"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMatchingForeignToken",
+    "inputs": [
+      {
+        "name": "localToken",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMatchingLocalToken",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "foreignToken",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMatchingTokenCount",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getMatchingTokens",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct MatchingToken[]",
+        "components": [
+          {
+            "name": "foreignToken",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "localToken",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRegisteredTokenAt",
+    "inputs": [
+      {
+        "name": "index",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRegisteredTokenCount",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRegisteredTokenDetails",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct TokenDetails[]",
+        "components": [
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "isRegistered",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "config",
+            "type": "tuple",
+            "internalType": "struct TokenConfig",
+            "components": [
+              {
+                "name": "isSupported",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isTransferTaxAllowed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "fee",
+                "type": "tuple",
+                "internalType": "struct TokenFeeConfig",
+                "components": [
+                  {
+                    "name": "hasFeeBpsOverride",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "feeBps",
+                    "type": "uint16",
+                    "internalType": "uint16"
+                  },
+                  {
+                    "name": "hasMaxWithdrawalFee",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "maxWithdrawalFee",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              },
+              {
+                "name": "limits",
+                "type": "tuple",
+                "internalType": "struct TokenPaymentLimits",
+                "components": [
+                  {
+                    "name": "hasMinPaymentAmount",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "minPaymentAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "hasMaxPaymentAmount",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "maxPaymentAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "stats",
+            "type": "tuple",
+            "internalType": "struct TokenStats",
+            "components": [
+              {
+                "name": "totalUserPaid",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalPayableReceived",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalWithdrawn",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalWithdrawalFeesCollected",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalPayableBalance",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRegisteredTokens",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSupportedTokens",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTokenConfig",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct TokenConfig",
+        "components": [
+          {
+            "name": "isSupported",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "isTransferTaxAllowed",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "fee",
+            "type": "tuple",
+            "internalType": "struct TokenFeeConfig",
+            "components": [
+              {
+                "name": "hasFeeBpsOverride",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "feeBps",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "hasMaxWithdrawalFee",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "maxWithdrawalFee",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "limits",
+            "type": "tuple",
+            "internalType": "struct TokenPaymentLimits",
+            "components": [
+              {
+                "name": "hasMinPaymentAmount",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "minPaymentAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "hasMaxPaymentAmount",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "maxPaymentAmount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTokenDetails",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct TokenDetails",
+        "components": [
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "isRegistered",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "config",
+            "type": "tuple",
+            "internalType": "struct TokenConfig",
+            "components": [
+              {
+                "name": "isSupported",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isTransferTaxAllowed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "fee",
+                "type": "tuple",
+                "internalType": "struct TokenFeeConfig",
+                "components": [
+                  {
+                    "name": "hasFeeBpsOverride",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "feeBps",
+                    "type": "uint16",
+                    "internalType": "uint16"
+                  },
+                  {
+                    "name": "hasMaxWithdrawalFee",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "maxWithdrawalFee",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              },
+              {
+                "name": "limits",
+                "type": "tuple",
+                "internalType": "struct TokenPaymentLimits",
+                "components": [
+                  {
+                    "name": "hasMinPaymentAmount",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "minPaymentAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "hasMaxPaymentAmount",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "maxPaymentAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "stats",
+            "type": "tuple",
+            "internalType": "struct TokenStats",
+            "components": [
+              {
+                "name": "totalUserPaid",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalPayableReceived",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalWithdrawn",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalWithdrawalFeesCollected",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalPayableBalance",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTokenDetailsBulk",
+    "inputs": [
+      {
+        "name": "tokens",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct TokenDetails[]",
+        "components": [
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "isRegistered",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "config",
+            "type": "tuple",
+            "internalType": "struct TokenConfig",
+            "components": [
+              {
+                "name": "isSupported",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "isTransferTaxAllowed",
+                "type": "bool",
+                "internalType": "bool"
+              },
+              {
+                "name": "fee",
+                "type": "tuple",
+                "internalType": "struct TokenFeeConfig",
+                "components": [
+                  {
+                    "name": "hasFeeBpsOverride",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "feeBps",
+                    "type": "uint16",
+                    "internalType": "uint16"
+                  },
+                  {
+                    "name": "hasMaxWithdrawalFee",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "maxWithdrawalFee",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              },
+              {
+                "name": "limits",
+                "type": "tuple",
+                "internalType": "struct TokenPaymentLimits",
+                "components": [
+                  {
+                    "name": "hasMinPaymentAmount",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "minPaymentAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  },
+                  {
+                    "name": "hasMaxPaymentAmount",
+                    "type": "bool",
+                    "internalType": "bool"
+                  },
+                  {
+                    "name": "maxPaymentAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "stats",
+            "type": "tuple",
+            "internalType": "struct TokenStats",
+            "components": [
+              {
+                "name": "totalUserPaid",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalPayableReceived",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalWithdrawn",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalWithdrawalFeesCollected",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "totalPayableBalance",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTokenStats",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct TokenStats",
+        "components": [
+          {
+            "name": "totalUserPaid",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalPayableReceived",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalWithdrawn",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalWithdrawalFeesCollected",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "totalPayableBalance",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isForeignChainRegistered",
+    "inputs": [
+      {
+        "name": "cbChainId",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isTokenSupported",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  }
+]

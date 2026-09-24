@@ -12,6 +12,12 @@ ast = true
 build_info = true
 extra_output = ["storageLayout"]
 always_use_create_2_factory = true
+# Deploy scripts predict and, when needed, deploy every linked library and facet through raw CREATE2 calls, each
+# preceded by decoding and patching that contract's full hex-encoded creation code; deploying two diamonds (or
+# rerunning one deploy) in a single script or test easily exceeds forge's own default gas ceiling for simulation,
+# even though no live chain ever pays for more than one contract per transaction. Raised well past anything this
+# repo's scripts or tests need.
+gas_limit = 9223372036854775807
 fs_permissions = [
   { access = "read", path = "./out" },
   { access = "read", path = "./script/env/tokens.json" },

@@ -1,75 +1,66 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Chain registry
 //
-// Ports relayer/src/chains.ts + relayer/src/chains/solana-devnet.ts (SPEC.md
-// §6). Contract addresses, program ids, deployment blocks and cbChainIds are
-// reviewed and versioned with the code, not env vars — after a new
-// deployment the owner updates this one file. RPC URLs are deliberately not
-// stored here; see types.ts's header comment.
+// The single place that lists deployed chains, contract addresses, deployment
+// blocks, cbChainIds, and messaging protocol identifiers (SPEC.md §6.2).
+// Contract addresses, program ids, deployment blocks and cbChainIds are
+// reviewed and versioned with the code, not env vars — after a new deployment
+// the owner updates this file. RPC URLs are deliberately not stored here; see
+// types.ts's header comment.
 //
-// Adding a new EVM chain: add one `EvmChainConfig` object below.
+// Invariants:
+//   - Only diamond-based EVM contracts are registered. Legacy single-proxy
+//     contracts (evm/legacy/) are not indexed by this backend.
+//   - Chains with `diamondAddress: null` or `programId` missing fail config
+//     validation — they cannot be enabled until the address is filled in.
+//   - Networks never mix: relay jobs are created only between chains sharing
+//     the same `network` value.
+//
+// Adding a new EVM chain: add one `EvmChainConfig` object below and update
+// `CHAINS`, `ChainSlug`, and the `enabledChains` guard.
 // Adding a new Solana chain: add one `SolanaChainConfig` object below.
-// No other file needs to change for a new chain.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { parseEther } from 'viem';
-import { arcTestnet as viemArcTestnet, megaeth as viemMegaeth, sepolia as viemSepolia } from 'viem/chains';
+import { arc as viemArc, anvil as viemAnvil } from 'viem/chains';
 import type { ChainConfig, ChainSlug, EvmChainConfig, SolanaChainConfig } from './types';
 
-export const arcTestnet: EvmChainConfig = {
-  slug: 'arctestnet',
-  displayName: 'Arc Testnet',
-  viemChain: viemArcTestnet,
-  contractAddress: '0x0bA837eF7358981967FB2cFcB79bf649b7cACbf4',
-  gettersAddress: '0x01656b5968C4b98F05F596344DA7066118d6738a',
-  // keccak256("eip155:5042002")
-  cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
-  network: 'testnet',
-  hasWormhole: false,
-  hasCctp: true,
+export const arcmainnet: EvmChainConfig = {
+  slug: 'arcmainnet',
+  displayName: 'Arc Mainnet',
+  caip2: 'eip155:5042',
+  // keccak256("eip155:5042")
+  cbChainId: '0xb8aed675f862d651b4a8c85f23a045faa0faaa1d162e6eb15d732231df3dc250',
+  network: 'mainnet',
+  viemChain: viemArc,
+  // TODO(owner): fill in from deploys/arcmainnet.json after deploying
+  diamondAddress: null,
+  // TODO(owner): fill in from deploys/arcmainnet.json after deploying
+  deploymentBlock: null,
+  // TODO(owner): not confirmed live on Arc mainnet yet — fill in when Wormhole is deployed
+  wormholeChainId: undefined,
   circleDomain: 26,
-  deploymentBlock: 42188119n,
   pollIntervalMs: 5000,
   minGasBalance: parseEther('1'),
   isEvm: true,
   isSolana: false,
 };
 
-export const sepolia: EvmChainConfig = {
-  slug: 'sepolia',
-  displayName: 'Ethereum Sepolia',
-  viemChain: viemSepolia,
-  contractAddress: '0x48353Ab7662Bc8218811Fbbdf247cCc8602fba8A',
-  gettersAddress: '0x325D77a09F267A7aF695aB5E68F7ddF0eC530a38',
-  // keccak256("eip155:11155111")
-  cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
-  network: 'testnet',
-  hasWormhole: true,
-  wormholeChainId: 10002,
-  hasCctp: true,
-  circleDomain: 0,
-  deploymentBlock: 10850296n,
-  pollIntervalMs: 10_000,
-  minGasBalance: parseEther('0.01'),
-  isEvm: true,
-  isSolana: false,
-};
-
-export const megaeth: EvmChainConfig = {
-  slug: 'megaeth',
-  displayName: 'MegaETH Mainnet',
-  viemChain: viemMegaeth,
-  contractAddress: '0xc38d1681d34Da821E46508C084D673477E455570',
-  gettersAddress: '0x9885b3807f14Fe3DB010fB8BD98C60716f6468a8',
-  // keccak256("eip155:4326")
-  cbChainId: '0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a',
-  network: 'mainnet',
-  hasWormhole: true,
-  wormholeChainId: 64,
-  hasCctp: false,
+export const anvil: EvmChainConfig = {
+  slug: 'anvil',
+  displayName: 'Anvil (local)',
+  caip2: 'eip155:31337',
+  // keccak256("eip155:31337")
+  cbChainId: '0x318e51c37247d03bad135571413b06a083591bcc680967d80bf587ac928cf369',
+  network: 'local',
+  viemChain: viemAnvil,
+  // TODO(owner): fill in after running evm/script/DeployLocalStack.s.sol
+  diamondAddress: null,
   deploymentBlock: 0n,
-  pollIntervalMs: 5000,
-  minGasBalance: parseEther('0.0001'),
+  wormholeChainId: undefined,
+  circleDomain: undefined,
+  pollIntervalMs: 500,
+  minGasBalance: parseEther('0.1'),
   isEvm: true,
   isSolana: false,
 };
@@ -77,18 +68,18 @@ export const megaeth: EvmChainConfig = {
 export const solanaDevnet: SolanaChainConfig = {
   slug: 'solanadevnet',
   displayName: 'Solana Devnet',
+  caip2: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
   // keccak256("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1")
   cbChainId: '0x318e886b7d5a2e6f89c50cd1cdc3614e5f66532f673b5f14448b9b58c12e0e6e',
   network: 'testnet',
-  hasWormhole: true,
   wormholeChainId: 1,
-  hasCctp: true,
   circleDomain: 5,
   pollIntervalMs: 5_000,
   // 0.05 SOL — warn if the relayer wallet drops below this.
   minGasBalance: 50_000_000n, // lamports
   isSolana: true,
   isEvm: false,
+  relayEnabled: false,
   programId: 'DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk',
   usdcMint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
   wormholeProgramId: '3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5',
@@ -96,8 +87,8 @@ export const solanaDevnet: SolanaChainConfig = {
   wormholeShimProgramId: 'EtZMZM22ViKMo4r5y4Anovs3wKQ2owUmDpjygnMMcdEX',
 };
 
-/** Every chain this backend indexes and relays for. */
-export const CHAINS: readonly ChainConfig[] = [arcTestnet, sepolia, megaeth, solanaDevnet];
+/** Every chain this backend knows about. */
+export const CHAINS: readonly ChainConfig[] = [arcmainnet, anvil, solanaDevnet];
 
 /** Looks up a chain by its CAIP-2 cbChainId — the universal cross-chain key. */
 export const CHAIN_BY_CB_CHAIN_ID: ReadonlyMap<string, ChainConfig> = new Map(CHAINS.map((c) => [c.cbChainId, c]));
@@ -122,4 +113,53 @@ export function requireChainByCbChainId(cbChainId: string): ChainConfig {
     throw new Error(`unknown cbChainId: ${cbChainId}`);
   }
   return chain;
+}
+
+/**
+ * Returns the registry entries for the given slugs. Throws a clear error
+ * listing any unknown slugs or any slug whose `diamondAddress` (EVM) or
+ * `programId` (Solana) is null/missing — those chains cannot be enabled
+ * until the address is filled in.
+ *
+ * This is called by the config validator so all problems surface together
+ * at boot, never at the first RPC call.
+ */
+export function enabledChains(slugs: string[]): ChainConfig[] {
+  const unknownSlugs: string[] = [];
+  const nullAddressSlugs: string[] = [];
+
+  for (const slug of slugs) {
+    const chain = CHAIN_BY_SLUG.get(slug as ChainSlug);
+    if (!chain) {
+      unknownSlugs.push(slug);
+      continue;
+    }
+    if (chain.isEvm && chain.diamondAddress === null) {
+      nullAddressSlugs.push(slug);
+    }
+  }
+
+  const errors: string[] = [];
+  if (unknownSlugs.length > 0) {
+    errors.push(`unknown chain slugs: ${unknownSlugs.join(', ')}`);
+  }
+  if (nullAddressSlugs.length > 0) {
+    errors.push(
+      `chains with no deployed diamond address (fill in the address before enabling): ${nullAddressSlugs.join(', ')}`
+    );
+  }
+  if (errors.length > 0) {
+    throw new Error(`ENABLED_CHAINS: ${errors.join('; ')}`);
+  }
+
+  return slugs.map((slug) => CHAIN_BY_SLUG.get(slug as ChainSlug)!);
+}
+
+/**
+ * Returns true when both chains share the same `network` value. Relay jobs
+ * are only created between chains of the same network — mainnet never relays
+ * to testnet or local, and vice versa.
+ */
+export function sameNetwork(a: ChainConfig, b: ChainConfig): boolean {
+  return a.network === b.network;
 }

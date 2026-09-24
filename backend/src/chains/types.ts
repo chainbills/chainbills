@@ -1,22 +1,24 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Chain registry types
 //
-// Ported from relayer/src/chains.ts. The one deliberate difference: nothing
-// here carries an `rpcUrl` field. SPEC.md §6 requires RPC URLs to be
-// "injected from config at module init, not mutated globals" — the relayer's
-// pattern of a shared `rpcUrl: ''` placeholder mutated in place at startup is
-// exactly what that forbids. Instead, `src/chains/clients.ts` factories take
-// the RPC URL as an explicit argument, sourced from `AppConfigService`.
+// The one deliberate difference from the relayer: nothing here carries an
+// `rpcUrl` field. SPEC.md §6 requires RPC URLs to be "injected from config at
+// module init, not mutated globals" — the relayer's pattern of a shared
+// `rpcUrl: ''` placeholder mutated in place at startup is exactly what that
+// forbids. Instead, `src/chains/clients.ts` factories take the RPC URL as an
+// explicit argument, sourced from `AppConfigService`.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { Chain as ViemChain } from 'viem';
 
 /**
- * Human slug for a chain — matches the frontend's chain slugs, used only in
- * logs and API output (SPEC.md §6). Never a cross-chain key: use `cbChainId`
- * for that. Solana devnet's slug is `solanadevnet`, not `solana`.
+ * Human slug for a chain — used only in logs, config keys and API output.
+ * Never a cross-chain key: use `cbChainId` for that.
  */
-export type ChainSlug = 'arctestnet' | 'sepolia' | 'megaeth' | 'solanadevnet';
+export type ChainSlug = 'arcmainnet' | 'anvil' | 'solanadevnet';
+
+/** Network environment — selects the Wormhole and CCTP API tier. */
+export type Network = 'mainnet' | 'testnet' | 'local';
 
 /** Fields common to every chain the registry knows about. */
 export interface BaseChainConfig {
@@ -24,6 +26,8 @@ export interface BaseChainConfig {
   slug: ChainSlug;
   /** Human-readable display name for logs, notifications and API output. */
   displayName: string;
+  /** CAIP-2 identifier string, e.g. "eip155:5042" or "solana:...". */
+  caip2: string;
   /**
    * CAIP-2 cbChainId: `keccak256("namespace:reference")`. The universal
    * cross-chain key used everywhere in the contracts, the database and the
@@ -31,14 +35,10 @@ export interface BaseChainConfig {
    */
   cbChainId: string;
   /** Network environment — selects the Wormhole and CCTP API to use. */
-  network: 'testnet' | 'mainnet';
-  /** Whether Wormhole Core is deployed on this chain. */
-  hasWormhole: boolean;
-  /** Wormhole uint16 chain id (set iff hasWormhole). */
+  network: Network;
+  /** Wormhole uint16 chain id. Absent when Wormhole is not deployed on this chain. */
   wormholeChainId?: number;
-  /** Whether Circle CCTP is deployed on this chain. */
-  hasCctp: boolean;
-  /** Circle uint32 domain id (set iff hasCctp). */
+  /** Circle uint32 domain id. Absent when CCTP is not deployed on this chain. */
   circleDomain?: number;
   /** Default poll interval for this chain's indexing loop, in ms. */
   pollIntervalMs?: number;
@@ -61,12 +61,13 @@ export interface EvmChainConfig extends BaseChainConfig {
   isSolana: false;
   /** viem chain object used to construct PublicClient / WalletClient instances. */
   viemChain: ViemChain;
-  /** Address of the Chainbills UUPS proxy on this chain — emits every indexed event. */
-  contractAddress: `0x${string}`;
-  /** Address of the CbGetters read-only contract on this chain. */
-  gettersAddress: `0x${string}`;
-  /** Block number to start indexing from on a cold cursor (the deployment block). */
-  deploymentBlock: bigint;
+  /**
+   * Address of the Chainbills ERC-2535 diamond on this chain, or null when
+   * not yet deployed. Config validation rejects enabling a chain with null here.
+   */
+  diamondAddress: `0x${string}` | null;
+  /** Block number to start indexing from on a cold cursor (the deployment block). Null until deployed. */
+  deploymentBlock: bigint | null;
 }
 
 /** Configuration for the Solana chain, watched and submitted to via @solana/web3.js + Anchor. */
@@ -75,6 +76,8 @@ export interface SolanaChainConfig extends BaseChainConfig {
   isEvm: false;
   /** Chainbills program id on Solana. */
   programId: string;
+  /** Whether this chain participates in relaying (false for indexing-only chains). */
+  relayEnabled: boolean;
   /** USDC mint address on this Solana network. */
   usdcMint: string;
   /** Wormhole Core Bridge program address. */

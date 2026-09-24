@@ -7,10 +7,20 @@
 // (mapped to a bare 500), and the >=500 logging branch.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { ArgumentsHost, BadRequestException, ForbiddenException, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { GlobalExceptionFilter } from './global-exception.filter';
 
-function makeHost(): { host: ArgumentsHost; res: { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn> } } {
+function makeHost(): {
+  host: ArgumentsHost;
+  res: { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof vi.fn> };
+} {
   const json = vi.fn();
   const status = vi.fn().mockReturnValue({ json });
   const res = { status, json };

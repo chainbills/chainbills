@@ -12,10 +12,11 @@ added.
 
 ## Status
 
-**Phase 1 (scaffold) complete.** Project, config, the full Prisma schema +
-initial migration, the chain/token registry, shared HTTP building blocks,
-bootstrap, health check, Docker. No indexing, auth, email or public API
-business logic yet — `WorkerModule` and `ApiModule` are empty placeholders.
+**Phase 1b (diamond alignment) complete.** ABI updated to the ERC-2535
+diamond ABI (`chainbillsAbi`). Registry updated to `arcmainnet`, `anvil`,
+`solanadevnet`. `ENABLED_CHAINS` + `RPC_<SLUG>` replace the old per-chain
+RPC vars. Second Prisma migration adds `requestedAmount`, `fee`,
+`relayScanBlock`, and aligns `RelayJobType` and `RelayJob`. All checks pass.
 
 ## Module map
 
@@ -28,21 +29,35 @@ src/
   config/
     env.schema.ts           zod schema for every env var (SPEC.md §5); validateEnv()
                            prints all problems and exits 1; loadEnv() for the
-                           role gate in app.module.ts
-    app-config.service.ts   Typed AppConfigService — the only way the app reads config
+                           role gate in app.module.ts; rpcVarName() converts a
+                           slug to its RPC_<SLUG> env var name
+    app-config.service.ts   Typed AppConfigService — the only way the app reads config;
+                           exposes rpcUrl(slug) for per-chain RPC URL lookup
     config.module.ts        Wraps ConfigModule.forRoot({ validate: validateEnv }), global
   prisma/
     prisma.service.ts       PrismaClient wrapper: connects on init, disconnects on shutdown
     prisma.module.ts        Global PrismaModule
   chains/
-    types.ts                ChainConfig / EvmChainConfig / SolanaChainConfig types
-    registry.ts              The four deployed chains, keyed by cbChainId and slug
-    tokens.ts                Token registry (address/mint, symbol, decimals) per chain
-    abis.ts                  mainAbi / gettersAbi, copied from relayer/src/utils/abis.ts
+    types.ts                ChainConfig / EvmChainConfig / SolanaChainConfig types;
+                           EvmChainConfig has diamondAddress, caip2, network;
+                           SolanaChainConfig has relayEnabled; Network union type
+    registry.ts              arcmainnet, anvil, solanadevnet; CHAINS, CHAIN_BY_CB_CHAIN_ID,
+                           CHAIN_BY_SLUG, EVM_CHAINS, SOLANA_CHAINS;
+                           enabledChains(slugs), sameNetwork(a, b),
+                           requireChainByCbChainId(id)
+    tokens.ts                Token registry (address/mint, symbol, decimals) per chain;
+                           resolveToken(), resolveTokenFromRegistry();
+                           injectable TokenResolverService with ERC-20 fallback + cache
+    abi/
+      chainbills.ts          chainbillsAbi — verbatim copy of evm/abi/chainbills.ts;
+                           the only ABI used by the backend (no legacy mainAbi/gettersAbi)
+      abi-sync.spec.ts       Fails when chainbills.ts diverges from evm/abi/chainbills.json;
+                           skipped when that file is absent (Docker build, CI without evm/)
     idl/chainbills-idl.json  Solana program IDL, copied from relayer/src/solana/
     clients.ts               viem public/wallet client + Solana Connection factories
                            (take an RPC URL as an argument — never a mutated global)
-    chains.service.ts        Joins the registry with AppConfigService's RPC URLs; global
+    chains.service.ts        Joins the registry with AppConfigService's ENABLED_CHAINS +
+                           RPC URLs; global; exposes enabled chains and getRpcUrl(chain)
     chains.module.ts
     wallet-key.ts             walletKey()/parseWalletKey() for "evm:0x…" | "solana:…"
   common/
@@ -54,8 +69,12 @@ src/
   worker/                    Empty placeholder — indexers, relay processor, outbox (2a/3a/3b)
   api/                       Empty placeholder — auth, users, public API controllers (2b/3b/4)
 prisma/
-  schema.prisma              Full data model (SPEC.md §7) — only phase 1 edits this file
-  migrations/                 Initial migration generated from schema.prisma
+  schema.prisma              Full data model (SPEC.md §7) — phase 1b added second migration
+  migrations/
+    20260924165704_init/      Initial schema
+    20260924220000_diamond_alignment/  Adds requestedAmount, fee, relayScanBlock;
+                             aligns RelayJobType (PAYMENT_VIA_CCTP replaces two legacy
+                             types); adds cctpMessage/cctpAttestation to RelayJob
 ```
 
 ## Invariants
@@ -63,10 +82,20 @@ prisma/
 - **`process.env` only inside `src/config/`.** Everything else reads
   `AppConfigService.env`. Prisma's own `env()` calls in `schema.prisma` are
   the sole additional exception.
+- **Diamond-only, no legacy ABIs.** The backend uses only `chainbillsAbi`
+  (the ERC-2535 diamond ABI). The old `mainAbi` / `gettersAbi` (legacy single-proxy
+  contracts) are gone. The ABI sync test fails if the copy drifts from `evm/abi/chainbills.json`.
 - **RPC URLs are never a mutated global.** `chains/registry.ts` holds no
   `rpcUrl` field; `ChainsService` joins the static registry with
   `AppConfigService`'s RPC URLs once at construction, and the client
   factories in `chains/clients.ts` take a URL as an explicit argument.
+- **`ENABLED_CHAINS` gate.** A chain cannot run until it is listed in
+  `ENABLED_CHAINS` and its `diamondAddress` (EVM) or `programId` (Solana) is
+  non-null in the registry. Config validation rejects all problems at once,
+  never silently.
+- **Networks never mix.** `sameNetwork(a, b)` must be true before creating
+  a relay job between two chains. Mainnet, testnet, and local chains are fully
+  isolated from each other's relay paths.
 - **Role gating happens at module-decoration time**, not through DI:
   `app.module.ts` calls `loadEnv()` (which itself calls `validateEnv(process.env)`)
   to decide whether to include `WorkerModule` / `ApiModule`, because Nest's
@@ -90,12 +119,12 @@ prisma/
   `pnpm-workspace.yaml#allowBuilds`. Vitest uses SWC (`unplugin-swc`)
   because esbuild drops the decorator metadata Nest's DI needs.
 - **Coverage thresholds are enforced** in `vitest.config.ts` (lines /
-  functions / statements ≥ 90 %, branches ≥ 85 %). New code ships with tests
+  functions / statements >= 90 %, branches >= 85 %). New code ships with tests
   that keep it there; thresholds are never lowered and exclusions are never
   widened.
 - **Prisma schema and migrations are phase-1-owned.** A later phase that
   needs a schema change adds a new migration and says so in its PR
-  description, per SPEC.md §17 — it does not rewrite this one.
+  description, per SPEC.md §17 — it does not rewrite phase 1 or 1b migrations.
 
 ## Commands
 

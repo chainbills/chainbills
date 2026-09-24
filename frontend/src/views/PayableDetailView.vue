@@ -3,11 +3,11 @@ import PayableDetailLoader from '@/components/PayableDetailLoader.vue';
 import SignInButton from '@/components/SignInButton.vue';
 import TableLoader from '@/components/TableLoader.vue';
 import TransactionsTable from '@/components/TransactionsTable.vue';
+import WithdrawDialog from '@/components/tx/WithdrawDialog.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconForward from '@/icons/IconForward.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import IconSpinner from '@/icons/IconSpinner.vue';
-import { Payable, parseTokenAmount, type Receipt, TokenAndAmount } from '@/schemas';
+import { Payable, type Receipt, TokenAndAmount } from '@/schemas';
 import {
   useAnalyticsStore,
   useAuthStore,
@@ -19,8 +19,6 @@ import {
 } from '@/stores';
 import NotFoundView from '@/views/NotFoundView.vue';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
-import InputNumber from 'primevue/inputnumber';
 import Tab from 'primevue/tab';
 import TabList from 'primevue/tablist';
 import Tabs from 'primevue/tabs';
@@ -123,14 +121,11 @@ const comingSoon = () => {
 };
 
 const balsDisplay = computed(() => (payable.value && payable.value.getBalsDisplay()) ?? []);
-const isWithdrawing = ref(false);
 const showWithdrawModal = ref(false);
-const withdrawAmount = ref(0);
 const selectedBalance = ref<TokenAndAmount | null>(null);
 
 const openWithdrawModal = (balance: TokenAndAmount) => {
   selectedBalance.value = balance;
-  withdrawAmount.value = Number(balance.format(payable.value!.chain));
   showWithdrawModal.value = true;
 };
 
@@ -166,48 +161,12 @@ const updateTablePage = (page: number) => {
   getTransactions();
 };
 
-const withdraw = async () => {
-  analytics.recordEvent('clicked_confirm_withdraw');
-  if (!payable.value || !auth.currentUser || !selectedBalance.value) return;
-
-  const chain = payable.value.chain;
-  const decimals = selectedBalance.value.details[chain.name]?.decimals ?? 0;
-  const rawAmount = parseTokenAmount(withdrawAmount.value, decimals);
-
-  if (rawAmount <= 0n) {
-    toast.add({
-      severity: 'warn',
-      summary: 'Invalid Amount',
-      detail: 'Please enter a positive amount to withdraw.',
-      life: 5000,
-    });
-    return;
-  }
-
-  if (rawAmount > selectedBalance.value.amount) {
-    toast.add({
-      severity: 'warn',
-      summary: 'Insufficient Balance',
-      detail: 'You cannot withdraw more than your current balance.',
-      life: 5000,
-    });
-    return;
-  }
-
-  showWithdrawModal.value = false;
-  isWithdrawing.value = true;
-
-  const withdrawalDetails = new TokenAndAmount(selectedBalance.value.token(), rawAmount);
-  const result = await withdrawals.exec(payable.value.id, withdrawalDetails);
-
-  if (result) {
-    const newPayable = await payableStore.get(payable.value.id);
-    if (newPayable) {
-      payable.value = newPayable;
-      isWithdrawing.value = false;
-      console.log('Withdrawal Receipt ID: ', result);
-    } else window.location.reload();
-  } else isWithdrawing.value = false;
+/** Refreshes the payable's balances once `WithdrawDialog` reports a successful withdrawal. */
+const onWithdrawn = async () => {
+  if (!payable.value) return;
+  const newPayable = await payableStore.get(payable.value.id);
+  if (newPayable) payable.value = newPayable;
+  else window.location.reload();
 };
 
 /** Silently refreshes the payable whenever the tab regains focus — named so it can be removed on unmount. */
@@ -375,11 +334,7 @@ onMounted(async () => {
           <div class="max-w-lg">
             <h3 class="font-medium">Current Balance{{ balsDisplay.length == 1 ? '' : 's' }}</h3>
             <small class="text-xs text-gray-500 block mb-4">We charge 2% on every withdrawal.</small>
-            <div v-if="isWithdrawing" class="py-12 max-w-lg">
-              <p class="text-center text-lg mb-4">Withdrawing ...</p>
-              <IconSpinner height="96" width="96" class="mx-auto mb-8" />
-            </div>
-            <p v-else-if="balsDisplay.length == 0" class="mb-12">
+            <p v-if="balsDisplay.length == 0" class="mb-12">
               You have no balances yet. To withdraw, share your payable's link and receive payments.
             </p>
             <div v-else-if="balsDisplay.length == 1" class="mb-12 flex items-end">
@@ -483,43 +438,11 @@ onMounted(async () => {
     </template>
   </section>
 
-  <Dialog
+  <WithdrawDialog
+    v-if="selectedBalance && payable"
     v-model:visible="showWithdrawModal"
-    modal
-    header="Withdraw Funds"
-    class="m-8"
-    :style="{ width: '24rem' }"
-    v-if="selectedBalance"
-  >
-    <span class="text-surface-500 dark:text-surface-400 block mb-4"
-      >Specify the amount you'd like to withdraw from your <strong>{{ selectedBalance.name }}</strong> balance.</span
-    >
-    <div class="flex flex-col gap-2 mb-4">
-      <label for="amount" class="font-semibold w-24">Amount</label>
-      <div class="flex flex-col grow">
-        <InputNumber
-          id="amount"
-          v-model="withdrawAmount"
-          class="flex-auto"
-          :min="0"
-          :max="Number(selectedBalance.format(payable!.chain))"
-          :maxFractionDigits="selectedBalance.details[payable!.chain.name]?.decimals ?? 2"
-          fluid
-        />
-        <div class="flex justify-between mt-1">
-          <small class="text-xs text-surface-500">Available: {{ selectedBalance.display(payable!.chain) }}</small>
-          <button
-            class="text-xs text-primary underline bg-transparent border-none cursor-pointer p-0"
-            @click="withdrawAmount = Number(selectedBalance!.format(payable!.chain))"
-          >
-            Max
-          </button>
-        </div>
-      </div>
-    </div>
-    <div class="flex justify-end gap-2 mt-8">
-      <Button type="button" label="Cancel" severity="secondary" @click="showWithdrawModal = false"></Button>
-      <Button type="button" label="Withdraw" @click="withdraw"></Button>
-    </div>
-  </Dialog>
+    :payable="payable"
+    :balance="selectedBalance"
+    @withdrawn="onWithdrawn"
+  />
 </template>

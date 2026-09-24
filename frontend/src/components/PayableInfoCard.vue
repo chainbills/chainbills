@@ -1,144 +1,142 @@
 <script setup lang="ts">
-const { count, payableId } = defineProps(['count', 'payableId']);
-import Shimmer from '@/components/Shimmer.vue';
+/**
+ * src/components/PayableInfoCard.vue — one glass card in `DashboardView`'s
+ * payables grid: avatar, short id, status, rules summary, auto-withdraw
+ * badge, current balances, payments count, created time, and quick actions
+ * (copy the payment link, open the payable). Fetches its own `Payable` from
+ * `payableId` so the grid can render a fixed number of skeleton cards
+ * before any ids are known (see `getLoaderCount` in `DashboardView.vue`).
+ *
+ * Props:
+ *  - `count`: this card's 1-based position in the host's payables list,
+ *    shown next to the short id while the real id is still loading.
+ *  - `payableId`: the payable to load. `null`/`undefined` renders the
+ *    loading skeleton indefinitely — `DashboardView` uses this for
+ *    placeholder cards while the real ids are still in flight.
+ */
+import { AddressChip, GlassCard, PayableAvatar, Skeleton, StatusPill, TokenAmount } from '@/components/ui';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconForward from '@/icons/IconForward.vue';
-import IconWallet from '@/icons/IconWallet.vue';
-import { Payable, getTokenLogo } from '@/schemas';
+import { Payable } from '@/schemas';
 import { useAnalyticsStore, usePayableStore, useTimeStore } from '@/stores';
-import Button from 'primevue/button';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
 
+const props = defineProps<{
+  count: number;
+  payableId?: string | null;
+}>();
+
 const analytics = useAnalyticsStore();
-const balsDisplay = computed(() => {
-  if (!payable.value) return [];
-  return payable.value.getBalsDisplay();
-});
-const isLoading = ref(true);
-const payable = ref<Payable | null>(null);
 const payableStore = usePayableStore();
 const time = useTimeStore();
 const toast = useToast();
 
-const copy = () => {
-  if (payableId) {
-    const link = `${window.location.origin}/pay/${payableId}`;
-    navigator.clipboard.writeText(link);
-    toast.add({
-      severity: 'info',
-      summary: 'Copied',
-      detail: `Payment Link: ${link} copied to clipboard.`,
-      life: 3000,
-    });
-    analytics.recordEvent('copy_payment_link', {
-      from: 'payable_info_card',
-    });
-  }
+const isLoading = ref(true);
+const payable = ref<Payable | null>(null);
+
+const balsDisplay = computed(() => payable.value?.getBalsDisplay() ?? []);
+const shortId = computed(() => (props.payableId ? `${props.payableId.slice(0, 5)}…${props.payableId.slice(-5)}` : ''));
+const rulesSummary = computed(() => {
+  if (!payable.value) return '';
+  const n = payable.value.allowedTokensAndAmounts.length;
+  return n === 0 ? 'Any amount' : n === 1 ? '1 option' : `${n} options`;
+});
+
+const copyLink = () => {
+  if (!props.payableId) return;
+  const link = `${window.location.origin}/pay/${props.payableId}`;
+  navigator.clipboard.writeText(link);
+  toast.add({ severity: 'info', summary: 'Copied', detail: `Payment link copied to clipboard.`, life: 3000 });
+  analytics.recordEvent('copy_payment_link', { from: 'payable_info_card' });
 };
 
 const fetchPayable = async () => {
-  if (!payableId) return;
+  if (!props.payableId) return;
   isLoading.value = true;
-  payable.value = await payableStore.get(payableId);
+  payable.value = await payableStore.get(props.payableId, true);
   isLoading.value = false;
 };
 
-const shorten = (v: string) => `${v.substring(0, 5)}...${v.substring(v.length - 5)}`;
-
-onMounted(() => {
-  fetchPayable();
-});
+onMounted(fetchPayable);
 </script>
 
 <template>
-  <section class="border border-shadow rounded-lg p-4 flex flex-col">
-    <div class="flex justify-between mb-1">
-      <p v-if="!payableId" class="flex items-center">
-        <span class="text-sm text-gray-700 dark:text-gray-400"> #{{ count }} <span class="font-bold">·</span> </span>
-        <Shimmer class="!ml-1 !mb-pt w-28 h-4 rounded" :isLoading="isLoading" />
-      </p>
-      <h2 class="flex gap-x-1 items-center" v-else>
-        <span class="text-sm text-gray-700 dark:text-gray-400">
-          #{{ count }} <span class="font-bold">·</span>
-          {{ shorten(payableId) }}
-        </span>
-        <Button class="bg-transparent p-1 border-none" @click="copy" title="Copy Payment LInk">
-          <IconCopy class="text-primary w-4 h-4" />
-        </Button>
-      </h2>
-      <p class="text-gray-500 flex items-center cursor-help" :title="`No of Payments: ${payable?.paymentsCount ?? ''}`">
-        <IconWallet class="w-4 h-4 stroke-current inline-block -mt-0.5 mr-1" />
-        <Shimmer class="w-6 h-4 rounded" :isLoading="isLoading" v-if="!payable" />
-        <span v-else>{{ payable.paymentsCount }}</span>
-      </p>
-    </div>
-    <Shimmer class="w-24 h-3.5 rounded !mb-8" :isLoading="isLoading" v-if="!payable" />
-    <p class="text-xs text-gray-500 mb-8" v-else>
-      {{ time.display(payable.createdAt) }}
-    </p>
-
-    <template v-if="!payable">
-      <Shimmer class="w-24 h-4 rounded !mb-1" :isLoading="isLoading" />
-      <Shimmer class="w-20 h-6 rounded !mb-4" :isLoading="isLoading" />
-      <div class="mt-auto flex items-end">
-        <div class="w-full mr-8">
-          <Shimmer class="w-24 h-4 rounded !mb-1" :isLoading="isLoading" />
-          <Shimmer class="h-8 rounded" :isLoading="isLoading" />
-        </div>
-        <Shimmer class="w-20 h-6 rounded" :isLoading="isLoading" v-if="!payableId" />
-        <div v-else>
-          <router-link
-            :to="`/payable/${payableId}`"
-            class="text-primary px-3 py-1.5 -mb-1.5 -mr-3 flex items-center h-fit rounded-md"
-            v-ripple
-          >
-            <IconForward class="w-4 h-4" />
-            <IconForward class="w-4 h-4" />
-            <IconForward class="w-4 h-4" />
-          </router-link>
+  <GlassCard class="flex flex-col h-full">
+    <template v-if="isLoading || !payable">
+      <div class="flex items-center gap-3 mb-4">
+        <Skeleton w="w-12" h="h-12" rounded="rounded-2xl" />
+        <div class="flex-1">
+          <Skeleton w="w-24" h="h-4" class="mb-1.5" />
+          <Skeleton w="w-16" h="h-3" />
         </div>
       </div>
+      <Skeleton w="w-20" h="h-6" class="mb-4" />
+      <Skeleton w="w-full" h="h-10" class="mb-2" />
+      <Skeleton w="w-2/3" h="h-3" />
+      <p class="sr-only">Loading payable #{{ count }}</p>
     </template>
+
     <template v-else>
-      <p v-if="!balsDisplay.length" class="text-xl text-center py-3 mb-4">No Balances Yet</p>
-      <template v-else>
-        <h3 class="text-sm text-gray-700 dark:text-gray-400 mb-1">
-          Current Balance{{ balsDisplay.length > 1 ? 's' : '' }}
-        </h3>
-        <div class="flex gap-4 flex-wrap mb-6">
-          <p v-for="bal of balsDisplay" class="flex gap-x-1 items-center bg-primary bg-opacity-10 px-1 rounded">
-            <img :src="getTokenLogo(payable.chain, bal.token())" class="w-5 h-5" aria-hidden="true" />
-            <span class="text-lg">{{ bal.display(payable.chain) }}</span>
-          </p>
+      <div class="flex items-start justify-between gap-3 mb-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <PayableAvatar :id="payable.id" size="sm" />
+          <div class="min-w-0">
+            <p class="text-xs text-muted">#{{ count }}</p>
+            <AddressChip :value="payable.id" kind="id" :to="`/payable/${payable.id}`" />
+          </div>
         </div>
-      </template>
+        <StatusPill :tone="payable.isClosed ? 'danger' : 'success'" :label="payable.isClosed ? 'Closed' : 'Open'" />
+      </div>
 
-      <div class="mt-auto flex items-end">
-        <div class="mr-8">
-          <h3 class="text-sm text-gray-700 dark:text-gray-400">Description</h3>
-          <p class="text-xs line-clamp-3">{{ payable.description }}</p>
-        </div>
-        <div class="ml-auto">
-          <router-link
-            :to="`/payable/${payableId}`"
-            class="text-primary px-3 py-1.5 -mb-1.5 -mr-3 flex items-center h-fit rounded-md"
-            v-ripple
+      <div class="flex flex-wrap items-center gap-1.5 mb-3">
+        <span class="rounded-full bg-fg/5 text-fg text-xs px-2 py-0.5">{{ rulesSummary }}</span>
+        <span v-if="payable.isAutoWithdraw" class="rounded-full bg-accent/15 text-accent text-xs px-2 py-0.5"
+          >Auto-withdraw</span
+        >
+      </div>
+
+      <div class="grow mb-4">
+        <p class="text-xs uppercase tracking-wider text-muted mb-1.5">
+          Balance{{ balsDisplay.length === 1 ? '' : 's' }}
+        </p>
+        <p v-if="!balsDisplay.length" class="text-sm text-muted">No balances yet</p>
+        <div v-else class="flex flex-wrap gap-2">
+          <span
+            v-for="(bal, i) in balsDisplay"
+            :key="i"
+            class="rounded-full border border-glass-border bg-bg/30 px-2.5 py-1"
           >
-            <IconForward class="w-4 h-4" />
-            <IconForward class="w-4 h-4" />
-            <IconForward class="w-4 h-4" />
-          </router-link>
+            <TokenAmount :amount="bal" :chain="payable.chain" size="sm" />
+          </span>
         </div>
       </div>
-    </template>
-  </section>
-</template>
 
-<style scoped>
-section {
-  box-shadow:
-    0 0 1.5px 0 var(--shadow),
-    0 0 1px -1px var(--shadow);
-}
-</style>
+      <div class="flex items-center justify-between text-xs text-muted pt-3 border-t border-fg/5">
+        <span
+          >{{ payable.paymentsCount }} payment{{ payable.paymentsCount === 1 ? '' : 's' }} ·
+          {{ time.display(payable.createdAt) }}</span
+        >
+        <span class="flex items-center gap-1">
+          <button
+            type="button"
+            class="p-1.5 rounded-full hover:bg-fg/5 hover:text-accent"
+            title="Copy payment link"
+            aria-label="Copy payment link"
+            @click="copyLink"
+          >
+            <IconCopy class="w-3.5 h-3.5" />
+          </button>
+          <router-link
+            :to="`/payable/${payable.id}`"
+            class="p-1.5 rounded-full hover:bg-fg/5 hover:text-accent"
+            title="Open payable"
+            aria-label="Open payable"
+          >
+            <IconForward class="w-3.5 h-3.5" />
+          </router-link>
+        </span>
+      </div>
+    </template>
+  </GlassCard>
+</template>

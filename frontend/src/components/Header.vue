@@ -10,6 +10,7 @@
  * hamburger button that opens `Sidebar` on mobile.
  */
 import ThemeMenu from '@/components/ThemeMenu.vue';
+import TxBackgroundTray from '@/components/tx/TxBackgroundTray.vue';
 import IconMenu from '@/icons/IconMenu.vue';
 import { useAnalyticsStore, useSidebarStore, useThemeStore } from '@/stores';
 import Button from 'primevue/button';
@@ -93,6 +94,7 @@ const isActive = (to: string) => route.path === to || route.path.startsWith(`${t
       </nav>
 
       <div class="flex items-center gap-2">
+        <TxBackgroundTray />
         <div class="max-md:hidden flex items-center gap-2">
           <SignInButton id="header" />
           <ThemeMenu />

@@ -1,543 +1,588 @@
 <script setup lang="ts">
+/**
+ * src/views/PayView.vue — `/pay/:id`. The page a payer lands on to pay a
+ * payable: a summary of the payable on the left, and the pay widget on the
+ * right. The widget adapts to four routes:
+ *  - **same chain**: a direct `pay()` call;
+ *  - **cross-chain, same network, both EVM**: a `CrossChainRoute` with
+ *    fees, gated on the payable having synced to the payer's chain yet
+ *    (`evm.fetchForeignPayable`, polled via `usePoller` while it hasn't);
+ *  - **network mismatch** (mainnet payer vs. testnet payable or vice
+ *    versa): an explanation plus the chains that actually can pay this
+ *    payable (`payable.availability`), each with a switch-chain action;
+ *  - **unsupported pairing** (Solana on either side): a "coming soon" notice.
+ *
+ * Submitting drives the `'pay'` or `'pay-cross-chain'` tx-flow
+ * (`stores/payment.ts` → `exec`), shown by the globally-mounted
+ * `TxFlowDialog`. On success this view redirects to the new payment's
+ * receipt, whose cross-chain delivery tracker (`payment.trackArrival`)
+ * keeps watching the `'pay-cross-chain'` flow's background `relay` step
+ * independently of whether the payer stayed on this page.
+ */
+import ApprovalGate from '@/components/tx/ApprovalGate.vue';
+import CrossChainRoute from '@/components/tx/CrossChainRoute.vue';
+import { useTxRetry } from '@/components/tx/retry';
+import {
+  AddressChip,
+  ChainBadge,
+  GlassCard,
+  PayableAvatar,
+  SectionHeader,
+  StatusPill,
+  TokenAmount,
+} from '@/components/ui';
 import MakePaymentLoader from '@/components/MakePaymentLoader.vue';
 import SignInButton from '@/components/SignInButton.vue';
-import IconSpinner from '@/icons/IconSpinner.vue';
 import IconWallet from '@/icons/IconWallet.vue';
+import { usePoller } from '@/composables/usePoller';
 import {
-  chainNamesToChains,
+  contracts,
+  getTokenDetails,
   Payable,
   parseTokenAmount,
-  roundedTokenAmount,
   TokenAndAmount,
   tokens,
-  type Chain,
   type ChainName,
   type Token,
 } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useEvmStore, usePayableStore, usePaymentStore } from '@/stores';
+import type { PayableAvailability } from '@/stores/payable';
 import NotFoundView from '@/views/NotFoundView.vue';
+import { useAppKitNetwork } from '@reown/appkit/vue';
 import Button from 'primevue/button';
-import ProgressBar from 'primevue/progressbar';
 import Select from 'primevue/select';
-import { useToast } from 'primevue/usetoast';
+import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-const amount = ref<any>('');
-const amountError = ref('');
+/** How often (ms) the sync poller below rechecks `getForeignPayable`, matching `reference/onchain-data.md` §5.1's suggested cadence — also used for the on-screen recheck countdown. */
+const SYNC_POLL_INTERVAL_MS = 6_000;
+
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const evm = useEvmStore();
-const balanceError = ref('');
-const balances = ref<(bigint | null)[]>([]);
-const isForeignPayableRelayed = ref<boolean | null>(null);
-const isRechecking = ref(false);
-const toast = useToast();
-let foreignPayableRefreshInterval: ReturnType<typeof setInterval> | null = null;
-const isSameChain = computed(() => {
-  if (!auth.currentUser || !payable.value) return true;
-  return auth.currentUser.chain.name === payable.value.chain.name;
-});
-const availableTokens = computed(() => {
-  if (!auth.currentUser || !payable.value) return tokens;
-  const userChainName = auth.currentUser.chain.name;
-  const payableChainName = payable.value.chain.name;
+const payableStore = usePayableStore();
+const paymentStore = usePaymentStore();
+const route = useRoute();
+const router = useRouter();
+const { setRetry } = useTxRetry();
+const appkitNetwork = useAppKitNetwork();
 
-  return tokens.filter((t) => {
-    // Must have details on user's current chain
-    if (!t.details[userChainName]) return false;
-
-    // If cross-chain, must be USDC (for now) and also exist on the target chain
-    if (!isSameChain.value) {
-      return t.name === 'USDC' && !!t.details[payableChainName];
-    }
-
-    return true;
-  });
-});
-const configError = ref('');
+const payable = ref<Payable | null>(null);
 const isLoading = ref(true);
 const isPaying = ref(false);
-const payment = usePaymentStore();
-const route = useRoute();
-const payable = ref<Payable | null>(null);
-const payables = usePayableStore();
-const aTAAs = computed(() => payable.value?.allowedTokensAndAmounts ?? []);
-const compatibleATAAs = computed(() => {
-  if (!auth.currentUser || !payable.value) return aTAAs.value;
-  if (isSameChain.value) return aTAAs.value;
 
-  // For cross-chain, only USDC is supported for now
-  return aTAAs.value.filter((taa) => taa.name === 'USDC' && !!taa.details[auth.currentUser!.chain.name]);
+const userChain = computed(() => auth.currentUser?.chain ?? null);
+const isSameChain = computed(
+  () => !!userChain.value && !!payable.value && userChain.value.name === payable.value.chain.name
+);
+
+/** Which pay route this payer/payable pairing needs. `null` before a wallet is connected — the widget shows a connect CTA instead. */
+const routeKind = computed<'same' | 'cross' | 'mismatch' | 'unsupported' | null>(() => {
+  if (!payable.value || !userChain.value) return null;
+  if (isSameChain.value) return 'same';
+  if (!userChain.value.isEvm || !payable.value.chain.isEvm) return 'unsupported';
+  if (userChain.value.networkType !== payable.value.chain.networkType) return 'mismatch';
+  return 'cross';
 });
-const allowsFreePayments = computed(() => aTAAs.value.length == 0);
-const router = useRouter();
+
+const aTAAs = computed(() => payable.value?.allowedTokensAndAmounts ?? []);
+const allowsFreePayments = computed(() => aTAAs.value.length === 0);
+
+/** Fixed-rule options a cross-chain payer can actually use — only USDC bridges this round, and only when it exists on the payer's chain too. */
+const compatibleATAAs = computed(() => {
+  if (!payable.value) return [];
+  if (isSameChain.value || !userChain.value) return aTAAs.value;
+  return aTAAs.value.filter((taa) => taa.name === 'USDC' && !!taa.details[userChain.value!.name]);
+});
+
+/** Selectable tokens for an "any amount" payable, narrowed to USDC when paying cross-chain. */
+const availableTokens = computed(() => {
+  if (!payable.value) return tokens;
+  if (!userChain.value) return tokens.filter((t) => !!t.details[payable.value!.chain.name]);
+  if (isSameChain.value) return tokens.filter((t) => !!t.details[userChain.value!.name]);
+  return tokens.filter(
+    (t) => t.name === 'USDC' && !!t.details[userChain.value!.name] && !!t.details[payable.value!.chain.name]
+  );
+});
+
 const selectedConfig = ref<TokenAndAmount | null>(null);
 const selectedToken = ref<Token | null>(null);
+const amount = ref('');
+const amountError = ref('');
+const balanceError = ref('');
+const balances = ref<Map<string, bigint | null>>(new Map());
 
 const selectToken = (token: Token) => {
   analytics.recordEvent('selected_payment_token', { token: token.name });
   if (!payable.value) return;
-
-  // Obtaining a Choice Chain first is good when no wallet is connected
-  // and the User is interacting with the dropdown of tokens.
-  let choiceChainName = auth.currentUser?.chain.name ?? payable.value.chain.name;
-  // If the token the user selected has no details in the choice chain,
-  // we default to the first chain that has details for the token.
-  if (!token.details[choiceChainName]) {
-    choiceChainName = Object.keys(token.details)[0] as ChainName;
-  }
-
-  selectedConfig.value = TokenAndAmount.parse(token, amount.value, chainNamesToChains[choiceChainName]);
+  selectedToken.value = token;
+  const chain = userChain.value ?? payable.value.chain;
+  selectedConfig.value = TokenAndAmount.parse(token, amount.value || '0', chain);
   updateBalances();
 };
 
-/** Rounded human-readable balance for display next to a token, e.g. "12.34567". Empty string when the balance is unknown. */
-const displayBalance = (bal: bigint | null, token: Token, chain: Chain): string => {
-  if (bal === null) return '';
-  return `${roundedTokenAmount(bal, token.details[chain.name]?.decimals ?? 0)}`;
+const selectConfig = (taa: TokenAndAmount) => {
+  analytics.recordEvent('selected_payment_ataa');
+  selectedConfig.value = taa;
 };
 
-const validateAmount = () => {
-  if (!payable.value) return;
-
-  const v = amount.value;
-  if (Number.isNaN(v) || +v == 0) amountError.value = 'Required';
-  else if (v <= 0) amountError.value = 'Should be positive';
-  else amountError.value = '';
-  if (allowsFreePayments.value && selectedConfig.value) {
-    const chain = auth.currentUser?.chain ?? payable.value.chain;
-    selectedConfig.value.amount = parseTokenAmount(v, selectedConfig.value.details[chain.name]?.decimals ?? 0);
-  }
-  validateBalance();
-};
+const displayBalance = (token: Token) => balances.value.get(token.name);
 
 const updateBalances = async () => {
   if (!auth.currentUser) {
-    balances.value = [];
-  } else {
-    if (allowsFreePayments.value) {
-      balances.value = [selectedToken.value ? await auth.balance(selectedToken.value) : null];
-    } else {
-      balances.value = await Promise.all(compatibleATAAs.value.map(async (taa) => await auth.balance(taa.token())));
-    }
+    balances.value = new Map();
+    return;
+  }
+  const targets = allowsFreePayments.value
+    ? selectedToken.value
+      ? [selectedToken.value]
+      : []
+    : compatibleATAAs.value.map((t) => t.token());
+  const entries = await Promise.all(
+    targets.map(async (t): Promise<[string, bigint | null]> => [t.name, await auth.balance(t)])
+  );
+  balances.value = new Map(entries);
+};
+
+const validateAmount = () => {
+  if (!payable.value || !userChain.value || !selectedToken.value) return;
+  if (!amount.value) {
+    amountError.value = 'Enter an amount.';
+    return;
+  }
+  try {
+    const decimals = selectedToken.value.details[userChain.value.name]?.decimals ?? 0;
+    const raw = parseTokenAmount(amount.value, decimals);
+    amountError.value = raw > 0n ? '' : 'Enter a positive amount.';
+    if (!amountError.value)
+      selectedConfig.value = TokenAndAmount.parse(selectedToken.value, amount.value, userChain.value);
+  } catch {
+    amountError.value = 'Enter a valid amount.';
   }
 };
 
 const validateBalance = async () => {
   balanceError.value = '';
-  if (!auth.currentUser) return;
-  if (selectedConfig.value) {
-    const bal = await auth.balance(selectedConfig.value.token());
-    balanceError.value = bal !== null && bal < selectedConfig.value.amount ? 'Insufficient Funds' : '';
-  }
+  if (!auth.currentUser || !selectedConfig.value) return;
+  const bal = await auth.balance(selectedConfig.value.token());
+  balanceError.value = bal !== null && bal < selectedConfig.value.amount ? 'Insufficient balance for this amount.' : '';
 };
 
-const validateConfig = () => {
-  if (!selectedConfig.value) {
-    if (allowsFreePayments.value) configError.value = 'Please select a token';
-    else if (aTAAs.value.length > 1) {
-      configError.value = 'Please make a choice';
-    } else configError.value = '';
-  } else {
-    // Check if selected token is compatible with cross-chain if applicable
-    if (!isSameChain.value) {
-      if (selectedConfig.value.name !== 'USDC') {
-        configError.value = 'Only USDC is supported for cross-chain payments';
-      } else if (!selectedConfig.value.details[payable.value!.chain.name]) {
-        configError.value = `USDC is not supported on ${payable.value!.chain.displayName}`;
-      } else configError.value = '';
-    } else configError.value = '';
+// --- Cross-chain availability: is the payable synced to the payer's chain yet? ---
+const isForeignPayableSynced = ref<boolean | null>(null);
+
+/** Polls `getForeignPayable` on the payer's chain until the payable has synced there. Started/stopped by the `routeKind === 'cross'` watcher below rather than immediately, since most visits never need it. */
+const syncPoller = usePoller(
+  async () => {
+    if (!payable.value || !userChain.value) return false;
+    const foreign = await evm.fetchForeignPayable(payable.value.id, userChain.value.name as ChainName);
+    isForeignPayableSynced.value = !!foreign;
+    return !!foreign;
+  },
+  {
+    intervalMs: SYNC_POLL_INTERVAL_MS,
+    backoffAfterMs: 3 * 60_000,
+    maxIntervalMs: 20_000,
+    timeoutMs: 10 * 60_000,
+    immediate: false,
   }
+);
+
+const availability = ref<PayableAvailability[]>([]);
+const availableToPayChains = computed(() => availability.value.filter((a) => a.canPay));
+
+const loadAvailability = async () => {
+  if (!payable.value) return;
+  availability.value = await payableStore.availability(payable.value);
 };
 
-const pay = async () => {
-  analytics.recordEvent('clicked_pay');
-  if (!payable.value || !auth.currentUser) return;
+watch(
+  routeKind,
+  (kind) => {
+    if (kind === 'cross') {
+      isForeignPayableSynced.value = null;
+      syncPoller.start();
+    } else {
+      syncPoller.stop();
+    }
+  },
+  { immediate: true }
+);
 
-  validateAmount();
-  await validateBalance();
-  validateConfig();
-  if ((allowsFreePayments.value && amountError.value) || balanceError.value || configError.value) {
-    return;
-  }
+/** Seconds left until the sync poller's next tick, for the "Rechecking in Ns" line — recomputed every second while the poller is running, so the wait never looks like an indefinite spinner. */
+const secondsUntilRecheck = ref<number | null>(null);
+let recheckDisplayTimer: ReturnType<typeof setInterval> | null = null;
+onMounted(() => {
+  recheckDisplayTimer = setInterval(() => {
+    if (syncPoller.status.value !== 'polling' || !syncPoller.lastCheckedAt.value) {
+      secondsUntilRecheck.value = null;
+      return;
+    }
+    const elapsed = Date.now() - syncPoller.lastCheckedAt.value;
+    secondsUntilRecheck.value = Math.max(0, Math.ceil((SYNC_POLL_INTERVAL_MS - elapsed) / 1000));
+  }, 1000);
+});
+onUnmounted(() => {
+  if (recheckDisplayTimer) clearInterval(recheckDisplayTimer);
+});
 
-  isPaying.value = true;
-  const id = await payment.exec(payable.value.id, selectedConfig.value!, payable.value.chain);
-
-  if (id) router.push(`/receipt/${id}`);
-  else isPaying.value = false;
+const switchToChain = (chainName: ChainName) => {
+  const viemChain = { megaeth: megaethViem, arctestnet: arcTestnet, sepolia: sepoliaViem }[
+    chainName as 'megaeth' | 'arctestnet' | 'sepolia'
+  ];
+  if (!viemChain) return;
+  appkitNetwork.value.switchNetwork(viemChain);
+  analytics.recordEvent('clicked_switch_chain', { to: chainName, from: 'pay_page' });
 };
 
-const checkForeignPayableRelayed = async () => {
-  if (!auth.currentUser || !payable.value) return;
-  if (isSameChain.value || !auth.currentUser.chain.isEvm || !payable.value.chain.isEvm) return;
-  isRechecking.value = true;
-  isForeignPayableRelayed.value = null;
-  const result = await evm.fetchForeignPayable(payable.value.id, auth.currentUser.chain.name as ChainName);
-  isForeignPayableRelayed.value = !!result;
-  isRechecking.value = false;
+// --- Cross-chain fee estimate (CCTP max fee + Wormhole message fee), refreshed whenever the amount or route changes. ---
+const cctpFeeEstimate = ref<bigint | null>(null);
+const wormholeFeeEstimate = ref<bigint | null>(null);
 
-  // If still false after manual check, show info toast
-  if (isForeignPayableRelayed.value === false) {
-    toast.add({
-      severity: 'info',
-      summary: 'Still Processing',
-      detail: 'Relay still in progress. Please wait a moment.',
-      life: 4000,
-    });
-  }
-
-  if (isForeignPayableRelayed.value && foreignPayableRefreshInterval) {
-    // Stop the 15s refresher
-    clearInterval(foreignPayableRefreshInterval);
-  }
+const loadCrossChainFees = async () => {
+  if (!payable.value || !userChain.value || routeKind.value !== 'cross') return;
+  const amt = selectedConfig.value?.amount ?? 0n;
+  const [cctp, wormhole] = await Promise.all([
+    evm.estimateCctpFee(userChain.value.name as ChainName, payable.value.chain.name as ChainName, amt),
+    evm.fetchWormholeFee(userChain.value.name as ChainName),
+  ]);
+  cctpFeeEstimate.value = cctp;
+  wormholeFeeEstimate.value = wormhole;
 };
 
-onMounted(async () => {
-  payable.value = await payables.get(route.params.id as string);
-  isLoading.value = false;
+const cctpFeeAsTokenAndAmount = computed(() => {
+  if (!cctpFeeEstimate.value || cctpFeeEstimate.value <= 0n) return undefined;
+  const usdc = tokens.find((t) => t.name === 'USDC')!;
+  return new TokenAndAmount(usdc, cctpFeeEstimate.value);
+});
 
-  await Promise.all([updateBalances(), checkForeignPayableRelayed()]);
-  document.addEventListener('visibilitychange', onVisibilityChange);
-
-  // Auto-refresh foreign payable status every 15s while visible
-  foreignPayableRefreshInterval = setInterval(() => {
-    if (!document.hidden && isForeignPayableRelayed.value === false) {
-      checkForeignPayableRelayed();
-    }
-  }, 15000);
-
-  watch(() => amount.value, validateAmount);
-  watch(
-    () => selectedConfig.value,
-    async () => {
-      validateConfig();
-      await updateBalances();
-      await validateBalance();
-    }
-  );
-  watch(
-    () => auth.currentUser,
-    async (_) => {
-      // Reset the form when the user changes to avoid cross-chain token issues
-      selectedConfig.value = null;
-      selectedToken.value = null;
-      configError.value = '';
-      balanceError.value = '';
-      updateBalances();
-      await checkForeignPayableRelayed();
-
-      if (!allowsFreePayments.value && aTAAs.value.length == 1) {
-        selectedConfig.value = aTAAs.value[0];
-      } else if (allowsFreePayments.value && availableTokens.value.length == 1) {
-        selectToken(availableTokens.value[0]);
-      }
-    }
-  );
-
-  // Watch for relay completion
-  watch(
-    () => isForeignPayableRelayed.value,
-    (newVal, oldVal) => {
-      if (oldVal === false && newVal === true) {
-        toast.add({
-          severity: 'success',
-          summary: 'Relayed!',
-          detail: 'Payable has now been relayed. You can pay now.',
-          life: 5000,
-        });
-      }
-    }
-  );
-
-  if (!allowsFreePayments.value && aTAAs.value.length == 1) {
-    selectedConfig.value = aTAAs.value[0];
-  } else if (allowsFreePayments.value && availableTokens.value.length == 1) {
-    selectToken(availableTokens.value[0]);
-  }
-
-  if (allowsFreePayments.value) {
-    setTimeout(() => {
-      (document.querySelector('input.amount[type=number]') as HTMLInputElement).addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
-      });
-    });
+const wormholeFeeAsTokenAndAmount = computed(() => {
+  if (!userChain.value || !wormholeFeeEstimate.value || wormholeFeeEstimate.value <= 0n) return undefined;
+  try {
+    return new TokenAndAmount(
+      getTokenDetails(contracts[userChain.value.name], userChain.value),
+      wormholeFeeEstimate.value
+    );
+  } catch {
+    return undefined;
   }
 });
 
-/** Re-checks relay status as soon as the tab becomes visible again — named so it can be removed on unmount. */
-const onVisibilityChange = () => {
-  if (!document.hidden) checkForeignPayableRelayed();
+/** What the payable is estimated to receive: the paid amount minus the CCTP fee (Circle deducts its fee from the bridged amount) for a cross-chain payment, or the full amount same-chain. */
+const payableReceivesEstimate = computed(() => {
+  if (!selectedConfig.value) return null;
+  if (routeKind.value !== 'cross') return selectedConfig.value;
+  const net = selectedConfig.value.amount - (cctpFeeEstimate.value ?? 0n);
+  return new TokenAndAmount(selectedConfig.value.token(), net > 0n ? net : 0n);
+});
+
+const primaryLabel = computed(() => {
+  if (!selectedConfig.value || !userChain.value) return 'Pay';
+  const label = selectedConfig.value.display(userChain.value);
+  return routeKind.value === 'cross' ? `Pay ${label} via CCTP` : `Pay ${label}`;
+});
+
+/** Whether the token about to be paid needs an ERC-20 approval (every token except the chain's own native token). */
+const needsApproval = computed(() => {
+  if (!selectedConfig.value || !userChain.value) return false;
+  return selectedConfig.value.details[userChain.value.name]?.address !== contracts[userChain.value.name];
+});
+
+const canPay = computed(() => {
+  if (!payable.value || !auth.currentUser || payable.value.isClosed) return false;
+  if (!selectedConfig.value || !selectedConfig.value.amount) return false;
+  if (amountError.value || balanceError.value) return false;
+  if (routeKind.value === 'mismatch' || routeKind.value === 'unsupported') return false;
+  if (routeKind.value === 'cross' && isForeignPayableSynced.value !== true) return false;
+  return true;
+});
+
+const pay = async () => {
+  analytics.recordEvent('clicked_pay');
+  if (!payable.value || !auth.currentUser || !selectedConfig.value) return;
+
+  validateAmount();
+  await validateBalance();
+  if (!canPay.value) return;
+
+  setRetry(() => pay());
+  isPaying.value = true;
+  const id = await paymentStore.exec(payable.value.id, selectedConfig.value, payable.value.chain);
+  isPaying.value = false;
+  if (id) router.push(`/receipt/${id}`);
 };
 
-onUnmounted(() => {
-  if (foreignPayableRefreshInterval) clearInterval(foreignPayableRefreshInterval);
-  document.removeEventListener('visibilitychange', onVisibilityChange);
+watch([() => amount.value], validateAmount);
+watch([selectedConfig, () => auth.currentUser], async () => {
+  await validateBalance();
+  await loadCrossChainFees();
+});
+
+watch(
+  () => auth.currentUser,
+  () => {
+    // Reset the form whenever the connected wallet/chain changes — a selection from a previous chain can be invalid on the new one.
+    selectedConfig.value = null;
+    selectedToken.value = null;
+    amount.value = '';
+    amountError.value = '';
+    balanceError.value = '';
+    updateBalances();
+
+    if (!allowsFreePayments.value && compatibleATAAs.value.length === 1)
+      selectedConfig.value = compatibleATAAs.value[0];
+    else if (allowsFreePayments.value && availableTokens.value.length === 1) selectToken(availableTokens.value[0]);
+  }
+);
+
+onMounted(async () => {
+  payable.value = await payableStore.get(route.params.id as string);
+  isLoading.value = false;
+  if (!payable.value) return;
+
+  await Promise.all([updateBalances(), loadAvailability()]);
+
+  if (!allowsFreePayments.value && compatibleATAAs.value.length === 1) selectedConfig.value = compatibleATAAs.value[0];
+  else if (allowsFreePayments.value && availableTokens.value.length === 1) selectToken(availableTokens.value[0]);
 });
 </script>
 
 <template>
   <MakePaymentLoader v-if="isLoading" />
-
   <NotFoundView v-else-if="!payable" />
 
-  <section class="max-md:max-w-md md:max-w-screen-md mx-auto md:pt-8 pb-20" v-else>
-    <div class="md:flex gap-12">
-      <div class="grow">
-        <h2 class="text-3xl mb-4 font-bold">Make Payment</h2>
+  <section v-else class="pt-6 pb-20 max-w-screen-xl mx-auto">
+    <SectionHeader eyebrow="Pay" :title="`Pay this payable`" />
 
-        <p class="mb-8 leading-tight">
-          <span>Payable ID:</span><br />
-          <span class="text-xs break-all text-gray-500">{{ payable.id }}</span>
+    <div class="grid lg:grid-cols-[0.9fr,1.1fr] gap-6 items-start">
+      <!-- Left: payable summary -->
+      <GlassCard>
+        <div class="flex items-center gap-3 mb-4">
+          <PayableAvatar :id="payable.id" />
+          <div class="min-w-0">
+            <AddressChip :value="payable.id" kind="id" />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <ChainBadge :chain="payable.chain" network />
+          <StatusPill :tone="payable.isClosed ? 'danger' : 'success'" :label="payable.isClosed ? 'Closed' : 'Open'" />
+        </div>
+
+        <p v-if="payable.description" class="text-sm text-fg whitespace-pre-wrap break-words mb-4">
+          {{ payable.description }}
         </p>
 
-        <div class="max-w-lg">
-          <h3 class="font-medium mb-2">Description</h3>
-          <div class="mb-8 sm:flex items-end">
-            <textarea
-              readonly
-              description
-              v-model="payable.description"
-              class="outline-none w-full px-3 py-2 bg-primary bg-opacity-10 dark:bg-opacity-5 rounded-md shadow-inner mb-2 sm:mb-0 sm:mr-4 min-h-20 max-h-40"
-            ></textarea>
+        <div class="mb-4">
+          <p class="text-xs uppercase tracking-wider text-muted mb-1.5">Accepts</p>
+          <p v-if="aTAAs.length === 0" class="text-sm text-fg">Any supported token, any amount</p>
+          <div v-else class="flex flex-wrap gap-2">
+            <span
+              v-for="(taa, i) in aTAAs"
+              :key="i"
+              class="rounded-full border border-glass-border bg-bg/30 px-2.5 py-1"
+            >
+              <TokenAmount :amount="taa" :chain="payable.chain" size="sm" />
+            </span>
           </div>
         </div>
-      </div>
 
-      <div class="grow basis-1/2 md:max-w-md md:mt-12">
-        <div class="text-center pt-8" v-if="isPaying">
-          <p class="mb-12">Paying ...</p>
-          <IconSpinner height="144" width="144" class="mb-12 mx-auto" />
+        <div class="flex items-center justify-between text-xs text-muted pt-3 border-t border-fg/5">
+          <span class="inline-flex items-center gap-1.5"
+            >Host <AddressChip :value="payable.host" :chain="payable.chain" kind="address"
+          /></span>
+          <router-link :to="`/payable/${payable.id}`" class="text-accent hover:underline">View payable</router-link>
         </div>
+      </GlassCard>
 
+      <!-- Right: the pay widget -->
+      <GlassCard variant="refract" class="relative">
         <div
-          v-else-if="!isSameChain && !allowsFreePayments && compatibleATAAs.length === 0"
-          class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400"
+          v-if="!auth.currentUser"
+          class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-bg/70 backdrop-blur-sm text-center px-6"
         >
-          <p class="mb-4">
-            This payable only accepts tokens that are not compatible with cross-chain payments from your current
-            network. Please switch to <strong>{{ payable.chain.displayName }}</strong> to pay.
-          </p>
-          <SignInButton />
+          <p class="text-sm text-muted max-w-xs">Connect your wallet to pay this payable.</p>
+          <SignInButton @click="analytics.recordEvent('clicked_signin', { from: 'payment_page' })" />
         </div>
 
-        <form class="max-w-sm mx-auto" @submit.prevent="pay" v-else>
-          <div class="mb-8 leading-tight" v-if="allowsFreePayments">
-            <p class="mb-2">Amount</p>
-            <div class="flex mb-4">
-              <div class="w-36 flex flex-col mr-4">
-                <input
-                  class="amount pt-2.5 pb-1 border-b-2 mb-1 focus:outline-none focus:border-primary bg-transparent"
-                  v-model="amount"
-                  required
-                  :min="0"
-                  :step="10 ** -(1 * 18)"
-                  type="number"
-                  aria-label="Amount"
-                />
-                <small class="text-xs block text-red-500">{{ amountError }}</small>
-              </div>
-              <div class="flex flex-col">
-                <Select
-                  :options="availableTokens"
-                  optionLabel="name"
-                  v-model="selectedToken"
-                  @change="(e) => selectToken(e.value)"
-                  placeholder="Select a Token"
-                  class="mb-1"
-                  ariaLabel="Select a Token"
-                />
-                <p v-if="selectedToken && balances.length == 1 && balances[0]">
-                  <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
-                  <span class="text-[10px] text-gray-500">
-                    {{ displayBalance(balances[0], selectedToken, auth.currentUser?.chain ?? payable.chain) }}&nbsp;{{
-                      selectedToken.name
-                    }}
-                  </span>
-                </p>
-                <small class="text-xs block text-red-500">{{ configError }}</small>
-              </div>
+        <div v-if="payable.isClosed" class="text-center py-10 px-4">
+          <StatusPill tone="danger" label="Closed" class="mb-3" />
+          <p class="text-sm text-muted max-w-xs mx-auto">This payable is closed and is no longer accepting payments.</p>
+        </div>
+
+        <form
+          v-else
+          :class="['flex flex-col gap-6', !auth.currentUser && 'opacity-40 pointer-events-none select-none']"
+          @submit.prevent="pay"
+        >
+          <!-- Rules picker -->
+          <div>
+            <span class="text-sm font-medium text-fg">
+              {{ allowsFreePayments ? 'Amount' : compatibleATAAs.length === 1 ? 'Pay' : 'Choose an option' }}
+            </span>
+
+            <div v-if="allowsFreePayments" class="mt-2 flex items-center gap-2">
+              <input
+                v-model="amount"
+                type="number"
+                min="0"
+                step="any"
+                aria-label="Amount"
+                class="w-full rounded-xl border border-glass-border bg-glass-tint px-3 py-2 text-sm text-fg outline-none focus:border-accent"
+              />
+              <Select
+                :model-value="selectedToken"
+                :options="availableTokens"
+                optionLabel="name"
+                placeholder="Token"
+                class="w-32 shrink-0"
+                aria-label="Token"
+                @update:model-value="selectToken"
+              />
             </div>
-          </div>
-
-          <div class="pb-4" v-else>
-            <p class="mb-1">
-              {{ aTAAs.length == 1 ? 'Pay' : 'Select an Option' }}
-            </p>
-
-            <div class="w-fit flex flex-col" v-if="aTAAs.length == 1">
-              <p class="font-bold text-3xl">
-                <!-- TODO: Review whether to use the payable's chain for 
-           formatting tokenAndAmount display especially when swaps start -->
-                {{ aTAAs[0].display(payable.chain) }}
-              </p>
-              <p v-if="balances.length == 1 && balances[0]">
-                <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
-                <span class="text-[10px] text-gray-500">
-                  {{ displayBalance(balances[0], aTAAs[0].token(), auth.currentUser?.chain ?? payable.chain) }}&nbsp;{{
-                    aTAAs[0].name
-                  }}
-                </span>
-              </p>
-            </div>
-
-            <div class="flex gap-4 flex-wrap mb-3 pt-2" v-else>
-              <div class="w-fit flex flex-col gap-1" v-for="(taa, i) of compatibleATAAs">
-                <Button
-                  :class="
-                    'text-current border-none shadow-md dark:shadow-[#ffffff0a]  px-3 py-2 text-xl ' +
-                    (selectedConfig?.name == taa.name && selectedConfig?.amount == taa.amount
-                      ? 'bg-primary bg-opacity-30'
-                      : 'bg-transparent')
-                  "
-                  @click="
-                    selectedConfig = taa;
-                    analytics.recordEvent('selected_payment_ataa');
-                  "
-                >
-                  <!-- TODO: Review whether to use the payable's chain for 
-           formatting tokenAndAmount display especially when swaps start -->
-                  {{ taa.display(payable.chain) }}
-                </Button>
-                <p v-if="balances.length == compatibleATAAs.length && balances[i]">
-                  <IconWallet class="w-3 h-3 inline-block mt-px mr-1 stroke-current" />
-                  <span class="text-[10px] text-gray-500">
-                    {{ displayBalance(balances[i], taa.token(), auth.currentUser?.chain ?? payable.chain) }}&nbsp;{{
-                      taa.name
-                    }}</span
-                  >
-                </p>
-              </div>
-            </div>
-            <small class="text-xs block text-red-500">{{ configError }}</small>
-          </div>
-
-          <template v-if="auth.currentUser">
             <p
-              v-if="
-                (allowsFreePayments || (!allowsFreePayments && aTAAs.length != 1)) &&
-                selectedConfig &&
-                selectedConfig.amount
-              "
-              class="mb-4"
+              v-if="allowsFreePayments && selectedToken && displayBalance(selectedToken) != null"
+              class="mt-1 text-xs text-muted inline-flex items-center gap-1"
             >
-              You are paying
-              <span class="font-bold text-2xl">{{ selectedConfig.display(auth.currentUser.chain) }}</span>
+              <IconWallet class="w-3 h-3" />
+              {{ userChain && new TokenAndAmount(selectedToken, displayBalance(selectedToken)!).display(userChain) }}
+              available
             </p>
+            <p v-if="amountError" class="mt-1 text-xs text-danger">{{ amountError }}</p>
 
-            <!-- Same-chain payment: show Pay Now button normally -->
-            <template v-if="isSameChain">
-              <p class="mt-8 mb-24 text-right">
-                <Button type="submit" class="text-xl px-6 py-2"> Pay Now </Button>
-                <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
+            <template v-if="!allowsFreePayments">
+              <div v-if="compatibleATAAs.length === 1" class="mt-2">
+                <p class="font-display text-display-md text-fg">
+                  {{ compatibleATAAs[0].display(userChain ?? payable.chain) }}
+                </p>
+              </div>
+              <div v-else class="mt-2 flex flex-wrap gap-2">
+                <button
+                  v-for="(taa, i) in compatibleATAAs"
+                  :key="i"
+                  type="button"
+                  :class="[
+                    'rounded-xl border px-3.5 py-2.5 text-left transition-colors',
+                    selectedConfig?.name === taa.name && selectedConfig?.amount === taa.amount
+                      ? 'border-accent bg-accent/10'
+                      : 'border-glass-border bg-glass-tint hover:bg-fg/5',
+                  ]"
+                  @click="selectConfig(taa)"
+                >
+                  <TokenAmount :amount="taa" :chain="userChain ?? payable.chain" />
+                </button>
+              </div>
+              <p v-if="!isSameChain && compatibleATAAs.length === 0" class="mt-2 text-xs text-danger">
+                This payable only accepts tokens that don't support cross-chain payment from your connected chain.
               </p>
             </template>
+          </div>
 
-            <!-- Cross-chain EVM payment: same network type (both testnet or both mainnet) -->
-            <template
-              v-else-if="
-                !isSameChain &&
-                auth.currentUser.chain.isEvm &&
-                payable.chain.isEvm &&
-                auth.currentUser.chain.networkType === payable.chain.networkType
-              "
-            >
-              <!-- Foreign payable not yet relayed to user's chain -->
-              <div v-if="!isForeignPayableRelayed" class="mt-8 mb-24">
-                <div class="max-w-lg mx-auto">
-                  <!-- PrimeVue indeterminate progress bar -->
-                  <ProgressBar mode="indeterminate" class="mb-4" :style="{ height: '4px' }" />
+          <!-- Route panel -->
+          <div v-if="routeKind === 'same'" class="rounded-xl bg-fg/[0.03] px-3.5 py-3 text-sm text-fg">
+            Direct payment on <span class="font-medium">{{ payable.chain.displayName }}</span
+            >.
+          </div>
 
-                  <p class="text-center text-gray-700 dark:text-gray-400 mb-4">
-                    <span v-if="!isRechecking"> Relayer is bridging this payable across chains. Please wait ... </span>
-                    <span v-else> Rechecking for relaying completion ... </span>
-                  </p>
-
-                  <p class="text-center">
-                    <Button @click="checkForeignPayableRelayed" :disabled="isRechecking" class="text-sm px-4 py-1">
-                      {{ isRechecking ? 'Checking...' : 'Refresh' }}
-                    </Button>
-                  </p>
-                  <div v-if="isRechecking" class="mt-4 flex justify-center">
-                    <IconSpinner class="w-12 h-12 animate-spin text-primary" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Foreign payable is available — show pay button -->
-              <template v-else>
-                <div
-                  class="mt-6 mb-4 rounded-lg bg-primary bg-opacity-10 dark:bg-opacity-5 border border-primary border-opacity-30 px-4 py-3 text-sm"
-                >
-                  <p class="font-semibold mb-1">⚡ Cross-Chain Payment</p>
-                  <p class="text-gray-600 dark:text-gray-400 leading-snug">
-                    This payable is on <strong>{{ payable.chain.displayName }}</strong
-                    >. Your payment will be bridged via <strong>Circle CCTP</strong> and will arrive after a relayer
-                    confirms it on the destination chain.
-                  </p>
-                </div>
-                <p class="mt-4 mb-24 text-right">
-                  <Button type="submit" class="text-xl px-6 py-2"> Pay via CCTP </Button>
-                  <small class="text-xs block text-red-500 mt-1.5">{{ balanceError }}</small>
-                </p>
-              </template>
+          <div v-else-if="routeKind === 'cross'" class="rounded-xl bg-fg/[0.03] px-3.5 py-3.5">
+            <template v-if="isForeignPayableSynced">
+              <CrossChainRoute
+                :source-chain="userChain!"
+                :dest-chain="payable.chain"
+                :cctp-fee="cctpFeeAsTokenAndAmount"
+                :wormhole-fee="wormholeFeeAsTokenAndAmount"
+              />
             </template>
-
-            <!-- Mainnet / Testnet mismatch: hard block with info message -->
-            <template
-              v-else-if="
-                auth.currentUser.chain.isEvm &&
-                payable.chain.isEvm &&
-                auth.currentUser.chain.networkType !== payable.chain.networkType
-              "
-            >
-              <div class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400">
-                <p class="mb-4">
-                  This payable is on <strong>{{ payable.chain.displayName }}</strong> ({{ payable.chain.networkType }}),
-                  but you're connected to
-                  <strong>{{ auth.currentUser.chain.displayName }}</strong>
-                  ({{ auth.currentUser.chain.networkType }}). Mainnet and testnet networks are not compatible — please
-                  switch to a <strong>{{ payable.chain.networkType }}</strong> network to continue.
-                </p>
-                <SignInButton />
-              </div>
-            </template>
-
-            <!-- Cross-chain involving Solana: not yet supported -->
             <template v-else>
-              <div class="mt-8 mb-24 text-center max-w-lg mx-auto text-gray-700 dark:text-gray-400">
-                <p>
-                  Cross-Chain Payments are on the way. As for now, as this Payable was created on
-                  {{ payable.chain.displayName }}, you can only pay while connected on {{ payable.chain.displayName }}.
-                  Please Switch Chain to continue.
-                </p>
-                <SignInButton class="mt-4" />
-              </div>
+              <p class="text-sm text-fg mb-1">Waiting for this payable to sync to {{ userChain!.displayName }}…</p>
+              <p class="text-xs text-muted">
+                The Chainbills relayer broadcasts new payables to every chain of the same network. This usually takes a
+                minute.
+                <span v-if="secondsUntilRecheck !== null"> Rechecking in {{ secondsUntilRecheck }}s.</span>
+              </p>
             </template>
-          </template>
-        </form>
-      </div>
-    </div>
+          </div>
 
-    <template v-if="!auth.currentUser">
-      <p class="mt-12 mb-6 text-center text-xl">Please connect your Wallet to continue</p>
-      <p class="mx-auto w-fit max-md:mb-12">
-        <SignInButton @click="analytics.recordEvent('clicked_signin', { from: 'payment_page' })" />
-      </p>
-    </template>
+          <div v-else-if="routeKind === 'mismatch'" class="rounded-xl bg-fg/[0.03] px-3.5 py-3.5">
+            <p class="text-sm text-fg mb-1">
+              This payable is on {{ payable.chain.displayName }} ({{ payable.chain.networkType }}), but you're connected
+              to {{ userChain!.displayName }} ({{ userChain!.networkType }}). Mainnet and testnet chains can't pay each
+              other.
+            </p>
+            <p class="text-xs text-muted mb-3">Switch to one of these chains to pay:</p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="a in availableToPayChains"
+                :key="a.chain.name"
+                type="button"
+                class="rounded-full border border-glass-border bg-glass-tint px-2.5 py-1 hover:bg-fg/5"
+                @click="switchToChain(a.chain.name)"
+              >
+                <ChainBadge :chain="a.chain" size="sm" />
+              </button>
+            </div>
+          </div>
+
+          <div v-else-if="routeKind === 'unsupported'" class="rounded-xl bg-fg/[0.03] px-3.5 py-3.5">
+            <p class="text-sm text-fg mb-2">Cross-chain payments to/from Solana are coming soon.</p>
+            <p class="text-xs text-muted mb-3">
+              For now, pay from <span class="font-medium">{{ payable.chain.displayName }}</span> directly.
+            </p>
+            <button
+              type="button"
+              class="rounded-full border border-glass-border bg-glass-tint px-2.5 py-1 hover:bg-fg/5"
+              @click="switchToChain(payable.chain.name)"
+            >
+              <ChainBadge :chain="payable.chain" size="sm" />
+            </button>
+          </div>
+
+          <!-- Approval explainer, before the summary/submit — see components/tx/README.md for why this lives on the page rather than inside the flow dialog. -->
+          <ApprovalGate
+            v-if="
+              needsApproval &&
+              selectedConfig &&
+              userChain &&
+              (routeKind === 'same' || (routeKind === 'cross' && isForeignPayableSynced))
+            "
+            :amount="selectedConfig"
+            :chain="userChain"
+            :spender="contracts[userChain.name]"
+            :cross-chain="routeKind === 'cross'"
+          />
+
+          <!-- Summary -->
+          <dl v-if="selectedConfig && userChain" class="divide-y divide-fg/5">
+            <div class="flex items-center justify-between py-2 text-sm">
+              <dt class="text-muted">You pay</dt>
+              <dd class="tabular-nums text-fg font-medium">{{ selectedConfig.display(userChain) }}</dd>
+            </div>
+            <div
+              v-if="routeKind === 'cross' && cctpFeeAsTokenAndAmount"
+              class="flex items-center justify-between py-2 text-sm"
+            >
+              <dt class="text-muted">Bridge fee (max)</dt>
+              <dd class="tabular-nums text-fg">− {{ cctpFeeAsTokenAndAmount.display(userChain) }}</dd>
+            </div>
+            <div v-if="payableReceivesEstimate" class="flex items-center justify-between py-2 text-sm">
+              <dt class="text-muted">Payable receives{{ routeKind === 'cross' ? ' (est.)' : '' }}</dt>
+              <dd class="tabular-nums text-fg">{{ payableReceivesEstimate.display(userChain) }}</dd>
+            </div>
+            <div v-if="routeKind === 'cross'" class="flex items-center justify-between py-2 text-sm">
+              <dt class="text-muted">Estimated arrival</dt>
+              <dd class="text-fg">usually 1–3 min</dd>
+            </div>
+          </dl>
+
+          <div class="flex items-center justify-end gap-3">
+            <p v-if="balanceError" class="text-xs text-danger mr-auto">{{ balanceError }}</p>
+            <Button type="submit" :disabled="!canPay || isPaying" class="px-6">
+              {{ isPaying ? 'Paying…' : primaryLabel }}
+            </Button>
+          </div>
+        </form>
+      </GlassCard>
+    </div>
   </section>
 </template>
-
-<style scoped>
-input[type='number']::-webkit-inner-spin-button,
-input[type='number']::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-input[type='number'] {
-  -mox-appearance: textfield;
-  appearance: textfield;
-}
-</style>

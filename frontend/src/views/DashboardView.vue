@@ -1,14 +1,27 @@
 <script setup lang="ts">
+/**
+ * src/views/DashboardView.vue — `/dashboard`. The signed-in host's own
+ * payables: a header with a "Create payable" CTA and the connected chain
+ * badge, a stats row (payables, payments received, withdrawals), and a
+ * paginated grid of `PayableInfoCard`s. Payables load newest first, with a
+ * localStorage-remembered page per wallet+chain and a placeholder count
+ * (also cached) so returning to the page doesn't flash a skeleton grid of
+ * the wrong size while the real count loads.
+ */
 import PayableInfoCard from '@/components/PayableInfoCard.vue';
 import SignInButton from '@/components/SignInButton.vue';
-import { useAnalyticsStore, useAuthStore, usePaginatorsStore, usePayableStore, useThemeStore } from '@/stores';
+import { ChainBadge, EmptyState, SectionHeader, StatTile } from '@/components/ui';
+import { useAnalyticsStore, useAuthStore, useEvmStore, usePaginatorsStore, usePayableStore } from '@/stores';
 import Button from 'primevue/button';
 import Paginator from 'primevue/paginator';
 import { computed, onMounted, ref, watch } from 'vue';
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
-const theme = useThemeStore();
+const evm = useEvmStore();
+const payableStore = usePayableStore();
+const paginators = usePaginatorsStore();
+
 const lsPageKey = () => `chainbills::user=>${auth.currentUser?.walletAddress}` + '::payable_info_cards_page';
 const lsCacheCountKey = () =>
   `chainbills::user=>${auth.currentUser?.walletAddress}::chain=>${auth.currentUser?.chain.name}::payables_count_cache`;
@@ -16,8 +29,6 @@ const lsCacheCountKey = () =>
 const currentPage = ref(+(localStorage.getItem(lsPageKey()) ?? '0'));
 const isLoading = ref(true);
 const payableIds = ref<string[] | null>();
-const payableStore = usePayableStore();
-const paginators = usePaginatorsStore();
 
 // Load cached payables count for placeholder generation
 const cachedPayablesCount = computed(() => {
@@ -28,18 +39,12 @@ const cachedPayablesCount = computed(() => {
 
 // Use real count if loaded, fallback to cached
 const displayCount = computed(() => {
-  if (!isLoading.value && payableIds.value !== null) {
-    // Real data loaded
-    return auth.currentUser?.payablesCount ?? 0;
-  }
-  // Still loading, use cached
+  if (!isLoading.value && payableIds.value !== null) return auth.currentUser?.payablesCount ?? 0;
   return cachedPayablesCount.value;
 });
 
-// Separate loader count: always count down from displayCount, regardless of pagination
-const getLoaderCount = (index: number): number => {
-  return Math.max(1, displayCount.value - paginators.rowsPerPage * currentPage.value - index);
-};
+const getLoaderCount = (index: number): number =>
+  Math.max(1, displayCount.value - paginators.rowsPerPage * currentPage.value - index);
 
 const expectedCardsCount = computed(() => {
   if (displayCount.value === 0) return paginators.rowsPerPage;
@@ -47,17 +52,14 @@ const expectedCardsCount = computed(() => {
   return Math.max(1, Math.min(paginators.rowsPerPage, remaining));
 });
 
-const generateEmpties = (length: number) => Array.from({ length }, (_) => null);
+const generateEmpties = (length: number) => Array.from({ length }, () => null);
 
 const getPayableIds = async () => {
   isLoading.value = true;
   payableIds.value = await payableStore.getIdsForCurrentUser(currentPage.value, paginators.rowsPerPage);
-
-  // Cache the latest count when data arrives
   if (auth.currentUser && payableIds.value !== null) {
     localStorage.setItem(lsCacheCountKey(), auth.currentUser.payablesCount.toString());
   }
-
   isLoading.value = false;
 };
 
@@ -72,8 +74,32 @@ const updatePage = (page: number) => {
   getPayableIds();
 };
 
+// --- Stats row ---
+/** Sum of `paymentsCount` across every payable the host has on their connected chain — fetched once per wallet/chain rather than per page, since the grid itself only ever loads one page of full `Payable` structs at a time. */
+const totalPaymentsReceived = ref<number | null>(null);
+
+const loadPaymentsTotal = async () => {
+  if (!auth.currentUser) {
+    totalPaymentsReceived.value = null;
+    return;
+  }
+  if (auth.currentUser.payablesCount === 0) {
+    totalPaymentsReceived.value = 0;
+    return;
+  }
+  totalPaymentsReceived.value = null;
+  const { walletAddress, chain, payablesCount } = auth.currentUser;
+  const ids = await evm.getUserPayableIdsPaginated(walletAddress, 0, payablesCount, chain.name);
+  if (!ids) return;
+  const raw = await evm.getPayablesBulk(ids, chain.name);
+  totalPaymentsReceived.value = raw ? raw.reduce((sum, p) => sum + Number(p.paymentsCount), 0) : null;
+};
+
 onMounted(async () => {
-  if (auth.currentUser) await getPayableIds();
+  if (auth.currentUser) {
+    await getPayableIds();
+    loadPaymentsTotal();
+  }
 
   watch(
     () => auth.currentUser,
@@ -81,105 +107,81 @@ onMounted(async () => {
       if (currentUser) {
         resetPage();
         await getPayableIds();
-      } else payableIds.value = null;
+        loadPaymentsTotal();
+      } else {
+        payableIds.value = null;
+        totalPaymentsReceived.value = null;
+      }
     }
   );
 });
 </script>
 
 <template>
-  <section class="max-w-screen-xl max-[992px]:max-w-screen-md mx-auto pb-20">
-    <div class="mb-8 flex justify-between items-center">
-      <h2 class="text-3xl font-bold">Payables</h2>
-      <router-link to="/start">
-        <Button class="px-4 py-1">Create</Button>
-      </router-link>
-    </div>
+  <section class="pt-6 pb-20 max-w-screen-xl mx-auto">
+    <SectionHeader eyebrow="Dashboard" title="Your payables">
+      <template #actions>
+        <ChainBadge v-if="auth.currentUser" :chain="auth.currentUser.chain" size="sm" />
+        <router-link to="/start" @click="analytics.recordEvent('clicked_create_payable', { from: 'dashboard_page' })">
+          <Button class="px-4">Create payable</Button>
+        </router-link>
+      </template>
+    </SectionHeader>
 
     <template v-if="!auth.currentUser">
-      <p class="pt-8 mb-8 text-center text-xl">Please connect your wallet to continue</p>
-      <p class="mx-auto w-fit">
-        <SignInButton
-          @click="
-            analytics.recordEvent('clicked_signin', {
-              from: 'dashboard_page',
-            })
-          "
-        />
-      </p>
+      <EmptyState title="Connect your wallet" description="Sign in to see and manage your payables.">
+        <template #action>
+          <SignInButton @click="analytics.recordEvent('clicked_signin', { from: 'dashboard_page' })" />
+        </template>
+      </EmptyState>
     </template>
 
-    <template v-else-if="(payableIds && payableIds.length == 0) || (payableIds === null && displayCount === 0)">
-      <div class="text-center pt-12">
-        <img
-          :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
-          alt="Chainbills"
-          class="w-20 h-20 mx-auto mb-4 opacity-40"
-        />
-        <p class="text-lg font-semibold mb-2">You haven't created any payables.</p>
-        <p class="text-gray-600 dark:text-gray-400 max-w-sm mx-auto mb-6">
-          Get Started with us today by Creating a Payable today.
-        </p>
-        <router-link
-          to="/start"
-          @click="
-            analytics.recordEvent('clicked_get_started', {
-              from: 'dashboard_page',
-            })
-          "
-        >
-          <Button class="px-3 py-2 text-sm">Get Started</Button>
-        </router-link>
-      </div>
+    <template v-else-if="(payableIds && payableIds.length === 0) || (payableIds === null && displayCount === 0)">
+      <EmptyState title="No payables yet" description="Create your first payable to start receiving payments.">
+        <template #action>
+          <router-link to="/start" @click="analytics.recordEvent('clicked_get_started', { from: 'dashboard_page' })">
+            <Button class="px-4">Create payable</Button>
+          </router-link>
+        </template>
+      </EmptyState>
     </template>
 
     <template v-else>
-      <template v-if="payableIds || isLoading">
-        <div
-          class="grid gap-6 max-sm:!grid-cols-1 max-[992px]:!grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 mb-12 mx-auto"
-        >
-          <PayableInfoCard
-            v-for="(id, i) in payableIds ?? generateEmpties(expectedCardsCount)"
-            :key="id ?? i"
-            :count="payableIds ? displayCount - paginators.rowsPerPage * currentPage - i : getLoaderCount(i)"
-            :payableId="id"
-            class="max-lg:max-w-sm w-full max-sm:mx-auto"
-          />
-        </div>
-
-        <Paginator
-          :currentPage="currentPage"
-          currentPageReportTemplate="{first} to {last} of {totalRecords}"
-          :first="paginators.rowsPerPage * currentPage"
-          :rows="paginators.rowsPerPage"
-          :rowsPerPageOptions="paginators.rowsPerPageOptions"
-          template="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
-          :totalRecords="displayCount"
-          @page="
-            (e) => {
-              paginators.setRowsPerPage(e.rows);
-              updatePage(e.page);
-              analytics.recordEvent('updated_payables_list_pagination');
-            }
-          "
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
+        <StatTile label="Payables" :value="auth.currentUser.payablesCount" />
+        <StatTile
+          label="Payments received"
+          :value="totalPaymentsReceived ?? undefined"
+          :loading="totalPaymentsReceived === null"
         />
-      </template>
+        <StatTile label="Withdrawals" :value="auth.currentUser.withdrawalsCount" />
+      </div>
 
-      <template v-else>
-        <p class="pt-8 mb-6 text-center text-xl">Something went wrong</p>
-        <p class="mx-auto w-fit">
-          <Button
-            class="text-xl px-6 py-2"
-            @click="
-              getPayableIds();
-              analytics.recordEvent('clicked_retry_get_payable_ids', {
-                from: 'dashboard_page',
-              });
-            "
-            >Retry</Button
-          >
-        </p>
-      </template>
+      <div class="grid gap-4 max-sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
+        <PayableInfoCard
+          v-for="(id, i) in payableIds ?? generateEmpties(expectedCardsCount)"
+          :key="id ?? i"
+          :count="payableIds ? displayCount - paginators.rowsPerPage * currentPage - i : getLoaderCount(i)"
+          :payableId="id"
+        />
+      </div>
+
+      <Paginator
+        :currentPage="currentPage"
+        currentPageReportTemplate="{first} to {last} of {totalRecords}"
+        :first="paginators.rowsPerPage * currentPage"
+        :rows="paginators.rowsPerPage"
+        :rowsPerPageOptions="paginators.rowsPerPageOptions"
+        template="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+        :totalRecords="displayCount"
+        @page="
+          (e) => {
+            paginators.setRowsPerPage(e.rows);
+            updatePage(e.page);
+            analytics.recordEvent('updated_payables_list_pagination');
+          }
+        "
+      />
     </template>
   </section>
 </template>

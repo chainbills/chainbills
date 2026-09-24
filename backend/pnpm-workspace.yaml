@@ -1,0 +1,26 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Chainbills Backend — pnpm settings
+#
+# allowBuilds: pnpm blocks dependency install scripts unless approved here.
+#   Allowed: Prisma (engine download + client generation), SWC and esbuild
+#   (native binaries used by the test/build toolchain).
+#   Denied: @scarf/scarf (install telemetry) and optional native add-ons
+#   (bigint-buffer, bufferutil, utf-8-validate) that fall back to pure JS.
+#
+# minimumReleaseAgeExclude: pnpm refuses package versions younger than its
+#   minimum release age; list a pinned version here only when it is needed
+#   before that window passes.
+# ──────────────────────────────────────────────────────────────────────────────
+
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  '@swc/core': true
+  bigint-buffer: false
+  bufferutil: false
+  esbuild: true
+  prisma: true
+  utf-8-validate: false
+minimumReleaseAgeExclude:
+  - '@nestjs/throttler@6.7.1'

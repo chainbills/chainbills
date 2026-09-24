@@ -36,7 +36,7 @@ export default [
       },
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.vitest,
       },
     },
     plugins: {

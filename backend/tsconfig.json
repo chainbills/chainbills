@@ -9,7 +9,10 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
@@ -23,7 +26,14 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts"
+  ]
 }

@@ -12,11 +12,15 @@ added.
 
 ## Status
 
-**Phase 1b (diamond alignment) complete.** ABI updated to the ERC-2535
-diamond ABI (`chainbillsAbi`). Registry updated to `arcmainnet`, `anvil`,
-`solanadevnet`. `ENABLED_CHAINS` + `RPC_<SLUG>` replace the old per-chain
-RPC vars. Second Prisma migration adds `requestedAmount`, `fee`,
-`relayScanBlock`, and aligns `RelayJobType` and `RelayJob`. All checks pass.
+**Phase 2a (EVM indexer and relay) complete.** Worker module with advisory
+lock, loop runner, gas-balance and heartbeat loops. EVM activity indexer
+(activity-driven, one transaction per activity, stop-on-failure). Relay
+trigger detector (event-log-based, 9000-block chunks, per-chunk cursor
+advance). Relay job store with dedup, backoff, and max-attempts. Wormhole
+and CCTP V2 resolvers. EVM submitter with custom error decoding. Relay
+processor with idempotent-error classification. Outbox writer. Health check
+extended with per-chain lastTickAt staleness. `pg` added for advisory lock.
+All checks pass (246 unit tests, coverage thresholds met).
 
 ## Module map
 
@@ -65,8 +69,53 @@ src/
     pagination/               Cursor encode/decode + PaginationQueryDto
     amount/                   formatAmount(): raw integer string + decimals -> decimal string
     decorators/               @Public() route metadata (read by the guard from phase 2b)
-  health/                    GET /health -> { status, role, db }; registered for every role
-  worker/                    Empty placeholder — indexers, relay processor, outbox (2a/3a/3b)
+  health/                    GET /health -> { status, role, db, chains[{slug,lastTickAt,stale}] };
+                             503 when DB unreachable or any enabled chain's lastTickAt older than 5x
+                             its pollIntervalMs; registered for every role
+  notifications/
+    outbox.writer.ts          enqueueOutbox(): inserts Outbox row inside a Prisma transaction; skips
+                             when event is older than EMAIL_MAX_EVENT_AGE or recipient has no verified
+                             email; dedupes on "<TYPE>:<entityId>:<walletKey>"
+    index.ts                  Re-exports enqueueOutbox, PrismaTransactionClient
+  indexer/
+    evm/
+      evm.indexer.ts          Activity-driven EVM indexer; one tick per enabled EVM chain; dispatches
+                             each ActivityType to entity upserts + Activity row + Outbox rows +
+                             cursor increment inside one prisma.$transaction; stops on first failure;
+                             calls detectRelayTriggers after each activity page; updates lastTickAt every tick
+      payer-normalise.ts      normalisePayerBytes32(): bytes32 -> EVM hex address (last 20 bytes) or
+                             Solana base58 (all 32 bytes) based on the payer's chain
+      evm-indexer.module.ts   Provides EvmIndexer; imported by WorkerModule
+  relay/
+    job.store.ts              RelayJob CRUD: createJob (skipDuplicates), claimJob (FOR UPDATE SKIP LOCKED),
+                             patchArtefacts, markDone, markFailed, retryLater (backoff = 30s × 2^attempts
+                             capped at 10 min; after 8 attempts -> FAILED), countByStatus
+    trigger.detector.ts       detectRelayTriggers(): scans diamond logs in 9000-block chunks from
+                             cursor.relayScanBlock+1; creates PAYABLE_UPDATE_VIA_WORMHOLE,
+                             PAYABLE_UPDATE_VIA_CCTP, and PAYMENT_VIA_CCTP jobs; advances relayScanBlock
+                             after each chunk; dedupes via unique key (type,txHash,destChainId)
+    relay.processor.ts        RelayProcessor: claims one job, resolves artefacts (VAA/CCTP attestation),
+                             submits to dest diamond, classifies result; idempotent errors -> DONE;
+                             RelayerOnly -> FAILED; InsufficientFinality + pending -> retry; Solana
+                             job types left PENDING (phase 3a); processOne() returns bool
+    relay.module.ts           Provides RelayProcessor; imported by WorkerModule
+    resolvers/
+      wormhole.resolver.ts    fetchVaa(): fetches signed VAA from WormholeScan by (chainId, emitter, seq);
+                             returns null when not yet available; mainnet/sandbox URLs by network
+      cctp.resolver.ts        fetchCctpAttestation(): polls Circle Iris V2 API; picks message by
+                             destinationDomain; returns null when not yet complete; mainnet/sandbox by network
+    submitters/
+      evm.submitter.ts        submitReceivePayableUpdate{ViaWormhole,ViaCctp} and
+                             submitReceiveForeignPaymentViaCctp: simulate then writeContract on dest diamond;
+                             decodes custom ABI errors; strips abi from viem errors before logging
+  worker/
+    advisory-lock.ts          acquireAdvisoryLock(): pg_try_advisory_lock on a dedicated connection;
+                             retries every 30s; releaseAdvisoryLock(): pg_advisory_unlock + end connection
+    loop-runner.ts            runLoop(): starts a named async loop; catches iteration errors without crashing;
+                             returns a stop() function that waits for the current iteration to finish
+    worker.module.ts          WorkerModule: acquires advisory lock on bootstrap; checks RELAYER_ROLE on each
+                             enabled EVM chain; starts per-chain indexer loops, relay processor loop,
+                             gas-balance check (every 5 min), and heartbeat (every 15 min); stops gracefully
   api/                       Empty placeholder — auth, users, public API controllers (2b/3b/4)
 prisma/
   schema.prisma              Full data model (SPEC.md §7) — phase 1b added second migration
@@ -118,6 +167,25 @@ prisma/
   `package-lock.json`. Dependency install scripts run only when approved in
   `pnpm-workspace.yaml#allowBuilds`. Vitest uses SWC (`unplugin-swc`)
   because esbuild drops the decorator metadata Nest's DI needs.
+- **Advisory lock guards single-worker invariant.** `pg_try_advisory_lock(CHAINBILLS_WORKER_LOCK)` is
+  taken on a dedicated pg connection in `WorkerModule.onApplicationBootstrap`. Indexer and relay loops
+  start only after the lock is held. A second process pointed at the same DB sees `false` from
+  `pg_try_advisory_lock` and stays idle, retrying every 30 s.
+- **Relay jobs deduplicate on (type, txHash, destChainId).** `createJob` uses `createMany` with
+  `skipDuplicates: true`. The `txHash` for PAYABLE_UPDATE_VIA_CCTP jobs has the dest cbChainId
+  appended to handle multiple `SentPayableUpdateViaCctp` events in one tx.
+- **relayScanBlock advances after each 9000-block chunk**, not after the full scan, so a crash
+  mid-scan resumes cleanly from the last safe block.
+- **Artefacts (VAA, CCTP message, attestation) are persisted on the job** as soon as they are
+  resolved so a retry never re-fetches them from the external API.
+- **Idempotent errors mark jobs DONE, not retried.** `StalePayableUpdateNonce`,
+  `WormholeMessageAlreadyConsumed`, `CctpBurnNonceAlreadyConsumed`, `CctpDataNonceAlreadyConsumed`,
+  `PaymentNonceAlreadyConsumed` mean the message was already applied — another delivery path won.
+- **RelayerOnly errors mark jobs FAILED immediately** with a clear log. The operator must grant
+  `RELAYER_ROLE` on the destination diamond before relay can proceed.
+- **Outbox rows are written inside the same Prisma transaction** as the entity upserts that trigger
+  them, so a crash between entity write and outbox write never leaves orphaned notifications or
+  missing notifications.
 - **Coverage thresholds are enforced** in `vitest.config.ts` (lines /
   functions / statements >= 90 %, branches >= 85 %). New code ships with tests
   that keep it there; thresholds are never lowered and exclusions are never

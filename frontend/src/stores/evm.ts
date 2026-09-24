@@ -818,6 +818,38 @@ export const useEvmStore = defineStore('evm', () => {
     });
   };
 
+  /**
+   * Estimates Circle CCTP's fast-transfer max fee (in USDC's smallest unit)
+   * for burning `amount` from `sourceChainName` to `destChainName`, with a
+   * 20% buffer so the actual attestation never comes back higher than what
+   * the payer already approved. Reads the same Iris API `payForeignViaCctp`
+   * sends the burn through; `0n` when either chain has no Circle domain
+   * configured (`CIRCLE_DOMAINS`) or the API call fails — a payer on such a
+   * pairing still gets a same-network cross-chain payment, just with no fee
+   * buffer requested.
+   */
+  const estimateCctpFee = async (
+    sourceChainName: ChainName,
+    destChainName: ChainName,
+    amount: bigint
+  ): Promise<bigint> => {
+    const srcDomain = CIRCLE_DOMAINS[sourceChainName];
+    const dstDomain = CIRCLE_DOMAINS[destChainName];
+    if (srcDomain === undefined || dstDomain === undefined) return 0n;
+    try {
+      const feeRes = await fetch(`${CIRCLE_IRIS_API}/v2/burn/USDC/fees/${srcDomain}/${dstDomain}`);
+      if (!feeRes.ok) return 0n;
+      const tiers: { finalityThreshold: number; minimumFee: number }[] = await feeRes.json();
+      const fastTier = tiers.find((t) => t.finalityThreshold === 1000);
+      const bps = fastTier?.minimumFee ?? 0;
+      // fee = amount * bps / 10_000, add 20% buffer. Integer math on BigInt.
+      return (amount * BigInt(bps) * 120n) / 1_000_000n;
+    } catch {
+      // Non-fatal: falls back to standard finality with maxFee=0.
+      return 0n;
+    }
+  };
+
   const payForeignViaCctp = async (
     payableId: string,
     { amount, details }: TokenAndAmount,
@@ -843,25 +875,8 @@ export const useEvmStore = defineStore('evm', () => {
 
     const client = publicClientFor(chain.name);
 
-    // Fetch Circle fast-transfer fee from Iris API and compute maxFee.
     // maxFee is passed to depositForBurn so the payer covers the fee rather than the payable host.
-    let maxFee = 0n;
-    const srcDomain = CIRCLE_DOMAINS[chain.name as ChainName];
-    const dstDomain = CIRCLE_DOMAINS[destChain.name as ChainName];
-    if (srcDomain !== undefined && dstDomain !== undefined) {
-      try {
-        const feeRes = await fetch(`${CIRCLE_IRIS_API}/v2/burn/USDC/fees/${srcDomain}/${dstDomain}`);
-        if (feeRes.ok) {
-          const tiers: { finalityThreshold: number; minimumFee: number }[] = await feeRes.json();
-          const fastTier = tiers.find((t) => t.finalityThreshold === 1000);
-          const bps = fastTier?.minimumFee ?? 0;
-          // fee = amount * bps / 10_000, add 20% buffer. Integer math on BigInt.
-          maxFee = (amount * BigInt(bps) * 120n) / 1_000_000n;
-        }
-      } catch {
-        // Non-fatal: falls back to standard finality with maxFee=0.
-      }
-    }
+    const maxFee = await estimateCctpFee(chain.name, destChain.name as ChainName, amount);
 
     const totalRequired = amount + maxFee;
 
@@ -959,6 +974,7 @@ export const useEvmStore = defineStore('evm', () => {
     closePayable,
     consumedPaymentNonce,
     createPayable,
+    estimateCctpFee,
     extractBroadcastNonce,
     fetchChainConfig,
     fetchEntity,

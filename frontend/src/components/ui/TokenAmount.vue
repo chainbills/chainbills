@@ -13,6 +13,7 @@
  * ```vue
  * <TokenAmount :token="usdcToken" :amount="1500000n" :chain="sepolia" />
  * <TokenAmount :amount="tokenAndAmount" :chain="sepolia" size="sm" />
+ * <TokenAmount :amount="tokenAndAmount" :chain="sepolia" size="lg" />
  * ```
  */
 import { getTokenLogo, TokenAndAmount, type Chain, type Token } from '@/schemas';
@@ -32,8 +33,8 @@ const props = withDefaults(
      *  chain-specific token logo/address. */
     chain: Chain;
     /** Visual size. `md` (default) for cards and detail rows, `sm` for
-     *  dense table cells. */
-    size?: 'sm' | 'md';
+     *  dense table cells, `lg` for a receipt's or summary's hero amount. */
+    size?: 'sm' | 'md' | 'lg';
   }>(),
   { size: 'md' }
 );
@@ -61,13 +62,16 @@ const resolved = computed(() => {
 </script>
 
 <template>
-  <span class="inline-flex items-center gap-1.5" :class="size === 'sm' ? 'text-xs' : 'text-sm'">
+  <span
+    class="inline-flex items-center gap-1.5"
+    :class="size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-2xl' : 'text-sm'"
+  >
     <img
       :src="resolved.logo"
       :alt="`${resolved.name} logo`"
-      :class="size === 'sm' ? 'w-4 h-4 rounded-full' : 'w-5 h-5 rounded-full'"
+      :class="size === 'sm' ? 'w-4 h-4 rounded-full' : size === 'lg' ? 'w-7 h-7 rounded-full' : 'w-5 h-5 rounded-full'"
     />
     <span class="font-semibold tabular-nums text-fg">{{ resolved.formatted }}</span>
-    <span class="text-muted">{{ resolved.name }}</span>
+    <span class="text-muted" :class="size === 'lg' && 'text-base'">{{ resolved.name }}</span>
   </span>
 </template>

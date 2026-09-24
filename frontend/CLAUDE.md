@@ -54,17 +54,18 @@ src/
     index.ts           Re-exports all stores
   views/
     HomeView.vue          Landing page
-    CreatePayableView.vue  Create payable form
-    DashboardView.vue      Host dashboard: list payables, balances, withdraw
-    UserActivityView.vue   The connected wallet's unified activity feed ("this chain" vs. merged-network scope), built on `components/activity/ActivityFeed.vue`
-    PayableDetailView.vue  Payable detail: payments received, host controls
-    PayView.vue            Payer's payment UI
-    ReceiptView.vue        Payment receipt (public)
+    CreatePayableView.vue  Create payable form, two-column with a live preview card, drives the 'create-payable' flow
+    DashboardView.vue      Host dashboard: stats row, grid of PayableInfoCards, pagination
+    UserActivityView.vue   User's payment + withdrawal history
+    PayableDetailView.vue  Payable detail: payments received, host controls, opens WithdrawDialog
+    PayView.vue            Payer's payment UI: same-chain/cross-chain/mismatch/unsupported routes, drives 'pay'/'pay-cross-chain'
+    ReceiptView.vue        Payment/withdrawal receipt (public), with a live cross-chain delivery tracker
+    DataDebugView.vue      Dev-only self-test page for the data layer (`/_data`, `import.meta.env.DEV` only) — also stages a fake tx-flow
     NotFoundView.vue       404, built from the `EmptyState` primitive
     UiGalleryView.vue      Dev-only (`/_ui`) showcase of every component in `components/ui/`
   components/
     Header.vue, Footer.vue, Sidebar.vue    App shell — see "Design System" below
-    PayableInfoCard.vue
+    PayableInfoCard.vue      One glass card in the dashboard grid
     TransactionsTable.vue
     MakePaymentLoader.vue, PayableDetailLoader.vue, ReceiptLoader.vue, TableLoader.vue
     Shimmer.vue              Pre-redesign shimmer loader (vue3-loading-shimmer); new code uses `ui/Skeleton.vue` instead
@@ -72,14 +73,14 @@ src/
     ThemeMenu.vue
     activity/                Unified activity feed UI (`ActivityFeed`, `ActivityTable`/`ActivityList`, shared row/icon/detail building blocks) — see `components/activity/README.md`
     ui/                      The "liquid glass" primitive library — see `components/ui/README.md` and "Design System" below
-    landing/                 Landing page (`/`) sections and placeholder data — see `components/landing/README.md`
+    tx/                      Transaction-progress UI (TxFlowDialog, TxBackgroundTray, ApprovalGate, CrossChainRoute, WithdrawDialog) — see `components/tx/README.md` and "Payment UI Flow" below
   icons/                   SVG icon components (IconArc, IconEthereum, IconMegaETH, etc.)
 ```
 
 ## Chain Support
 
 | ChainName      | Type   | networkType | cbChainId                       |
-| -------------- | ------ | ----------- | -------------------------------- |
+| -------------- | ------ | ----------- | ------------------------------- |
 | `megaeth`      | EVM    | mainnet     | `0x78b4...`                     |
 | `arctestnet`   | EVM    | testnet     | `0xfcfa...`                     |
 | `sepolia`      | EVM    | testnet     | `0xafa9...`                     |
@@ -137,7 +138,7 @@ See `src/stores/README.md` for the full store-by-store breakdown (public API, wh
 
 - All reads go to **CbGetters** (`readGetter`) or the proxy's public mappings (`readMain`) — never require a connected wallet.
 - `writeContract()` reports its phases (simulate → wallet prompt → hash received → receipt confirmed) onto the optional `TxStepHandle`s it is given, then does `simulateContract` → `writeContract` → `waitForTransactionReceipt` → 3s settle wait.
-- `payForeignViaCctp()`: fetches Circle Iris API for fast-transfer fee before calling the contract.
+- `estimateCctpFee(sourceChainName, destChainName, amount)` reads Circle's Iris API for the fast-transfer max fee, with a 20% buffer. `payForeignViaCctp()` calls it before burning; `PayView.vue`'s route panel calls it directly too, to show the fee before the payer ever clicks "Pay".
 - Error handling strips the `abi` field from viem errors to avoid console floods.
 
 ### Payment routing (`stores/payment.ts → exec()`)
@@ -157,10 +158,15 @@ store action calls `txFlow.start(kind, title, steps)`, gets back a
 `TxFlowHandle`, and drives each step through `flow.step(key)` — most often
 by handing that step handle straight to `evm.writeContract`, which
 understands the `sign`/`confirm` phase split itself. `txFlow.current` is
-the flow a modal renders; `txFlow.background` lists flows whose write
-already succeeded but are still waiting on a relay or a cross-chain sync —
-the app shell can surface those separately instead of blocking navigation
-on them. A wallet rejection cancels the flow with no error toast.
+the flow `components/tx/TxFlowDialog.vue` (mounted once, in `App.vue`)
+renders; `txFlow.background` lists flows whose write already succeeded but
+are still waiting on a relay or a cross-chain sync — `components/tx/
+TxBackgroundTray.vue` (mounted once, in `Header.vue`) surfaces those as a
+small pill instead of blocking navigation on them, and raises a toast once
+one finishes on its own. `txFlow.moveToBackground(id)` lets the dialog's
+own "Continue in background" button move a flow there without holding onto
+its original `TxFlowHandle`. A wallet rejection cancels the flow with no
+error toast.
 
 ### Cross-chain pollers (`composables/usePoller.ts`)
 
@@ -206,12 +212,49 @@ Sends `chain-name`, `wallet-address`, `signature` headers on every call.
 
 Keys: `{chainName}::payable::{id}::payment::{count}`, etc. Used to avoid re-fetching immutable entities (payments, withdrawals, activity records, chain-discovery results) on navigation. Payables are never cached — their state changes.
 
-## Payment UI Flow (`views/PayView.vue`)
+## Payment UI Flow
+
+Every multi-step write in the app shows its progress through
+`components/tx/TxFlowDialog.vue` — see `components/tx/README.md` for the
+full flow-to-UI mapping (dialog states, the background tray, why
+`ApprovalGate` lives on the pay page rather than inside the dialog). This
+section covers the three pages that start those flows.
+
+### Create (`views/CreatePayableView.vue`, `/start`)
+
+A two-column layout: the form (description, payment rules via
+`SegmentedTabs`, auto-withdraw toggle, a static "will also sync to…" chain
+list) on the left, a live preview card mirroring the payable page on the
+right. Submitting calls `payable.create(...)`, which drives the
+`'create-payable'` flow; the view does not navigate away on success —
+`TxFlowDialog` offers "Open payable" and "Copy payment link" instead, and
+the form resets so another payable can be created right away while the
+first one's `sync` step keeps broadcasting in the background.
+
+### Pay (`views/PayView.vue`, `/pay/:id`)
 
 1. Load the payable via `payable.get(id)` — chain discovery is on-chain, not via the server.
-2. Check `isClosed`, `allowedTokensAndAmounts`.
-3. `payment.exec(...)` routes same-chain vs. cross-chain automatically and drives the matching tx-flow.
-4. Success → redirect to `/receipt/:paymentId`. A cross-chain payment's relay/arrival tracking (`payment.trackArrival`) continues in the background; the receipt page also calls it directly on load.
+2. Classify the payer/payable pairing into a route: same chain, cross-chain
+   (same network, both EVM — gated on `evm.fetchForeignPayable` having
+   synced, polled via `usePoller` with a visible recheck countdown, never
+   an indefinite spinner), a mainnet/testnet mismatch (lists the chains
+   that actually can pay, from `payable.availability`, each switching chain
+   via `useAppKitNetwork`), or an unsupported Solana pairing.
+3. `ApprovalGate` renders in the summary whenever the selected token isn't
+   the chain's native token, before the "Pay" button.
+4. `payment.exec(...)` routes same-chain vs. cross-chain automatically and drives the matching tx-flow.
+5. Success → redirect to `/receipt/:paymentId`. A cross-chain payment's relay/arrival tracking (`payment.trackArrival`) continues in the background; the receipt page also calls it directly on load.
+
+### Receipt tracker (`views/ReceiptView.vue`, `/receipt/:id`)
+
+A cross-chain `UserPayment`'s receipt awaits `payment.trackArrival`
+directly (standalone from any `'pay-cross-chain'` flow that may or may not
+still be running) and renders a two-step mini `Stepper` — "Burned on
+{source}" done, "Delivered to {destination}" waiting — that flips to done
+once delivery is confirmed, alongside a `CrossChainRoute` for context. A
+`Withdrawal`'s receipt shows gross/fee/net; only the net amount is ever
+stored on-chain, so the gross and fee are reconstructed from the chain's
+_current_ withdrawal-fee config and labelled as estimates.
 
 ## Environment Variables
 
@@ -307,8 +350,14 @@ The full component library — `GlassCard`, `SectionHeader`, `StatTile`,
 `ErrorState`, `Skeleton`, `PayableAvatar`, `Stepper`, `InFlightIndicator`,
 `KeyValueList`, `QrCode`, `AmbientBackdrop` — is documented component-by-component
 in `src/components/ui/README.md`; import from the barrel
-(`import { GlassCard, StatTile } from '@/components/ui'`). Every later brief
-builds pages from these rather than hand-rolling cards, badges or skeletons.
+(`import { GlassCard, StatTile } from '@/components/ui'`). Pages are built
+from these rather than hand-rolling cards, badges or skeletons. `TokenAmount`
+also has a `size="lg"` variant, for a receipt's or summary's hero amount.
+
+The transaction-progress UI built on top of these (`TxFlowDialog`,
+`TxBackgroundTray`, `ApprovalGate`, `CrossChainRoute`, `WithdrawDialog`)
+lives in `src/components/tx/` instead — see `components/tx/README.md` and
+"Payment UI Flow" below.
 
 ### Dev component gallery
 

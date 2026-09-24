@@ -13,7 +13,7 @@
 // *same* token — never across different tokens (a USDC total and an ETH
 // total are never added together).
 //
-// Used by: `views/DashboardView.vue` (brief 03), `views/scan/*` (brief 05).
+// Used by: `views/DashboardView.vue`, `views/scan/*`.
 import { chainNamesEvm, chainNamesToChains, tokens, type Chain, type ChainNetworkType, type Token } from '@/schemas';
 import { useEvmStore } from '@/stores';
 import { defineStore } from 'pinia';

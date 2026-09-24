@@ -16,8 +16,8 @@
 // chain's own newest-first stream into one, using a cursor that survives
 // across "load more" calls without ever re-emitting or skipping an item.
 //
-// Used by: `components/activity/*` (brief 02), `views/UserActivityView.vue`,
-// `views/PayableDetailView.vue`, `views/scan/*` (brief 05).
+// Used by: `components/activity/*`, `views/UserActivityView.vue`,
+// `views/PayableDetailView.vue`, `views/scan/*`.
 import {
   Activity,
   ActivityType,
@@ -379,7 +379,7 @@ export const useActivityStore = defineStore('activity', () => {
    * `predicate` matches at least `minCount` of them, or a page comes back
    * short of `size` items (the underlying stream has ended) — whichever
    * happens first. Callers use this to back a "keep loading until enough
-   * filtered rows exist" UI (brief 02).
+   * filtered rows exist" UI.
    */
   const loadUntil = async (
     loadPage: (page: number) => Promise<ActivityPage>,

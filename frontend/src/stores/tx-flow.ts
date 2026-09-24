@@ -10,8 +10,8 @@
 // itself understands `TxStepHandle` and reports the simulate/wallet-prompt/
 // confirm phases of a single write onto whichever step it is given.
 //
-// `current` is the one flow the UI shows in its modal (brief 03 owns that
-// modal). `background` holds flows whose write already succeeded but which
+// `current` is the one flow the UI shows in its transaction progress
+// modal. `background` holds flows whose write already succeeded but which
 // are still waiting on something the user does not need to stare at (a
 // cross-chain relay, a payable sync) — the app shell can surface those in a
 // small persistent indicator instead.
@@ -43,7 +43,7 @@ export interface TxStep {
   error?: string;
 }
 
-/** The kinds of multi-step actions the app performs. Matches one row of the table in brief 01 §5. */
+/** The kinds of multi-step actions the app performs. Each kind has its own fixed list of steps. */
 export type TxFlowKind =
   | 'create-payable'
   | 'pay'

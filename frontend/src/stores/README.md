@@ -6,7 +6,7 @@ contract calls or endpoints it touches. See `frontend/CLAUDE.md` for the
 cross-store data rules (on-chain only, bigint amounts, no mixing mainnet and
 testnet) that every store here follows.
 
-## Data layer (brief 01)
+## Data layer
 
 ### `evm.ts` — `useEvmStore`
 

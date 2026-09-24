@@ -123,7 +123,7 @@ const create = async () => {
   }
 
   isCreating.value = true;
-  // No auto-withdraw toggle in this form yet (visual work for a later brief) — payables created here default to manual withdrawal.
+  // Payables created from this form start with manual withdrawal (isAutoWithdraw = false).
   const id = await payable.create(DomPurify.sanitize(description.value.trim()), tokensAndAmounts, false);
   isCreating.value = false;
 

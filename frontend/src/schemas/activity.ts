@@ -13,7 +13,7 @@
 //
 // Used by: `stores/activity.ts` (builds `Activity` instances from
 // `getActivityRecord`/`getActivityRecordsBulk` plus bulk entity reads),
-// `components/activity/*` (brief 02, renders them).
+// `components/activity/*` (renders them).
 import {
   type Chain,
   Payable,
@@ -58,7 +58,7 @@ export interface ActivityTypeMeta {
   /** Short human label, e.g. "Payment received". */
   label: string;
   tone: ActivityTone;
-  /** Icon key the UI's icon set resolves (brief 00/02 own the actual icon components). */
+  /** Icon key the UI's icon set resolves (the activity UI components map it to an icon component). */
   icon: string;
   category: ActivityCategory;
 }

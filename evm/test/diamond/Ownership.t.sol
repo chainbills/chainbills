@@ -78,8 +78,8 @@ contract OwnershipTest is CbTestBase {
     });
     vm.prank(owner);
     cb.diamondCut(cuts, address(0), '');
-    assertEq(TestFacet(address(cb)).testFacetValue(), 42);
-    assertEq(cb.facetAddress(TestFacet.testFacetValue.selector), address(facet));
+    assertEq(TestFacet(address(cb)).facetValueA(), 42);
+    assertEq(cb.facetAddress(TestFacet.facetValueA.selector), address(facet));
   }
 
   function test_DiamondCut_ReplacesTestFacetSelectors() public {
@@ -102,7 +102,7 @@ contract OwnershipTest is CbTestBase {
     });
     vm.prank(owner);
     cb.diamondCut(replaceCut, address(0), '');
-    assertEq(TestFacet(address(cb)).testFacetValue(), 99);
+    assertEq(TestFacet(address(cb)).facetValueA(), 99);
   }
 
   function test_DiamondCut_RemovesTestFacetSelectors() public {
@@ -125,9 +125,9 @@ contract OwnershipTest is CbTestBase {
     vm.prank(owner);
     cb.diamondCut(removeCut, address(0), '');
 
-    vm.expectRevert(abi.encodeWithSelector(Diamond.FunctionNotFound.selector, TestFacet.testFacetValue.selector));
-    TestFacet(address(cb)).testFacetValue();
-    assertEq(cb.facetAddress(TestFacet.testFacetValue.selector), address(0));
+    vm.expectRevert(abi.encodeWithSelector(Diamond.FunctionNotFound.selector, TestFacet.facetValueA.selector));
+    TestFacet(address(cb)).facetValueA();
+    assertEq(cb.facetAddress(TestFacet.facetValueA.selector), address(0));
   }
 
   // ---------------------------------------------------------------------------
@@ -157,7 +157,7 @@ contract OwnershipTest is CbTestBase {
     vm.startPrank(owner);
     cb.diamondCut(cuts, address(0), '');
     vm.expectRevert(
-      abi.encodeWithSelector(LibDiamond.DiamondCutFunctionAlreadyExists.selector, TestFacet.testFacetValue.selector)
+      abi.encodeWithSelector(LibDiamond.DiamondCutFunctionAlreadyExists.selector, TestFacet.facetValueA.selector)
     );
     cb.diamondCut(cuts, address(0), '');
     vm.stopPrank();
@@ -172,7 +172,7 @@ contract OwnershipTest is CbTestBase {
       functionSelectors: TestFacetSelectors.selectors()
     });
     vm.expectRevert(
-      abi.encodeWithSelector(LibDiamond.DiamondCutFunctionDoesNotExist.selector, TestFacet.testFacetValue.selector)
+      abi.encodeWithSelector(LibDiamond.DiamondCutFunctionDoesNotExist.selector, TestFacet.facetValueA.selector)
     );
     vm.prank(owner);
     cb.diamondCut(cuts, address(0), '');
@@ -186,7 +186,7 @@ contract OwnershipTest is CbTestBase {
       functionSelectors: TestFacetSelectors.selectors()
     });
     vm.expectRevert(
-      abi.encodeWithSelector(LibDiamond.DiamondCutFunctionDoesNotExist.selector, TestFacet.testFacetValue.selector)
+      abi.encodeWithSelector(LibDiamond.DiamondCutFunctionDoesNotExist.selector, TestFacet.facetValueA.selector)
     );
     vm.prank(owner);
     cb.diamondCut(cuts, address(0), '');

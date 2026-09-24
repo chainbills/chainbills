@@ -45,6 +45,7 @@
  * ```
  */
 import { EmptyState, ErrorState, KeyValueList, Skeleton } from '@/components/ui';
+import { useAnalyticsStore } from '@/stores';
 import { computed, ref } from 'vue';
 import Dialog from 'primevue/dialog';
 
@@ -80,10 +81,13 @@ const props = withDefaults(defineProps<{
   filterNote?: string | null;
   /** Error message to display in the error state. */
   error?: string | null;
+  /** Entity type label for analytics (e.g. 'payable', 'payment', 'withdrawal', 'user'). */
+  entityType?: string;
 }>(), {
   hasMore: false,
   filterNote: null,
   error: null,
+  entityType: 'entity',
 });
 
 const emit = defineEmits<{
@@ -95,6 +99,8 @@ const emit = defineEmits<{
   retry: [];
 }>();
 
+const analytics = useAnalyticsStore();
+
 /** Row index currently expanded (null = none). */
 const expandedRow = ref<number | null>(null);
 /** Row opened in mobile bottom-sheet (null = none). */
@@ -104,11 +110,26 @@ const mobileDetailRow = ref<any | null>(null);
 const totalPages = computed(() => Math.ceil(props.total / props.pageSize));
 
 const toggleRow = (index: number) => {
-  expandedRow.value = expandedRow.value === index ? null : index;
+  const opening = expandedRow.value !== index;
+  expandedRow.value = opening ? index : null;
+  if (opening) analytics.recordEvent('scan_entity_clicked', { entity_type: props.entityType });
 };
 
-const openMobileDetail = (row: any) => { mobileDetailRow.value = row; };
+const openMobileDetail = (row: any) => {
+  mobileDetailRow.value = row;
+  analytics.recordEvent('scan_entity_clicked', { entity_type: props.entityType });
+};
 const closeMobileDetail = () => { mobileDetailRow.value = null; };
+
+const handleLoadMore = () => {
+  analytics.recordEvent('scan_load_more', { entity_type: props.entityType });
+  emit('loadMore');
+};
+
+const handlePageChange = (newPage: number) => {
+  analytics.recordEvent('scan_page_changed', { entity_type: props.entityType, page: newPage });
+  emit('update:page', newPage);
+};
 
 /** Skeleton row count while loading (show previous rows greyed out). */
 const skeletonCount = computed(() => props.rows.length || props.pageSize);
@@ -125,7 +146,7 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
     <!-- Table (desktop md+) -->
     <div
       v-else
-      class="glass-surface glass-dense rounded-2xl overflow-hidden hidden md:block"
+      class="glass-surface glass-dense rounded-2xl overflow-hidden overflow-x-auto hidden md:block"
       role="table"
       :aria-label="`${columns[0]?.label ?? 'Entity'} table`"
       :aria-busy="loading"
@@ -283,7 +304,7 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
           <button
             type="button"
             :disabled="page === 0"
-            @click="emit('update:page', page - 1)"
+            @click="handlePageChange(page - 1)"
             class="rounded-full px-4 py-1.5 text-sm border border-glass-border text-muted hover:text-fg disabled:opacity-40 transition-colors"
             aria-label="Previous page"
           >
@@ -292,7 +313,7 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
           <button
             type="button"
             :disabled="page >= totalPages - 1"
-            @click="emit('update:page', page + 1)"
+            @click="handlePageChange(page + 1)"
             class="rounded-full px-4 py-1.5 text-sm border border-glass-border text-muted hover:text-fg disabled:opacity-40 transition-colors"
             aria-label="Next page"
           >
@@ -307,7 +328,7 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
         <button
           v-if="hasMore"
           type="button"
-          @click="emit('loadMore')"
+          @click="handleLoadMore()"
           class="rounded-full px-5 py-2 text-sm font-medium border border-glass-border text-muted hover:text-fg transition-colors"
         >
           Load more

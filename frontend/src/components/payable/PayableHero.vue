@@ -29,7 +29,7 @@
  * <PayableHero :payable="payable" :payer-payment-count="2" @manage="scrollToControls" />
  * ```
  */
-import { AddressChip, ChainBadge, GlassCard, NetworkPill, PayableAvatar, QrCode, StatusPill } from '@/components/ui';
+import { AddressChip, GlassCard, NetworkPill, PayableAvatar, QrCode, StatusPill } from '@/components/ui';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconGlobe from '@/icons/IconGlobe.vue';
 import { type Payable } from '@/schemas';
@@ -147,9 +147,8 @@ const share = async () => {
           <span class="font-mono text-xs text-muted break-all select-all">{{ payable.id }}</span>
         </div>
 
-        <!-- Chain + network + status + auto-withdraw badges -->
+        <!-- Network + status + auto-withdraw badges -->
         <div class="flex flex-wrap items-center gap-2 mb-2">
-          <ChainBadge :chain="payable.chain" size="sm" />
           <NetworkPill :type="payable.chain.networkType" />
           <StatusPill
             :tone="payable.isClosed ? 'danger' : 'success'"

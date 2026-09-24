@@ -30,10 +30,9 @@
  * />
  * ```
  */
-import { ChainBadge, FilterChips, SearchInput, SegmentedTabs } from '@/components/ui';
-import type { Chain, ChainNetworkType } from '@/schemas';
+import { SearchInput, SegmentedTabs } from '@/components/ui';
+import { getChainLogo, type Chain, type ChainNetworkType } from '@/schemas';
 import { computed } from 'vue';
-import type { FilterChipOption } from '@/components/ui';
 import type { SegmentedTabOption } from '@/components/ui';
 
 const props = defineProps<{
@@ -62,10 +61,10 @@ const networkOptions = computed<SegmentedTabOption[]>(() => [
   { label: 'Testnet', value: 'testnet' },
 ]);
 
-/** Chain filter chips: "All chains" first, then one chip per chain in the network. */
-const chainOptions = computed<FilterChipOption[]>(() => [
-  { label: 'All chains', value: 'all' },
-  ...props.networkChains.map((c) => ({ label: c.displayName, value: c.name })),
+/** Chain filter options: "All chains" first, then one per chain in the network. */
+const chainOptions = computed(() => [
+  { label: 'All chains', value: 'all', chain: null as Chain | null },
+  ...props.networkChains.map((c) => ({ label: c.displayName, value: c.name, chain: c })),
 ]);
 </script>
 
@@ -104,13 +103,12 @@ const chainOptions = computed<FilterChipOption[]>(() => [
               : 'border-glass-border text-muted hover:text-fg',
           ]"
         >
-          <template v-if="opt.value !== 'all'">
-            <ChainBadge
-              :chain="networkChains.find((c) => c.name === opt.value)!"
-              :show-name="false"
-              class="w-4 h-4"
-            />
-          </template>
+          <img
+            v-if="opt.chain"
+            :src="getChainLogo(opt.chain)"
+            :alt="`${opt.label} logo`"
+            class="w-4 h-4 rounded-full"
+          />
           {{ opt.label }}
         </button>
       </div>

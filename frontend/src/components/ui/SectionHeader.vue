@@ -32,13 +32,13 @@ defineSlots<{
 </script>
 
 <template>
-  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
     <div class="min-w-0">
-      <p v-if="eyebrow" class="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent mb-2">
+      <p v-if="eyebrow" class="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent mb-3">
         {{ eyebrow }}
       </p>
       <h2 class="font-display text-display-md text-fg">
-        {{ title }}<span v-if="accentTail" class="text-accent"> {{ accentTail }}</span>
+        {{ title }}<span v-if="accentTail" class="text-accent ml-2"> {{ accentTail }}</span>
       </h2>
       <p v-if="$slots.description" class="mt-2 text-sm text-muted max-w-2xl">
         <slot name="description" />

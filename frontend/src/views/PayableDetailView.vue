@@ -163,9 +163,9 @@ const handleNotFoundSearch = (q: string) => {
   </section>
 
   <!-- Main page content -->
-  <section v-else-if="payable" class="pt-6 pb-20 max-w-screen-xl mx-auto">
+  <section v-else-if="payable" class="pt-10 pb-28 max-w-screen-xl mx-auto">
     <!-- Full-width hero -->
-    <div class="mb-6">
+    <div class="mb-10">
       <PayableHero
         :payable="payable"
         :payer-payment-count="payerPaymentCount"
@@ -174,7 +174,7 @@ const handleNotFoundSearch = (q: string) => {
     </div>
 
     <!-- Two-column grid -->
-    <div class="grid lg:grid-cols-[1fr,minmax(0,360px)] gap-6 items-start">
+    <div class="grid lg:grid-cols-[1fr,minmax(0,360px)] gap-8 items-start">
       <!-- Main column -->
       <div class="flex flex-col gap-6">
         <!-- Description card -->
@@ -209,7 +209,7 @@ const handleNotFoundSearch = (q: string) => {
       </div>
 
       <!-- Side rail: sticky on desktop -->
-      <div class="flex flex-col gap-6 lg:sticky lg:top-24">
+      <div class="flex flex-col gap-6 lg:sticky lg:top-28">
         <!-- Settings card -->
         <PayableSettingsCard :payable="payable" />
 
@@ -238,7 +238,7 @@ const handleNotFoundSearch = (q: string) => {
     <div
       v-if="isHost"
       ref="hostControlsEl"
-      class="mt-8 scroll-mt-24"
+      class="mt-12 scroll-mt-24"
       aria-labelledby="host-controls-heading"
     >
       <PayableHostControls :payable="payable" @updated="onPayableUpdated" />

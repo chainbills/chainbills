@@ -108,10 +108,10 @@ const has = (column: ActivityTableColumn) => props.columns.includes(column);
               </span>
             </td>
             <td v-if="has('details')" class="px-4 py-3.5"><ActivityDetails :activity="activity" /></td>
-            <td v-if="has('route')" class="px-4 py-3.5">
+            <td v-if="has('route')" class="px-4 py-3.5 whitespace-nowrap">
               <span v-if="activity.isCrossChain" class="inline-flex items-center gap-1.5">
                 <ChainBadge :chain="activity.chain" size="sm" />
-                <span class="text-muted text-xs" aria-hidden="true">→</span>
+                <span class="text-muted text-xs" aria-hidden="true">-&gt;</span>
                 <ChainBadge :chain="activity.counterpartChain!" size="sm" />
               </span>
               <ChainBadge v-else :chain="activity.chain" size="sm" />

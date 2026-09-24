@@ -9,11 +9,9 @@
  * inactive this round (see `frontend/docs/redesign/README.md` §1) and isn't
  * a chain a payer or host can actually use yet.
  */
-import { ChainBadge } from '@/components/ui';
 import IconDiscord from '@/icons/IconDiscord.vue';
 import IconGithub from '@/icons/IconGithub.vue';
 import IconX from '@/icons/IconX.vue';
-import { arctestnet, megaeth, sepolia } from '@/schemas';
 import { useAnalyticsStore, useThemeStore } from '@/stores';
 
 const analytics = useAnalyticsStore();
@@ -27,7 +25,6 @@ const productLinks = [
   { to: '/scan', label: 'Scan' },
 ];
 
-const supportedChains = [megaeth, sepolia, arctestnet];
 </script>
 
 <template>
@@ -118,12 +115,7 @@ const supportedChains = [megaeth, sepolia, arctestnet];
         </div>
       </div>
 
-      <div
-        class="relative mt-8 pt-6 border-t border-glass-border flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div class="flex flex-wrap gap-2">
-          <ChainBadge v-for="chain in supportedChains" :key="chain.name" :chain="chain" size="sm" network />
-        </div>
+      <div class="relative mt-8 pt-6 border-t border-glass-border flex justify-end">
         <p class="text-xs text-muted flex items-center gap-1">
           <IconGithub class="w-3.5 h-3.5" /> &copy; Chainbills {{ year }}. All rights reserved.
         </p>

@@ -24,16 +24,16 @@
  */
 import { AddressChip, ChainBadge, Stepper, type StepperStep } from '@/components/ui';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import { useTxFlowStore } from '@/stores';
+import { useAnalyticsStore, useTxFlowStore } from '@/stores';
 import type { TxFlow, TxStep } from '@/stores/tx-flow';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { primaryActionsFor, type FlowAction } from './flow-actions';
 import { useTxRetry } from './retry';
 
 const txFlow = useTxFlowStore();
+const analytics = useAnalyticsStore();
 const { retry } = useTxRetry();
 const router = useRouter();
 
@@ -58,17 +58,22 @@ watch(
 );
 const flow = computed(() => shownFlow.value);
 
+watch(
+  () => flow.value?.steps.find((s) => s.status === 'waiting'),
+  (waitingStep) => {
+    if (waitingStep && flow.value) {
+      analytics.recordEvent('tx_flow_wallet_prompt', {
+        flow_kind: flow.value.kind,
+        step: (waitingStep as any).key ?? waitingStep.title,
+      });
+    }
+  }
+);
+
 const close = () => {
   txFlow.dismiss();
   shownFlow.value = null;
 };
-
-const visible = computed({
-  get: () => !!flow.value,
-  set: (value: boolean) => {
-    if (!value) close();
-  },
-});
 
 /** The one step currently in progress (blocked on a wallet prompt, or just running), if any. */
 const activeStep = computed(() => flow.value?.steps.find((s) => s.status === 'active' || s.status === 'waiting'));
@@ -85,12 +90,15 @@ const stepperSteps = computed<StepperStep[]>(() => (flow.value?.steps ?? []) as 
 /** Recovers the richer `TxStep` fields (`chain`, `txHash`, `explorerUrl`) inside the `meta` slot, which only sees the step as a `StepperStep`. */
 const asTxStep = (step: StepperStep) => step as unknown as TxStep;
 
-/** Tracks the `sm` breakpoint so the dialog can render as a bottom sheet on mobile and a centered dialog above it. */
-const isMobile = ref(typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches);
-const mobileQuery = typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)') : null;
-const onMobileQueryChange = (e: MediaQueryListEvent) => (isMobile.value = e.matches);
-onMounted(() => mobileQuery?.addEventListener('change', onMobileQueryChange));
-onUnmounted(() => mobileQuery?.removeEventListener('change', onMobileQueryChange));
+/** When true, the panel shows only the header bar (title + status). */
+const collapsed = ref(false);
+
+watch(
+  () => flow.value?.status,
+  (status) => {
+    if (status && status !== 'running') collapsed.value = false;
+  }
+);
 
 /** Shows "Continue in background" instead of the plain "keep this window open" hint once the active step is a background-eligible wait (e.g. a relay). */
 const showBackgroundButton = computed(() => !!flow.value?.canRunInBackground && activeStep.value?.status === 'waiting');
@@ -133,103 +141,139 @@ const runAction = (action: FlowAction) => {
 </script>
 
 <template>
-  <Dialog
-    v-if="flow"
-    v-model:visible="visible"
-    modal
-    :dismissable-mask="dismissable"
-    :close-on-escape="dismissable"
-    :closable="dismissable"
-    :position="isMobile ? 'bottom' : 'center'"
-    :class="['w-full sm:max-w-lg', isMobile && '!rounded-b-none']"
-  >
-    <template #header>
-      <div>
-        <h2 class="font-display text-lg text-fg">{{ flow.title }}</h2>
-        <p v-if="flow.subtitle" class="text-sm text-muted mt-0.5">{{ flow.subtitle }}</p>
-      </div>
-    </template>
+  <Teleport to="body">
+    <div
+      v-if="flow"
+      class="fixed z-50 bottom-4 right-4 left-4 sm:left-auto w-auto sm:w-full sm:max-w-sm shadow-glass"
+    >
+      <div class="glass-popover rounded-2xl overflow-hidden">
+        <!-- Panel header -->
+        <div class="flex items-start justify-between gap-3 px-4 py-3 border-b border-glass-border">
+          <div class="min-w-0">
+            <h2 class="font-display text-sm font-semibold text-fg leading-snug">{{ flow.title }}</h2>
+            <p v-if="flow.subtitle && !collapsed" class="text-xs text-muted mt-0.5">{{ flow.subtitle }}</p>
+            <p v-if="collapsed && activeStep" class="text-xs text-muted mt-0.5 truncate">{{ activeStep.description }}</p>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- Status dot (running) -->
+            <span v-if="flow.status === 'running'" class="relative flex w-2 h-2 mr-1" aria-hidden="true">
+              <span class="absolute inline-flex h-full w-full rounded-full bg-accent animate-ping opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+            </span>
+            <!-- Collapse toggle -->
+            <button
+              type="button"
+              :aria-label="collapsed ? 'Expand' : 'Collapse'"
+              :title="collapsed ? 'Expand' : 'Collapse'"
+              class="p-1.5 rounded-lg text-muted hover:text-fg hover:bg-fg/5 transition-colors"
+              @click="collapsed = !collapsed"
+            >
+              <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 transition-transform" :class="collapsed && 'rotate-180'" aria-hidden="true">
+                <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <!-- Close (only when dismissable) -->
+            <button
+              v-if="dismissable"
+              type="button"
+              aria-label="Close"
+              title="Close"
+              class="p-1.5 rounded-lg text-muted hover:text-fg hover:bg-fg/5 transition-colors"
+              @click="close"
+            >
+              <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
-    <!-- Status banner: only shown once the flow has left `running`, since the stepper itself already communicates progress. -->
-    <div
-      v-if="flow.status === 'failed'"
-      class="mb-4 rounded-xl bg-danger/10 ring-1 ring-danger/30 px-3.5 py-3 text-sm text-danger"
-    >
-      {{ failedStep?.error ?? 'Something went wrong. Please try again.' }}
-    </div>
-    <div
-      v-else-if="flow.status === 'cancelled'"
-      class="mb-4 rounded-xl bg-fg/5 ring-1 ring-fg/10 px-3.5 py-3 text-sm text-muted"
-    >
-      You cancelled in your wallet.
-    </div>
-    <div
-      v-else-if="flow.status === 'succeeded'"
-      class="mb-4 rounded-xl bg-success/10 ring-1 ring-success/30 px-3.5 py-3 text-sm text-success font-medium"
-    >
-      Done — every step completed.
-    </div>
-
-    <Stepper :steps="stepperSteps">
-      <template #meta="{ step }">
-        <div class="flex items-center gap-2 flex-wrap">
-          <ChainBadge v-if="asTxStep(step).chain" :chain="asTxStep(step).chain!" size="sm" />
-          <AddressChip v-if="asTxStep(step).txHash" :value="asTxStep(step).txHash!" kind="id" />
-          <a
-            v-if="asTxStep(step).explorerUrl"
-            :href="asTxStep(step).explorerUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center gap-1 text-accent hover:underline"
+        <!-- Expandable body -->
+        <div v-show="!collapsed" class="px-4 pt-4">
+          <!-- Status banner: only shown once the flow leaves `running`. -->
+          <div
+            v-if="flow.status === 'failed'"
+            class="mb-4 rounded-xl bg-danger/10 ring-1 ring-danger/30 px-3.5 py-3 text-sm text-danger"
           >
-            <IconOpenInNew class="w-3 h-3" /> View transaction
-          </a>
-        </div>
-      </template>
-    </Stepper>
+            {{ failedStep?.error ?? 'Something went wrong. Please try again.' }}
+          </div>
+          <div
+            v-else-if="flow.status === 'cancelled'"
+            class="mb-4 rounded-xl bg-fg/5 ring-1 ring-fg/10 px-3.5 py-3 text-sm text-muted"
+          >
+            You cancelled in your wallet.
+          </div>
+          <div
+            v-else-if="flow.status === 'succeeded'"
+            class="mb-4 rounded-xl bg-success/10 ring-1 ring-success/30 px-3.5 py-3 text-sm text-success font-medium"
+          >
+            Done — every step completed.
+          </div>
 
-    <!-- Success summary: the ids this flow produced, plus a link to the last transaction it sent. -->
-    <div v-if="flow.status === 'succeeded' && resultItems.length" class="mt-5 rounded-xl bg-fg/[0.03] px-3.5 py-2">
-      <dl class="divide-y divide-fg/5">
-        <div v-for="item in resultItems" :key="item.key" class="flex items-center justify-between gap-4 py-2">
-          <dt class="text-xs text-muted">{{ item.label }}</dt>
-          <dd><AddressChip :value="item.value" kind="id" /></dd>
+          <Stepper :steps="stepperSteps">
+            <template #meta="{ step }">
+              <div class="flex items-center gap-2 flex-wrap">
+                <ChainBadge v-if="asTxStep(step).chain" :chain="asTxStep(step).chain!" size="sm" />
+                <AddressChip v-if="asTxStep(step).txHash" :value="asTxStep(step).txHash!" kind="id" />
+                <a
+                  v-if="asTxStep(step).explorerUrl"
+                  :href="asTxStep(step).explorerUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1 text-accent hover:underline"
+                >
+                  <IconOpenInNew class="w-3 h-3" /> View transaction
+                </a>
+              </div>
+            </template>
+          </Stepper>
+
+          <!-- Success summary -->
+          <div v-if="flow.status === 'succeeded' && resultItems.length" class="mt-4 rounded-xl bg-fg/[0.03] px-3.5 py-2">
+            <dl class="divide-y divide-fg/5">
+              <div v-for="item in resultItems" :key="item.key" class="flex items-center justify-between gap-4 py-2">
+                <dt class="text-xs text-muted">{{ item.label }}</dt>
+                <dd><AddressChip :value="item.value" kind="id" /></dd>
+              </div>
+            </dl>
+            <a
+              v-if="lastTxStep?.explorerUrl"
+              :href="lastTxStep.explorerUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-1 inline-flex items-center gap-1 text-xs text-accent hover:underline"
+            >
+              <IconOpenInNew class="w-3 h-3" /> View transaction on explorer
+            </a>
+          </div>
         </div>
-      </dl>
-      <a
-        v-if="lastTxStep?.explorerUrl"
-        :href="lastTxStep.explorerUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="mt-1 inline-flex items-center gap-1 text-xs text-accent hover:underline"
-      >
-        <IconOpenInNew class="w-3 h-3" /> View transaction on explorer
-      </a>
+
+        <!-- Panel footer -->
+        <div v-show="!collapsed" class="px-4 py-3">
+          <div v-if="flow.status === 'running'">
+            <Button v-if="showBackgroundButton" severity="secondary" size="small" class="w-full" @click="continueInBackground">
+              Continue in background
+            </Button>
+            <p v-else class="text-xs text-muted text-center">Keep this panel open.</p>
+          </div>
+
+          <div v-else-if="flow.status === 'succeeded'" class="flex flex-wrap gap-2">
+            <Button v-for="action in primaryActions" :key="action.label" severity="secondary" size="small" @click="runAction(action)">
+              {{ action.label }}
+            </Button>
+            <Button size="small" @click="close">Close</Button>
+          </div>
+
+          <div v-else-if="flow.status === 'failed'" class="flex flex-wrap gap-2">
+            <Button severity="secondary" size="small" @click="close">Close</Button>
+            <Button size="small" @click="tryAgain">Try again</Button>
+          </div>
+
+          <div v-else-if="flow.status === 'cancelled'" class="flex flex-wrap gap-2">
+            <Button size="small" @click="tryAgain">Try again</Button>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <template #footer>
-      <div v-if="flow.status === 'running'" class="w-full">
-        <Button v-if="showBackgroundButton" severity="secondary" class="w-full sm:w-auto" @click="continueInBackground">
-          Continue in background
-        </Button>
-        <p v-else class="text-xs text-muted text-center sm:text-right">Keep this window open.</p>
-      </div>
-
-      <div v-else-if="flow.status === 'succeeded'" class="flex flex-wrap justify-end gap-2">
-        <Button v-for="action in primaryActions" :key="action.label" severity="secondary" @click="runAction(action)">
-          {{ action.label }}
-        </Button>
-        <Button @click="close">Close</Button>
-      </div>
-
-      <div v-else-if="flow.status === 'failed'" class="flex flex-wrap justify-end gap-2">
-        <Button severity="secondary" @click="close">Close</Button>
-        <Button @click="tryAgain">Try again</Button>
-      </div>
-
-      <div v-else-if="flow.status === 'cancelled'" class="flex flex-wrap justify-end gap-2">
-        <Button @click="tryAgain">Try again</Button>
-      </div>
-    </template>
-  </Dialog>
+  </Teleport>
 </template>

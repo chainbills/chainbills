@@ -7,9 +7,13 @@
  * is being restored, an accent "Sign In" pill when disconnected, and — once
  * connected — a pill showing the current chain's logo plus the truncated
  * wallet address, which opens a glass popover menu (copy address, view in
- * explorer, switch chain, disconnect). Sign-in itself first asks which EVM
- * chain to connect on (via a glass dialog), then hands off to Reown AppKit's
- * own connect flow.
+ * explorer, switch chain, disconnect).
+ *
+ * Sign-in is a two-step dialog: first choose an EVM chain, then choose a
+ * wallet from the EIP-6963 discovered connectors (all installed browser
+ * extension wallets auto-announce via the standard). "Switch Chain" re-opens
+ * the chain picker in switch mode, which calls useSwitchChain rather than
+ * re-connecting.
  *
  * Props:
  *  - `id`: suffix appended to internal element ids, so the header and
@@ -28,23 +32,24 @@ import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
 import IconSync from '@/icons/IconSync.vue';
 import { arctestnet, megaeth as megaethInApp, sepolia as sepoliaInApp, type ChainName } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useSidebarStore, useThemeStore } from '@/stores';
-import { useAppKit, useAppKitNetwork } from '@reown/appkit/vue';
-import { useAccount } from '@wagmi/vue';
+import type { Connector } from '@wagmi/core';
+import { useAccount, useConnect, useConnectors, useSwitchChain } from '@wagmi/vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
 import { useAnchorWallet } from 'solana-wallets-vue';
 import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
-import { onMounted, ref, watch, type Ref } from 'vue';
+import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const account = useAccount();
 const analytics = useAnalyticsStore();
 const anchorWallet = useAnchorWallet();
-const { open: openAppKit, close: closeAppKit } = useAppKit();
-const appkitNetwork = useAppKitNetwork();
 const auth = useAuthStore();
+const { connect } = useConnect();
+const connectors = useConnectors();
+const { switchChain } = useSwitchChain();
 const icons = {
   arctestnet: IconArc,
   megaeth: IconMegaETH,
@@ -52,6 +57,8 @@ const icons = {
   solanadevnet: IconSolana,
 };
 const isModalVisible = ref(false);
+const dialogMode = ref<'connect' | 'switch'>('connect');
+const dialogStep = ref<1 | 2>(1);
 const route = useRoute();
 const router = useRouter();
 const selectedChainName: Ref<ChainName | null> = ref(null);
@@ -60,33 +67,78 @@ const toast = useToast();
 const theme = useThemeStore();
 const walletMenu = ref();
 
+/** EIP-6963 named wallet connectors. Falls back to the generic injected
+ *  connector only when no wallet has announced itself via the standard. */
+const availableConnectors = computed(() => {
+  const named = connectors.value.filter((c) => c.id !== 'injected');
+  return named.length > 0 ? named : connectors.value;
+});
+
+const dialogHeader = computed(() => {
+  if (dialogMode.value === 'switch') return 'Switch Chain';
+  return dialogStep.value === 1 ? 'Sign In' : 'Choose Wallet';
+});
+
+const resetDialog = () => {
+  selectedChainName.value = null;
+  dialogStep.value = 1;
+};
+
 const openModal = () => {
+  dialogMode.value = 'connect';
+  dialogStep.value = 1;
+  selectedChainName.value = null;
   analytics.recordEvent('opened_sign_in_modal');
   isModalVisible.value = true;
 };
 
-const onClickEvm = () => {
+const openSwitchChainModal = () => {
+  dialogMode.value = 'switch';
+  dialogStep.value = 1;
+  selectedChainName.value = null;
+  isModalVisible.value = true;
+};
+
+const getViemChainId = (chainName: ChainName): number => {
+  if (chainName === 'megaeth') return megaethViem.id;
+  if (chainName === 'arctestnet') return arcTestnet.id;
+  if (chainName === 'sepolia') return sepoliaViem.id;
+  throw new Error(`Unsupported EVM Chain: ${chainName}`);
+};
+
+const onChainConfirmed = () => {
   if (!selectedChainName.value) {
     toast.add({ severity: 'contrast', summary: 'Please Select a Chain', life: 5000 });
     return;
   }
-
-  const chainName = selectedChainName.value;
-  let viemChain;
-  if (chainName == 'megaeth') viemChain = megaethViem;
-  else if (chainName == 'arctestnet') viemChain = arcTestnet;
-  else if (chainName == 'sepolia') viemChain = sepoliaViem;
-  else throw new Error(`Unsupported EVM Chain: ${chainName}`);
-
-  appkitNetwork.value.switchNetwork(viemChain);
-  analytics.recordEvent('clicked_evm_signin', { chain: chainName });
+  analytics.recordEvent('clicked_evm_signin', { chain: selectedChainName.value });
   sidebar.close();
-  isModalVisible.value = false;
-  selectedChainName.value = null;
-  openAppKit();
+
+  if (dialogMode.value === 'switch') {
+    switchChain({ chainId: getViemChainId(selectedChainName.value) });
+    isModalVisible.value = false;
+    selectedChainName.value = null;
+    return;
+  }
+
+  dialogStep.value = 2;
 };
 
-const shortenAddress = (v: string) => `${v.substring(0, 6)}...${v.substring(v.length - 3)}`;
+const onClickConnector = (connector: Connector) => {
+  if (!selectedChainName.value) return;
+  connect(
+    { connector, chainId: getViemChainId(selectedChainName.value) },
+    {
+      onError: (err) =>
+        toast.add({ severity: 'error', summary: 'Connection Failed', detail: err.message, life: 12000 }),
+    },
+  );
+  isModalVisible.value = false;
+  selectedChainName.value = null;
+  dialogStep.value = 1;
+};
+
+const shortenAddress = (v: string) => `${v.substring(0, 6)}...${v.substring(v.length - 4)}`;
 
 const toastLoadingAuth = () => {
   toast.add({
@@ -143,9 +195,8 @@ const walletItems = () => [
     label: 'Switch Chain',
     customIcon: IconSync,
     command: () => {
-      isModalVisible.value = false;
       sidebar.close();
-      openAppKit({ view: 'Networks' });
+      openSwitchChainModal();
     },
   },
   {
@@ -167,21 +218,14 @@ onMounted(() => {
         isModalVisible.value = false;
         sidebar.close();
       }
-    }
+    },
   );
 
   watch(
     () => account.chain?.value,
     (v) => {
-      if (v) {
-        // that is close the appkit modal after successful chain switching
-        closeAppKit();
-
-        // carrying out this navigation here because the payable detail page in which the user
-        // is will not be available on the new chain
-        if (route.name == 'payable') router.push('/dashboard');
-      }
-    }
+      if (v && route.name == 'payable') router.push('/dashboard');
+    },
   );
 });
 </script>
@@ -230,28 +274,73 @@ onMounted(() => {
     <Dialog
       v-model:visible="isModalVisible"
       modal
-      header="Sign In"
+      :header="dialogHeader"
       class="max-sm:m-8 w-full max-w-sm"
-      @hide="() => (selectedChainName = null)"
+      @hide="resetDialog"
     >
-      <p class="mb-4 sm:mb-6 text-sm text-muted">First select a blockchain network</p>
+      <!-- Step 1: choose chain -->
+      <template v-if="dialogStep === 1">
+        <p class="mb-4 sm:mb-6 text-sm text-muted">
+          {{ dialogMode === 'switch' ? 'Select the chain to switch to' : 'First select a blockchain network' }}
+        </p>
 
-      <button
-        v-for="chain of [megaethInApp, arctestnet, sepoliaInApp]"
-        type="button"
-        :class="[
-          'w-full flex items-center gap-2.5 rounded-xl border px-3 py-2.5 mb-3 text-sm font-medium transition-colors',
-          selectedChainName == chain.name
-            ? 'bg-accent/15 border-accent text-accent'
-            : 'bg-fg/5 border-glass-border text-fg hover:bg-fg/10',
-        ]"
-        @click="selectedChainName = chain.name"
-      >
-        <component :is="icons[chain.name]" :id="`connect-wallet-menu-${id}`" class="w-5 h-5" />
-        <span>{{ chain.displayName }}</span>
-      </button>
+        <button
+          v-for="chain of [megaethInApp, arctestnet, sepoliaInApp]"
+          type="button"
+          :class="[
+            'w-full flex items-center gap-2.5 rounded-xl border px-3 py-2.5 mb-3 text-sm font-medium transition-colors',
+            selectedChainName == chain.name
+              ? 'bg-accent/15 border-accent text-accent'
+              : 'bg-fg/5 border-glass-border text-fg hover:bg-fg/10',
+          ]"
+          @click="selectedChainName = chain.name"
+        >
+          <component :is="icons[chain.name]" :id="`connect-wallet-menu-${id}`" class="w-5 h-5" />
+          <span>{{ chain.displayName }}</span>
+        </button>
 
-      <p class="text-center pt-4 pb-2"><Button @click="onClickEvm"> Connect Wallet </Button></p>
+        <p class="text-center pt-4 pb-2">
+          <Button @click="onChainConfirmed">
+            {{ dialogMode === 'switch' ? 'Switch Chain' : 'Continue' }}
+          </Button>
+        </p>
+      </template>
+
+      <!-- Step 2: choose wallet connector (connect mode only) -->
+      <template v-else>
+        <p class="mb-4 sm:mb-6 text-sm text-muted">Select a wallet to connect</p>
+
+        <button
+          v-for="connector of availableConnectors"
+          :key="connector.uid"
+          type="button"
+          class="w-full flex items-center gap-2.5 rounded-xl border border-glass-border bg-fg/5 px-3 py-2.5 mb-3 text-sm font-medium text-fg hover:bg-fg/10 transition-colors"
+          @click="onClickConnector(connector)"
+        >
+          <img
+            v-if="connector.icon"
+            :src="connector.icon"
+            :alt="connector.name"
+            class="w-5 h-5 rounded-md"
+          />
+          <span v-else class="w-5 h-5 rounded-md bg-fg/10 flex-shrink-0" />
+          <span>{{ connector.name }}</span>
+        </button>
+
+        <p v-if="availableConnectors.length === 0" class="text-sm text-muted text-center py-4">
+          No wallet extension detected. Install MetaMask or another browser wallet and reload.
+        </p>
+
+        <p class="pt-2 pb-1">
+          <button
+            type="button"
+            class="text-sm text-muted hover:text-fg transition-colors"
+            @click="dialogStep = 1"
+          >
+            Back
+          </button>
+        </p>
+      </template>
     </Dialog>
   </div>
 </template>

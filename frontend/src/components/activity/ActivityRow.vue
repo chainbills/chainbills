@@ -18,7 +18,7 @@ import ActivityDetails from './ActivityDetails.vue';
 import ActivityIcon from './ActivityIcon.vue';
 import { ChainBadge } from '@/components/ui';
 import { type Activity } from '@/schemas';
-import { useTimeStore } from '@/stores';
+import { useAnalyticsStore, useTimeStore } from '@/stores';
 import { computed } from 'vue';
 
 const props = withDefaults(
@@ -40,9 +40,18 @@ const emit = defineEmits<{
   click: [];
 }>();
 
+const analytics = useAnalyticsStore();
 const time = useTimeStore();
 
-const shorten = (v: string) => (v.length <= 10 ? v : `${v.slice(0, 6)}…${v.slice(-4)}`);
+const handleClick = () => {
+  analytics.recordEvent('activity_entry_opened', {
+    activity_type: props.activity.type,
+    chain: props.activity.chain.name,
+  });
+  emit('click');
+};
+
+const shorten = (v: string) => (v.length <= 10 ? v : `${v.slice(0, 6)}...${v.slice(-4)}`);
 
 /** Mono sub-line: the acting wallet, then the related payable, whichever are known for this activity. */
 const subLine = computed(() => {
@@ -58,7 +67,7 @@ const subLine = computed(() => {
     type="button"
     class="relative w-full flex items-center gap-3 px-2 py-3 text-left rounded-xl hover:bg-fg/[0.03] transition-colors duration-1000"
     :class="highlighted && 'bg-accent/10'"
-    @click="emit('click')"
+    @click="handleClick()"
   >
     <span
       v-if="pending"

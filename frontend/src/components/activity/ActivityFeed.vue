@@ -161,6 +161,7 @@ const activeTypeFilters = ref<string[]>([]);
 const activeTokenFilter = ref<string[]>([]);
 const activeChainFilter = ref<string[]>([]);
 const searchQuery = ref('');
+const showFilters = ref(false);
 
 const hasActiveFilter = computed(
   () =>
@@ -170,8 +171,13 @@ const hasActiveFilter = computed(
     activeChainFilter.value.length > 0
 );
 
+const activeFilterCount = computed(
+  () => activeTypeFilters.value.length + activeTokenFilter.value.length + activeChainFilter.value.length
+);
+
 /** True when `a` belongs under the active tab/type/token/chain filters (search is applied separately, on top of this). */
 const matchesFilters = (a: Activity): boolean => {
+  if (props.source.kind === 'user' && a.type === ActivityType.InitializedUser) return false;
   const def = TAB_DEFS[activeTab.value];
   if (def.category && a.meta.category !== def.category) return false;
   if (def.types && !def.types.includes(a.type)) return false;
@@ -497,7 +503,7 @@ const emptyCopy = computed(() => {
 
 <template>
   <div>
-    <div class="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
       <SegmentedTabs v-model="activeTab" :options="tabOptions" />
       <div v-if="filterable || searchable" class="flex flex-wrap items-center gap-2">
         <SearchInput
@@ -507,9 +513,29 @@ const emptyCopy = computed(() => {
           class="max-w-xs"
         />
         <button
+          v-if="filterable"
+          type="button"
+          :aria-pressed="showFilters"
+          @click="showFilters = !showFilters"
+          :class="[
+            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+            showFilters || activeFilterCount > 0
+              ? 'border-accent bg-accent/10 text-accent'
+              : 'border-glass-border bg-glass-tint text-muted hover:text-fg',
+          ]"
+        >
+          <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" aria-hidden="true">
+            <path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Filters
+          <span v-if="activeFilterCount > 0" class="rounded-full bg-accent text-accent-fg px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+            {{ activeFilterCount }}
+          </span>
+        </button>
+        <button
           type="button"
           :disabled="refreshing"
-          :aria-label="refreshing ? 'Refreshing…' : 'Refresh'"
+          :aria-label="refreshing ? 'Refreshing' : 'Refresh'"
           title="Refresh"
           class="rounded-full border border-glass-border bg-glass-tint backdrop-blur p-2 text-muted hover:text-fg disabled:opacity-60"
           @click="refresh"
@@ -527,7 +553,7 @@ const emptyCopy = computed(() => {
       </div>
     </div>
 
-    <div v-if="filterable" class="flex flex-col gap-2 mb-4">
+    <div v-if="filterable && showFilters" class="flex flex-col gap-2 mb-4 p-3 rounded-2xl bg-fg/[0.03] border border-glass-border">
       <FilterChips v-if="typeChipOptions.length > 1" v-model="activeTypeFilters" multi :options="typeChipOptions" />
       <FilterChips
         v-if="showTokenChips && tokenChipOptions.length > 1"
@@ -541,6 +567,14 @@ const emptyCopy = computed(() => {
         multi
         :options="chainChipOptions"
       />
+      <button
+        v-if="activeFilterCount > 0"
+        type="button"
+        class="self-start text-xs text-muted hover:text-fg mt-1"
+        @click="activeTypeFilters = []; activeTokenFilter = []; activeChainFilter = []"
+      >
+        Clear all filters
+      </button>
     </div>
 
     <p v-if="!loading && !failed" class="text-xs text-muted mb-2">
@@ -602,7 +636,7 @@ const emptyCopy = computed(() => {
           :disabled="loadingMore"
           @click="loadMore"
         >
-          {{ loadingMore ? 'Loading…' : 'Load more' }}
+          {{ loadingMore ? 'Loading...' : 'Load more' }}
         </button>
       </div>
     </template>

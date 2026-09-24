@@ -40,7 +40,7 @@ const copied = ref(false);
 
 const truncated = computed(() => {
   const v = props.value;
-  return v.length <= 14 ? v : `${v.slice(0, 6)}…${v.slice(-4)}`;
+  return v.length <= 14 ? v : `${v.slice(0, 6)}...${v.slice(-4)}`;
 });
 
 const explorerUrl = computed(() =>
@@ -59,7 +59,7 @@ const copy = async () => {
 
 <template>
   <span
-    class="group inline-flex items-center gap-1.5 rounded-full border border-glass-border bg-bg/30 px-2.5 py-1 font-mono text-xs"
+    class="group inline-flex items-center gap-1.5 rounded-full border border-glass-border bg-bg/30 px-2.5 py-1 font-mono text-xs whitespace-nowrap"
   >
     <component :is="to ? 'router-link' : 'span'" :to="to" class="text-fg" :title="value">{{ truncated }}</component>
 
@@ -70,7 +70,7 @@ const copy = async () => {
       :title="copied ? 'Copied' : 'Copy to clipboard'"
       class="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:text-accent"
     >
-      <span v-if="copied" class="text-success">✓</span>
+      <span v-if="copied" class="text-success text-[10px] font-bold">ok</span>
       <IconCopy v-else class="w-3.5 h-3.5" />
     </button>
 
@@ -82,6 +82,7 @@ const copy = async () => {
       title="View in explorer"
       aria-label="View in explorer"
       class="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:text-accent"
+      @click="analytics.recordEvent('outbound_explorer_link', { chain: chain?.name, kind })"
     >
       <IconOpenInNew class="w-3.5 h-3.5" />
     </a>

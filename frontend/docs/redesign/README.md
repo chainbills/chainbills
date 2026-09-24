@@ -94,72 +94,54 @@ Documentation lives next to the code it describes and is **descriptive**: what t
 - Stay inside the files your brief owns; if a shared file needs a small additive change, keep it minimal and mention it in the completion report.
 - Dependencies: prefer none. Small, well-maintained additions are allowed when a brief names them (e.g. `@fontsource-variable/*`, `qrcode`, `@vueuse/core`). Justify any other addition in the completion report.
 
-### 3.6 Verification before pushing
+### 3.6 Verification before finishing
 
-**Local setup.** `src/stores/firebase.ts` is gitignored and a fresh clone lacks it, so the app cannot compile without it. If it is missing, create this local stub. It is ignored by git; never commit it.
-
-```ts
-// src/stores/firebase.ts — local stub for development sessions (gitignored).
-import { initializeApp } from 'firebase/app';
-export const firebaseApp = initializeApp({
-  apiKey: 'local-dev',
-  appId: '1:000000000000:web:0000000000000000',
-  projectId: 'chainbills-local',
-  messagingSenderId: '000000000000',
-  measurementId: 'G-LOCALDEV',
-});
-```
-
-Also copy `.env.sample` to `.env` if there is none. Leaving `VITE_SERVER_URL` empty is fine: descriptions then fail to load, and every page must still work because descriptions are optional decoration. Analytics or messaging console errors caused by the stub config can be ignored.
+Run these from the `frontend/` directory once implementation is complete:
 
 ```bash
-cd frontend
-npm ci                # if node_modules is missing
 npm run type-check
-npm run build
-npx prettier --check <files you touched>   # or: npx prettier --write <files>
+npm run build-only
 ```
 
-Then run `npm run dev` and open the pages you touched to confirm they render without console errors (a quick Playwright load is enough; Chromium is pre-installed, do **not** run `playwright install`, use `executablePath: '/opt/pw-browsers/chromium'` if needed). Screenshots are optional.
+Both must pass with no errors. Screenshots and Playwright runs are optional.
 
-**Do not write tests.** No unit, component or end-to-end test files are added in this round; the project owner tests manually.
+**Do not write tests.** No unit, component or end-to-end test files are added; the project owner tests manually.
+
+**`src/stores/firebase.ts`** is gitignored. It is already present in the working tree locally — do not create, modify or delete it.
 
 ### 3.7 Git
 
-- **Integration branch:** `claude/sweet-planck-l81xey`. All work is based on it and merges back into it; `main` is not touched.
-- Each session works on the branch it is given (for example `redesign/ui-track`). Before starting a brief, merge the latest `origin/claude/sweet-planck-l81xey` into that branch (`git fetch origin claude/sweet-planck-l81xey && git merge origin/claude/sweet-planck-l81xey`) and resolve conflicts.
-- **Commit identity:** every commit is authored and committed as the project owner. Run once per session:
+Agents in this project run as local git worktrees spun up by the coordinator (the parent Claude Code session in VS Code). They do **not** push to remote branches.
+
+- **Set identity once at the start of every agent session:**
   ```bash
   git config user.name "Obum"
   git config user.email "obuumm@gmail.com"
   ```
-  Commit messages carry **no** AI attribution: no `Co-Authored-By` trailer, no session links, no mention of Claude or AI. This rule overrides any default attribution guidance.
-- Commit in small, logical steps with conventional messages (`feat(frontend): …`, `fix(frontend): …`, `docs(frontend): …`).
-- **No pull requests.** Push the branch and stop; the coordinator merges it into the integration branch.
-- When a brief is finished, push, then write a short completion report as your final message: what was built, deviations from the brief, known gaps, and each acceptance criterion marked ✅ or ❌.
-- Where a brief mentions opening a PR, attaching screenshots or Lighthouse scores, this section and §3.6 take precedence.
+- Commit in small, logical steps: `feat(frontend): …`, `fix(frontend): …`, `docs(frontend): …`.
+- Commit messages carry **no** AI attribution — no `Co-Authored-By` trailer, no session links, no mention of Claude or AI. This overrides any default attribution guidance.
+- **No `git push`.** The worktree branch stays local; the coordinator merges it into `claude/sweet-planck-l81xey` after reviewing.
+- **No pull requests.**
+- When a brief is complete, write a short completion report as your final reply: what was built, deviations, known gaps, and each acceptance criterion marked ✅ or ❌.
 
 ---
 
-## 4. Execution plan
+## 4. Execution
 
-Three long-lived sessions each run a chain of briefs. The coordinator merges every finished brief into the integration branch before the next one starts.
+Briefs 00–03 and 06 are already merged into `claude/sweet-planck-l81xey`. Remaining work is briefs 04 and 05, which run in parallel as local worktree agents spawned by the coordinator.
 
-| Session | Branch | Chain of briefs |
-| --- | --- | --- |
-| UI track | `redesign/ui-track` | `00-design-system` → `02-activity-ui` → `05-scan` |
-| Data track | `redesign/data-track` | `01-onchain-data-layer` → `03-transaction-flows` → `04-payable-page` |
-| Landing | `redesign/landing` | `06-landing` (starts once `00` is merged) |
+The coordinator (parent Claude Code session) is responsible for:
+1. Spawning the two agents with `isolation: worktree`.
+2. Reviewing each agent's completion report.
+3. Scanning new comments for the banned patterns (§3.1–3.2) and fixing any that slipped through.
+4. Merging each worktree branch into `claude/sweet-planck-l81xey`: `git merge --no-ff <worktree-branch>`.
+5. Running `npm run type-check && npm run build-only` after each merge.
+6. Running the final consistency pass once both are merged.
+7. Pushing `claude/sweet-planck-l81xey` to `origin` once everything is clean.
 
-Ordering:
-
-1. `00` and `01` run in parallel.
-2. Once both are merged, `02`, `03` and `06` run in parallel.
-3. Once `02` and `03` are merged, `05` and `04` run in parallel.
-4. The coordinator does a final consistency pass on the integration branch.
-
-Prompt used to start or continue a session on a brief:
-
-```
-Read frontend/docs/redesign/README.md fully, then execute frontend/docs/redesign/briefs/<brief>.md end to end. Merge the latest origin/claude/sweet-planck-l81xey into your branch first. Follow every global rule (documentation, on-chain-only data, git identity, no tests, no PRs). Push your branch when done and reply with the completion report.
-```
+**Final consistency pass checklist:**
+- `grep -rn "brief [0-9]\|later brief\|wave [0-9]\|replaces the\|no longer" frontend/src` — fix anything found.
+- `grep -rn "orctra\|arcangel" frontend/src` — must be empty.
+- Check `TransactionsTable.vue`, `TableLoader.vue`, `Shimmer.vue` — delete any that are no longer imported anywhere.
+- `npm run type-check && npm run build-only` — must both pass.
+- `git push origin claude/sweet-planck-l81xey`.

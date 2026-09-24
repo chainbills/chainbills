@@ -181,4 +181,4 @@ When the address never interacted on any chain of the network, say so, and link 
 - [ ] The address page shows per-chain presence and merged tabs.
 - [ ] The UI stays honest about loaded-window filtering.
 - [ ] The header "Scan" link lands here.
-- [ ] Documentation is complete. Type-check and build pass. Screenshots are attached: overview (all chains and single chain), each tab, a search results popover and the address page, on desktop and mobile, light and dark.
+- [ ] Documentation is complete. Type-check and build pass.

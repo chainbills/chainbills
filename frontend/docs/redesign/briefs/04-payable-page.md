@@ -125,4 +125,4 @@ Follow README §3.1–3.2. Add `src/components/payable/README.md` and update `fr
 - [ ] `PaymentRulesEditor` is shared with Create Payable.
 - [ ] The activity feed shows the All, Payments, Withdrawals and Settings tabs.
 - [ ] Loading, not-found and missing-description states are handled. The page is responsive and themed.
-- [ ] Documentation is complete. Type-check and build pass. Screenshots are attached for the host view, the visitor view and the disconnected view (desktop and mobile, light and dark).
+- [ ] Documentation is complete. Type-check and build pass.

@@ -4,7 +4,7 @@
  * a glass-styled PrimeVue `Accordion` answering the questions a first-time
  * visitor is most likely to have.
  *
- * The PrimeVue theme preset (`main.ts`, owned by brief 00) does not style
+ * The PrimeVue theme preset (`main.ts`) does not style
  * `Accordion` specifically, so this component's own `:deep()` rules give it
  * the glass-surface look used everywhere else rather than PrimeVue's default
  * flat panel.

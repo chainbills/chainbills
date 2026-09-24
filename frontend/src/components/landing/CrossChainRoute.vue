@@ -5,10 +5,7 @@
  * Chainbills relayer → destination chain, with a light travelling the full
  * route on a loop.
  *
- * This is a local stand-in for the shared `CrossChainRoute` component that
- * brief 03 (`src/components/tx/`) owns; that folder does not exist yet in
- * this codebase, so `CrossChainDeepDive.vue` uses this copy until the
- * transaction-flow work merges and the shared component can be swapped in.
+ * It is a landing-only illustration used by `CrossChainDeepDive.vue`.
  * Purely illustrative — it takes no live transaction data, only the two
  * chains to label.
  *

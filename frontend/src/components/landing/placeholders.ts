@@ -54,7 +54,7 @@ export interface LandingActivitySample {
   timeAgo: string;
 }
 
-/** Eight sample rows for the activity ticker (brief §2, section 6), covering
+/** Eight sample rows for the activity ticker, covering
  *  every category the real feed can show: payments (same-chain and
  *  cross-chain), withdrawals, and payable lifecycle events. */
 export const landingActivitySamples: LandingActivitySample[] = [
@@ -132,7 +132,7 @@ export interface HeroReceipt {
 }
 
 /** The three receipts the hero visual's central card cycles through,
- *  matching brief §2 section 1's example copy. */
+ *  illustrating payments from different chains. */
 export const heroReceipts: HeroReceipt[] = [
   { amount: '25 USDC', chainName: 'sepolia' },
   { amount: '0.01 ETH', chainName: 'megaeth' },

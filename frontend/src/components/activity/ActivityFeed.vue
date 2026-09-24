@@ -2,7 +2,7 @@
 /**
  * src/components/activity/ActivityFeed.vue — the smart container behind
  * every activity feed in the app: the user activity page, the payable page
- * (brief 04) and Scan (brief 05) all render one `ActivityFeed`, pointed at
+ * and Scan all render one `ActivityFeed`, pointed at
  * a different `source`, instead of hand-rolling their own fetch/filter/
  * paginate logic.
  *

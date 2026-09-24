@@ -6,7 +6,7 @@
  * activity pages.
  *
  * Rows come from `landingActivitySamples` (`./placeholders.ts`) only — they
- * are not linked to any real entity, per the brief. The marquee pauses on
+ * are illustrative and not linked to any real entity. The marquee pauses on
  * hover and never scrolls at all under `prefers-reduced-motion: reduce`
  * (rendered once, unduplicated, in that case).
  *

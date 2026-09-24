@@ -16,7 +16,7 @@
  * testnet counters are never summed together).
  *
  * When no wallet is connected, shows a connect CTA plus a "look up any
- * address" input that routes to `/scan/address/:address` (brief 05) instead
+ * address" input that routes to `/scan/address/:address` instead
  * of requiring a signed-in wallet just to look at public activity.
  */
 import SignInButton from '@/components/SignInButton.vue';

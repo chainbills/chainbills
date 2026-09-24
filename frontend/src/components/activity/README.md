@@ -3,7 +3,7 @@
 The reusable activity-feed UI: one unified feed for every `ActivityType`
 (payments, withdrawals, payable creation/close/reopen/settings, new-wallet
 events), shared by the user activity page (`/activity`), the payable page
-(`/payable/:id`, brief 04) and Chainbills Scan (`/scan*`, brief 05). Import
+(`/payable/:id`) and Chainbills Scan (`/scan*`). Import
 from the barrel: `import { ActivityFeed } from '@/components/activity'`.
 
 Data comes from `stores/activity.ts`; see that file's own doc comment and

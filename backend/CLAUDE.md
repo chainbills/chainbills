@@ -12,6 +12,10 @@ added.
 
 ## Status
 
+**Phase 2b (auth) complete.** SIWE + SIWS sign-in, JWT access tokens, rotating
+httpOnly refresh-token cookies, global deny-by-default guard with `@Public()`
+opt-out. `AuthModule` imported by `ApiModule` for `ROLE=api|all`.
+
 **Phase 1b (diamond alignment) complete.** ABI updated to the ERC-2535
 diamond ABI (`chainbillsAbi`). Registry updated to `arcmainnet`, `anvil`,
 `solanadevnet`. `ENABLED_CHAINS` + `RPC_<SLUG>` replace the old per-chain
@@ -64,10 +68,23 @@ src/
     filters/                 GlobalExceptionFilter -> { statusCode, error, message }
     pagination/               Cursor encode/decode + PaginationQueryDto
     amount/                   formatAmount(): raw integer string + decimals -> decimal string
-    decorators/               @Public() route metadata (read by the guard from phase 2b)
+    decorators/               @Public() route metadata; IS_PUBLIC_KEY read by JwtAuthGuard
   health/                    GET /health -> { status, role, db }; registered for every role
   worker/                    Empty placeholder — indexers, relay processor, outbox (2a/3a/3b)
-  api/                       Empty placeholder — auth, users, public API controllers (2b/3b/4)
+  api/
+    api.module.ts             Imports AuthModule (only for ROLE=api|all)
+  auth/
+    auth.module.ts            Registers JwtAuthGuard as APP_GUARD (global, deny-by-default)
+    auth.controller.ts        POST /auth/nonce | /verify | /refresh | /logout | /logout-all
+    auth.service.ts           Nonce issue, verify orchestration, refresh rotation, revoke
+    nonce.service.ts          Generate, find, mark-used, opportunistic cleanup of AuthNonce rows
+    session.service.ts        Create, rotate, revoke sessions; sha256 token hashing
+    siwe-verifier.ts          viem parseSiweMessage + publicClient.verifyMessage (EOA/ERC-1271/ERC-6492)
+    siws-verifier.ts          tweetnacl ed25519 verify; signature as base58 or base64
+    siws-parser.ts            SIWS text-format message parser (all fields, typed result)
+    jwt-auth.guard.ts         Global guard: reads Bearer token, verifies JWT, checks session in DB
+    current-user.decorator.ts @CurrentUser() param decorator — returns { userId, walletKey, sessionId }
+    auth.dto.ts               DTOs: NonceResponse, VerifyRequest/Response, RefreshResponse
 prisma/
   schema.prisma              Full data model (SPEC.md §7) — phase 1b added second migration
   migrations/
@@ -114,6 +131,22 @@ prisma/
 - **Global exception filter never leaks internals.** Anything that is not a
   Nest `HttpException` becomes a bare `500 Internal Server Error` to the
   client; the real error is logged server-side only.
+- **JWT guard is global and deny-by-default.** Every route is protected unless
+  decorated with `@Public()`. To protect a route: do nothing (default). To make a
+  route public: add `@Public()` to the handler or controller class. The guard
+  verifies the Bearer token with `@nestjs/jwt` and does one indexed `Session`
+  lookup to confirm the session is not revoked (SPEC.md §9.2).
+- **Auth token model:** access token is HS256 JWT with `sub=userId`, `wlt=walletKey`,
+  `sid=sessionId`, TTL from `ACCESS_TOKEN_TTL`. Refresh token is 32 random bytes as
+  base64url; only its sha256 is stored in `Session.refreshTokenHash`. Cookie name:
+  `cb_refresh`, path `/auth`, HttpOnly, SameSite=Lax.
+- **Reuse detection:** presenting an already-rotated refresh token signals theft;
+  the session is revoked immediately and the request rejected with 401.
+- **SIWE:** uses viem's `parseSiweMessage` + `publicClient.verifyMessage` which
+  handles EOA, ERC-1271 and ERC-6492 wallets. Only chain IDs in the EVM registry
+  are accepted.
+- **SIWS:** custom parser in `siws-parser.ts` + tweetnacl ed25519 verify. Signature
+  accepted as base58 (Solana wallet-standard) or base64.
 - **Tooling is Node.js 24 + pnpm + Vitest.** Never use npm/yarn or commit a
   `package-lock.json`. Dependency install scripts run only when approved in
   `pnpm-workspace.yaml#allowBuilds`. Vitest uses SWC (`unplugin-swc`)

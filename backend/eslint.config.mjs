@@ -66,9 +66,13 @@ export default [
     },
   },
   {
+    // Tests legitimately need process.env to seed env vars before loading the
+    // app under test, and console.warn for skipped-step notices in e2e flows.
     files: ['**/*.spec.ts', 'test/**/*.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      'no-restricted-syntax': 'off',
+      'no-console': 'off',
     },
   },
   eslintConfigPrettier,

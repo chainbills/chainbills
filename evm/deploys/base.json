@@ -1,0 +1,41 @@
+{
+  "admin": "0x9f697B991be51b7a2f46190Ebd7b40061B729224",
+  "caip2": "eip155:8453",
+  "cbChainId": "0x43b48883ef7be0f98fe7f98fafb2187e42caab4063697b32816f95e09d69b3ec",
+  "chain": "base",
+  "chainId": 8453,
+  "deployedAtBlock": 51790003,
+  "diamond": "0xa837c89d3550Eb0D18c3988c689509EB2c3A5695",
+  "diamondCutFacet": "0x3274Ad352c264AdBa06f5d43D1B8636B3FC4B315",
+  "facets": {
+    "CbActivityViewsFacet": "0x7628a04b7e371b29B4274dB2Ed901d28Af21DB9B",
+    "CbChainRegistryFacet": "0x09c7b4c30Ad6cB521C67fd97384617ae8548E340",
+    "CbConfigFacet": "0x8F09719B0B5c225185F0893b0312F8CdE1B41730",
+    "CbCoreViewsFacet": "0xfd89C5E7Fc9b630711cD5BA06a0A47200A5798c4",
+    "CbCrossChainViewsFacet": "0xce1F9b75Ee8ba9e02DE54c5fE9f183c892E7E94C",
+    "CbGovernanceFacet": "0xf286a66d14bB584326da295A7405c1D92F8C7579",
+    "CbPayableSyncFacet": "0x347b88F1365AA363B0B241696a632E08443366b5",
+    "CbPayableViewsFacet": "0x3434Ed8d56660E3AD0BAAF7Eb19ded4dEf35413F",
+    "CbPayablesFacet": "0x4F5aFfd99bd9752f409BAeD49ffDE78F836E1553",
+    "CbPaymentViewsFacet": "0x82247C209eB3cCba01c98Aa2dCc68b7deB59Ea75",
+    "CbPaymentsFacet": "0xA532177197975FA746876A2F60aC47843DaD0645",
+    "CbQuoteViewsFacet": "0xa034842F7cF2B91E8c0894F203AD4d0547B6c3ba",
+    "CbRegistryViewsFacet": "0xA4d9B989bd34Fb13df270B00b2046C965087cAFE",
+    "CbTokenRegistryFacet": "0xfEEA2B07DBCfA4C6b9909d828671EA049b42c3f7",
+    "CbWithdrawalViewsFacet": "0xd73FEfc327e1C98006064003BBaEe0411BF5bFFe",
+    "CbWithdrawalsFacet": "0x2A8260E049902a62d11957643d6ac21c2E8d60e9",
+    "DiamondLoupeFacet": "0x81B3eb7D5ad2dC385cD69E04B33f7c13fE367587",
+    "OwnershipFacet": "0xa69cAaeb5D67c4F4B57d1a544cf75Df76495A6eB"
+  },
+  "init": "0x89639191abc1Ca3f7c4C334A48ECB7b638F42a41",
+  "libraries": {
+    "CbCctpMessaging": "0x3B0dA42e6252C3073d3D405Bf2181a9CEdbB792b",
+    "CbLedger": "0x29e226bdbcbaBd628EB37fA2e27Db8Feeb77120e",
+    "CbPagination": "0x7845e2D72f3bc94C6141b47434e89ACa49b7184E",
+    "CbPayableSync": "0xfe395f91802A6e0F16Ec22Adf986C26e989be0c2",
+    "CbPayloadCodec": "0x45Fe491da92dac2bac270506850533F389969962",
+    "CbWormholeMessaging": "0xb855e65B74D2eDd18AD74569fC2c9CF9D84eB9af"
+  },
+  "owner": "0x9f697B991be51b7a2f46190Ebd7b40061B729224",
+  "salt": "0x0000000000000000000000000000000000000000000000000000000000000001"
+}

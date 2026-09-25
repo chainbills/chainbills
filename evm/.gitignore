@@ -25,3 +25,6 @@ prev-deploy
 
 # Fixture deploy records written by test/script/*.t.sol
 deploys/test-fixture-*.json
+
+# Generated ABIs (node script/export-abi.mjs)
+abi/

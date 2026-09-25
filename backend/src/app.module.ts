@@ -38,6 +38,7 @@ const PINO_REDACT_PATHS = [
   'req.body.signature',
 ];
 
+/** Root application module; imports WorkerModule and/or ApiModule depending on the ROLE env var. */
 @Module({
   imports: [
     AppConfigModule,

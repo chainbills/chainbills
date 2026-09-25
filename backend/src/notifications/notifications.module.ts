@@ -19,6 +19,7 @@ import { ConsoleMailProvider } from './mail/console.provider';
 import { ZeptoMailProvider } from './mail/zeptomail.provider';
 import { UnsubscribeController } from './unsubscribe.controller';
 
+/** Provides MailProvider via factory and registers UnsubscribeController; imported by ApiModule and WorkerModule. */
 @Module({
   imports: [AppConfigModule, PrismaModule],
   controllers: [UnsubscribeController],

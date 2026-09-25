@@ -39,6 +39,7 @@ export interface SiweVerifyResult {
   address: string;
 }
 
+/** Parses and cryptographically verifies EIP-4361 SIWE messages, including ERC-1271 and ERC-6492 wallets. */
 @Injectable()
 export class SiweVerifier {
   private readonly logger = new Logger(SiweVerifier.name);

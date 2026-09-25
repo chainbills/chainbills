@@ -31,6 +31,7 @@ const REFRESH_COOKIE = 'cb_refresh';
 /** Auth-specific throttle: 10 requests per 60 s per IP. */
 const AUTH_THROTTLE = { default: { limit: 10, ttl: 60_000 } };
 
+/** Exposes nonce, verify, refresh, logout, and logout-all endpoints for wallet-based auth. */
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {

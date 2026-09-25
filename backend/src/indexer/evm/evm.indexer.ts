@@ -54,6 +54,7 @@ const ACTIVITY_TYPE_MAP: Record<number, string> = {
   8: 'UPDATED_PAYABLE_AUTO_WITHDRAW_STATUS',
 };
 
+/** Polls the Chainbills diamond's activity log and upserts indexed entities into Postgres for one EVM chain per tick. */
 @Injectable()
 export class EvmIndexer {
   private readonly logger = new Logger(EvmIndexer.name);

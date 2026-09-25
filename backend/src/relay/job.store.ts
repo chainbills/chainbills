@@ -61,9 +61,7 @@ export async function createJob(prisma: PrismaService, data: CreateJobData): Pro
           blockNumber: data.blockNumber,
           eventData: data.eventData as Prisma.InputJsonValue,
           // Extracted from eventData so relay-status lookups use a real index.
-          userPaymentId: typeof data.eventData['userPaymentId'] === 'string'
-            ? data.eventData['userPaymentId']
-            : null,
+          userPaymentId: typeof data.eventData['userPaymentId'] === 'string' ? data.eventData['userPaymentId'] : null,
         },
       ],
       skipDuplicates: true,

@@ -12,6 +12,7 @@ import { AppConfigService } from '../config/app-config.service';
 import { CHAIN_BY_CB_CHAIN_ID, CHAIN_BY_SLUG, CHAINS, enabledChains, EVM_CHAINS, SOLANA_CHAINS } from './registry';
 import type { ChainConfig, ChainSlug } from './types';
 
+/** Joins the static chain registry with per-chain RPC URLs from config; the single source of resolved chain state. */
 @Injectable()
 export class ChainsService {
   /** The chains enabled for this instance, resolved from ENABLED_CHAINS at construction. */

@@ -13,6 +13,7 @@ import { Global, Module } from '@nestjs/common';
 import { AppConfigModule } from '../config/config.module';
 import { ChainsService } from './chains.service';
 
+/** Global module; makes ChainsService available to every feature module without explicit re-import. */
 @Global()
 @Module({
   imports: [AppConfigModule],

@@ -10,6 +10,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { PublicApiService } from './public-api.service';
 
+/** Exposes aggregate payment and withdrawal statistics, cached for 30 s. */
 @ApiTags('stats')
 @Controller('stats')
 export class StatsController {

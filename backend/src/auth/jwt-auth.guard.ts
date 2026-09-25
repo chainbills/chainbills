@@ -33,6 +33,7 @@ export interface AuthUser {
   sessionId: string;
 }
 
+/** Global deny-by-default guard; routes decorated with @Public() are exempt. */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(

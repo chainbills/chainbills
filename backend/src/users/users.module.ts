@@ -13,6 +13,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
+/** Registers UsersController and UsersService for the email-management and notification-preference endpoints. */
 @Module({
   imports: [PrismaModule, AppConfigModule, NotificationsModule],
   controllers: [UsersController],

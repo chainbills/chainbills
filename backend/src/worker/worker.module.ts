@@ -45,6 +45,10 @@ const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // 15 min
 const RELAY_LOOP_INTERVAL_MS = 1_000; // 1 second between relay iterations
 const OUTBOX_LOOP_INTERVAL_MS = 5_000; // 5 seconds between outbox iterations
 
+/**
+ * Acquires the Postgres advisory lock, starts per-chain indexer loops, the relay processor,
+ * the outbox processor, gas checks, and the heartbeat — active only when ROLE is "worker" or "all".
+ */
 @Module({
   imports: [
     PrismaModule,

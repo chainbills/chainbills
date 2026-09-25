@@ -369,3 +369,39 @@ describe('validateEnv', () => {
     expect(env.rpcBySlug).toEqual({ solanadevnet: 'https://solana.example.com' });
   });
 });
+
+// ── .env.example coverage check ───────────────────────────────────────────────
+// Verifies that every key defined in the zod schema appears in .env.example so
+// the two files never drift out of sync. The test is skipped when .env.example
+// is absent (e.g. inside a Docker build context that excludes it).
+
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { rawEnvSchema } from './env.schema';
+
+describe('.env.example key coverage', () => {
+  const examplePath = join(__dirname, '../../.env.example');
+
+  it.skipIf(!existsSync(examplePath))('contains every key defined in the zod schema', () => {
+    const raw = readFileSync(examplePath, 'utf8');
+    const exampleKeys = new Set<string>();
+    for (const line of raw.split('\n')) {
+      const stripped = line.trim();
+      // Active assignment:  KEY=value
+      const active = /^([A-Z_][A-Z0-9_]*)=/.exec(stripped);
+      if (active) {
+        exampleKeys.add(active[1]);
+        continue;
+      }
+      // Commented-out assignment:  # KEY=value (documented but optional)
+      const commented = /^#\s*([A-Z_][A-Z0-9_]*)=/.exec(stripped);
+      if (commented) {
+        exampleKeys.add(commented[1]);
+      }
+    }
+
+    const schemaKeys = Object.keys(rawEnvSchema.shape) as string[];
+    const missing = schemaKeys.filter((k) => !exampleKeys.has(k));
+    expect(missing, `Keys in env schema but absent from .env.example: ${missing.join(', ')}`).toHaveLength(0);
+  });
+});

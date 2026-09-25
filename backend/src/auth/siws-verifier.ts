@@ -25,6 +25,7 @@ export interface SiwsVerifyResult {
   address: string;
 }
 
+/** Parses and verifies SIWS messages using tweetnacl ed25519 verify; accepts base58 or base64 signatures. */
 @Injectable()
 export class SiwsVerifier {
   /**

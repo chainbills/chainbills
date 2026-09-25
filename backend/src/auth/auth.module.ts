@@ -25,6 +25,7 @@ import { SiweVerifier } from './siwe-verifier';
 import { SiwsVerifier } from './siws-verifier';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
+/** Registers auth services, SIWE/SIWS verifiers, and the global JwtAuthGuard for the API layer. */
 @Module({
   imports: [
     AppConfigModule,

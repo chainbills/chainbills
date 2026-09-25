@@ -119,6 +119,7 @@ function isEvmAddress(address: string): boolean {
   return address.startsWith('0x');
 }
 
+/** Serves the public read API: payables, payments, withdrawals, stats, and chain registry. */
 @Injectable()
 export class PublicApiService {
   private readonly logger = new Logger(PublicApiService.name);

@@ -56,6 +56,7 @@ function backoffMs(attempts: number): number {
  * templates, and sends via MailProvider. Registered as a worker-only service
  * and driven by WorkerModule's loop runner.
  */
+/** Claims pending outbox rows and delivers them via MailProvider with exponential backoff and stuck-row recovery. */
 @Injectable()
 export class OutboxProcessor {
   private readonly logger = new Logger(OutboxProcessor.name);

@@ -220,5 +220,3 @@ export const erc20Abi = [
     type: 'event',
   },
 ] as const;
-
-export { chainbillsAbi } from '../../../evm/abi/chainbills';

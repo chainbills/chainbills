@@ -30,6 +30,7 @@
  * ```
  */
 import { AddressChip, ChainBadge, GlassCard, PayableAvatar, QrCode, StatusPill } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconGlobe from '@/icons/IconGlobe.vue';
 import IconHorizontalAdjustments from '@/icons/IconHorizontalAdjustments.vue';
@@ -171,7 +172,7 @@ const share = async () => {
             :value="payable.host"
             :chain="payable.chain"
             kind="address"
-            :to="`/scan/address/${payable.host}`"
+            :to="FEATURES.scan ? `/scan/address/${payable.host}` : undefined"
           />
           <span class="shrink-0 tabular-nums" :title="relativeTimeStr">Created {{ createdDateStr }}</span>
         </div>

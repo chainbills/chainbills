@@ -14,7 +14,10 @@
  */
 import { activityTypeMeta, chainNamesToChains } from '@/schemas';
 import { IconChip, SectionHeader } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import { landingActivitySamples, type LandingChainName } from './placeholders';
+
+const scanOn = FEATURES.scan;
 
 /** Display info for each chain used in the ticker. */
 const chainMeta: Record<LandingChainName, { name: string; logo: string; color: string }> = {
@@ -100,8 +103,8 @@ const glyphs: Record<string, string> = {
       </div>
     </div>
 
-    <p class="text-center text-sm text-muted mt-6">
-      <router-link to="/scan" class="text-accent hover:underline">Open Scan →</router-link>
+    <p v-if="scanOn" class="text-center text-sm text-muted mt-6">
+      <router-link to="/scan" class="text-accent hover:underline">Open Scan -&gt;</router-link>
     </p>
   </section>
 </template>

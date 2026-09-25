@@ -9,6 +9,7 @@
  * Usage: `<BuildersTrust />` inside `HomeView.vue`.
  */
 import { GlassCard, SectionHeader } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import IconGithub from '@/icons/IconGithub.vue';
 
 /** One trust point: a claim and one sentence backing it. */
@@ -19,15 +20,20 @@ const points = [
   },
   {
     title: 'Cross-chain ids, not chain-specific ones',
-    description: 'Every chain reference is a keccak256 cbChainId (CAIP-2) — never a Wormhole id or a Circle domain.',
+    description: 'Every chain reference is a keccak256 cbChainId (CAIP-2), never a Wormhole id or a Circle domain.',
   },
-  {
-    title: 'Verifiable on Scan',
-    description: 'Every payable, payment and withdrawal this page describes can be looked up on-chain at /scan.',
-  },
+  ...(FEATURES.scan
+    ? [
+        {
+          title: 'Verifiable on Scan',
+          description:
+            'Every payable, payment and withdrawal this page describes can be looked up on-chain at /scan.',
+        },
+      ]
+    : []),
   {
     title: 'One transparent fee',
-    description: 'A flat 2% is taken on withdrawal — computed on-chain, visible before you confirm.',
+    description: 'A flat 2% is taken on withdrawal, computed on-chain, visible before you confirm.',
   },
 ];
 </script>

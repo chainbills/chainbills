@@ -40,7 +40,12 @@ export const useServerStore = defineStore('server', () => {
     return headers;
   };
 
-  const call = async (method: 'GET' | 'PUT', path: string, body?: unknown, ignoreErrors?: boolean): Promise<any> => {
+  const call = async (
+    method: 'GET' | 'PUT' | 'POST' | 'PATCH' | 'DELETE',
+    path: string,
+    body?: unknown,
+    ignoreErrors?: boolean
+  ): Promise<any> => {
     try {
       const res = await fetch(`${serverUrl()}${path}`, {
         method,
@@ -89,6 +94,7 @@ export const useServerStore = defineStore('server', () => {
     call('GET', `/payables/${payableId}`, undefined, ignoreErrors);
 
   return {
+    call,
     getPayable,
     saveDescription,
   };

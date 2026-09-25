@@ -7,6 +7,7 @@
  * Usage: `<FeaturesBento />` inside `HomeView.vue`.
  */
 import { GlassCard, SectionHeader } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import IconDashboard from '@/icons/IconDashboard.vue';
 import IconFinance from '@/icons/IconFinance.vue';
 import IconGlobe from '@/icons/IconGlobe.vue';
@@ -67,14 +68,18 @@ const features: {
     icon: IconFinance,
     iconClass: 'stroke-accent',
   },
-  {
-    title: 'On-chain explorer (Scan)',
-    description: 'Browse every payable, payment and withdrawal across every chain, mainnet and testnet, at /scan.',
-    icon: IconGlobe,
-    iconClass: 'stroke-accent',
-    to: '/scan',
-    span: true,
-  },
+  ...(FEATURES.scan
+    ? [
+        {
+          title: 'On-chain explorer (Scan)',
+          description: 'Browse every payable, payment and withdrawal across every chain, mainnet and testnet, at /scan.',
+          icon: IconGlobe,
+          iconClass: 'stroke-accent',
+          to: '/scan',
+          span: true,
+        },
+      ]
+    : []),
   {
     title: 'Transparent 2% withdrawal fee',
     description: 'The only fee is a flat 2% on withdrawals. No hidden spreads, no subscription.',

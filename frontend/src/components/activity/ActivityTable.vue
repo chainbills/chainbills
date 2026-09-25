@@ -20,6 +20,7 @@ import ActivityDetailPanel from './ActivityDetailPanel.vue';
 import ActivityDetails from './ActivityDetails.vue';
 import ActivityIcon from './ActivityIcon.vue';
 import { AddressChip, ChainBadge } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import { type Activity } from '@/schemas';
 import { useAuthStore, useTimeStore } from '@/stores';
 import { ref } from 'vue';
@@ -133,7 +134,7 @@ const has = (column: ActivityTableColumn) => props.columns.includes(column);
                 :value="activity.actor"
                 :chain="activity.chain"
                 kind="address"
-                :to="`/scan/address/${activity.actor}`"
+                :to="FEATURES.scan ? `/scan/address/${activity.actor}` : undefined"
               />
               <span v-else class="text-muted text-xs">—</span>
             </td>

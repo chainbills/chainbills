@@ -12,6 +12,7 @@
  * step keeps broadcasting to the other chains in the background.
  */
 import { useTxRetry } from '@/components/tx/retry';
+import EmailVerificationCard from '@/components/notifications/EmailVerificationCard.vue';
 import {
   AddressChip,
   ChainBadge,
@@ -21,10 +22,12 @@ import {
   StatusPill,
   TokenAmount,
 } from '@/components/ui';
+import { FEATURES } from '@/config/features';
+import IconEmail from '@/icons/IconEmail.vue';
 import PaymentRulesEditor from '@/components/payable/PaymentRulesEditor.vue';
 import SignInButton from '@/components/SignInButton.vue';
 import { chainNamesEvm, chainNamesToChains, TokenAndAmount } from '@/schemas';
-import { useAnalyticsStore, useAuthStore, usePayableStore } from '@/stores';
+import { useAnalyticsStore, useAuthStore, useNotificationsStore, usePayableStore } from '@/stores';
 import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
@@ -32,8 +35,15 @@ import { computed, ref } from 'vue';
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
+const notifications = useNotificationsStore();
 const payableStore = usePayableStore();
 const { setRetry } = useTxRetry();
+
+const emailFeatureOn = FEATURES.emailNotifications;
+const hasVerifiedEmail = computed(
+  () => !!notifications.profile?.email && !!notifications.profile?.emailVerifiedAt
+);
+const verifiedEmail = computed(() => notifications.profile?.email ?? '');
 
 const description = ref('');
 const descriptionLength = computed(() => description.value.trim().length);
@@ -153,6 +163,41 @@ const previewTitle = computed(() => `Payable preview`);
               </span>
             </span>
           </label>
+
+          <div v-if="emailFeatureOn">
+            <div class="flex items-center gap-3 mb-3">
+              <span
+                class="inline-flex items-center justify-center rounded-xl border border-glass-border bg-fg/5 w-9 h-9 text-accent shrink-0"
+              >
+                <IconEmail class="w-4 h-4" />
+              </span>
+              <div class="min-w-0">
+                <span class="block text-sm font-medium text-fg">Email notifications</span>
+                <span class="block text-xs text-muted">Optional. Skip and add it later from the wallet menu.</span>
+              </div>
+            </div>
+
+            <div
+              v-if="hasVerifiedEmail"
+              class="rounded-xl border border-glass-border bg-fg/[0.03] px-3.5 py-3 flex items-center justify-between gap-4 flex-wrap"
+            >
+              <div class="min-w-0">
+                <StatusPill tone="success" label="On" />
+                <p class="text-sm text-fg break-all mt-2">{{ verifiedEmail }}</p>
+              </div>
+              <router-link
+                to="/notifications"
+                class="text-xs text-accent hover:underline shrink-0"
+                @click="analytics.recordEvent('opened_email_notifications', { from: 'create_payable_page' })"
+              >
+                Manage
+              </router-link>
+            </div>
+
+            <div v-else class="rounded-xl border border-glass-border bg-fg/[0.03] px-3.5 py-3.5">
+              <EmailVerificationCard dense />
+            </div>
+          </div>
 
           <div v-if="homeChain">
             <span class="text-sm font-medium text-fg">Home chain</span>

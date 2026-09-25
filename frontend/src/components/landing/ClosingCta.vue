@@ -7,13 +7,14 @@
  *
  * Usage: `<ClosingCta />` inside `HomeView.vue`, as the last section.
  */
+import { FEATURES } from '@/config/features';
 import { GlassCard } from '@/components/ui';
 import { useAnalyticsStore } from '@/stores';
 import Button from 'primevue/button';
 
 const analytics = useAnalyticsStore();
 
-const cards = [
+const cards: { eyebrow: string; title: string; description: string; to: string; cta: string; wash: string }[] = [
   {
     eyebrow: 'For hosts',
     title: 'Start receiving',
@@ -22,19 +23,23 @@ const cards = [
     cta: 'Create a payable',
     wash: 'accent',
   },
-  {
-    eyebrow: 'For payers & the curious',
-    title: 'Pay or explore',
-    description: 'Pay an existing payable, or browse every payable, payment and withdrawal on Scan.',
-    to: '/scan',
-    cta: 'Explore Scan',
-    wash: 'accent-2',
-  },
-] as const;
+  ...(FEATURES.scan
+    ? [
+        {
+          eyebrow: 'For payers & the curious',
+          title: 'Pay or explore',
+          description: 'Pay an existing payable, or browse every payable, payment and withdrawal on Scan.',
+          to: '/scan',
+          cta: 'Explore Scan',
+          wash: 'accent-2',
+        },
+      ]
+    : []),
+];
 </script>
 
 <template>
-  <section class="py-10 sm:py-16 grid sm:grid-cols-2 gap-6">
+  <section :class="['py-10 sm:py-16 grid gap-6', cards.length > 1 ? 'sm:grid-cols-2' : 'max-w-md mx-auto']">
     <GlassCard
       v-for="(card, i) in cards"
       :key="card.title"

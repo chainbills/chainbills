@@ -13,10 +13,12 @@
  *
  * Usage: `<LandingHero />` inside `HomeView.vue`, as the first section.
  */
+import { FEATURES } from '@/config/features';
 import { useAnalyticsStore } from '@/stores';
 import Button from 'primevue/button';
 
 const analytics = useAnalyticsStore();
+const scanOn = FEATURES.scan;
 </script>
 
 <template>
@@ -47,11 +49,16 @@ const analytics = useAnalyticsStore();
             </span>
           </Button>
         </router-link>
-        <router-link to="/scan" @click="analytics.recordEvent('clicked_home_explore_scan')" class="group">
+        <router-link
+          v-if="scanOn"
+          to="/scan"
+          @click="analytics.recordEvent('clicked_home_explore_scan')"
+          class="group"
+        >
           <Button severity="secondary" size="large">
             <span class="flex items-center gap-2">
               Explore Scan
-              <span class="transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+              <span class="transition-transform group-hover:translate-x-1" aria-hidden="true">-&gt;</span>
             </span>
           </Button>
         </router-link>

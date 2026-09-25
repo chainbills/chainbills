@@ -10,7 +10,10 @@
  * Usage: `<NumbersStrip />` inside `HomeView.vue`.
  */
 import { StatTile } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import { landingStats } from './placeholders';
+
+const scanOn = FEATURES.scan;
 
 const tiles = [
   { label: 'Payables created', value: landingStats.payablesCreated },
@@ -33,8 +36,8 @@ const tiles = [
         v-reveal="{ delay: i * 60 }"
       />
     </div>
-    <p class="text-center text-sm text-muted mt-6">
-      <router-link to="/scan" class="text-accent hover:underline">Explore live data on Scan →</router-link>
+    <p v-if="scanOn" class="text-center text-sm text-muted mt-6">
+      <router-link to="/scan" class="text-accent hover:underline">Explore live data on Scan -&gt;</router-link>
     </p>
   </section>
 </template>

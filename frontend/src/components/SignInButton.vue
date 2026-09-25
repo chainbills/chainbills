@@ -20,9 +20,11 @@
  *    sidebar copies of this component (both rendered at once) don't clash.
  */
 const { id } = defineProps(['id']);
+import { FEATURES } from '@/config/features';
 import { useSolanaConnector } from '@/composables/useSolanaConnector';
 import IconArc from '@/icons/IconArc.vue';
 import IconCopy from '@/icons/IconCopy.vue';
+import IconEmail from '@/icons/IconEmail.vue';
 import IconEthereum from '@/icons/IconEthereum.vue';
 import IconLogout from '@/icons/IconLogout.vue';
 import IconMegaETH from '@/icons/IconMegaETH.vue';
@@ -199,6 +201,19 @@ const walletItems = () => [
       openSwitchChainModal();
     },
   },
+  ...(FEATURES.emailNotifications
+    ? [
+        {
+          label: 'Email notifications',
+          customIcon: IconEmail,
+          command: () => {
+            analytics.recordEvent('opened_email_notifications', { from: 'wallet_menu' });
+            sidebar.close();
+            router.push('/notifications');
+          },
+        },
+      ]
+    : []),
   {
     label: 'Disconnect',
     customIcon: IconLogout,

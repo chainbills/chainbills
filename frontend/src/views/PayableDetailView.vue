@@ -33,6 +33,7 @@ import PayableHero from '@/components/payable/PayableHero.vue';
 import PayableHostControls from '@/components/payable/PayableHostControls.vue';
 import PayableSettingsCard from '@/components/payable/PayableSettingsCard.vue';
 import { EmptyState, GlassCard, ScrollToTop, SearchInput, StatTile } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import IconWallet from '@/icons/IconWallet.vue';
 import { Payable } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, usePayableStore } from '@/stores';
@@ -148,7 +149,7 @@ const handleNotFoundSearch = (q: string) => {
       <template #icon>
         <IconWallet class="w-6 h-6" />
       </template>
-      <template #action>
+      <template v-if="FEATURES.scan" #action>
         <div class="flex flex-col items-center gap-3 w-full max-w-sm">
           <p class="text-xs text-muted">Try searching for a different id:</p>
           <SearchInput

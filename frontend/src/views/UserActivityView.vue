@@ -6,6 +6,7 @@
 import SignInButton from '@/components/SignInButton.vue';
 import { ActivityFeed, type ActivitySource } from '@/components/activity';
 import { AddressChip, ChainSwitcher, EmptyState, ScrollToTop, SearchInput, StatTile } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import { chainNamesEvm, chainNamesToChains } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useEvmStore } from '@/stores';
 import { computed, ref, watch } from 'vue';
@@ -129,7 +130,7 @@ const goToAddress = () => {
               id="user-activity"
               @click="analytics.recordEvent('clicked_signin', { from: 'user_activity_page' })"
             />
-            <div class="flex items-center gap-2">
+            <div v-if="FEATURES.scan" class="flex items-center gap-2">
               <SearchInput
                 v-model="lookupAddress"
                 placeholder="Look up any address"

@@ -324,10 +324,13 @@ export const useEvmStore = defineStore('evm', () => {
           : (e['details'] ?? e['shortMessage'] ?? e['message'] ?? `${e}`).split('()')[0];
         toastError(message);
         (confirmStep ?? steps?.sign)?.fail(message);
-        const errorType = raw.includes('insufficient') ? 'insufficient_funds'
-          : raw.includes('revert') ? 'contract_revert'
-          : raw.includes('failed to fetch') ? 'network_error'
-          : 'unknown';
+        const errorType = raw.includes('insufficient')
+          ? 'insufficient_funds'
+          : raw.includes('revert')
+            ? 'contract_revert'
+            : raw.includes('failed to fetch')
+              ? 'network_error'
+              : 'unknown';
         analytics.recordEvent('failed_evm_transaction', {
           error_type: errorType,
           chain: chain?.name,
@@ -694,7 +697,8 @@ export const useEvmStore = defineStore('evm', () => {
     readGetter(chainName, 'getChainStats', []);
 
   /** `getConfig()` — Wormhole/CCTP wiring and the withdrawal fee, used by `stores/stats.ts`. */
-  const fetchChainConfig = async (chainName: ChainName): Promise<any | null> => readGetter(chainName, 'getProtocolConfig', []);
+  const fetchChainConfig = async (chainName: ChainName): Promise<any | null> =>
+    readGetter(chainName, 'getProtocolConfig', []);
 
   /** `getTokenDetails(token)` — per-token on-chain volume counters, used by `stores/stats.ts`. Reverts (returns null) for a token this chain has no details for. */
   const getTokenDetailsOnChain = async (tokenAddress: string, chainName: ChainName): Promise<any | null> =>

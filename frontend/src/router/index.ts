@@ -1,3 +1,4 @@
+import { FEATURES } from '@/config/features';
 import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 
@@ -102,6 +103,20 @@ const router = createRouter({
           },
         ]
       : []),
+    ...(FEATURES.emailNotifications
+      ? [
+          {
+            path: '/notifications',
+            name: 'notifications',
+            component: () => import('../views/NotificationsView.vue'),
+            meta: {
+              title: `Email Notifications | ${baseTitle}`,
+              description:
+                'Manage the email address Chainbills sends notifications to, and pick which activity you want to hear about.',
+            },
+          },
+        ]
+      : []),
     {
       path: '/pitch',
       name: 'pitch',
@@ -136,26 +151,30 @@ const router = createRouter({
         return to;
       },
     },
-    {
-      path: '/scan',
-      name: 'scan',
-      component: () => import('../views/scan/ScanView.vue'),
-      meta: {
-        title: `Chainbills Scan | ${baseTitle}`,
-        description:
-          'Chainbills Scan: explore payables, payments, and withdrawals across all supported chains in real time.',
-      },
-    },
-    {
-      path: '/scan/address/:address',
-      name: 'scan-address',
-      component: () => import('../views/scan/ScanAddressView.vue'),
-      meta: {
-        title: `Address | Chainbills Scan | ${baseTitle}`,
-        description:
-          'Inspect this address on Chainbills Scan. View payables hosted, payments made, and withdrawals across all chains.',
-      },
-    },
+    ...(FEATURES.scan
+      ? [
+          {
+            path: '/scan',
+            name: 'scan',
+            component: () => import('../views/scan/ScanView.vue'),
+            meta: {
+              title: `Chainbills Scan | ${baseTitle}`,
+              description:
+                'Chainbills Scan: explore payables, payments, and withdrawals across all supported chains in real time.',
+            },
+          },
+          {
+            path: '/scan/address/:address',
+            name: 'scan-address',
+            component: () => import('../views/scan/ScanAddressView.vue'),
+            meta: {
+              title: `Address | Chainbills Scan | ${baseTitle}`,
+              description:
+                'Inspect this address on Chainbills Scan. View payables hosted, payments made, and withdrawals across all chains.',
+            },
+          },
+        ]
+      : []),
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',

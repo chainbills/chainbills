@@ -9,6 +9,7 @@
  * control at the bottom.
  */
 import ThemeMenu from '@/components/ThemeMenu.vue';
+import { FEATURES } from '@/config/features';
 import IconBlog from '@/icons/IconBlog.vue';
 import IconDashboard from '@/icons/IconDashboard.vue';
 import IconGlobe from '@/icons/IconGlobe.vue';
@@ -28,7 +29,7 @@ const isActive = (to: string) => route.path === to || route.path.startsWith(`${t
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: IconDashboard },
   { to: '/activity', label: 'My Activity', icon: IconReplay },
-  { to: '/scan', label: 'Chainbills Scan', icon: IconGlobe },
+  ...(FEATURES.scan ? [{ to: '/scan', label: 'Chainbills Scan', icon: IconGlobe }] : []),
 ];
 </script>
 

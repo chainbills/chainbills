@@ -11,6 +11,7 @@
  */
 import ThemeMenu from '@/components/ThemeMenu.vue';
 import TxBackgroundTray from '@/components/tx/TxBackgroundTray.vue';
+import { FEATURES } from '@/config/features';
 import IconBlog from '@/icons/IconBlog.vue';
 import IconDashboard from '@/icons/IconDashboard.vue';
 import IconGlobe from '@/icons/IconGlobe.vue';
@@ -37,13 +38,10 @@ const onScroll = () => (scrolled.value = window.scrollY > 8);
 onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }));
 onUnmounted(() => window.removeEventListener('scroll', onScroll));
 
-/** The primary nav links. `Scan` points to `/scan`, added by a later brief —
- *  until then it resolves to the 404 page, which is an acceptable interim
- *  state per the design system brief. */
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: IconDashboard },
   { to: '/activity', label: 'My Activity', icon: IconReplay },
-  { to: '/scan', label: 'Scan', icon: IconGlobe },
+  ...(FEATURES.scan ? [{ to: '/scan', label: 'Scan', icon: IconGlobe }] : []),
 ];
 
 const isActive = (to: string) => route.path === to || route.path.startsWith(`${to}/`);

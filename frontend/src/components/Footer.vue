@@ -9,6 +9,7 @@
  * inactive this round (see `frontend/docs/redesign/README.md` §1) and isn't
  * a chain a payer or host can actually use yet.
  */
+import { FEATURES } from '@/config/features';
 import IconBlog from '@/icons/IconBlog.vue';
 import IconDashboard from '@/icons/IconDashboard.vue';
 import IconDiscord from '@/icons/IconDiscord.vue';
@@ -29,7 +30,7 @@ const productLinks: { to: string; label: string; icon: Component }[] = [
   { to: '/start', label: 'Create a payable', icon: IconWallet },
   { to: '/dashboard', label: 'Dashboard', icon: IconDashboard },
   { to: '/activity', label: 'My Activity', icon: IconReplay },
-  { to: '/scan', label: 'Chainbills Scan', icon: IconGlobe },
+  ...(FEATURES.scan ? [{ to: '/scan', label: 'Chainbills Scan', icon: IconGlobe }] : []),
 ];
 
 </script>

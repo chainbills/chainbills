@@ -17,8 +17,9 @@ export const useServerStore = defineStore('server', () => {
       if (auth.signature) headers['signature'] = auth.signature;
 
       try {
+        const serverUrl = import.meta.env.VITE_SERVER_URL || 'https://api.chainbills.xyz';
         const result = await (
-          await fetch(`${import.meta.env.VITE_SERVER_URL}${path}`, {
+          await fetch(`${serverUrl}${path}`, {
             headers: {
               Accept: 'application/json',
               'Content-Type': 'application/json',

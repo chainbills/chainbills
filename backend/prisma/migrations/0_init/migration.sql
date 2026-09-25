@@ -2,7 +2,7 @@
 CREATE TYPE "activity_type" AS ENUM ('INITIALIZED_USER', 'CREATED_PAYABLE', 'USER_PAID', 'PAYABLE_RECEIVED', 'WITHDREW', 'CLOSED_PAYABLE', 'REOPENED_PAYABLE', 'UPDATED_PAYABLE_ALLOWED_TOKENS_AND_AMOUNTS', 'UPDATED_PAYABLE_AUTO_WITHDRAW_STATUS');
 
 -- CreateEnum
-CREATE TYPE "relay_job_type" AS ENUM ('PAYABLE_UPDATE_VIA_WORMHOLE', 'PAYABLE_UPDATE_VIA_CCTP', 'PAYMENT_VIA_CCTP_WORMHOLE', 'PAYMENT_VIA_CCTP_ONLY', 'ADMIN_SYNC', 'SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE', 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE');
+CREATE TYPE "relay_job_type" AS ENUM ('PAYABLE_UPDATE_VIA_WORMHOLE', 'PAYABLE_UPDATE_VIA_CCTP', 'PAYMENT_VIA_CCTP', 'ADMIN_SYNC', 'SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE', 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE');
 
 -- CreateEnum
 CREATE TYPE "relay_job_status" AS ENUM ('PENDING', 'PROCESSING', 'DONE', 'FAILED');
@@ -87,6 +87,7 @@ CREATE TABLE "user_payments" (
     "payable_id" TEXT NOT NULL,
     "payable_chain_id" TEXT NOT NULL,
     "token" TEXT NOT NULL,
+    "requested_amount" DECIMAL(78,0) NOT NULL,
     "amount" DECIMAL(78,0) NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL,
     "indexed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -107,6 +108,7 @@ CREATE TABLE "payable_payments" (
     "local_chain_count" BIGINT NOT NULL,
     "payable_count" BIGINT NOT NULL,
     "token" TEXT NOT NULL,
+    "requested_amount" DECIMAL(78,0) NOT NULL,
     "amount" DECIMAL(78,0) NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL,
     "indexed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -126,6 +128,7 @@ CREATE TABLE "withdrawals" (
     "payable_count" BIGINT NOT NULL,
     "token" TEXT NOT NULL,
     "amount" DECIMAL(78,0) NOT NULL,
+    "fee" DECIMAL(78,0) NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL,
     "indexed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -157,14 +160,13 @@ CREATE TABLE "relay_jobs" (
     "tx_hash" TEXT NOT NULL,
     "block_number" BIGINT,
     "event_data" JSONB NOT NULL,
+    "user_payment_id" TEXT,
     "attempts" INTEGER NOT NULL DEFAULT 0,
     "not_before" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "last_error" TEXT,
     "vaa" TEXT,
-    "circle_msg" TEXT,
-    "circle_attestation" TEXT,
-    "circle_msg_payload" TEXT,
-    "circle_attest_payload" TEXT,
+    "cctp_message" TEXT,
+    "cctp_attestation" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "last_attempt_at" TIMESTAMP(3),
     "completed_at" TIMESTAMP(3),
@@ -275,10 +277,19 @@ CREATE INDEX "user_payments_payer_wallet_key_timestamp_idx" ON "user_payments"("
 CREATE INDEX "user_payments_payable_id_idx" ON "user_payments"("payable_id");
 
 -- CreateIndex
+CREATE INDEX "user_payments_chain_id_timestamp_idx" ON "user_payments"("chain_id", "timestamp");
+
+-- CreateIndex
 CREATE INDEX "payable_payments_payable_id_timestamp_idx" ON "payable_payments"("payable_id", "timestamp");
 
 -- CreateIndex
 CREATE INDEX "payable_payments_payer_payment_id_idx" ON "payable_payments"("payer_payment_id");
+
+-- CreateIndex
+CREATE INDEX "payable_payments_payer_wallet_key_timestamp_idx" ON "payable_payments"("payer_wallet_key", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "payable_payments_chain_id_timestamp_idx" ON "payable_payments"("chain_id", "timestamp");
 
 -- CreateIndex
 CREATE INDEX "withdrawals_payable_id_timestamp_idx" ON "withdrawals"("payable_id", "timestamp");
@@ -293,10 +304,16 @@ CREATE INDEX "activities_entity_idx" ON "activities"("entity");
 CREATE UNIQUE INDEX "activities_chain_id_chain_count_key" ON "activities"("chain_id", "chain_count");
 
 -- CreateIndex
-CREATE INDEX "relay_jobs_status_not_before_idx" ON "relay_jobs"("status", "not_before");
+CREATE INDEX "activities_chain_id_timestamp_idx" ON "activities"("chain_id", "timestamp");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "relay_jobs_type_tx_hash_dest_chain_id_key" ON "relay_jobs"("type", "tx_hash", "dest_chain_id");
+
+-- CreateIndex
+CREATE INDEX "relay_jobs_status_not_before_idx" ON "relay_jobs"("status", "not_before");
+
+-- CreateIndex
+CREATE INDEX "relay_jobs_user_payment_id_idx" ON "relay_jobs"("user_payment_id");
 
 -- CreateIndex
 CREATE INDEX "wallets_user_id_idx" ON "wallets"("user_id");
@@ -312,6 +329,9 @@ CREATE INDEX "email_verifications_user_id_created_at_idx" ON "email_verification
 
 -- CreateIndex
 CREATE INDEX "email_verifications_email_created_at_idx" ON "email_verifications"("email", "created_at");
+
+-- CreateIndex
+CREATE INDEX "auth_nonces_expires_at_idx" ON "auth_nonces"("expires_at");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "outbox_dedupe_key_key" ON "outbox"("dedupe_key");

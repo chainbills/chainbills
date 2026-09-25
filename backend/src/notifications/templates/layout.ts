@@ -82,6 +82,27 @@ export function ctaButton(href: string, label: string): string {
 }
 
 /**
+ * Renders the amount + token symbol as a prominent hero card, tinted to
+ * match the Chainbills header palette. A small caption above the amount
+ * (e.g. "You received", "You paid") tells the reader what the number means.
+ *
+ * Uses a nested table for Outlook compatibility. `amount`, `symbol`, and
+ * `caption` must already be HTML-escaped.
+ */
+export function amountCard(amount: string, symbol: string, caption: string): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 24px;border-collapse:separate;">
+    <tr>
+      <td align="center" style="background:#faf7f0;border:1px solid #efe6d3;border-radius:12px;padding:24px 20px;">
+        <div style="color:#7a6c4a;font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;">${caption}</div>
+        <div style="color:#1a1a2e;font-size:34px;font-weight:700;line-height:1;letter-spacing:-0.5px;font-family:Arial,Helvetica,sans-serif;">
+          ${amount}<span style="color:#5b6474;font-size:18px;font-weight:600;margin-left:6px;">${symbol}</span>
+        </div>
+      </td>
+    </tr>
+  </table>`;
+}
+
+/**
  * Returns the unsubscribe link paragraph HTML for the footer.
  * `href` must be a valid URL with no user-controlled content injected.
  */

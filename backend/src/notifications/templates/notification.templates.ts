@@ -13,7 +13,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { formatAmount } from '../../common/amount/format-amount';
-import { layout, ctaButton, unsubscribeFooter, escapeHtml } from './layout';
+import { amountCard, layout, ctaButton, unsubscribeFooter, escapeHtml } from './layout';
 
 /** Parameters shared by all notification templates. */
 interface BaseTemplateParams {
@@ -98,10 +98,11 @@ export function paymentReceivedTemplate(params: PaymentReceivedParams): {
   const subject = `You received ${formatted} ${symbol}`;
 
   const contentHtml = `
-    <h2 style="margin:0 0 16px;color:#1a1a2e;font-size:20px;">Payment received</h2>
-    <p style="margin:0 0 8px;color:#333;font-size:15px;line-height:1.6;">
-      Your payable received a payment of <strong>${safe(formatted)} ${safe(symbol)}</strong>.
+    <h2 style="margin:0 0 8px;color:#1a1a2e;font-size:20px;">Payment received</h2>
+    <p style="margin:0;color:#333;font-size:15px;line-height:1.6;">
+      Your payable just received a new payment.
     </p>
+    ${amountCard(safe(formatted), safe(symbol), 'You received')}
     <p style="margin:0 0 4px;color:#555;font-size:14px;">Payable: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${safe(shortId(payableId))}</code></p>
     <p style="margin:0;color:#555;font-size:14px;">Payment: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${safe(shortId(paymentId))}</code></p>
     ${ctaButton(safe(receiptUrl), 'View Receipt')}`;
@@ -148,10 +149,11 @@ export function paymentReceiptTemplate(params: PaymentReceiptParams): {
   const subject = `Payment receipt: ${formatted} ${symbol}`;
 
   const contentHtml = `
-    <h2 style="margin:0 0 16px;color:#1a1a2e;font-size:20px;">Payment receipt</h2>
-    <p style="margin:0 0 8px;color:#333;font-size:15px;line-height:1.6;">
-      Your payment of <strong>${safe(formatted)} ${safe(symbol)}</strong> was successful.
+    <h2 style="margin:0 0 8px;color:#1a1a2e;font-size:20px;">Payment receipt</h2>
+    <p style="margin:0;color:#333;font-size:15px;line-height:1.6;">
+      Your payment went through.
     </p>
+    ${amountCard(safe(formatted), safe(symbol), 'You paid')}
     <p style="margin:0 0 4px;color:#555;font-size:14px;">Payable: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${safe(shortId(payableId))}</code></p>
     <p style="margin:0;color:#555;font-size:14px;">Payment ID: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${safe(shortId(paymentId))}</code></p>
     ${ctaButton(safe(receiptUrl), 'View Receipt')}`;
@@ -197,10 +199,11 @@ export function withdrawalCompletedTemplate(params: WithdrawalCompletedParams): 
   const subject = `Withdrawal of ${formatted} ${symbol} completed`;
 
   const contentHtml = `
-    <h2 style="margin:0 0 16px;color:#1a1a2e;font-size:20px;">Withdrawal completed</h2>
-    <p style="margin:0 0 8px;color:#333;font-size:15px;line-height:1.6;">
-      Your withdrawal of <strong>${safe(formatted)} ${safe(symbol)}</strong> has been completed.
+    <h2 style="margin:0 0 8px;color:#1a1a2e;font-size:20px;">Withdrawal completed</h2>
+    <p style="margin:0;color:#333;font-size:15px;line-height:1.6;">
+      Your withdrawal has landed.
     </p>
+    ${amountCard(safe(formatted), safe(symbol), 'You withdrew')}
     <p style="margin:0 0 4px;color:#555;font-size:14px;">Payable: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${safe(shortId(payableId))}</code></p>
     <p style="margin:0;color:#555;font-size:14px;">Withdrawal: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">${safe(shortId(withdrawalId))}</code></p>
     ${ctaButton(safe(payableUrl), 'View Payable')}`;

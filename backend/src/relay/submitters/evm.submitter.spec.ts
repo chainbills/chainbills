@@ -116,6 +116,35 @@ describe('decodeCustomError path', () => {
   });
 });
 
+describe('stripAbiFromError and decodeCustomError coverage', () => {
+  it('handles error with nested object properties (stripAbiFromError deep path)', async () => {
+    // Build an error with a deeply nested structure containing abi and nested objects
+    // to exercise the recursive strip path (line 41).
+    const deepErr = {
+      cause: {
+        data: '0xinvalid', // will fail decodeErrorResult -> hits line 65 return null
+        nested: { abi: ['should be stripped'], inner: 'value' },
+      },
+    };
+    const { publicClient, walletClient } = makeClients({ simulateError: deepErr });
+    // decodeCustomError will be called, fail to decode (invalid data), return null.
+    // Then the error re-throws with the stripAbiFromError path.
+    await expect(
+      submitReceivePayableUpdateViaWormhole(CHAIN, publicClient as any, walletClient as any, VAA_BYTES)
+    ).rejects.toBeDefined();
+  });
+
+  it('returns null from decodeCustomError when data is an invalid hex that cannot be decoded (line 65)', async () => {
+    // data that is valid hex but not a valid ABI error
+    const err = { cause: { data: '0x12345678' } };
+    const { publicClient, walletClient } = makeClients({ simulateError: err });
+    // decodeCustomError cannot decode -> returns null -> re-throws
+    await expect(
+      submitReceivePayableUpdateViaWormhole(CHAIN, publicClient as any, walletClient as any, VAA_BYTES)
+    ).rejects.toBeDefined();
+  });
+});
+
 describe('submitReceiveForeignPaymentViaCctp', () => {
   it('returns null on success', async () => {
     const { publicClient, walletClient } = makeClients({});

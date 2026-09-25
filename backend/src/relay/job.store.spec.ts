@@ -9,7 +9,7 @@ import { Prisma, RelayJobStatus, RelayJobType } from '@prisma/client';
 import { createJob, markDone, markFailed, retryLater, MAX_RELAY_ATTEMPTS } from './job.store';
 import type { PrismaService } from '../prisma/prisma.service';
 
-function makeJob(attempts = 0, status = RelayJobStatus.PROCESSING) {
+function makeJob(attempts = 0, status: RelayJobStatus = RelayJobStatus.PROCESSING) {
   return {
     id: 'job-1',
     type: RelayJobType.PAYABLE_UPDATE_VIA_WORMHOLE,

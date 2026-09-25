@@ -29,6 +29,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import type { PrismaService } from '../prisma/prisma.service';
 import { EvmIndexerModule } from '../indexer/evm/evm-indexer.module';
 import type { EvmIndexer } from '../indexer/evm/evm.indexer';
+import { SolanaIndexerModule } from '../indexer/solana/solana-indexer.module';
+import type { SolanaIndexer } from '../indexer/solana/solana.indexer';
 import { RelayModule } from '../relay/relay.module';
 import type { RelayProcessor } from '../relay/relay.processor';
 import type { Client as PgClient } from 'pg';
@@ -44,7 +46,7 @@ const RELAY_LOOP_INTERVAL_MS = 1_000; // 1 second between relay iterations
 const OUTBOX_LOOP_INTERVAL_MS = 5_000; // 5 seconds between outbox iterations
 
 @Module({
-  imports: [PrismaModule, ChainsModule, AppConfigModule, EvmIndexerModule, RelayModule, NotificationsModule],
+  imports: [PrismaModule, ChainsModule, AppConfigModule, EvmIndexerModule, SolanaIndexerModule, RelayModule, NotificationsModule],
   providers: [OutboxProcessor],
 })
 export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -58,6 +60,7 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
     private readonly config: AppConfigService,
     private readonly prisma: PrismaService,
     private readonly evmIndexer: EvmIndexer,
+    private readonly solanaIndexer: SolanaIndexer,
     private readonly relayProcessor: RelayProcessor,
     private readonly outboxProcessor: OutboxProcessor
   ) {}
@@ -87,6 +90,20 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
         name: `evm-indexer:${chain.slug}`,
         intervalMs,
         fn: () => this.evmIndexer.tick(chain),
+      });
+      this.stopFns.push(stop);
+    }
+
+    // Start one indexer loop per enabled Solana chain.
+    for (const chain of this.chains.enabled) {
+      if (!chain.isSolana) continue;
+
+      const intervalMs = this.config.env.pollIntervalMsOverride ?? chain.pollIntervalMs ?? 5_000;
+
+      const stop = runLoop({
+        name: `solana-indexer:${chain.slug}`,
+        intervalMs,
+        fn: () => this.solanaIndexer.tick(chain),
       });
       this.stopFns.push(stop);
     }
@@ -196,25 +213,59 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
     }
   }
 
-  /** Checks the relayer wallet's ETH balance on each enabled EVM chain and warns if low. */
+  /** Checks the relayer wallet's native balance on each enabled chain and warns if low. */
   private async gasBalanceCheck(relayerAddress: `0x${string}`): Promise<void> {
     for (const chain of this.chains.enabled) {
-      if (!chain.isEvm) continue;
-      try {
-        const client = createEvmPublicClient(chain, this.chains.getRpcUrl(chain)) as PublicClient;
-        const balance = await client.getBalance({ address: relayerAddress });
+      if (chain.isEvm) {
+        try {
+          const client = createEvmPublicClient(chain, this.chains.getRpcUrl(chain)) as PublicClient;
+          const balance = await client.getBalance({ address: relayerAddress });
 
-        if (balance < chain.minGasBalance) {
-          this.logger.warn(
-            { chain: chain.slug, balance: formatEther(balance), relayerAddress },
-            'low relayer gas balance — please fund the relayer wallet'
-          );
-        } else {
-          this.logger.debug({ chain: chain.slug, balance: formatEther(balance) }, 'gas balance ok');
+          if (balance < chain.minGasBalance) {
+            this.logger.warn(
+              { chain: chain.slug, balance: formatEther(balance), relayerAddress },
+              'low relayer gas balance — please fund the relayer wallet'
+            );
+          } else {
+            this.logger.debug({ chain: chain.slug, balance: formatEther(balance) }, 'gas balance ok');
+          }
+        } catch (err) {
+          this.logger.error({ chain: chain.slug, err }, 'gas balance check failed');
         }
-      } catch (err) {
-        this.logger.error({ chain: chain.slug, err }, 'gas balance check failed');
+      } else if (chain.isSolana) {
+        await this.solanaGasBalanceCheck(chain);
       }
+    }
+  }
+
+  /** Checks the Solana relayer wallet's SOL balance and warns if below minGasBalance. */
+  private async solanaGasBalanceCheck(chain: import('../chains/types').SolanaChainConfig): Promise<void> {
+    const keypairBytes = this.config.env.solanaRelayerKeypair;
+    if (!keypairBytes) return;
+
+    try {
+      const { Connection, Keypair } = await import('@solana/web3.js');
+      const relayerKeypair = Keypair.fromSecretKey(Uint8Array.from(keypairBytes));
+      const rpcUrl = this.chains.getRpcUrl(chain);
+      const connection = new Connection(rpcUrl, 'confirmed');
+      const balanceLamports = await connection.getBalance(relayerKeypair.publicKey);
+      const balanceBigInt = BigInt(balanceLamports);
+
+      if (balanceBigInt < chain.minGasBalance) {
+        this.logger.warn(
+          {
+            chain: chain.slug,
+            balanceLamports,
+            minGasBalance: chain.minGasBalance.toString(),
+            relayerAddress: relayerKeypair.publicKey.toBase58(),
+          },
+          'low Solana relayer SOL balance — please fund the relayer wallet'
+        );
+      } else {
+        this.logger.debug({ chain: chain.slug, balanceLamports }, 'Solana gas balance ok');
+      }
+    } catch (err) {
+      this.logger.error({ chain: chain.slug, err }, 'Solana gas balance check failed');
     }
   }
 

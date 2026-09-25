@@ -36,7 +36,7 @@ import {
   type ChainName,
   type Token,
 } from '@/schemas';
-import { chainbillsAbi, erc20Abi, useAnalyticsStore } from '@/stores';
+import { errorMsg, chainbillsAbi, erc20Abi, useAnalyticsStore } from '@/stores';
 import type { TxFlowHandle, TxStepHandle } from '@/stores/tx-flow';
 import {
   createConfig,

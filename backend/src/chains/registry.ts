@@ -42,8 +42,6 @@ export const arcmainnet: EvmChainConfig = {
   viemChain: viemArc,
   // TODO(owner): fill in from deploys/arcmainnet.json after deploying
   diamondAddress: null,
-  // TODO(owner): fill in from deploys/arcmainnet.json after deploying
-  deploymentBlock: null,
   // TODO(owner): not confirmed live on Arc mainnet yet — fill in when Wormhole is deployed
   wormholeChainId: undefined,
   circleDomain: 26,
@@ -63,7 +61,6 @@ export const anvil: EvmChainConfig = {
   viemChain: viemAnvil,
   // TODO(owner): fill in after running evm/script/DeployLocalStack.s.sol
   diamondAddress: null,
-  deploymentBlock: 0n,
   wormholeChainId: undefined,
   circleDomain: undefined,
   pollIntervalMs: 500,
@@ -103,7 +100,6 @@ export const megaeth: EvmChainConfig = {
   network: 'mainnet',
   viemChain: viemMegaeth,
   diamondAddress: null,
-  deploymentBlock: null,
   wormholeChainId: undefined,
   circleDomain: undefined,
   pollIntervalMs: 5000,
@@ -121,7 +117,6 @@ export const arctestnet: EvmChainConfig = {
   network: 'testnet',
   viemChain: viemArcTestnet,
   diamondAddress: null,
-  deploymentBlock: null,
   wormholeChainId: undefined,
   circleDomain: 26,
   pollIntervalMs: 5000,
@@ -139,7 +134,6 @@ export const sepolia: EvmChainConfig = {
   network: 'testnet',
   viemChain: viemSepolia,
   diamondAddress: null,
-  deploymentBlock: null,
   wormholeChainId: 10002,
   circleDomain: 0,
   pollIntervalMs: 12000,
@@ -158,8 +152,6 @@ export const base: EvmChainConfig = {
   viemChain: viemBase,
   // TODO(owner): fill in from deploys/base.json after deploying
   diamondAddress: null,
-  // TODO(owner): fill in from deploys/base.json after deploying
-  deploymentBlock: null,
   wormholeChainId: 30,
   circleDomain: 6,
   pollIntervalMs: 2000,

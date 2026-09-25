@@ -66,8 +66,6 @@ export interface EvmChainConfig extends BaseChainConfig {
    * not yet deployed. Config validation rejects enabling a chain with null here.
    */
   diamondAddress: `0x${string}` | null;
-  /** Block number to start indexing from on a cold cursor (the deployment block). Null until deployed. */
-  deploymentBlock: bigint | null;
 }
 
 /** Configuration for the Solana chain, watched and submitted to via @solana/web3.js + Anchor. */

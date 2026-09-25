@@ -28,7 +28,6 @@ const CHAIN: EvmChainConfig = {
   isEvm: true,
   isSolana: false,
   diamondAddress: '0xdiamond',
-  deploymentBlock: 0n,
   wormholeChainId: undefined,
   circleDomain: undefined,
   pollIntervalMs: 500,
@@ -120,9 +119,9 @@ function makePrismaWithTransaction(): PrismaService & { _txMock: any } {
 
   return {
     chainCursor: {
-      upsert: vi.fn().mockResolvedValue({ activitiesIndexed: 0n, relayScanBlock: 0n }),
+      upsert: vi.fn().mockResolvedValue({ activitiesIndexed: 0n }),
       update: vi.fn().mockResolvedValue({}),
-      findUnique: vi.fn().mockResolvedValue({ relayScanBlock: 0n }),
+      findUnique: vi.fn().mockResolvedValue({ wormholeRelayed: 0n }),
     },
     $transaction: vi.fn().mockImplementation(async (fn: (tx: any) => Promise<void>) => {
       await fn(txMock);

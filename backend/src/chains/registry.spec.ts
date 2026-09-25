@@ -125,12 +125,11 @@ describe('registry shape', () => {
     expect(arcmainnet.diamondAddress).toBeNull();
   });
 
-  it('anvil has the correct cbChainId, caip2 and zero deploymentBlock', () => {
+  it('anvil has the correct cbChainId, caip2 and null diamondAddress', () => {
     expect(anvil.caip2).toBe('eip155:31337');
     expect(anvil.cbChainId).toBe('0x318e51c37247d03bad135571413b06a083591bcc680967d80bf587ac928cf369');
     expect(anvil.network).toBe('local');
     expect(anvil.diamondAddress).toBeNull();
-    expect(anvil.deploymentBlock).toBe(0n);
   });
 
   it('solanadevnet has relayEnabled: false', () => {

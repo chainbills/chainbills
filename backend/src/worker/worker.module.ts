@@ -303,7 +303,6 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
             chain: chain.slug,
             activitiesIndexed: cursor.activitiesIndexed.toString(),
             onChainActivities: stats.activitiesCount.toString(),
-            relayScanBlock: cursor.relayScanBlock.toString(),
             lastTickAt: cursor.lastTickAt,
           },
           'heartbeat cursor'

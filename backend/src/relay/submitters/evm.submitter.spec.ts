@@ -22,7 +22,6 @@ const CHAIN: EvmChainConfig = {
   isEvm: true,
   isSolana: false,
   diamondAddress: '0x1234567890123456789012345678901234567890',
-  deploymentBlock: 0n,
   wormholeChainId: undefined,
   circleDomain: undefined,
   pollIntervalMs: 500,

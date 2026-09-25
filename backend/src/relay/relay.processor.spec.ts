@@ -23,7 +23,6 @@ const SRC_CHAIN: EvmChainConfig = {
   isEvm: true,
   isSolana: false,
   diamondAddress: '0xdiamond',
-  deploymentBlock: 0n,
   wormholeChainId: 10002,
   circleDomain: 0,
   pollIntervalMs: 1000,

@@ -117,7 +117,7 @@ export class EvmIndexer {
 
     // 4. Relay-trigger detection.
     try {
-      await detectRelayTriggers(chain, this.chains, this.prisma, client);
+      await detectRelayTriggers(chain, this.chains, this.prisma, stats);
     } catch (err) {
       this.logger.error({ chain: chain.slug, err }, 'relay trigger scan failed');
     }

@@ -39,8 +39,6 @@ model ChainCursor {
   chainId                   String    @id @map("chain_id")
   /// High-watermark of `Stats.activitiesCount` already indexed.
   activitiesIndexed         BigInt    @default(0) @map("activities_indexed")
-  /// Last EVM block scanned for relay-trigger events (SPEC.md §8.2 step 4).
-  relayScanBlock            BigInt    @default(0) @map("relay_scan_block")
   /// High-watermark of published Wormhole messages already relayed.
   wormholeRelayed           BigInt    @default(0) @map("wormhole_relayed")
   /// High-watermark of emitted CCTP payment messages already relayed.

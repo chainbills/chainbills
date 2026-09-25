@@ -26,7 +26,7 @@ chains, plus the host-only description write.
    query DTOs, response DTOs with examples, and error responses.
 6. Add missing DB indexes for the query patterns (new migration allowed in
    this phase; state it in the handoff note).
-7. Docs: `backend/CLAUDE.md` API section (conventions, endpoint map).
+7. Docs: `backend/AGENTS.md` — add invariants for any non-obvious API behaviour (address formatting, amount shape, pagination contract). Do not add a module map or Status section; keep the compact invariants-only format.
 
 ## Tests
 

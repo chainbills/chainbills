@@ -299,7 +299,11 @@ const canPay = computed(() => {
 });
 
 const pay = async () => {
-  analytics.recordEvent('clicked_pay');
+  analytics.recordEvent('clicked_pay', {
+    route_kind: routeKind.value,
+    token: selectedConfig.value?.name,
+    chain: userChain.value?.name,
+  });
   if (!payable.value || !auth.currentUser || !selectedConfig.value) return;
 
   validateAmount();
@@ -322,6 +326,26 @@ watch([selectedConfig, () => auth.currentUser], async () => {
 watch(needsApproval, (required) => {
   if (required && selectedConfig.value && userChain.value) {
     analytics.recordEvent('approval_required', {
+      token: selectedConfig.value.name,
+      chain: userChain.value.name,
+    });
+  }
+});
+
+let payPageTracked = false;
+watch(routeKind, (kind) => {
+  if (kind && !payPageTracked) {
+    payPageTracked = true;
+    analytics.recordEvent('loaded_pay_page', {
+      payable_id: payable.value?.id,
+      route_kind: kind,
+    });
+  }
+});
+
+watch(balanceError, (err) => {
+  if (err && selectedConfig.value && userChain.value) {
+    analytics.recordEvent('shown_insufficient_balance', {
       token: selectedConfig.value.name,
       chain: userChain.value.name,
     });

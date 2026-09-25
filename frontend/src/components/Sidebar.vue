@@ -46,7 +46,7 @@ const navLinks = [
         <li v-for="link in navLinks" :key="link.to">
           <router-link
             :to="link.to"
-            @click="sidebar.close"
+            @click="sidebar.close(); analytics.recordEvent('mobile_nav_link_clicked', { link: link.label })"
             :class="[
               'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
               isActive(link.to)

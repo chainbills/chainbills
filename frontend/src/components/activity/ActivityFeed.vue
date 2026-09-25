@@ -472,7 +472,16 @@ watch([activeTab, activeTypeFilters, activeTokenFilter, singleChainFilter], () =
   load(true); // explicit filter change — always shimmer, never show stale rows
 });
 
-watch(singleChainFilter, (v) => emit('update:chainFilter', v));
+watch(singleChainFilter, (v) => {
+  emit('update:chainFilter', v);
+  analytics.recordEvent('changed_activity_chain_filter', { chain: v, source: props.source.kind });
+});
+
+watch(searchQuery, (q) => {
+  if (q.length >= 3) {
+    analytics.recordEvent('searched_activity_feed', { source: props.source.kind, query_length: q.length });
+  }
+});
 
 onMounted(async () => {
   if (props.persistKey) {

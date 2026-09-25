@@ -99,12 +99,24 @@ const trackDelivery = async (userPayment: UserPayment) => {
     deliverySteps.value = [deliverySteps.value[0], { ...deliverStep, status: 'done', hints: undefined }];
     deliveryStatus.value = 'delivered';
     destinationPayablePaymentId.value = payablePayment?.id ?? null;
+    analytics.recordEvent('cross_chain_delivery_resolved', {
+      status: 'delivered',
+      payment_id: userPayment.id,
+      from_chain: userPayment.chain.name,
+      to_chain: userPayment.payableChain.name,
+    });
   } else {
     deliverySteps.value = [
       deliverySteps.value[0],
       { ...deliverStep, description: 'Still relaying — this is taking longer than usual. Check back soon.' },
     ];
     deliveryStatus.value = 'timeout';
+    analytics.recordEvent('cross_chain_delivery_resolved', {
+      status: 'timeout',
+      payment_id: userPayment.id,
+      from_chain: userPayment.chain.name,
+      to_chain: userPayment.payableChain.name,
+    });
   }
 };
 

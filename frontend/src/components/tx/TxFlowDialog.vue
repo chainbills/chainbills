@@ -70,6 +70,22 @@ watch(
   }
 );
 
+watch(
+  () => flow.value?.status,
+  (status, prev) => {
+    if (!flow.value || status === prev) return;
+    if (status === 'failed') {
+      analytics.recordEvent('tx_flow_failed', {
+        flow_kind: flow.value.kind,
+        step: failedStep.value?.title,
+        error: failedStep.value?.error?.slice(0, 200),
+      });
+    } else if (status === 'cancelled') {
+      analytics.recordEvent('tx_flow_cancelled', { flow_kind: flow.value.kind });
+    }
+  }
+);
+
 /** Whether the panel is currently fading out before auto-close. */
 const fadingOut = ref(false);
 let collapseTimer: ReturnType<typeof setTimeout> | null = null;

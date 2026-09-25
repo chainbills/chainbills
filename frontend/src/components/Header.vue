@@ -87,6 +87,7 @@ const isActive = (to: string) => route.path === to || route.path.startsWith(`${t
                   'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm transition-colors',
                   isActive(link.to) ? 'text-accent bg-accent/10' : 'text-muted hover:text-fg hover:bg-fg/8',
                 ]"
+                @click="analytics.recordEvent('nav_link_clicked', { link: link.label })"
               >
                 <component :is="link.icon" class="w-4 h-4 shrink-0" />
                 {{ link.label }}

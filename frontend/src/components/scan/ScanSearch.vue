@@ -27,9 +27,12 @@
  */
 import { ChainBadge, GlassCard, SearchInput, StatusPill } from '@/components/ui';
 import { chainNamesToChains } from '@/schemas';
+import { useAnalyticsStore } from '@/stores';
 import { useScanStore, type SearchResult } from '@/stores/scan';
 import { ref, watch } from 'vue';
 import type { ChainNetworkType } from '@/schemas';
+
+const analytics = useAnalyticsStore();
 
 const props = defineProps<{
   /** Current search string (v-model). */
@@ -104,8 +107,9 @@ const runSearch = async (q: string) => {
 
     if (result.kind === 'entity' && result.matches.length > 1) {
       showPopover.value = true;
+      analytics.recordEvent('scan_search_multi_match', { count: result.matches.length, query: q });
     } else {
-      // Let the parent handle navigation / filter updates for all other kinds.
+      analytics.recordEvent('scan_search_result', { kind: result.kind, query: q });
       emit('result', result);
     }
   } finally {
@@ -147,7 +151,7 @@ const closePopover = () => { showPopover.value = false; };
               v-for="match in lastResult.matches"
               :key="`${match.chainName}-${match.type}-${match.id}`"
               :to="entityPath(match)"
-              @click="closePopover"
+              @click="closePopover(); analytics.recordEvent('clicked_scan_search_result', { entity_type: match.type, chain: match.chainName })"
               class="flex items-center gap-3 px-4 py-2.5 hover:bg-fg/5 transition-colors"
             >
               <StatusPill

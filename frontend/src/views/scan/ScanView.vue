@@ -12,12 +12,13 @@ import ScanStats from '@/components/scan/ScanStats.vue';
 import { ActivityFeed, type ActivitySource } from '@/components/activity';
 import { GlassCard, ScrollToTop } from '@/components/ui';
 import { chainNamesEvm, chainNamesToChains, type Chain, type ChainName, type ChainNetworkType } from '@/schemas';
-import { useStatsStore } from '@/stores';
+import { useAnalyticsStore, useStatsStore } from '@/stores';
 import { DEFAULT_NETWORK } from '@/stores/scan';
 import type { ChainStatsSummary, NetworkStats, TokenVolume } from '@/stores/stats';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+const analytics = useAnalyticsStore();
 const route = useRoute();
 const router = useRouter();
 const stats = useStatsStore();
@@ -37,6 +38,7 @@ const syncRoute = () => {
 };
 
 watch([network], syncRoute);
+watch(network, (n) => analytics.recordEvent('switched_scan_network', { network: n }));
 
 // -------------------------------------------------------------------------
 // Derived chain data

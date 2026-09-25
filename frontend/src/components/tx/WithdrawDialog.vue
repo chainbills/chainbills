@@ -105,7 +105,13 @@ const feePercentLabel = computed(() => `${(feeBps.value / 100).toFixed(2).replac
 
 const asAmount = (raw: bigint) => new TokenAndAmount(props.balance.token(), raw).display(props.payable.chain);
 
-const setMax = () => (amountInput.value = props.balance.format(props.payable.chain));
+const setMax = () => {
+  amountInput.value = props.balance.format(props.payable.chain);
+  analytics.recordEvent('clicked_max_withdrawal', {
+    token: props.balance.name,
+    chain: props.payable.chain.name,
+  });
+};
 
 const close = () => emit('update:visible', false);
 
@@ -115,6 +121,8 @@ const submit = async () => {
     payable_id: props.payable.id,
     token: props.balance.name,
     chain: props.payable.chain.name,
+    net_amount: asAmount(rawAmount.value - fee.value),
+    fee_pct: feePercentLabel.value,
   });
   setRetry(() => submit());
   isSubmitting.value = true;

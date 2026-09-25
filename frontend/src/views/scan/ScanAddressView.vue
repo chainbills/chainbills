@@ -33,11 +33,12 @@ import {
   type ChainName,
   type ChainNetworkType,
 } from '@/schemas';
-import { useAuthStore, useEvmStore } from '@/stores';
+import { useAnalyticsStore, useAuthStore, useEvmStore } from '@/stores';
 import { DEFAULT_NETWORK } from '@/stores/scan';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+const analytics = useAnalyticsStore();
 const route = useRoute();
 const router = useRouter();
 const evm = useEvmStore();
@@ -66,6 +67,8 @@ const syncRoute = () => {
 };
 
 watch([network, activeTab, page], syncRoute);
+watch(activeTab, (tab) => analytics.recordEvent('switched_scan_address_tab', { tab, address }));
+watch(network, (net) => analytics.recordEvent('switched_scan_address_network', { network: net, address }));
 
 // -------------------------------------------------------------------------
 // "This is you" detection

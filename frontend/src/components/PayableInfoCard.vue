@@ -132,6 +132,7 @@ onMounted(fetchPayable);
             class="p-1.5 rounded-full hover:bg-fg/5 hover:text-accent"
             title="Open payable"
             aria-label="Open payable"
+            @click="analytics.recordEvent('opened_payable_from_dashboard', { payable_id: payable.id })"
           >
             <IconForward class="w-3.5 h-3.5" />
           </router-link>

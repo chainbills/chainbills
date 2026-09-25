@@ -216,7 +216,11 @@ export const usePayableStore = defineStore('payable', () => {
       data: { url: result.explorerUrl },
       life: 12000,
     });
-    analytics.recordEvent('created_payable', { payable_id: result.created, chain: result.chain.name });
+    analytics.recordEvent('created_payable', {
+      payable_id: result.created,
+      chain: result.chain.name,
+      has_description: !!description,
+    });
 
     if (flow && chain) scheduleSync(flow, chain, result.created, result.broadcastNonce);
     else flow?.finish({ payableId: result.created });

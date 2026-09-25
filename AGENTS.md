@@ -13,6 +13,7 @@ Cross-chain payment gateway. Users create **payables** (public invoices). Payers
 | `relayer/`    | **Active**     | Node.js event indexer + cross-chain relay service (Docker / Cloud Run). Solana support added. |
 | `frontend/`   | **Active**     | Vue 3 + Pinia + Wagmi SPA. Solana store added.                                              |
 | `server/`     | Active (minor) | Firebase Cloud Functions for descriptions + FCM tokens.                                     |
+| `backend/`    | **Active**     | NestJS + Prisma + PostgreSQL service: chain indexing, cross-chain relay, wallet auth, email notifications, public read API. Replaces relayer/ and server/. |
 | `solana_old/` | **Ignore**     | Old Solana code — superseded by `solana/`.                                                  |
 | `cosmwasm/`   | **Ignore**     | Old CosmWasm code — needs rebuilding.                                                       |
 
@@ -96,6 +97,17 @@ cd relayer && npm run backfill  # backfill historical events
 cd frontend && npm run dev
 cd frontend && npm run build
 cd frontend && npm run type-check
+
+# Backend
+cd backend && pnpm install
+cd backend && pnpm start:dev          # NestJS watch mode
+cd backend && pnpm build              # compile to dist/
+cd backend && pnpm lint
+cd backend && pnpm test:cov           # unit tests + coverage thresholds
+cd backend && pnpm test:e2e           # e2e (needs: docker compose up -d postgres)
+cd backend && pnpm prisma:deploy      # apply migrations
+cd backend && docker compose up -d postgres   # Postgres only
+cd backend && docker compose up -d            # Postgres + app
 ```
 
 ## Commit and PR Conventions

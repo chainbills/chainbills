@@ -180,6 +180,7 @@ model PayablePayment {
 
   @@index([payableId, timestamp])
   @@index([payerPaymentId])
+  @@index([payerWalletKey, timestamp])
   @@index([chainId, timestamp])
   @@map("payable_payments")
 }
@@ -283,8 +284,11 @@ model RelayJob {
   txHash        String   @map("tx_hash")
   blockNumber   BigInt?  @map("block_number")
   /// Decoded source event payload the job was created from (job-type specific shape).
-  eventData     Json     @map("event_data")
-  attempts      Int      @default(0)
+  eventData       Json     @map("event_data")
+  /// For PAYMENT_VIA_CCTP and SOLANA_PAYMENT_VIA_CCTP_WORMHOLE jobs: the UserPayment.id
+  /// this job delivers. Extracted here so relay-status lookups avoid a JSON scan.
+  userPaymentId   String?  @map("user_payment_id")
+  attempts        Int      @default(0)
   /// Earliest time this job may be attempted again (min-age deferral + backoff).
   notBefore     DateTime @default(now()) @map("not_before")
   lastError     String?  @map("last_error")
@@ -299,6 +303,7 @@ model RelayJob {
 
   @@unique([type, txHash, destChainId])
   @@index([status, notBefore])
+  @@index([userPaymentId])
   @@map("relay_jobs")
 }
 
@@ -351,6 +356,7 @@ model AuthNonce {
   usedAt    DateTime? @map("used_at")
   createdAt DateTime  @default(now()) @map("created_at")
 
+  @@index([expiresAt])
   @@map("auth_nonces")
 }
 

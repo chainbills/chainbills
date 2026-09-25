@@ -60,6 +60,10 @@ export async function createJob(prisma: PrismaService, data: CreateJobData): Pro
           txHash: data.txHash,
           blockNumber: data.blockNumber,
           eventData: data.eventData as Prisma.InputJsonValue,
+          // Extracted from eventData so relay-status lookups use a real index.
+          userPaymentId: typeof data.eventData['userPaymentId'] === 'string'
+            ? data.eventData['userPaymentId']
+            : null,
         },
       ],
       skipDuplicates: true,
@@ -168,20 +172,13 @@ export async function retryLater(prisma: PrismaService, job: RelayJob, error: st
 }
 
 /**
- * Finds the relay job whose `eventData` contains a `userPaymentId` field
- * matching the given id. Used by the public API to expose relay status on
- * GET /payments/user/:id. Returns null when no matching job exists (same-chain
- * payments never produce a relay job).
+ * Finds the relay job for the given user payment id. Uses the indexed
+ * `userPaymentId` column (not a JSON path scan). Returns null when no matching
+ * job exists — same-chain payments never produce a relay job.
  */
 export async function findByPaymentId(prisma: PrismaService, userPaymentId: string): Promise<RelayJob | null> {
-  // eventData is a Json column; Prisma's path-filter syntax queries JSONB.
   const rows = await prisma.relayJob.findMany({
-    where: {
-      eventData: {
-        path: ['userPaymentId'],
-        equals: userPaymentId,
-      },
-    },
+    where: { userPaymentId },
     orderBy: { createdAt: 'desc' },
     take: 1,
   });

@@ -99,8 +99,8 @@ const solanaKeypairJson = z
   })
   .pipe(z.array(z.number().int().min(0).max(255)).length(64, 'must contain exactly 64 integers (0-255)'));
 
-/** Raw (pre-refine) schema: every field optional/defaulted, no cross-field rules yet. */
-const rawEnvSchema = z.object({
+/** Raw (pre-refine) schema: every field optional/defaulted, no cross-field rules yet. Exported for tests only. */
+export const rawEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
   ROLE: z.enum(ROLES).default('all'),
   PORT: z.coerce.number().int().positive().default(8080),

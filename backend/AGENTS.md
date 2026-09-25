@@ -1,6 +1,6 @@
-# Chainbills Backend v2
+# Chainbills Backend
 
-NestJS + Prisma + PostgreSQL service. Read [`docs/SPEC.md`](docs/SPEC.md) (source of truth for behaviour) and [`docs/WORKER_RULES.md`](docs/WORKER_RULES.md) (contributor rules) before changing anything here. The module map and quick start are in the README.
+NestJS + Prisma + PostgreSQL service. The module map and quick start are in the README. The invariants below cover all system-level constraints.
 
 ## Invariants
 

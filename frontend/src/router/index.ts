@@ -151,6 +151,14 @@ const router = createRouter({
         return to;
       },
     },
+    {
+      path: '/demovid',
+      name: 'demovid',
+      redirect: (to) => {
+        window.location.replace('https://youtu.be/2CbhDWkaAYg');
+        return to;
+      },
+    },
     ...(FEATURES.scan
       ? [
           {

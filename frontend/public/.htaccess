@@ -16,6 +16,12 @@ Options -Indexes
 
   RewriteRule ^index\.html$ - [L]
 
+  RewriteRule ^pitch$ https://youtu.be/wlaqP9U_d4k [R=302,L]
+  RewriteRule ^slidedeck$ https://docs.google.com/presentation/d/1QAAfjjkM5ob5ziftZE-bpjUHTT5lWYR7 [R=302,L]
+  RewriteRule ^wpxv1$ https://docs.google.com/document/d/1PHvsQwllwQDuzWGUDFVQpHbzWCD5JByAlpeoVozywUY/edit?usp=drivesdk [R=302,L]
+  RewriteRule ^ptchdck$ https://drive.google.com/file/d/1aD4MmylCYxy75GjZA0bNg1TYg0ljBYsj/view?usp=sharing [R=302,L]
+  RewriteRule ^demovid$ https://youtu.be/2CbhDWkaAYg [R=302,L]
+
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
 

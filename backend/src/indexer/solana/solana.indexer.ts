@@ -37,10 +37,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PublicKey } from '@solana/web3.js';
 import { walletKey as makeWalletKey } from '../../chains/wallet-key';
-import type { ChainsService } from '../../chains/chains.service';
+import { ChainsService } from '../../chains/chains.service';
 import type { SolanaChainConfig } from '../../chains/types';
-import type { PrismaService } from '../../prisma/prisma.service';
-import type { AppConfigService } from '../../config/app-config.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { AppConfigService } from '../../config/app-config.service';
 import { enqueueOutbox } from '../../notifications/outbox.writer';
 import { normalisePayerBytes32, payerWalletKey } from '../evm/payer-normalise';
 import { makeConnection, makeCoder, decodeAccount } from './solana.client';

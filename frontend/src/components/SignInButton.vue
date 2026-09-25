@@ -23,6 +23,7 @@ const { id } = defineProps(['id']);
 import { FEATURES } from '@/config/features';
 import { useSolanaConnector } from '@/composables/useSolanaConnector';
 import IconArc from '@/icons/IconArc.vue';
+import IconBase from '@/icons/IconBase.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconEmail from '@/icons/IconEmail.vue';
 import IconEthereum from '@/icons/IconEthereum.vue';
@@ -57,6 +58,7 @@ const icons = {
   megaeth: IconMegaETH,
   sepolia: IconEthereum,
   solanadevnet: IconSolana,
+  basesepolia: IconBase,
 };
 const isModalVisible = ref(false);
 const dialogMode = ref<'connect' | 'switch'>('connect');
@@ -80,6 +82,10 @@ const dialogHeader = computed(() => {
   if (dialogMode.value === 'switch') return 'Switch Chain';
   return dialogStep.value === 1 ? 'Sign In' : 'Choose Wallet';
 });
+
+/** The chain the user is currently signed in on — surfaced in the switch-chain
+ *  picker so the active chain is visually marked and cannot be re-selected. */
+const activeChainName = computed<ChainName | null>(() => auth.currentUser?.chain.name ?? null);
 
 const resetDialog = () => {
   selectedChainName.value = null;
@@ -301,10 +307,14 @@ onMounted(() => {
 
         <button
           v-for="chain of [megaethInApp, arctestnet, basesepoliaInApp]"
+          :key="chain.name"
           type="button"
+          :disabled="dialogMode === 'switch' && activeChainName === chain.name"
           :class="[
             'w-full flex items-center gap-2.5 rounded-xl border px-3 py-2.5 mb-3 text-sm font-medium transition-colors',
-            selectedChainName == chain.name
+            dialogMode === 'switch' && activeChainName === chain.name
+              ? 'bg-accent/10 border-accent/60 text-fg cursor-not-allowed'
+              : selectedChainName == chain.name
               ? 'bg-accent/15 border-accent text-accent'
               : 'bg-fg/5 border-glass-border text-fg hover:bg-fg/10',
           ]"
@@ -312,6 +322,12 @@ onMounted(() => {
         >
           <component :is="icons[chain.name]" :id="`connect-wallet-menu-${id}`" class="w-5 h-5" />
           <span>{{ chain.displayName }}</span>
+          <span
+            v-if="dialogMode === 'switch' && activeChainName === chain.name"
+            class="ml-auto text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent/20 text-accent"
+          >
+            Current
+          </span>
         </button>
 
         <p class="text-center pt-4 pb-2">

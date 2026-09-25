@@ -45,6 +45,7 @@ export class AppConfigService {
       relayerPrivateKey: config.get('relayerPrivateKey', { infer: true }),
       solanaRelayerKeypair: config.get('solanaRelayerKeypair', { infer: true }),
       pollIntervalMsOverride: config.get('pollIntervalMsOverride', { infer: true }),
+      emailsEnabled: config.get('emailsEnabled', { infer: true }),
       mailProvider: config.get('mailProvider', { infer: true }),
       zeptomail: config.get('zeptomail', { infer: true }),
       otpHmacSecret: config.get('otpHmacSecret', { infer: true }),

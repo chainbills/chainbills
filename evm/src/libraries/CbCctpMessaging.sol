@@ -10,6 +10,7 @@ import {ITokenMessengerV2} from '../interfaces/circle/ITokenMessengerV2.sol';
 import {ITokenMinterV2} from '../interfaces/circle/ITokenMinterV2.sol';
 import {LibConfigStorage} from '../storage/LibConfigStorage.sol';
 import {LibMessagingStorage} from '../storage/LibMessagingStorage.sol';
+import {CctpPayableUpdateEmission} from '../types/CbTypes.sol';
 import {
   CCTP_BURN_AMOUNT_OFFSET,
   CCTP_BURN_TOKEN_OFFSET,
@@ -83,10 +84,15 @@ library CbCctpMessaging {
   // ---------------------------------------------------------------------------
 
   /// Sends `messageBody` to a registered foreign chain as a CCTP data message using the chain's payable update
-  /// settings.
+  /// settings, and records the emission so an off-chain relayer can walk `emittedCctpPayableUpdates` by index
+  /// (via `getEmittedCctpPayableUpdateMessages(offset, limit)`) instead of scanning event logs.
   /// @param cbChainId CAIP-2 chain identifier of a registered foreign chain with a Circle domain.
+  /// @param payableId Payable being broadcast; recorded for relayer correlation.
+  /// @param chainbillsNonce Chainbills payload nonce (matches the Nonce header in `messageBody`).
   /// @param messageBody Message body.
-  function sendPayableUpdate(bytes32 cbChainId, bytes memory messageBody) public {
+  function sendPayableUpdate(bytes32 cbChainId, bytes32 payableId, uint64 chainbillsNonce, bytes memory messageBody)
+    public
+  {
     ForeignChain storage chain = LibRelayGuard.registeredChain(cbChainId);
     if (!chain.config.protocolIds.hasCircleDomain) revert ICbErrors.ForeignChainHasNoCircleDomain(cbChainId);
     IMessageTransmitterV2(LibConfigStorage.layout().cctpMessageTransmitter)
@@ -97,7 +103,16 @@ library CbCctpMessaging {
         chain.config.finality.outboundUpdateFinality,
         messageBody
       );
-    LibMessagingStorage.layout().cctpStats.emittedCctpPayableUpdateMessagesCount++;
+    LibMessagingStorage.Layout storage messaging = LibMessagingStorage.layout();
+    messaging.cctpStats.emittedCctpPayableUpdateMessagesCount++;
+    messaging.emittedCctpPayableUpdates.push(
+      CctpPayableUpdateEmission({
+        payableId: payableId,
+        destChainId: cbChainId,
+        chainbillsNonce: chainbillsNonce,
+        messageBodyHash: keccak256(messageBody)
+      })
+    );
   }
 
   /// Burns `amount + maxFee` of `token` held by the diamond for minting on a registered foreign chain, carrying

@@ -213,7 +213,6 @@ export const usePayableStore = defineStore('payable', () => {
       severity: 'success',
       summary: 'Successful Payable Creation',
       detail: 'You have successfully created a Payable.',
-      data: { url: result.explorerUrl },
       life: 12000,
     });
     analytics.recordEvent('created_payable', {
@@ -229,17 +228,31 @@ export const usePayableStore = defineStore('payable', () => {
   };
 
   const get = async (id: string, ignoreErrors?: boolean): Promise<Payable | null> => {
-    const chain = await resolveChain(id);
-    if (!chain) {
-      if (!ignoreErrors) toastError("Couldn't find that Payable on any known chain.");
+    const fetchRaw = async (chain: Chain) => {
+      if (chain.isEvm) return await evm.fetchPayable(id, chain.name, ignoreErrors);
+      if (chain.isSolana) return await solana.tryFetchEntity('payable', id, ignoreErrors);
       return null;
-    }
+    };
 
     try {
-      let raw: any;
-      if (chain.isEvm) raw = await evm.fetchPayable(id, chain.name, ignoreErrors);
-      else if (chain.isSolana) raw = await solana.tryFetchEntity('payable', id, ignoreErrors);
-      if (!raw) return null;
+      let chain = await resolveChain(id);
+      if (!chain) {
+        if (!ignoreErrors) toastError("Couldn't find that Payable on any known chain.");
+        return null;
+      }
+
+      let raw = await fetchRaw(chain);
+
+      // Self-heal a stale `chainCacheKey` entry: if the resolved chain no
+      // longer holds the payable, invalidate the cache and probe again once
+      // so users carrying poisoned cache entries recover on next visit.
+      if (!raw) {
+        await cache.remove(chainCacheKey(id));
+        chain = await resolveChain(id);
+        if (!chain) return null;
+        raw = await fetchRaw(chain);
+        if (!raw) return null;
+      }
 
       // The description is off-chain decoration only — a failed/empty fetch never blocks the rest of the page.
       const dbData = await server.getPayable(id, true);

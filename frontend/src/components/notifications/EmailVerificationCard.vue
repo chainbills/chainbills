@@ -235,6 +235,7 @@ const wrapperClass = computed(() =>
             inputmode="email"
             autocomplete="email"
             placeholder="you@example.com"
+            :disabled="notifications.isRequestingCode"
             class="w-full"
           />
         </label>

@@ -68,8 +68,8 @@ address on every chain.
 | Chain         | Diamond Address |
 | ------------- | ---------------- |
 | Arc Mainnet   | TODO(owner): fill in from `deploys/arcmainnet.json` after deploying |
-| Arc Testnet   | TODO(owner): fill in from `deploys/arctestnet.json` after deploying |
-| Base Sepolia  | TODO(owner): fill in from `deploys/basesepolia.json` after deploying |
+| Arc Testnet   | `0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7` |
+| Base Sepolia  | `0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7` |
 | Base Mainnet  | TODO(owner): fill in from `deploys/base.json` after deploying |
 
 ---

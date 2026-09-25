@@ -76,6 +76,17 @@ export class OutboxProcessor {
   async tick(): Promise<void> {
     await this.recoverStuck();
     const rows = await this.claimPending();
+    if (rows.length === 0) return;
+
+    if (!this.config.env.emailsEnabled) {
+      const ids = rows.map((r) => r.id);
+      await this.prisma.outbox.updateMany({
+        where: { id: { in: ids } },
+        data: { status: 'SKIPPED', lastError: 'emails disabled (EMAILS_ENABLED=false)' },
+      });
+      return;
+    }
+
     for (const row of rows) {
       await this.processRow(row);
     }

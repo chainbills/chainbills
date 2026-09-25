@@ -22,9 +22,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { RelayJob } from '@prisma/client';
 import type { PrivateKeyAccount } from 'viem/accounts';
 import { createEvmPublicClient, createEvmWalletClient } from '../chains/clients';
-import type { ChainsService } from '../chains/chains.service';
+import { ChainsService } from '../chains/chains.service';
 import type { EvmChainConfig } from '../chains/types';
-import type { PrismaService } from '../prisma/prisma.service';
+import { AppConfigService } from '../config/app-config.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { claimJob, markDone, markFailed, patchArtefacts, retryLater } from './job.store';
 import { fetchCctpAttestation } from './resolvers/cctp.resolver';
 import { fetchVaa } from './resolvers/wormhole.resolver';
@@ -62,7 +63,7 @@ export class RelayProcessor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chains: ChainsService,
-    private readonly config: import('../config/app-config.service').AppConfigService
+    private readonly config: AppConfigService
   ) {}
 
   /**

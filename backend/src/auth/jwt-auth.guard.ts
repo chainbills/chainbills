@@ -23,7 +23,7 @@ import { JwtService } from '@nestjs/jwt';
 // Aliased: DOM globals include Request which would clash.
 import type { Request as ExpressRequest } from 'express';
 import { IS_PUBLIC_KEY } from '../common/decorators/public.decorator';
-import type { AuthService } from './auth.service';
+import { AuthService } from './auth.service';
 import type { JwtPayload } from './auth.service';
 
 /** Shape attached to `request.user` by the guard. */

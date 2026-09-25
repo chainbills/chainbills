@@ -123,11 +123,14 @@ const cbPreset = definePreset(Aura, {
       root: { background: 'var(--popover-bg)', borderColor: 'var(--glass-border)', color: 'var(--fg)' },
       item: { focusBackground: 'rgb(var(--fg-rgb) / 0.06)', color: 'var(--fg)', focusColor: 'var(--fg)' },
     },
-    // Toasts share one glass fill regardless of severity; severity is
-    // communicated by the IconChip in the custom toast template in
-    // `App.vue`, not by tinting the whole toast body.
+    // Toasts share one glass fill regardless of severity; the severity icon
+    // and summary carry the semantic colour. Padding/gap/icon-size are
+    // bumped up from Aura's defaults so the layout doesn't feel cramped at
+    // the 25rem toast width.
     toast: {
       root: { borderRadius: '16px' },
+      content: { padding: '1rem', gap: '0.75rem' },
+      icon: { size: '1.25rem' },
       colorScheme: {
         light: {
           info: {

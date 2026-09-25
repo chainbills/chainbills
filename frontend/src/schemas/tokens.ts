@@ -27,10 +27,9 @@ export const getTokenLogo = (chain: Chain, token: Token) => {
 
 /** The Chainbills proxy contract address on each chain. Native tokens use this as their "token address". */
 export const contracts: Record<ChainName, string> = {
-  arctestnet: '0x0bA837eF7358981967FB2cFcB79bf649b7cACbf4',
+  arctestnet: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7',
   megaeth: '0xc38d1681d34DA821E46508C084D673477E455570',
-  // TODO(owner): fill in from deploys/basesepolia.json after deploying
-  basesepolia: '',
+  basesepolia: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7',
   solanadevnet: 'DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk',
 };
 
@@ -153,6 +152,11 @@ export const tokens: Token[] = [
     name: 'USDC',
     details: {
       arctestnet: {
+        // Arc exposes USDC as both a native gas token (18 dp) and an ERC-20 (6 dp)
+        // at 0x3600...0000. Chainbills always uses the ERC-20 interface so
+        // decimals stay 6 across every chain and `pay()` goes through the
+        // standard ERC-20 transferFrom path (this address is what the on-chain
+        // deploy registers as USDC_ADDRESS for Arc Testnet — see evm/DEPLOYED.md).
         address: '0x3600000000000000000000000000000000000000',
         decimals: 6,
       },
@@ -173,10 +177,8 @@ export const tokens: Token[] = [
         address: contracts.megaeth,
         decimals: 18,
       },
-      basesepolia: {
-        address: contracts.basesepolia,
-        decimals: 18,
-      },
+      // basesepolia native ETH not yet allowed on the contract — add NATIVE to
+      // evm/script/env/tokens.json and run AllowPaymentsForToken to enable it
     },
   },
   {

@@ -529,11 +529,42 @@ onMounted(async () => {
               />
             </template>
             <template v-else>
-              <p class="text-sm text-fg mb-1">Waiting for this payable to sync to {{ userChain!.displayName }}…</p>
-              <p class="text-xs text-muted">
-                The Chainbills relayer broadcasts new payables to every chain of the same network. This usually takes a
-                minute.
-                <span v-if="secondsUntilRecheck !== null"> Rechecking in {{ secondsUntilRecheck }}s.</span>
+              <div class="flex items-center gap-3">
+                <ChainBadge :chain="payable.chain" size="sm" />
+
+                <!-- Sync rail: the same rail-sweep motion as CrossChainRoute so the
+                     "we are broadcasting this payable across chains" idea reads
+                     visually. Three staggered packets travel from source to dest
+                     to convey continuous activity while polling. Frozen under
+                     prefers-reduced-motion. -->
+                <div
+                  class="relative flex-1 h-px bg-gradient-to-r from-transparent via-fg/20 to-transparent"
+                  aria-hidden="true"
+                >
+                  <span
+                    class="sync-packet sync-packet-1 absolute top-1/2 -mt-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_2px_rgb(var(--accent-rgb)/0.5)] motion-reduce:left-1/2 motion-reduce:animate-none"
+                  ></span>
+                  <span
+                    class="sync-packet sync-packet-2 absolute top-1/2 -mt-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_2px_rgb(var(--accent-rgb)/0.5)] motion-reduce:hidden"
+                  ></span>
+                  <span
+                    class="sync-packet sync-packet-3 absolute top-1/2 -mt-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_2px_rgb(var(--accent-rgb)/0.5)] motion-reduce:hidden"
+                  ></span>
+                </div>
+
+                <ChainBadge :chain="userChain!" size="sm" />
+              </div>
+
+              <p class="mt-3 text-sm text-fg">
+                <span
+                  class="mr-2 inline-block w-1.5 h-1.5 rounded-full bg-accent align-middle sync-status-dot motion-reduce:animate-none"
+                  aria-hidden="true"
+                ></span>
+                Preparing this payable on {{ userChain!.displayName }}...
+              </p>
+              <p class="mt-1 text-xs text-muted">
+                This usually takes about a minute. We'll open the pay form as soon as it's ready.
+                <span v-if="secondsUntilRecheck !== null"> Checking again in {{ secondsUntilRecheck }}s.</span>
               </p>
             </template>
           </div>
@@ -620,3 +651,48 @@ onMounted(async () => {
     </div>
   </section>
 </template>
+
+<style scoped>
+@keyframes sync-packet-travel {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+.sync-packet {
+  animation: sync-packet-travel 2.8s var(--ease-out-expo) infinite;
+}
+.sync-packet-2 {
+  animation-delay: 0.9s;
+}
+.sync-packet-3 {
+  animation-delay: 1.8s;
+}
+
+@keyframes sync-status-dot {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.sync-status-dot {
+  animation: sync-status-dot 1.4s ease-in-out infinite;
+}
+</style>

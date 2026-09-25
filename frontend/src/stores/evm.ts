@@ -54,6 +54,8 @@ import {
   createPublicClient,
   http,
   parseEventLogs,
+  zeroAddress,
+  zeroHash,
   type Abi,
   type ContractEventArgs,
   type ContractEventName,
@@ -506,6 +508,13 @@ export const useEvmStore = defineStore('evm', () => {
     const xId = (!id.startsWith('0x') ? `0x${id}` : id) as `0x${string}`;
     const client = publicClientFor(chainName);
     const address = contracts[chainName] as `0x${string}`;
+    // `getPayable` reads a Solidity mapping so it returns a zero-filled struct
+    // for a non-existent payable rather than reverting. A real payable always
+    // has a non-zero `host`, so `host === address(0)` uniquely marks a missing
+    // record — treat that as null so callers don't render an empty payable.
+    const hasHost = (raw: any): boolean =>
+      !!raw && typeof raw.host === 'string' && raw.host.toLowerCase() !== zeroAddress;
+
     try {
       const [raw, aTAAs, balances] = await client.multicall({
         contracts: [
@@ -515,15 +524,17 @@ export const useEvmStore = defineStore('evm', () => {
         ] as const,
         allowFailure: false,
       });
+      if (!hasHost(raw)) return null;
       return { allowedTokensAndAmounts: aTAAs, balances, ...(raw as any) };
     } catch {
-      // No multicall3 on this chain, or the batch itself reverted (e.g. the payable does not exist) — fall back to parallel single reads.
+      // No multicall3 on this chain, or the batch itself reverted — fall back to parallel single reads.
       const [raw, aTAAs, balances] = await Promise.all([
         readGetter(chainName, 'getPayable', [xId], { ignoreErrors }),
         readGetter(chainName, 'getAllowedTokensAndAmounts', [xId], { ignoreErrors }),
         readGetter(chainName, 'getBalances', [xId], { ignoreErrors }),
       ]);
       if (!raw || !aTAAs || !balances) return null;
+      if (!hasHost(raw)) return null;
       return { allowedTokensAndAmounts: aTAAs, balances, ...raw };
     }
   };
@@ -541,12 +552,34 @@ export const useEvmStore = defineStore('evm', () => {
   };
 
   /**
-   * Probes every EVM chain in parallel for an entity id, using the fact
-   * that every single-entity `CbGetters` getter reverts when the id does
-   * not exist on that chain (`reference/onchain-data.md` §5.3). Returns the
-   * first chain (in `chainNamesEvm` order) whose read succeeded, plus that
-   * raw on-chain struct — or `null` if the id exists on none of them.
+   * Probes every EVM chain in parallel for an entity id. The single-entity
+   * `CbGetters` getters read from a Solidity mapping and therefore return a
+   * zero-filled struct — never revert — when the id does not exist on that
+   * chain, so callers must inspect the struct to decide "found". Each entity
+   * has an owner field (`host` for payables and withdrawals, `payer` for
+   * payments, `entity` for activity records) that is only ever zero for a
+   * non-existent record, so the presence of a non-zero owner uniquely marks
+   * a real record. Returns the first chain (in `chainNamesEvm` order) whose
+   * struct exists, plus its raw fields — or `null` if the id exists on none.
    */
+  const isEntityPresent = (
+    getterFn: 'getPayable' | 'getUserPayment' | 'getPayablePayment' | 'getWithdrawal' | 'getActivity',
+    raw: any
+  ): boolean => {
+    if (!raw) return false;
+    switch (getterFn) {
+      case 'getPayable':
+      case 'getWithdrawal':
+        return typeof raw.host === 'string' && raw.host.toLowerCase() !== zeroAddress;
+      case 'getUserPayment':
+        return typeof raw.payer === 'string' && raw.payer.toLowerCase() !== zeroAddress;
+      case 'getPayablePayment':
+        return typeof raw.payer === 'string' && raw.payer !== zeroHash;
+      case 'getActivity':
+        return typeof raw.entity === 'string' && raw.entity !== zeroHash;
+    }
+  };
+
   const probeEntityChain = async (
     getterFn: 'getPayable' | 'getUserPayment' | 'getPayablePayment' | 'getWithdrawal' | 'getActivity',
     id: string
@@ -555,7 +588,7 @@ export const useEvmStore = defineStore('evm', () => {
     const results = await Promise.all(
       chainNamesEvm.map(async (chainName) => {
         const raw = await readGetter(chainName, getterFn, [xId], { ignoreErrors: true });
-        return raw ? { chainName, raw } : null;
+        return isEntityPresent(getterFn, raw) ? { chainName, raw } : null;
       })
     );
     return results.find((r) => r !== null) ?? null;

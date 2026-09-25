@@ -55,9 +55,8 @@ watch(backgroundIds, (newIds, oldIds) => {
     const action = primaryActionsFor(flow).find((a) => a.to);
     toast.add({
       severity: 'success',
-      summary: `${flow.title} — done`,
+      summary: `${flow.title} done`,
       detail: action ? `${action.label} is ready.` : 'Finished while running in the background.',
-      data: action ? { url: `${window.location.origin}${action.to}` } : undefined,
       life: 12000,
     });
   }

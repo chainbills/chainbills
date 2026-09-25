@@ -15,12 +15,14 @@
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
-  '@scarf/scarf': false
+  '@scarf/scarf': true
   '@swc/core': true
-  bigint-buffer: false
-  bufferutil: false
+  bigint-buffer: true
+  bufferutil: true
   esbuild: true
+  msgpackr-extract: true
   prisma: true
-  utf-8-validate: false
+  utf-8-validate: true
+  workerd: true
 minimumReleaseAgeExclude:
   - '@nestjs/throttler@6.7.1'

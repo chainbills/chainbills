@@ -162,7 +162,6 @@ export const usePaymentStore = defineStore('payment', () => {
       severity: 'success',
       summary: 'Successfully Paid',
       detail: 'Cross-chain payment initiated! Funds will arrive on the destination chain after relaying.',
-      data: { url: result.explorerUrl },
       life: 12000,
     });
     analytics.recordEvent('made_payment', {
@@ -189,7 +188,6 @@ export const usePaymentStore = defineStore('payment', () => {
       detail: isSameChain
         ? 'You have successfully made a Payment.'
         : 'Cross-chain payment initiated! Funds will arrive on the destination chain after relaying.',
-      data: { url: result.explorerUrl },
       life: 12000,
     });
     analytics.recordEvent('made_payment', {

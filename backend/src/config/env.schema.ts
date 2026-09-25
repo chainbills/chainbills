@@ -1,8 +1,8 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Environment schema
 //
-// Single source of truth for every environment variable the service reads
-// (SPEC.md §5). `ConfigModule.forRoot({ validate })` runs `validateEnv` once
+// Single source of truth for every environment variable the service reads.
+// `ConfigModule.forRoot({ validate })` runs `validateEnv` once
 // at boot: on any problem it prints every issue (variable name + reason,
 // never the offending value) to stderr and exits the process with code 1,
 // before any Nest module initialises. `process.env` must never be read
@@ -126,8 +126,9 @@ export const rawEnvSchema = z.object({
 
   POLL_INTERVAL_MS: z.coerce.number().int().positive().optional(),
 
+  EMAILS_ENABLED: boolString(false),
   MAIL_PROVIDER: z.enum(['zeptomail', 'console']).default('console'),
-  ZEPTOMAIL_API_URL: z.url().default('https://api.zeptomail.com'),
+  ZEPTOMAIL_API_URL: z.url().default('https://cpaas.zoho.com'),
   ZEPTOMAIL_API_KEY: z.string().optional(),
   MAIL_FROM_ADDRESS: z.string().email().optional(),
   MAIL_FROM_NAME: z.string().default('Chainbills'),
@@ -151,7 +152,6 @@ function requireWhen(ctx: z.RefinementCtx, value: unknown, field: string, condit
     ctx.addIssue({ code: 'custom', path: [field], message: `is required ${reason}` });
   }
 }
-
 
 /**
  * Full env schema: raw parsing plus every role- and provider-conditional
@@ -240,6 +240,8 @@ export interface Env {
   solanaRelayerKeypair?: number[];
   /** Optional override of every chain's registry poll interval, in ms. */
   pollIntervalMsOverride?: number;
+  /** When false, outbox rows are skipped rather than sent. Safe default for staging/deploy. */
+  emailsEnabled: boolean;
   /** Which `MailProvider` implementation to use. */
   mailProvider: 'zeptomail' | 'console';
   zeptomail: {
@@ -290,6 +292,7 @@ function toEnv(parsed: ParsedEnv): Env {
     relayerPrivateKey: parsed.RELAYER_PRIVATE_KEY as `0x${string}` | undefined,
     solanaRelayerKeypair: parsed.SOLANA_RELAYER_KEYPAIR,
     pollIntervalMsOverride: parsed.POLL_INTERVAL_MS,
+    emailsEnabled: parsed.EMAILS_ENABLED,
     mailProvider: parsed.MAIL_PROVIDER,
     zeptomail: {
       apiUrl: parsed.ZEPTOMAIL_API_URL,

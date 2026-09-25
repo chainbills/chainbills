@@ -143,12 +143,35 @@ function makeEnv() {
   };
 }
 
-/** Returns a mock public client whose readContract method returns preset responses by functionName. */
+/** Zeroed messaging counters used when a test only supplies `getChainStats`. */
+const EMPTY_WORMHOLE_STATS = { publishedWormholeMessagesCount: 0n, consumedWormholeMessagesCount: 0n };
+const EMPTY_CCTP_STATS = {
+  emittedCctpPaymentMessagesCount: 0n,
+  emittedCctpPayableUpdateMessagesCount: 0n,
+  receivedCctpPaymentMessagesCount: 0n,
+  receivedCctpPayableUpdateMessagesCount: 0n,
+};
+
+/**
+ * Returns a mock public client whose readContract returns preset responses
+ * by functionName. Tests only need to set `getChainStats` — this helper
+ * transparently synthesises the `getAllStats` tuple the indexer actually
+ * calls, so existing tests keep working after the switch from
+ * `getChainStats` to `getAllStats`.
+ */
 function makeMockClient(responses: Record<string, any>) {
   return {
     getBlockNumber: vi.fn().mockResolvedValue(100n),
     getLogs: vi.fn().mockResolvedValue([]),
     readContract: vi.fn().mockImplementation(async ({ functionName }: any) => {
+      if (functionName === 'getAllStats') {
+        const explicit = responses.getAllStats;
+        if (explicit instanceof Error) throw explicit;
+        if (explicit) return explicit;
+        const chainStats = responses.getChainStats;
+        if (chainStats instanceof Error) throw chainStats;
+        return [chainStats ?? { activitiesCount: 0n }, EMPTY_WORMHOLE_STATS, EMPTY_CCTP_STATS];
+      }
       const val = responses[functionName];
       if (val instanceof Error) throw val;
       return val ?? null;
@@ -285,7 +308,7 @@ describe('EvmIndexer', () => {
         getBlockNumber: vi.fn().mockResolvedValue(100n),
         getLogs: vi.fn().mockResolvedValue([]),
         readContract: vi.fn().mockImplementation(async ({ functionName }: any) => {
-          if (functionName === 'getChainStats') return { activitiesCount: 2n };
+          if (functionName === 'getAllStats') return [{ activitiesCount: 2n }, EMPTY_WORMHOLE_STATS, EMPTY_CCTP_STATS];
           if (functionName === 'getChainActivities')
             return [
               ['0xact1', '0xact2'],

@@ -28,14 +28,14 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import type { PublicClient } from 'viem';
-import { walletKey as makeWalletKey } from '../../chains/wallet-key';
 import { chainbillsAbi } from '../../chains/abi/chainbills';
-import type { ChainsService } from '../../chains/chains.service';
+import { ChainsService } from '../../chains/chains.service';
 import { createEvmPublicClient } from '../../chains/clients';
 import type { EvmChainConfig } from '../../chains/types';
-import type { PrismaService } from '../../prisma/prisma.service';
-import type { AppConfigService } from '../../config/app-config.service';
+import { walletKey as makeWalletKey } from '../../chains/wallet-key';
+import { AppConfigService } from '../../config/app-config.service';
 import { enqueueOutbox } from '../../notifications/outbox.writer';
+import { PrismaService } from '../../prisma/prisma.service';
 import { detectRelayTriggers } from '../../relay/trigger.detector';
 import { normalisePayerBytes32, payerWalletKey } from './payer-normalise';
 
@@ -72,13 +72,16 @@ export class EvmIndexer {
   async tick(chain: EvmChainConfig): Promise<void> {
     const client = createEvmPublicClient(chain, this.chains.getRpcUrl(chain));
 
-    // 1. Get on-chain activity count.
-    const stats = await (client as PublicClient).readContract({
+    // 1. Get all counters in one call. `getAllStats` returns the tuple
+    // (ChainStats, WormholeStats, CctpStats) — the activity count drives
+    // the indexer, and the messaging counters are passed to the relay
+    // trigger detector at step 4.
+    const [chainStats, wormholeStats, cctpStats] = await (client as PublicClient).readContract({
       address: chain.diamondAddress!,
       abi: chainbillsAbi,
-      functionName: 'getChainStats',
+      functionName: 'getAllStats',
     });
-    const onChainCount = BigInt(stats.activitiesCount);
+    const onChainCount = BigInt(chainStats.activitiesCount);
 
     // 2. Get or initialise cursor.
     const cursor = await this.prisma.chainCursor.upsert({
@@ -117,7 +120,7 @@ export class EvmIndexer {
 
     // 4. Relay-trigger detection.
     try {
-      await detectRelayTriggers(chain, this.chains, this.prisma, stats);
+      await detectRelayTriggers(chain, this.chains, this.prisma, { wormholeStats, cctpStats });
     } catch (err) {
       this.logger.error({ chain: chain.slug, err }, 'relay trigger scan failed');
     }

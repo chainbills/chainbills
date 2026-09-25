@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import {CctpStats, WormholeStats} from '../types/CbTypes.sol';
+import {CctpPayableUpdateEmission, CctpStats, WormholeStats} from '../types/CbTypes.sol';
 
 /// Replay protection, nonces, and message counters for cross-chain messaging.
 /// @dev Append new fields at the end only.
@@ -26,6 +26,11 @@ library LibMessagingStorage {
     WormholeStats wormholeStats;
     /// CCTP counters.
     CctpStats cctpStats;
+    /// One entry per emitted CCTP payable-update message, in emission order. Length equals
+    /// `cctpStats.emittedCctpPayableUpdateMessagesCount`; off-chain relayers walk it via
+    /// `getEmittedCctpPayableUpdateMessages(offset, limit)` and fetch each attestation by
+    /// `(destChainId, cctpNonce)` or `messageBodyHash`.
+    CctpPayableUpdateEmission[] emittedCctpPayableUpdates;
   }
 
   /// keccak256(abi.encode(uint256(keccak256('chainbills.messaging')) - 1)) & ~bytes32(uint256(0xff))

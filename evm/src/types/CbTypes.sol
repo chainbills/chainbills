@@ -280,6 +280,16 @@ struct CctpStats {
   uint256 receivedCctpPayableUpdateMessagesCount;
 }
 
+/// One outbound CCTP payable-update message, indexed by emission order so an off-chain relayer
+/// can walk the log via `getEmittedCctpPayableUpdateMessages(offset, limit)` and fetch its Circle
+/// attestation by (sourceDomain, messageBodyHash) without any RPC log scan.
+struct CctpPayableUpdateEmission {
+  bytes32 payableId;
+  bytes32 destChainId;
+  uint64 chainbillsNonce;
+  bytes32 messageBodyHash;
+}
+
 // ===========================================================================
 // Core entities
 // ===========================================================================

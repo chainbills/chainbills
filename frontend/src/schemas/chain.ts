@@ -66,7 +66,7 @@ export const getWalletUrl = (wallet: string, chain: Chain) => {
 export const getChainLogo = (chain: Chain) => {
   if (chain.name === 'megaeth') return '/assets/tokens/MegaETH.png';
   if (chain.name === 'arctestnet') return '/assets/tokens/ARC.png';
-  if (chain.name === 'basesepolia') return '/assets/tokens/Base.png';
+  if (chain.name === 'basesepolia') return '/assets/tokens/BASE.png';
   if (chain.name === 'solanadevnet') return '/assets/tokens/SOL.png';
   throw 'Unhandled Chain in GetChainLogo';
 };

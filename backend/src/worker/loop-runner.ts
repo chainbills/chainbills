@@ -14,6 +14,15 @@
 
 import { Logger } from '@nestjs/common';
 
+/**
+ * Hard ceiling on how long `stop()` will wait for an in-flight iteration.
+ * Past this, the loop is marked stopped even if the tick is still running, so
+ * a stuck RPC call never blocks shutdown past the point tsc-watch / Kubernetes
+ * would otherwise SIGKILL us. In-flight work is orphaned intentionally — the
+ * lock still gets released and the standby can take over.
+ */
+const STOP_TIMEOUT_MS = 3_000;
+
 /** Options for a single loop. */
 export interface LoopOptions {
   /** Human label used in log messages. */
@@ -58,7 +67,14 @@ export function runLoop(opts: LoopOptions): () => Promise<void> {
 
   return async () => {
     running = false;
-    await stopped;
-    logger.log('loop stopped');
+    const timedOut = await Promise.race([
+      stopped.then(() => false),
+      new Promise<boolean>((r) => setTimeout(() => r(true), STOP_TIMEOUT_MS)),
+    ]);
+    if (timedOut) {
+      logger.warn(`loop stop timed out after ${STOP_TIMEOUT_MS}ms — abandoning in-flight iteration`);
+    } else {
+      logger.log('loop stopped');
+    }
   };
 }

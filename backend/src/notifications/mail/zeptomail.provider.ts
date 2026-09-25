@@ -2,9 +2,12 @@
 // Chainbills Backend — ZeptoMail provider
 //
 // Sends transactional email via the ZeptoMail REST API (v1.1/email).
-// Authentication: `Authorization: Zoho-enczapikey <ZEPTOMAIL_API_KEY>`.
+// Authentication: `Authorization: Zoho-enczapikey <token>`. The Zoho console
+// copies the token already prefixed with `Zoho-enczapikey `, so this provider
+// accepts either form (raw token or pre-prefixed string) and normalises to a
+// single, correct Authorization header.
 // Region: ZEPTOMAIL_API_URL matches the Zoho account's region
-//   (api.zeptomail.com, api.zeptomail.eu, api.zeptomail.in, etc.).
+//   (cpaas.zoho.com for global, cpaas.zoho.eu for EU, cpaas.zoho.in for India).
 // Custom headers (List-Unsubscribe) are sent as the `mime_headers` object.
 // 10-second fetch timeout. Non-2xx responses throw MailProviderError.
 //
@@ -41,13 +44,24 @@ interface ZeptoMailResponse {
  * The `apiUrl` should be the region host (no trailing slash); this provider
  * appends `/v1.1/email` when making the request.
  */
+const AUTH_PREFIX = 'Zoho-enczapikey ';
+
 export class ZeptoMailProvider implements MailProvider {
+  private readonly authHeader: string;
+
   constructor(
     private readonly apiUrl: string,
-    private readonly apiKey: string,
+    apiKey: string,
     private readonly fromAddress: string,
     private readonly fromName: string
-  ) {}
+  ) {
+    // Accept both the raw token and the `Zoho-enczapikey <token>` form the
+    // Zoho console's copy-to-clipboard produces. Prepending the prefix
+    // unconditionally would double it up when the user pastes the copied
+    // value verbatim and ZeptoMail would reject the request with 401.
+    const trimmed = apiKey.trim();
+    this.authHeader = trimmed.startsWith(AUTH_PREFIX) ? trimmed : `${AUTH_PREFIX}${trimmed}`;
+  }
 
   async send(msg: MailMessage): Promise<{ messageId: string }> {
     const url = `${this.apiUrl}/v1.1/email`;
@@ -75,7 +89,7 @@ export class ZeptoMailProvider implements MailProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Zoho-enczapikey ${this.apiKey}`,
+          Authorization: this.authHeader,
         },
         body: JSON.stringify(body),
         signal: controller.signal,

@@ -1,6 +1,6 @@
 # Chainbills
 
-Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive cryptocurrency from everybody (payers), powered by CCTP and WormHole. Chainbills deducts 2% (with a fixed maximum) from all withdrawals for fees and maintenance.
+Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receive cryptocurrency from everybody (payers), powered by Circle CCTP and Wormhole. Chainbills deducts 2% (with a fixed maximum) from all withdrawals for fees and maintenance.
 
 ## Table Of Contents
 
@@ -14,8 +14,7 @@ Chainbills is a cross-chain payment gateway that allows anyone (hosts) to receiv
   - [EVM](#evm)
   - [Solana](#solana)
   - [CosmWasm](#cosmwasm)
-- [Relayer](#relayer)
-- [Server](#server)
+- [Backend](#backend)
 - [Frontend](#frontend)
 - [Deployed Contracts](#deployed-contracts)
 - [Roadmap](#roadmap)
@@ -63,19 +62,19 @@ After a successful payment, Chainbills generates a receipt with the payment's de
 
 Chainbills permits the same activity set across multiple chains.
 
-Currently deployed on MegaETH (EVM mainnet), Arc Testnet, and Ethereum Sepolia (EVM testnets). Solana Devnet support is in active development (program complete, devnet deployment pending).
+Currently deployed on MegaETH (EVM mainnet), Arc Testnet, and Base Sepolia (EVM testnets). Solana Devnet support is in active development (program complete, devnet deployment pending).
 
 Our mission is to provide a seamless payment-receiving experience to content creators, merchants, and foundations. To enable them receive money for donations, products, and services from a large user base (across multiple chains). Chainbills also makes money easy by providing all these payments in one dashboard.
 
 Chainbills does this by allowing users to create payables and make payments and withdrawals on all chain networks (supported ones for now). So a payable can be created on any chain. Withdrawals are on the same chain in which the Payable was created. However, with payments, a payment can be done from the same or different chain as that of the Payable.
 
-When the blockchain networks of the payable and the payer are the same, no cross-chain activity is needed and payment proceeds directly. However, in the case of different chains, we need to reconcile money and data across the involved chains. This is powered by CCTP and Wormhole and Circle CCTP.
+When the blockchain networks of the payable and the payer are the same, no cross-chain activity is needed and payment proceeds directly. However, in the case of different chains, we need to reconcile money and data across the involved chains. This is powered by Wormhole and Circle CCTP.
 
 [Wormhole](https://wormhole.com) is an open source blockchain development platform connecting the decentralized web. Wormhole powers Chainbills by enabling [cross-chain messaging](https://wormhole.com/messaging/) for data transfers. [Circle](https://www.circle.com/) mints and maintains [USDC](https://www.circle.com/usdc) across multiple blockchain networks through [CCTP (Cross-Chain Transfer Protocol)](https://www.circle.com/cross-chain-transfer-protocol). CCTP also powers Chainbills by enabling USDC transfers across chains.
 
-A critical part of this architecture is that Chainbills uses **CAIP-2 chain identifiers** (`cbChainId`) as the universal key for all cross-chain chain references — rather than depending on Wormhole's `uint16` IDs or Circle's `uint32` domains. Each chain's `cbChainId` is `keccak256("namespace:reference")`, e.g. `keccak256("eip155:11155111")` for Ethereum Sepolia. This keeps Chainbills protocol-agnostic. Read more in the [Architecture doc](./ARCHITECTURE.md#caip-2-chain-identifiers-cbchainid).
+A critical part of this architecture is that Chainbills uses **CAIP-2 chain identifiers** (`cbChainId`) as the universal key for all cross-chain chain references — rather than depending on Wormhole's `uint16` IDs or Circle's `uint32` domains. Each chain's `cbChainId` is `keccak256("namespace:reference")`, e.g. `keccak256("eip155:5042002")` for Arc Testnet. This keeps Chainbills protocol-agnostic. Read more in the [Architecture doc](./ARCHITECTURE.md#caip-2-chain-identifiers-cbchainid).
 
-Asides from the cross-chain features, the overall data architecture of Chainbills is consistent across all parts of the code (various smart contract formats, frontend, and server). Read more about [Chainbills' architecture here](./ARCHITECTURE.md).
+Asides from the cross-chain features, the overall data architecture of Chainbills is consistent across all parts of the code (various smart contract formats, frontend, and backend). Read more about [Chainbills' architecture here](./ARCHITECTURE.md).
 
 ## Smart Contracts
 
@@ -89,11 +88,9 @@ There was best effort in replicating the same contract logic across the various 
 
 ### EVM
 
-We intend deploying our contracts on the multiple EVM chains to streamline payments for everybody. EVM contracts are written in Solidity. We use [foundry](https://book.getfoundry.sh/) to build, test, and deploy the EVM contracts.
+We intend deploying our contracts on multiple EVM chains to streamline payments for everybody. EVM contracts are written in Solidity. We use [Foundry](https://book.getfoundry.sh/) to build, test, and deploy the EVM contracts.
 
-Solidity has its design patterns and security best practices when it comes to Web3 development. We followed most paying attention to details especially as money is involved.
-
-The Chainbills EVM contract is an upgradable contract with the ERC1967 proxy spec with OpenZeppelin. It also uses Wormhole's Solidity SDK for cross-chain architectures. Find out more in the [`evm` subdirectory](./evm).
+The Chainbills EVM contract is an [ERC-2535 diamond](https://eips.ethereum.org/EIPS/eip-2535): a single proxy address that routes calls to stateless facets, allowing facet-level upgrades without touching storage or the diamond address. Libraries, facets, and the diamond itself are all deployed via CREATE2, which means the same `salt` and `owner` produce the same diamond address on every chain. Find out more in the [`evm` subdirectory](./evm).
 
 ### Solana
 
@@ -105,30 +102,19 @@ Solana's design patterns involves creating PDAs (Program Derived Accounts) for s
 
 CosmWasm (Cosmos) support is planned but not currently active. The `cosmwasm/` subdirectory contains an earlier prototype that needs to be rebuilt to match the current cross-chain architecture. Contributions welcome.
 
-## Relayer
+## Backend
 
-The relayer is a standalone, long-lived Node.js process (deployed on Cloud Run with `min-instances=1`) that automates cross-chain event indexing and message relaying for Chainbills chains (EVM + Solana). It runs independently of the server and the frontend.
+The `backend/` directory contains the NestJS + Prisma + PostgreSQL service that handles chain indexing, cross-chain relay, wallet authentication (SIWE/SIWS), email notifications, and the public read API.
 
 **What it does:**
 
-- **Event Indexing** — watches `CreatedPayable`, `UserPaid`, `PayableReceived`, and `Withdrew` events on all EVM chains using `viem` `getLogs` polling with a crash-safe Firestore block cursor. Writes entities to both top-level and chain-scoped Firestore paths using `{ merge: true }`.
-- **Payable Update Relaying** — when a payable is created or updated on one chain, the relayer detects the `PayableUpdateBroadcasted` event and submits the `PayablePayload` to all registered foreign chains via Wormhole VAA or Circle CCTP attestation.
-- **Cross-Chain Payment Relaying** — when a cross-chain payment `UserPaid` event is detected, the relayer either fetches both the Wormhole VAA and Circle CCTP attestation in parallel (Wormhole+CCTP path) or fetches two Circle CCTP attestations (CCTP-only path), then calls `receiveForeignPaymentViaCctp()` on the destination chain.
-- **Notifications** — sends FCM push notifications to payable hosts on `PayableReceived` events.
+- **Event Indexing** — polls `CreatedPayable`, `UserPaid`, `PayableReceived`, and `Withdrew` events on all enabled EVM chains via viem, using a cursor-based block range tracker persisted in PostgreSQL.
+- **Payable Update Relaying** — when a payable is created or updated on one chain, the backend detects the `PayableUpdateBroadcasted` event and submits the `PayablePayload` to all registered foreign chains via Wormhole VAA or Circle CCTP attestation.
+- **Cross-Chain Payment Relaying** — when a cross-chain `UserPaid` event is detected, the backend fetches Circle CCTP attestations (and Wormhole VAAs where applicable), then calls `receiveForeignPaymentViaCctp()` on the destination chain.
+- **Email Notifications** — notifies payable hosts of incoming payments via ZeptoMail.
+- **Public API** — read endpoints for payables, payments, withdrawals, activity, and chain stats.
 
-All relay actions are persisted in a Firestore job queue (`/relayerJobs`) for auditability and crash recovery, with up to 5 retry attempts per job.
-
-Find out more at the [`relayer` subdirectory](./relayer).
-
-## Server
-
-The server handles off-chain processes that require authentication. Its role is now focused on:
-
-- `POST /payable` — verifies the caller is the payable owner on-chain, then upserts the host-provided description into Firestore.
-- `GET /payable/:id` — returns the chain name and description for a given payable (used for chain discovery by the frontend).
-- `POST /notifications` — saves FCM tokens for browser push notifications.
-
-The server is a NodeJS Firebase Cloud Function. Find out more at the [`server` subdirectory](./server).
+Enabled chains and RPC URLs are hardcoded in `backend/src/chains/registry.ts`. Find out more at the [`backend` subdirectory](./backend).
 
 ## Frontend
 
@@ -140,7 +126,8 @@ All deployed EVM contract addresses, computed `cbChainId` values, Wormhole chain
 
 ## Roadmap
 
-
+- **Chainbills Scan** - a public explorer for all activities, payables, payments, and withdrawals, across all chains.
+- **Email Notifications** — notify hosts of incoming payments and withdrawals, and payers of successful payments.
 - **Embeddable widgets** — drop-in payment components hosts can add to their websites.
 - **Subscription payments** — recurring billing support for hosts.
 

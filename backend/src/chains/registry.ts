@@ -121,7 +121,7 @@ export const arctestnet: EvmChainConfig = {
   network: 'testnet',
   viemChain: viemArcTestnet,
   rpcUrl: 'https://rpc.testnet.arc.io',
-  diamondAddress: null,
+  diamondAddress: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7',
   wormholeChainId: undefined,
   circleDomain: 26,
   pollIntervalMs: 5000,
@@ -139,8 +139,7 @@ export const basesepolia: EvmChainConfig = {
   network: 'testnet',
   viemChain: viemBaseSepolia,
   rpcUrl: 'https://sepolia.base.org',
-  // TODO(owner): fill in from deploys/basesepolia.json after deploying
-  diamondAddress: null,
+  diamondAddress: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7',
   wormholeChainId: 10004,
   circleDomain: 6,
   pollIntervalMs: 2000,

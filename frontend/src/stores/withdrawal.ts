@@ -68,7 +68,6 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       severity: 'success',
       summary: 'Successfully Withdrew',
       detail: 'You have successfully made a Withdrawal. Check your wallet for your increments.',
-      data: { url: result.explorerUrl },
       life: 12000,
     });
     analytics.recordEvent('made_withdrawal', { withdrawal_id: result.created, chain: result.chain.name });

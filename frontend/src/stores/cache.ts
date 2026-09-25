@@ -25,9 +25,16 @@ export const useCacheStore = defineStore('cache', () => {
     }
   };
 
+  const remove = async (key: string) => {
+    if (db) {
+      const tx = db.transaction('cache-v2', 'readwrite');
+      await Promise.all([tx.store.delete(key), tx.done]);
+    }
+  };
+
   onMounted(() => {
     useDb().then((result) => (db = result));
   });
 
-  return { retrieve, save };
+  return { retrieve, save, remove };
 });

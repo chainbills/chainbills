@@ -8,7 +8,7 @@
 // AppModule.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { ValidationPipe } from '@nestjs/common';
+import { Logger as NestLogger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -29,7 +29,7 @@ async function bootstrap(): Promise<void> {
   // bodyParser: false — we install json()/urlencoded() ourselves below with
   // an explicit size limit instead of Nest's unbounded default.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bufferLogs: true,
+    bufferLogs: false,
     bodyParser: false,
   });
 
@@ -59,6 +59,43 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   await app.listen(config.port);
+  logRegisteredRoutes(app);
+}
+
+/** Prints every registered HTTP route once at boot so the operator can eyeball what's actually wired. */
+function logRegisteredRoutes(app: NestExpressApplication): void {
+  const logger = new NestLogger('Routes');
+  const httpAdapter = app.getHttpAdapter().getInstance() as { router?: { stack?: RouterLayer[] }; _router?: { stack?: RouterLayer[] } };
+  const stack = httpAdapter.router?.stack ?? httpAdapter._router?.stack ?? [];
+  const routes = collectRoutes(stack);
+  if (routes.length === 0) {
+    logger.warn('no routes registered');
+    return;
+  }
+  for (const { method, path } of routes.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method))) {
+    logger.log(`${method.padEnd(6)} ${path}`);
+  }
+  logger.log(`${routes.length} route(s) registered`);
+}
+
+interface RouterLayer {
+  route?: { path: string; methods: Record<string, boolean> };
+  name?: string;
+  handle?: { stack?: RouterLayer[] };
+  regexp?: RegExp;
+}
+
+function collectRoutes(stack: RouterLayer[], prefix = ''): { method: string; path: string }[] {
+  const out: { method: string; path: string }[] = [];
+  for (const layer of stack) {
+    if (layer.route) {
+      const path = prefix + layer.route.path;
+      for (const method of Object.keys(layer.route.methods)) out.push({ method: method.toUpperCase(), path });
+    } else if (layer.name === 'router' && layer.handle?.stack) {
+      out.push(...collectRoutes(layer.handle.stack, prefix));
+    }
+  }
+  return out;
 }
 
 /** Mounts OpenAPI docs at /docs (Swagger UI) and /docs-json (raw spec), per phase 1 task 7. */

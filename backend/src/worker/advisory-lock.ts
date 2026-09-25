@@ -22,8 +22,21 @@ const logger = new Logger('AdvisoryLock');
 // keccak256("chainbills.worker") lower 8 bytes, cast to bigint, within int64 range.
 export const CHAINBILLS_WORKER_LOCK = 7_461_981_372_534_109_293n;
 
-/** How long to wait between retry attempts when the lock is held by another process. */
-const RETRY_INTERVAL_MS = 30_000;
+/**
+ * How long to wait between retry attempts when the lock is held by another
+ * process. 3s is short enough that a hot-reload / rolling-deploy overlap heals
+ * in a couple ticks, and light enough on Postgres that real HA contention (two
+ * standby replicas polling) is still trivial load.
+ */
+const RETRY_INTERVAL_MS = 3_000;
+
+/**
+ * TCP keepalive on the dedicated lock connection so Postgres notices a hard
+ * process death (SIGKILL, crash, host loss) within ~10s and releases the
+ * session-scoped lock, instead of holding it for the default TCP idle timeout
+ * of hours. The standby can then acquire it on its next tick.
+ */
+const KEEPALIVE_INITIAL_DELAY_MS = 10_000;
 
 /**
  * Attempts to acquire `pg_try_advisory_lock` on a dedicated PG connection.
@@ -35,7 +48,11 @@ const RETRY_INTERVAL_MS = 30_000;
  */
 export async function acquireAdvisoryLock(databaseUrl: string): Promise<Client> {
   while (true) {
-    const client = new Client({ connectionString: databaseUrl });
+    const client = new Client({
+      connectionString: databaseUrl,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: KEEPALIVE_INITIAL_DELAY_MS,
+    });
     try {
       await client.connect();
       const res = await client.query('SELECT pg_try_advisory_lock($1::bigint) AS locked', [

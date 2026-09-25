@@ -8,12 +8,21 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import { AppConfigService } from '../config/app-config.service';
 
 /** NestJS lifecycle wrapper around PrismaClient; connects on module init and disconnects on shutdown. */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
+
+  // Prisma 7 requires either a driver adapter or Accelerate — schema-level `url`
+  // is gone. The `pg` adapter routes queries through the already-installed pg
+  // driver, using the validated DATABASE_URL from AppConfigService.
+  constructor(config: AppConfigService) {
+    super({ adapter: new PrismaPg({ connectionString: config.env.databaseUrl }) });
+  }
 
   /**
    * Connects eagerly at module init rather than lazily on first query, so a

@@ -24,6 +24,15 @@ import { createJob } from './job.store';
 
 const logger = new Logger('TriggerDetector');
 
+/** Messaging counters passed in from the indexer (result of `getAllStats()`). */
+export interface MessagingStats {
+  wormholeStats: { publishedWormholeMessagesCount: bigint | number };
+  cctpStats: {
+    emittedCctpPaymentMessagesCount: bigint | number;
+    emittedCctpPayableUpdateMessagesCount: bigint | number;
+  };
+}
+
 /**
  * Creates Wormhole relay jobs for new outbound payable-update messages on one
  * EVM source chain.
@@ -31,18 +40,17 @@ const logger = new Logger('TriggerDetector');
  * @param chain   Source EVM chain.
  * @param chains  ChainsService for destination lookup.
  * @param prisma  PrismaService for cursor reads and job writes.
- * @param stats   Already-fetched result of `getChainStats()` for this chain.
+ * @param stats   Messaging counters from `getAllStats()` on this chain.
  */
 export async function detectRelayTriggers(
   chain: EvmChainConfig,
   chains: ChainsService,
   prisma: PrismaService,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  stats: any
+  stats: MessagingStats
 ): Promise<void> {
   if (!chain.wormholeChainId) return;
 
-  const publishedCount = BigInt(stats?.wormholeStats?.publishedWormholeMessagesCount ?? 0);
+  const publishedCount = BigInt(stats.wormholeStats.publishedWormholeMessagesCount);
 
   const cursor = await prisma.chainCursor.findUnique({ where: { chainId: chain.cbChainId } });
   const wormholeRelayed = BigInt(cursor?.wormholeRelayed?.toString() ?? '0');

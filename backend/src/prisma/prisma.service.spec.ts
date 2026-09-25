@@ -7,12 +7,15 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { PrismaClient } from '@prisma/client';
+import type { AppConfigService } from '../config/app-config.service';
 import { PrismaService } from './prisma.service';
+
+const configStub = { env: { databaseUrl: 'postgresql://user:pass@localhost:5432/db' } } as AppConfigService;
 
 describe('PrismaService', () => {
   it('connects to Postgres on module init', async () => {
     const connectSpy = vi.spyOn(PrismaClient.prototype, '$connect').mockResolvedValue(undefined);
-    const service = new PrismaService();
+    const service = new PrismaService(configStub);
     await service.onModuleInit();
     expect(connectSpy).toHaveBeenCalledTimes(1);
     connectSpy.mockRestore();
@@ -20,7 +23,7 @@ describe('PrismaService', () => {
 
   it('disconnects from Postgres on module destroy', async () => {
     const disconnectSpy = vi.spyOn(PrismaClient.prototype, '$disconnect').mockResolvedValue(undefined);
-    const service = new PrismaService();
+    const service = new PrismaService(configStub);
     await service.onModuleDestroy();
     expect(disconnectSpy).toHaveBeenCalledTimes(1);
     disconnectSpy.mockRestore();

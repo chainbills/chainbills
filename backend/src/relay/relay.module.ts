@@ -5,12 +5,13 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module } from '@nestjs/common';
+import { AppConfigModule } from '../config/config.module';
 import { ChainsModule } from '../chains/chains.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RelayProcessor } from './relay.processor';
 
 @Module({
-  imports: [PrismaModule, ChainsModule],
+  imports: [PrismaModule, ChainsModule, AppConfigModule],
   providers: [RelayProcessor],
   exports: [RelayProcessor],
 })

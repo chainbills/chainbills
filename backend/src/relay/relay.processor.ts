@@ -33,6 +33,11 @@ import {
   submitReceivePayableUpdateViaCctp,
   submitReceivePayableUpdateViaWormhole,
 } from './submitters/evm.submitter';
+import {
+  submitPayableUpdateToSolana,
+  submitPaymentToSolana,
+  SOLANA_NOT_IMPLEMENTED,
+} from './submitters/solana.submitter';
 
 /** Error names that mean the message was already applied — treat as success. */
 const IDEMPOTENT_ERRORS = new Set([
@@ -47,7 +52,7 @@ const IDEMPOTENT_ERRORS = new Set([
 const RELAYER_ONLY_ERRORS = new Set(['RelayerOnly']);
 
 /** Error names that mean the attestation is not yet final — retry later. */
-const RETRYABLE_ERRORS = new Set(['InsufficientFinality']);
+const RETRYABLE_ERRORS = new Set(['InsufficientFinality', SOLANA_NOT_IMPLEMENTED]);
 
 @Injectable()
 export class RelayProcessor {
@@ -55,7 +60,8 @@ export class RelayProcessor {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly chains: ChainsService
+    private readonly chains: ChainsService,
+    private readonly config: import('../config/app-config.service').AppConfigService
   ) {}
 
   /**
@@ -81,14 +87,9 @@ export class RelayProcessor {
   }
 
   private async dispatch(job: RelayJob, relayerAccount: PrivateKeyAccount): Promise<void> {
-    // Solana-destination types are handled in phase 3a.
+    // Route Solana-destination jobs to the Solana submitter.
     if (job.type === 'SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE' || job.type === 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE') {
-      this.logger.log({ jobId: job.id, type: job.type }, 'Solana destination — deferring to phase 3a (left PENDING)');
-      // Reset to PENDING so it stays visible.
-      await this.prisma.relayJob.update({
-        where: { id: job.id },
-        data: { status: 'PENDING', attempts: 0 },
-      });
+      await this.handleSolanaJob(job);
       return;
     }
 
@@ -271,6 +272,127 @@ export class RelayProcessor {
       message,
       attestation
     );
+
+    await this.classifyResult(job, errorName);
+  }
+
+  /**
+   * Routes SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE and SOLANA_PAYMENT_VIA_CCTP_WORMHOLE
+   * jobs to the Solana submitter. The destination chain must be an enabled Solana chain.
+   * When no Solana keypair is configured (SOLANA_RELAYER_KEYPAIR not set) the job is
+   * marked FAILED immediately with a clear message.
+   */
+  private async handleSolanaJob(job: RelayJob): Promise<void> {
+    const keypairBytes = this.config.env.solanaRelayerKeypair;
+    if (!keypairBytes) {
+      await markFailed(this.prisma, job.id, 'SOLANA_RELAYER_KEYPAIR not configured');
+      return;
+    }
+
+    const destChain = this.chains.enabled.find((c) => c.cbChainId === job.destChainId);
+    if (!destChain || !destChain.isSolana) {
+      await markFailed(
+        this.prisma,
+        job.id,
+        `Solana job has no enabled Solana dest chain: destChainId=${job.destChainId}`
+      );
+      return;
+    }
+
+    const rpcUrl = this.chains.getRpcUrl(destChain);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const eventData = job.eventData as Record<string, any>;
+    let errorName: string | null;
+
+    if (job.type === 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE') {
+      let vaaBytes: Uint8Array;
+      let burnMessage: string;
+      let attestation: string;
+
+      if (job.vaa && job.cctpMessage && job.cctpAttestation) {
+        vaaBytes = Buffer.from(job.vaa, 'hex');
+        burnMessage = job.cctpMessage;
+        attestation = job.cctpAttestation;
+      } else {
+        // VAA and CCTP artefacts are fetched by the processor's existing
+        // resolver logic in handleWormholeUpdate / handleCctpPayment before
+        // this method is called. If they are absent here, retry later.
+        const sequence = BigInt(eventData?.sequence ?? '0');
+        const sourceChain = this.chains.enabled.find((c) => c.cbChainId === job.sourceChainId);
+        if (!sourceChain?.wormholeChainId) {
+          await retryLater(this.prisma, job, 'source chain has no Wormhole chain id');
+          return;
+        }
+
+        const { fetchVaa } = await import('./resolvers/wormhole.resolver');
+        const fetched = await fetchVaa(
+          sourceChain.network,
+          sourceChain.wormholeChainId,
+          sourceChain.isSolana
+            ? destChain.programId
+            : (sourceChain as import('../chains/types').EvmChainConfig).diamondAddress!,
+          sequence
+        );
+        if (!fetched) {
+          await retryLater(this.prisma, job, 'VAA not yet available');
+          return;
+        }
+        vaaBytes = fetched;
+        await patchArtefacts(this.prisma, job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
+
+        // CCTP artefacts: use Circle V1 Iris (Solana uses CCTP V1).
+        const { fetchCctpAttestation } = await import('./resolvers/cctp.resolver');
+        const sourceForCctp = this.chains.enabled.find((c) => c.cbChainId === job.sourceChainId);
+        if (sourceForCctp?.circleDomain === undefined || destChain.circleDomain === undefined) {
+          await markFailed(this.prisma, job.id, 'source or dest chain has no Circle domain');
+          return;
+        }
+        const cctpFetched = await fetchCctpAttestation(
+          sourceForCctp.network,
+          sourceForCctp.circleDomain,
+          job.txHash,
+          destChain.circleDomain
+        );
+        if (!cctpFetched) {
+          await retryLater(this.prisma, job, 'CCTP attestation not yet available');
+          return;
+        }
+        burnMessage = cctpFetched.message;
+        attestation = cctpFetched.attestation;
+        await patchArtefacts(this.prisma, job.id, { cctpMessage: burnMessage, cctpAttestation: attestation });
+      }
+
+      errorName = await submitPaymentToSolana(destChain, rpcUrl, keypairBytes, vaaBytes, burnMessage, attestation);
+    } else {
+      // SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE
+      let vaaBytes: Uint8Array;
+
+      if (job.vaa) {
+        vaaBytes = Buffer.from(job.vaa, 'hex');
+      } else {
+        const sequence = BigInt(eventData?.sequence ?? '0');
+        const sourceChain = this.chains.enabled.find((c) => c.cbChainId === job.sourceChainId);
+        if (!sourceChain?.wormholeChainId) {
+          await retryLater(this.prisma, job, 'source chain has no Wormhole chain id');
+          return;
+        }
+
+        const emitter = sourceChain.isSolana
+          ? destChain.programId
+          : (sourceChain as import('../chains/types').EvmChainConfig).diamondAddress!;
+
+        const { fetchVaa } = await import('./resolvers/wormhole.resolver');
+        const fetched = await fetchVaa(sourceChain.network, sourceChain.wormholeChainId, emitter, sequence);
+        if (!fetched) {
+          await retryLater(this.prisma, job, 'VAA not yet available');
+          return;
+        }
+        vaaBytes = fetched;
+        await patchArtefacts(this.prisma, job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
+      }
+
+      errorName = await submitPayableUpdateToSolana(destChain, rpcUrl, keypairBytes, vaaBytes);
+    }
 
     await this.classifyResult(job, errorName);
   }

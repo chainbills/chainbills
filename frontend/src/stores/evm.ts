@@ -774,7 +774,7 @@ export const useEvmStore = defineStore('evm', () => {
         address: contracts[chain.name] as `0x${string}`,
         abi: chainbillsAbi,
         functionName: 'pay',
-        args: [payableId, token, amount],
+        args: [payableId, token, amount, amount],
         ...(token == contracts[chain.name] ? { value: amount } : {}),
       },
       steps,

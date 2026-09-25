@@ -12,13 +12,13 @@
  * points at them, and every landing-page card or link that mentions Scan.
  */
 export const FEATURES = {
-  emailNotifications: true,
-  scan: true,
+  emailNotifications: false,
+  scan: false,
   /**
    * relayStatus: fetch cross-chain relay status from the backend
    * (GET /payments/user/:id) instead of polling the destination chain
    * on-chain. Shows richer status: attempts, failure reason, and the
    * matched PayablePayment once the relay job completes.
    */
-  relayStatus: true,
+  relayStatus: false,
 } as const;

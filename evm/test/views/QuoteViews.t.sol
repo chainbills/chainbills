@@ -338,7 +338,7 @@ contract QuoteViewsTest is CbTestBase {
 
   function test_GetUntrackedBalance_ReflectsDirectErc20Transfer() public {
     usdc.mint(address(this), 1_000);
-    usdc.transfer(address(cb), 1_000);
+    require(usdc.transfer(address(cb), 1_000));
     assertEq(cb.getUntrackedBalance(address(usdc)), 1_000);
   }
 
@@ -349,8 +349,8 @@ contract QuoteViewsTest is CbTestBase {
 
   function test_GetUntrackedBalance_AccumulatesMultipleTransfers() public {
     usdc.mint(address(this), 2_000);
-    usdc.transfer(address(cb), 500);
-    usdc.transfer(address(cb), 1_500);
+    require(usdc.transfer(address(cb), 500));
+    require(usdc.transfer(address(cb), 1_500));
     assertEq(cb.getUntrackedBalance(address(usdc)), 2_000);
   }
 }

@@ -2,17 +2,24 @@
 pragma solidity ^0.8.30;
 
 import {Test} from 'forge-std/Test.sol';
+import {ChainbillsDiamondInit} from '../../src/ChainbillsDiamondInit.sol';
 import {DeployChainbills} from '../../script/DeployChainbills.s.sol';
 import {RegisterForeignChain} from '../../script/admin/RegisterForeignChain.s.sol';
 import {UpdateForeignChain} from '../../script/admin/UpdateForeignChain.s.sol';
 import {IChainbills} from '../../src/interfaces/IChainbills.sol';
-import {ForeignChain} from '../../src/types/CbTypes.sol';
+import {
+  ForeignChain,
+  ForeignChainAddresses,
+  ForeignChainConfig,
+  ForeignChainFinality,
+  ForeignChainLimits,
+  ForeignChainProtocolIds,
+  ForeignChainSwitches
+} from '../../src/types/CbTypes.sol';
 
-/// Runs `RegisterForeignChain` (and `UpdateForeignChain`) in-process and checks the `ForeignChainConfig` they
-/// build. `setUp` configures CCTP (`FOREIGN_CIRCLE_DOMAIN`) as a realistic baseline, since a foreign chain with
-/// neither protocol configured but every switch defaulted on is rejected by `CbChainRegistryFacet` itself.
-/// @dev `vm.setEnv` changes the real process environment, shared by every thread `forge test` runs concurrently —
-/// run this suite with `forge test -j 1` (see the Testing section of the README).
+/// Runs `RegisterForeignChain.register` (and `UpdateForeignChain.update`) in-process and checks the
+/// `ForeignChainConfig` they apply. Uses a Circle CCTP foreign chain as a realistic baseline, since a foreign chain
+/// with neither protocol configured but every switch defaulted on is rejected by `CbChainRegistryFacet` itself.
 contract RegisterForeignChainTest is Test {
   bytes32 internal constant SALT = bytes32(uint256(1));
   bytes32 internal constant FOREIGN_CHAIN_ID = keccak256('eip155:11155111');
@@ -22,41 +29,66 @@ contract RegisterForeignChainTest is Test {
 
   function setUp() public {
     owner = DEFAULT_SENDER;
-    vm.setEnv('CB_SALT', vm.toString(SALT));
-    vm.setEnv('OWNER', vm.toString(owner));
-    vm.setEnv('ADMIN', vm.toString(owner));
-    vm.setEnv('FEE_COLLECTOR', vm.toString(owner));
-    vm.setEnv('WITHDRAWAL_FEE_BPS', '200');
-    vm.setEnv('MAX_ALLOWED_TOKENS_AND_AMOUNTS', '10');
-    vm.setEnv('CAIP2', 'eip155:31337');
-    vm.setEnv('CHAIN_NAME', 'test-fixture-chain');
-    chainbills = new DeployChainbills().run();
-
-    // A foreign deploy record RegisterForeignChain reads the target diamond address from.
+    chainbills = new DeployChainbills().deploy(
+      DeployChainbills.DeployConfig({
+        salt: SALT,
+        owner: owner,
+        caip2: 'eip155:31337',
+        chainName: 'test-fixture-chain',
+        params: ChainbillsDiamondInit.InitParams({
+          cbChainId: keccak256(bytes('eip155:31337')),
+          admin: owner,
+          feeCollector: owner,
+          withdrawalFeeBps: 200,
+          maxAllowedTokensAndAmounts: 10
+        }),
+        tokenMessenger: address(0),
+        wormhole: address(0),
+        wormholeChainId: 0,
+        wormholeFinality: 0,
+        allowedTokens: new address[](0),
+        relayers: new address[](0),
+        deployRecordPath: ''
+      })
+    );
     foreignDiamond = makeAddr('foreign-diamond');
-    string memory json = string.concat('{"diamond":"', vm.toString(foreignDiamond), '"}');
-    vm.writeJson(json, 'deploys/test-fixture-foreign-chain.json');
+  }
 
-    vm.setEnv('DIAMOND', vm.toString(address(chainbills)));
-    vm.setEnv('TARGET_CHAIN', 'test-fixture-foreign-chain');
-    vm.setEnv('FOREIGN_CB_CHAIN_ID', vm.toString(FOREIGN_CHAIN_ID));
-    vm.setEnv('FOREIGN_CIRCLE_DOMAIN', '0');
-
-    // `vm.setEnv` changes the real process environment, which persists across every test function (and every
-    // test contract) in a `forge test` run, not just this one — so every default this suite checks is pinned back
-    // to that default here rather than left to (unreliable) absence.
-    vm.setEnv('SWITCH_CCTP_UPDATE', 'true');
-    vm.setEnv('SWITCH_INBOUND_UPDATE', 'true');
-    vm.setEnv('SWITCH_OUTBOUND_PAYMENT', 'true');
-    vm.setEnv('SWITCH_INBOUND_PAYMENT', 'true');
-    vm.setEnv('FINALITY_OUTBOUND_UPDATE', '2000');
-    vm.setEnv('FINALITY_OUTBOUND_PAYMENT', '2000');
-    vm.setEnv('FINALITY_MIN_INBOUND_UPDATE', '2000');
-    vm.setEnv('FINALITY_MIN_INBOUND_PAYMENT', '2000');
+  /// Builds the default config matching the original test baseline: CCTP with Circle domain 0, all switches on,
+  /// all finality at 2000 (finalized), no Wormhole, no fee cap.
+  function _defaultConfig(address target) internal pure returns (ForeignChainConfig memory config) {
+    bytes32 t = bytes32(uint256(uint160(target)));
+    config.protocolIds = ForeignChainProtocolIds({
+      hasWormholeChainId: false,
+      wormholeChainId: 0,
+      hasCircleDomain: true,
+      circleDomain: 0
+    });
+    config.addresses = ForeignChainAddresses({
+      wormholeEmitter: t,
+      cctpMessageSender: t,
+      cctpBurnSender: t,
+      cctpRecipient: t,
+      cctpMintRecipient: t,
+      cctpDestinationCaller: t
+    });
+    config.switches = ForeignChainSwitches({
+      isCctpUpdateEnabled: true,
+      isInboundUpdateEnabled: true,
+      isOutboundPaymentEnabled: true,
+      isInboundPaymentEnabled: true
+    });
+    config.finality = ForeignChainFinality({
+      outboundUpdateFinality: 2000,
+      outboundPaymentFinality: 2000,
+      minInboundUpdateFinality: 2000,
+      minInboundPaymentFinality: 2000
+    });
+    config.limits = ForeignChainLimits({hasMaxOutboundCctpFeeBps: false, maxOutboundCctpFeeBps: 0});
   }
 
   function test_Register_DefaultsEveryAddressRoleToTargetDiamond() public {
-    new RegisterForeignChain().run();
+    new RegisterForeignChain().register(address(chainbills), FOREIGN_CHAIN_ID, _defaultConfig(foreignDiamond));
 
     ForeignChain memory registered = chainbills.getForeignChain(FOREIGN_CHAIN_ID);
     assertTrue(registered.isRegistered);
@@ -70,7 +102,7 @@ contract RegisterForeignChainTest is Test {
   }
 
   function test_Register_DefaultSwitchesEnableEveryDirection() public {
-    new RegisterForeignChain().run();
+    new RegisterForeignChain().register(address(chainbills), FOREIGN_CHAIN_ID, _defaultConfig(foreignDiamond));
 
     ForeignChain memory registered = chainbills.getForeignChain(FOREIGN_CHAIN_ID);
     assertTrue(registered.config.switches.isCctpUpdateEnabled);
@@ -80,7 +112,7 @@ contract RegisterForeignChainTest is Test {
   }
 
   function test_Register_DefaultFinalityIsFinalized() public {
-    new RegisterForeignChain().run();
+    new RegisterForeignChain().register(address(chainbills), FOREIGN_CHAIN_ID, _defaultConfig(foreignDiamond));
 
     ForeignChain memory registered = chainbills.getForeignChain(FOREIGN_CHAIN_ID);
     assertEq(registered.config.finality.outboundUpdateFinality, 2000);
@@ -89,17 +121,19 @@ contract RegisterForeignChainTest is Test {
     assertEq(registered.config.finality.minInboundPaymentFinality, 2000);
   }
 
-  function test_Register_ProtocolIdsFromEnv() public {
-    new RegisterForeignChain().run();
+  function test_Register_ProtocolIdsFromConfig() public {
+    new RegisterForeignChain().register(address(chainbills), FOREIGN_CHAIN_ID, _defaultConfig(foreignDiamond));
 
     ForeignChain memory registered = chainbills.getForeignChain(FOREIGN_CHAIN_ID);
     assertFalse(registered.config.protocolIds.hasWormholeChainId);
     assertTrue(registered.config.protocolIds.hasCircleDomain);
     assertEq(registered.config.protocolIds.circleDomain, 0);
 
-    // Wormhole comes online for this chain later: UpdateForeignChain picks up the newly-set env var.
-    vm.setEnv('FOREIGN_WORMHOLE_CHAIN_ID', '10002');
-    new UpdateForeignChain().run();
+    // Wormhole comes online for this chain later: build the updated config and call update directly.
+    ForeignChainConfig memory withWormhole = _defaultConfig(foreignDiamond);
+    withWormhole.protocolIds.hasWormholeChainId = true;
+    withWormhole.protocolIds.wormholeChainId = 10002;
+    new UpdateForeignChain().update(address(chainbills), FOREIGN_CHAIN_ID, withWormhole);
 
     registered = chainbills.getForeignChain(FOREIGN_CHAIN_ID);
     assertTrue(registered.config.protocolIds.hasWormholeChainId);
@@ -107,13 +141,14 @@ contract RegisterForeignChainTest is Test {
   }
 
   function test_Update_ReplacesConfig() public {
-    new RegisterForeignChain().run();
+    new RegisterForeignChain().register(address(chainbills), FOREIGN_CHAIN_ID, _defaultConfig(foreignDiamond));
 
-    vm.setEnv('SWITCH_OUTBOUND_PAYMENT', 'false');
-    new UpdateForeignChain().run();
+    ForeignChainConfig memory updated = _defaultConfig(foreignDiamond);
+    updated.switches.isOutboundPaymentEnabled = false;
+    new UpdateForeignChain().update(address(chainbills), FOREIGN_CHAIN_ID, updated);
 
-    ForeignChain memory updated = chainbills.getForeignChain(FOREIGN_CHAIN_ID);
-    assertFalse(updated.config.switches.isOutboundPaymentEnabled);
-    assertTrue(updated.config.switches.isInboundPaymentEnabled);
+    ForeignChain memory fc = chainbills.getForeignChain(FOREIGN_CHAIN_ID);
+    assertFalse(fc.config.switches.isOutboundPaymentEnabled);
+    assertTrue(fc.config.switches.isInboundPaymentEnabled);
   }
 }

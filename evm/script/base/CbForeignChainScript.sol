@@ -13,26 +13,57 @@ import {
 
 /// Shared config building for `RegisterForeignChain` and `UpdateForeignChain`.
 abstract contract CbForeignChainScript is CbAdminScript {
-  /// Builds a `ForeignChainConfig` for the foreign chain whose diamond is `target`. Every messaging address role
-  /// defaults to `target`, since the target diamond plays every one of those roles for messages it sends and
-  /// receives. Switches default to enabling every direction; finality defaults to `2000` (finalized) both ways;
-  /// the outbound CCTP fee cap is left unset. Every default is overridable through env.
-  ///
-  /// Env read: `FOREIGN_WORMHOLE_CHAIN_ID`, `FOREIGN_CIRCLE_DOMAIN` (each enables the corresponding protocol when
-  /// present), `SWITCH_CCTP_UPDATE`, `SWITCH_INBOUND_UPDATE`, `SWITCH_OUTBOUND_PAYMENT`, `SWITCH_INBOUND_PAYMENT`
-  /// (bool, default true), `FINALITY_OUTBOUND_UPDATE`, `FINALITY_OUTBOUND_PAYMENT`, `FINALITY_MIN_INBOUND_UPDATE`,
-  /// `FINALITY_MIN_INBOUND_PAYMENT` (uint32, default `2000`), `MAX_OUTBOUND_CCTP_FEE_BPS` (uint16, unset by
-  /// default).
-  function _buildForeignChainConfig(address target) internal view returns (ForeignChainConfig memory config) {
+  /// All env-readable fields for building a `ForeignChainConfig`. Construct directly from tests to bypass env reads.
+  struct ForeignChainScriptParams {
+    bool hasWormholeChainId;
+    uint16 wormholeChainId;
+    bool hasCircleDomain;
+    uint32 circleDomain;
+    bool isCctpUpdateEnabled;
+    bool isInboundUpdateEnabled;
+    bool isOutboundPaymentEnabled;
+    bool isInboundPaymentEnabled;
+    uint32 outboundUpdateFinality;
+    uint32 outboundPaymentFinality;
+    uint32 minInboundUpdateFinality;
+    uint32 minInboundPaymentFinality;
+    bool hasMaxOutboundCctpFeeBps;
+    uint16 maxOutboundCctpFeeBps;
+  }
+
+  /// Reads the foreign-chain script env vars into a `ForeignChainScriptParams`. Every switch defaults to `true`;
+  /// every finality defaults to `2000` (finalized); the fee cap is unset by default.
+  function _readScriptParams() internal view returns (ForeignChainScriptParams memory p) {
+    p.hasWormholeChainId = vm.envExists('FOREIGN_WORMHOLE_CHAIN_ID');
+    if (p.hasWormholeChainId) p.wormholeChainId = uint16(vm.envUint('FOREIGN_WORMHOLE_CHAIN_ID'));
+    p.hasCircleDomain = vm.envExists('FOREIGN_CIRCLE_DOMAIN');
+    if (p.hasCircleDomain) p.circleDomain = uint32(vm.envUint('FOREIGN_CIRCLE_DOMAIN'));
+    p.isCctpUpdateEnabled = vm.envOr('SWITCH_CCTP_UPDATE', true);
+    p.isInboundUpdateEnabled = vm.envOr('SWITCH_INBOUND_UPDATE', true);
+    p.isOutboundPaymentEnabled = vm.envOr('SWITCH_OUTBOUND_PAYMENT', true);
+    p.isInboundPaymentEnabled = vm.envOr('SWITCH_INBOUND_PAYMENT', true);
+    p.outboundUpdateFinality = uint32(vm.envOr('FINALITY_OUTBOUND_UPDATE', uint256(2000)));
+    p.outboundPaymentFinality = uint32(vm.envOr('FINALITY_OUTBOUND_PAYMENT', uint256(2000)));
+    p.minInboundUpdateFinality = uint32(vm.envOr('FINALITY_MIN_INBOUND_UPDATE', uint256(2000)));
+    p.minInboundPaymentFinality = uint32(vm.envOr('FINALITY_MIN_INBOUND_PAYMENT', uint256(2000)));
+    p.hasMaxOutboundCctpFeeBps = vm.envExists('MAX_OUTBOUND_CCTP_FEE_BPS');
+    if (p.hasMaxOutboundCctpFeeBps) p.maxOutboundCctpFeeBps = uint16(vm.envUint('MAX_OUTBOUND_CCTP_FEE_BPS'));
+  }
+
+  /// Builds a `ForeignChainConfig` for `target` from `p`. Every messaging address role defaults to `target`.
+  /// No env reads.
+  function _buildForeignChainConfig(address target, ForeignChainScriptParams memory p)
+    internal
+    pure
+    returns (ForeignChainConfig memory config)
+  {
     bytes32 targetBytes32 = _toBytes32(target);
 
-    bool hasWormhole = vm.envExists('FOREIGN_WORMHOLE_CHAIN_ID');
-    bool hasCircle = vm.envExists('FOREIGN_CIRCLE_DOMAIN');
     config.protocolIds = ForeignChainProtocolIds({
-      wormholeChainId: hasWormhole ? uint16(vm.envUint('FOREIGN_WORMHOLE_CHAIN_ID')) : 0,
-      hasWormholeChainId: hasWormhole,
-      circleDomain: hasCircle ? uint32(vm.envUint('FOREIGN_CIRCLE_DOMAIN')) : 0,
-      hasCircleDomain: hasCircle
+      wormholeChainId: p.wormholeChainId,
+      hasWormholeChainId: p.hasWormholeChainId,
+      circleDomain: p.circleDomain,
+      hasCircleDomain: p.hasCircleDomain
     });
 
     config.addresses = ForeignChainAddresses({
@@ -45,23 +76,22 @@ abstract contract CbForeignChainScript is CbAdminScript {
     });
 
     config.switches = ForeignChainSwitches({
-      isCctpUpdateEnabled: vm.envOr('SWITCH_CCTP_UPDATE', true),
-      isInboundUpdateEnabled: vm.envOr('SWITCH_INBOUND_UPDATE', true),
-      isOutboundPaymentEnabled: vm.envOr('SWITCH_OUTBOUND_PAYMENT', true),
-      isInboundPaymentEnabled: vm.envOr('SWITCH_INBOUND_PAYMENT', true)
+      isCctpUpdateEnabled: p.isCctpUpdateEnabled,
+      isInboundUpdateEnabled: p.isInboundUpdateEnabled,
+      isOutboundPaymentEnabled: p.isOutboundPaymentEnabled,
+      isInboundPaymentEnabled: p.isInboundPaymentEnabled
     });
 
     config.finality = ForeignChainFinality({
-      outboundUpdateFinality: uint32(vm.envOr('FINALITY_OUTBOUND_UPDATE', uint256(2000))),
-      outboundPaymentFinality: uint32(vm.envOr('FINALITY_OUTBOUND_PAYMENT', uint256(2000))),
-      minInboundUpdateFinality: uint32(vm.envOr('FINALITY_MIN_INBOUND_UPDATE', uint256(2000))),
-      minInboundPaymentFinality: uint32(vm.envOr('FINALITY_MIN_INBOUND_PAYMENT', uint256(2000)))
+      outboundUpdateFinality: p.outboundUpdateFinality,
+      outboundPaymentFinality: p.outboundPaymentFinality,
+      minInboundUpdateFinality: p.minInboundUpdateFinality,
+      minInboundPaymentFinality: p.minInboundPaymentFinality
     });
 
-    bool hasFeeCap = vm.envExists('MAX_OUTBOUND_CCTP_FEE_BPS');
     config.limits = ForeignChainLimits({
-      hasMaxOutboundCctpFeeBps: hasFeeCap,
-      maxOutboundCctpFeeBps: hasFeeCap ? uint16(vm.envUint('MAX_OUTBOUND_CCTP_FEE_BPS')) : 0
+      hasMaxOutboundCctpFeeBps: p.hasMaxOutboundCctpFeeBps,
+      maxOutboundCctpFeeBps: p.maxOutboundCctpFeeBps
     });
   }
 }

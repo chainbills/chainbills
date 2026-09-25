@@ -369,10 +369,9 @@ cast index-erc7201 chainbills.<domain>
 ```
 
 `test/script/*.t.sol` run the deploy, upgrade, and foreign-chain-registration scripts in-process — instantiating
-the script contracts directly and configuring them with `vm.setEnv`, the same env vars `run.sh` would set. Because
-`vm.setEnv` changes the real process environment, which every thread `forge test` runs concurrently shares, **run
-the full suite with `forge test -j 1`** (or scope `--match-path 'test/script/*'` to its own single-threaded run);
-under the default parallel runner, these files' env vars can race against each other.
+the script contracts directly and calling their `deploy`, `upgrade`, `register`, and `update` functions with config
+structs instead of env vars. No process-environment side effects, so these tests run cleanly under the default
+parallel runner.
 
 `script/DeployLocalStack.s.sol` needs a generous gas ceiling for its single simulated call (it deploys two full
 diamonds): `anvil --gas-limit 18446744073709551615` (or let `run.sh` add `--gas-limit` automatically, which it does

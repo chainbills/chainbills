@@ -39,14 +39,14 @@ Solidity contracts for Chainbills on EVM chains, built with Foundry. Read the RE
 - Fuzz inputs use `bound(...)`; `vm.assume` only for predicates that cannot be expressed as a range.
 - Every custom error has at least one test that triggers it. Every event has at least one `vm.expectEmit` test.
 - Profiles: default, `FOUNDRY_PROFILE=lite` (fast), `FOUNDRY_PROFILE=deep` (heavy fuzz and invariants).
-- Run script tests single-threaded: `forge test -j 1`. The files under `test/script/` share process env via `vm.setEnv` and race under the default parallel runner.
+- Script tests under `test/script/` call `deploy`, `upgrade`, `register`, and `update` directly with config structs, so they have no process-environment side effects and run cleanly under the default parallel runner.
 
 ## Commands
 
 ```bash
 forge build
-forge test -j 1
-FOUNDRY_PROFILE=lite forge test -j 1
+forge test
+FOUNDRY_PROFILE=lite forge test
 forge test --match-path 'test/payments/*' -vvv
 forge coverage --ir-minimum
 forge fmt

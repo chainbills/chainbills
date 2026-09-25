@@ -3,44 +3,52 @@ pragma solidity ^0.8.30;
 
 import {Test} from 'forge-std/Test.sol';
 import {CbFacetSet} from '../../src/CbFacetSet.sol';
+import {ChainbillsDiamondInit} from '../../src/ChainbillsDiamondInit.sol';
 import {DeployChainbills} from '../../script/DeployChainbills.s.sol';
 import {PredictAddresses} from '../../script/PredictAddresses.s.sol';
 import {IChainbills} from '../../src/interfaces/IChainbills.sol';
 import {IDiamondLoupe} from '../../src/interfaces/diamond/IDiamondLoupe.sol';
 import {ProtocolConfig} from '../../src/types/CbTypes.sol';
 
-/// Runs `DeployChainbills` in-process and checks the properties deterministic deployment depends on. `OWNER` is
-/// `DEFAULT_SENDER` (forge-std's default broadcaster) because `DeployChainbills.run()` calls the argument-less
-/// `vm.startBroadcast()` itself, so every deployment happens as that address regardless of who calls `run()`.
-/// @dev `vm.setEnv` changes the real process environment, shared by every thread `forge test` runs concurrently —
-/// run this suite with `forge test -j 1` (see the Testing section of the README); under the default parallel
-/// runner, this file's env vars can race against test/script/DiamondCutUpgrade.t.sol's and
-/// test/script/RegisterForeignChain.t.sol's.
+/// Runs `DeployChainbills.deploy` in-process and checks the properties deterministic deployment depends on. `OWNER`
+/// is `DEFAULT_SENDER` (forge-std's default broadcaster) because `deploy` calls the argument-less
+/// `vm.startBroadcast()` itself, so every deployment happens as that address regardless of who calls `deploy`.
 contract DeployChainbillsTest is Test {
   bytes32 internal constant SALT = bytes32(uint256(1));
   address internal constant ADMIN = address(0x0002);
   address internal constant FEE_COLLECTOR = address(0x0003);
 
   address internal owner;
+  DeployChainbills.DeployConfig internal baseConfig;
 
   function setUp() public {
     owner = DEFAULT_SENDER;
-    vm.setEnv('CB_SALT', vm.toString(SALT));
-    vm.setEnv('OWNER', vm.toString(owner));
-    vm.setEnv('ADMIN', vm.toString(ADMIN));
-    vm.setEnv('FEE_COLLECTOR', vm.toString(FEE_COLLECTOR));
-    vm.setEnv('WITHDRAWAL_FEE_BPS', '200');
-    vm.setEnv('MAX_ALLOWED_TOKENS_AND_AMOUNTS', '10');
-    vm.setEnv('CAIP2', 'eip155:31337');
-    // Not a key in script/env/tokens.json, so the optional allow-listing step (which would need ADMIN's role) is a
-    // no-op and ADMIN can stay distinct from the broadcasting OWNER.
-    vm.setEnv('CHAIN_NAME', 'test-fixture-chain');
+    baseConfig = DeployChainbills.DeployConfig({
+      salt: SALT,
+      owner: owner,
+      caip2: 'eip155:31337',
+      chainName: 'test-fixture-chain',
+      params: ChainbillsDiamondInit.InitParams({
+        cbChainId: keccak256(bytes('eip155:31337')),
+        admin: ADMIN,
+        feeCollector: FEE_COLLECTOR,
+        withdrawalFeeBps: 200,
+        maxAllowedTokensAndAmounts: 10
+      }),
+      tokenMessenger: address(0),
+      wormhole: address(0),
+      wormholeChainId: 0,
+      wormholeFinality: 0,
+      allowedTokens: new address[](0),
+      relayers: new address[](0),
+      deployRecordPath: '' // no file-system side effects in tests
+    });
   }
 
   function test_DiamondAddress_MatchesPrediction() public {
     (, address predicted) = new PredictAddresses().predictDiamond(SALT, owner);
 
-    IChainbills chainbills = new DeployChainbills().run();
+    IChainbills chainbills = new DeployChainbills().deploy(baseConfig);
 
     assertEq(address(chainbills), predicted);
   }
@@ -58,7 +66,7 @@ contract DeployChainbillsTest is Test {
     (, address predictedAfter) = new PredictAddresses().predictDiamond(SALT, owner);
     assertEq(predictedBefore, predictedAfter);
 
-    IChainbills chainbills = new DeployChainbills().run();
+    IChainbills chainbills = new DeployChainbills().deploy(baseConfig);
     assertEq(address(chainbills), predictedBefore);
   }
 
@@ -74,12 +82,12 @@ contract DeployChainbillsTest is Test {
     assertEq(predictedAtChain1, predictedAtChain99999);
 
     // An actual deployment on this (now chain 99_999) EVM lands exactly at the predicted address.
-    IChainbills chainbills = new DeployChainbills().run();
+    IChainbills chainbills = new DeployChainbills().deploy(baseConfig);
     assertEq(address(chainbills), predictedAtChain1);
   }
 
   function test_Deploy_CutsEveryFacet() public {
-    IChainbills chainbills = new DeployChainbills().run();
+    IChainbills chainbills = new DeployChainbills().deploy(baseConfig);
 
     CbFacetSet.FacetEntry[] memory entries = CbFacetSet.facets();
     IDiamondLoupe.Facet[] memory cutFacets = chainbills.facets();
@@ -95,7 +103,7 @@ contract DeployChainbillsTest is Test {
   }
 
   function test_Deploy_AppliesInitParams() public {
-    IChainbills chainbills = new DeployChainbills().run();
+    IChainbills chainbills = new DeployChainbills().deploy(baseConfig);
 
     assertTrue(chainbills.isInitialized());
     assertEq(chainbills.cbChainId(), keccak256(bytes('eip155:31337')));
@@ -110,8 +118,8 @@ contract DeployChainbillsTest is Test {
   }
 
   function test_Rerun_IsNoOp() public {
-    IChainbills first = new DeployChainbills().run();
-    IChainbills second = new DeployChainbills().run();
+    IChainbills first = new DeployChainbills().deploy(baseConfig);
+    IChainbills second = new DeployChainbills().deploy(baseConfig);
 
     assertEq(address(first), address(second));
     assertTrue(second.isInitialized());

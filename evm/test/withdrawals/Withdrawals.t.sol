@@ -60,6 +60,7 @@ contract WithdrawalsTest is CbTestBase {
   function test_RevertWhen_Withdraw_InvalidPayableId() public {
     vm.expectRevert(InvalidPayableId.selector);
     vm.prank(host);
+    // forge-lint: disable-next-line(unsafe-typecast)
     cb.withdraw(bytes32('nope'), native, 1);
   }
 
@@ -127,6 +128,7 @@ contract WithdrawalsTest is CbTestBase {
   function test_RevertWhen_WithdrawAll_InvalidPayableId() public {
     vm.expectRevert(InvalidPayableId.selector);
     vm.prank(host);
+    // forge-lint: disable-next-line(unsafe-typecast)
     cb.withdrawAll(bytes32('nope'), native);
   }
 

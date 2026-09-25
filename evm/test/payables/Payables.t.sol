@@ -149,6 +149,7 @@ contract PayablesTest is CbTestBase {
   function test_RevertWhen_ClosePayable_InvalidPayableId() public {
     vm.expectRevert(InvalidPayableId.selector);
     vm.prank(host);
+    // forge-lint: disable-next-line(unsafe-typecast)
     cb.closePayable{value: WORMHOLE_FEE}(bytes32('nope'));
   }
 
@@ -216,6 +217,7 @@ contract PayablesTest is CbTestBase {
   function test_RevertWhen_UpdatePayableAllowedTokensAndAmounts_InvalidPayableId() public {
     vm.expectRevert(InvalidPayableId.selector);
     vm.prank(host);
+    // forge-lint: disable-next-line(unsafe-typecast)
     cb.updatePayableAllowedTokensAndAmounts{value: WORMHOLE_FEE}(bytes32('nope'), _anyToken());
   }
 
@@ -249,6 +251,7 @@ contract PayablesTest is CbTestBase {
   function test_RevertWhen_UpdatePayableAutoWithdraw_InvalidPayableId() public {
     vm.expectRevert(InvalidPayableId.selector);
     vm.prank(host);
+    // forge-lint: disable-next-line(unsafe-typecast)
     cb.updatePayableAutoWithdraw(bytes32('nope'), true);
   }
 
@@ -286,6 +289,7 @@ contract PayablesTest is CbTestBase {
   function test_RevertWhen_PublishPayableDetails_InvalidPayableId() public {
     vm.expectRevert(InvalidPayableId.selector);
     vm.prank(host);
+    // forge-lint: disable-next-line(unsafe-typecast)
     cb.publishPayableDetails{value: WORMHOLE_FEE}(bytes32('nope'));
   }
 

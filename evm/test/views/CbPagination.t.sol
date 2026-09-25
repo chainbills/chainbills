@@ -282,6 +282,7 @@ contract CbPaginationTest is Test {
     (uint256 start, uint256 count) = _referenceAscending(length, offset, limit);
     assertEq(page.length, count);
     for (uint256 i; i < count; i++) {
+      // forge-lint: disable-next-line(unsafe-typecast)
       assertEq(page[i], address(uint160(start + i + 1)));
     }
   }
@@ -296,6 +297,7 @@ contract CbPaginationTest is Test {
     (uint256 first, uint256 count) = _referenceDescending(length, offset, limit);
     assertEq(page.length, count);
     for (uint256 i; i < count; i++) {
+      // forge-lint: disable-next-line(unsafe-typecast)
       assertEq(page[i], address(uint160(first - i + 1)));
     }
   }

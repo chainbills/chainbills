@@ -156,6 +156,7 @@ library CbPayableSync {
       for (uint256 i; i < count; i++) {
         stored.push(payload.allowedTokensAndAmounts[i]);
       }
+      // forge-lint: disable-next-line(unsafe-typecast)
       payable_.allowedTokensAndAmountsCount = uint8(count);
       // A create action is a full snapshot and restates the closed status.
       if (actionType == PAYABLE_ACTION_CREATE) payable_.isClosed = payload.isClosed;

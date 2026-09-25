@@ -7,7 +7,7 @@ import {CbFacetSet} from '../src/CbFacetSet.sol';
 import {IChainbills} from '../src/interfaces/IChainbills.sol';
 import {IDiamondCut} from '../src/interfaces/diamond/IDiamondCut.sol';
 
-/// Deploys new implementations of the facets named in `FACETS` and cuts the diamond over to them.
+/// Deploys new implementations of the facets named in `UpgradeConfig.facetNames` and cuts the diamond over to them.
 ///
 /// For each facet, the new implementation's selectors (from `CbFacetSet`, i.e. this branch's source) are diffed
 /// against whatever the diamond currently routes: selectors already routed elsewhere are `Replace`d, selectors the
@@ -15,28 +15,46 @@ import {IDiamondCut} from '../src/interfaces/diamond/IDiamondCut.sol';
 /// longer appear in the new selector set are `Remove`d. A brand-new facet name (nothing currently routes any of its
 /// selectors) is a pure `Add`.
 ///
-/// Required env: `CB_SALT`, `DIAMOND`, `FACETS` (comma-separated `CbFacetSet` facet names). Set `DRY_RUN=true` to
-/// print the cut without broadcasting.
+/// Call `upgrade(config)` directly (no env reads) from tests or tooling, or call `run()` which reads the required
+/// env vars and delegates to `upgrade`.
 contract DiamondCutUpgrade is CbFacetDeployer {
+  /// All inputs for an upgrade run. Pass to `upgrade` directly from tests or tooling.
+  struct UpgradeConfig {
+    bytes32 salt;
+    address diamond;
+    string[] facetNames;
+    bool dryRun;
+  }
+
+  /// Reads env vars and calls `upgrade`. Required env: `CB_SALT`, `DIAMOND`, `FACETS`. Optional: `DRY_RUN`.
   function run() public {
-    bytes32 salt = vm.envBytes32('CB_SALT');
-    IChainbills diamond = IChainbills(vm.envAddress('DIAMOND'));
     string[] memory facetNames = vm.envString('FACETS', ',');
-    bool dryRun = vm.envOr('DRY_RUN', false);
+    upgrade(
+      UpgradeConfig({
+        salt: vm.envBytes32('CB_SALT'),
+        diamond: vm.envAddress('DIAMOND'),
+        facetNames: facetNames,
+        dryRun: vm.envOr('DRY_RUN', false)
+      })
+    );
+  }
 
-    LinkedLibrary[] memory libs = dryRun ? _predictLibraries(salt) : _deployLibraries(salt);
+  /// Executes the upgrade described by `config`. No env reads.
+  function upgrade(UpgradeConfig memory config) public {
+    IChainbills diamond = IChainbills(config.diamond);
+    LinkedLibrary[] memory libs = config.dryRun ? _predictLibraries(config.salt) : _deployLibraries(config.salt);
 
-    IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](facetNames.length * 3);
+    IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](config.facetNames.length * 3);
     uint256 count;
 
-    if (!dryRun) vm.startBroadcast();
-    for (uint256 i; i < facetNames.length; i++) {
-      count = _appendFacetCuts(cuts, count, diamond, facetNames[i], salt, libs, dryRun);
+    if (!config.dryRun) vm.startBroadcast();
+    for (uint256 i; i < config.facetNames.length; i++) {
+      count = _appendFacetCuts(cuts, count, diamond, config.facetNames[i], config.salt, libs, config.dryRun);
     }
 
     if (count == 0) {
       console.log('Nothing to cut: every named facet already matches CbFacetSet.');
-      if (!dryRun) vm.stopBroadcast();
+      if (!config.dryRun) vm.stopBroadcast();
       return;
     }
 
@@ -45,7 +63,7 @@ contract DiamondCutUpgrade is CbFacetDeployer {
       finalCuts[i] = cuts[i];
     }
 
-    if (dryRun) {
+    if (config.dryRun) {
       _printCuts(finalCuts);
       return;
     }

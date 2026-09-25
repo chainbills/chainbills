@@ -4,7 +4,6 @@ out = "out"
 libs = ["lib"]
 solc_version = "0.8.30"
 evm_version = "cancun"
-via_ir = true
 optimizer = true
 optimizer_runs = 200
 ffi = true
@@ -12,12 +11,17 @@ ast = true
 build_info = true
 extra_output = ["storageLayout"]
 always_use_create_2_factory = true
+no_match_coverage = "(script|test/invariant|test/views/PopulatedViewsBase)"
 # Deploy scripts predict and, when needed, deploy every linked library and facet through raw CREATE2 calls, each
 # preceded by decoding and patching that contract's full hex-encoded creation code; deploying two diamonds (or
 # rerunning one deploy) in a single script or test easily exceeds forge's own default gas ceiling for simulation,
 # even though no live chain ever pays for more than one contract per transaction. Raised well past anything this
 # repo's scripts or tests need.
 gas_limit = 9223372036854775807
+# Deploy scripts and their tests read every facet/library JSON artifact into EVM memory to decode and patch
+# creation code; reading ~20 artifacts twice in one test (rerun-is-no-op checks) exceeds forge's default 128MB
+# ceiling. Raised to a value comfortable for the double-deploy tests.
+memory_limit = 1073741824
 fs_permissions = [
   { access = "read", path = "./out" },
   { access = "read", path = "./script/env/tokens.json" },

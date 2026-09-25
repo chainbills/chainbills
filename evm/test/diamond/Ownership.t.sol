@@ -288,6 +288,7 @@ contract OwnershipTest is CbTestBase {
   function test_RevertWhen_UnknownSelector() public {
     (bool success, bytes memory data) = address(cb).call(abi.encodeWithSelector(bytes4(0xdeadbeef)));
     assertFalse(success);
+    // forge-lint: disable-next-line(unsafe-typecast)
     assertEq(bytes4(data), Diamond.FunctionNotFound.selector);
   }
 
@@ -295,6 +296,7 @@ contract OwnershipTest is CbTestBase {
     vm.deal(address(this), 1 ether);
     (bool success, bytes memory data) = payable(address(cb)).call{value: 1 ether}('');
     assertFalse(success);
+    // forge-lint: disable-next-line(unsafe-typecast)
     assertEq(bytes4(data), Diamond.FunctionNotFound.selector);
   }
 }

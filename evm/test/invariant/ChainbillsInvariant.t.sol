@@ -113,6 +113,7 @@ contract ChainbillsInvariantTest is CbTestBase {
 
   function _logMetrics() internal view {
     bytes32[22] memory actions = [
+      // forge-lint: disable-next-line(unsafe-typecast)
       bytes32('createPayable'),
       'closePayable',
       'reopenPayable',

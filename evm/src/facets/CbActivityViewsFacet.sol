@@ -265,21 +265,45 @@ contract CbActivityViewsFacet is CbFacetBase, ICbActivityViews {
     view
     returns (bytes32[] memory ids, ActivityRecord[] memory items, uint256 nextOffset)
   {
-    uint256 length = list.length;
-    if (offset >= length) return (new bytes32[](0), new ActivityRecord[](0), length);
-    uint256 windowLength = length - offset;
-    if (limit < windowLength) windowLength = limit;
-    uint256 end = offset + windowLength;
-    nextOffset = end;
+    // Inline early-exit avoids adding `length` to the outer slot count.
+    if (offset >= list.length) return (new bytes32[](0), new ActivityRecord[](0), list.length);
 
-    LibActivityStorage.Layout storage $ = LibActivityStorage.layout();
+    // outer: list(p), activityType(p), offset(p), limit(p), ids(ret), items(ret), nextOffset(ret),
+    //        end, count = 9 slots.
+    uint256 end;
     uint256 count;
-    for (uint256 i = offset; i < end; i++) {
-      if ($.activities[list[i]].activityType == activityType) count++;
+
+    // Phase 1: compute window bounds and count matching entries.
+    // 9 outer + windowLength, $, i(loop) = 12 simultaneous slots.
+    {
+      uint256 windowLength = list.length - offset;
+      if (limit < windowLength) windowLength = limit;
+      end = offset + windowLength;
+      nextOffset = end;
+      LibActivityStorage.Layout storage $ = LibActivityStorage.layout();
+      for (uint256 i = offset; i < end; i++) {
+        if ($.activities[list[i]].activityType == activityType) count++;
+      }
     }
 
+    // Phase 2: delegated to a helper so its 4 inner vars ($ j i record) stay in a fresh
+    // 6-param frame, keeping the combined count to 10 and leaving room for coverage overhead.
     ids = new bytes32[](count);
     items = new ActivityRecord[](count);
+    _fillByType(list, activityType, offset, end, ids, items);
+  }
+
+  /// Fills pre-sized `ids` and `items` with entries from `list[offset..end)` whose type matches.
+  function _fillByType(
+    bytes32[] storage list,
+    ActivityType activityType,
+    uint256 offset,
+    uint256 end,
+    bytes32[] memory ids,
+    ActivityRecord[] memory items
+  ) private view {
+    // 6 params + $, j, i(loop), record = 10 simultaneous slots.
+    LibActivityStorage.Layout storage $ = LibActivityStorage.layout();
     uint256 j;
     for (uint256 i = offset; i < end; i++) {
       ActivityRecord memory record = $.activities[list[i]];

@@ -129,6 +129,7 @@ contract PaymentsTest is CbTestBase {
   function test_RevertWhen_Pay_InvalidPayableId() public {
     vm.expectRevert(InvalidPayableId.selector);
     vm.prank(payer);
+    // forge-lint: disable-next-line(unsafe-typecast)
     cb.pay(bytes32('nope'), address(usdc), 1, 1);
   }
 

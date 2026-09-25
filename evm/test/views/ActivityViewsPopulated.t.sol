@@ -245,10 +245,13 @@ contract ActivityViewsPopulatedTest is PopulatedViewsBase {
     uint256 n = cb.getUserActivityCount(wallet);
     uint256 offset;
     found = new bytes32[](0);
+    // Pre-compute the storage ref so it's a local (DUP1) when passed as the 8th arg,
+    // rather than requiring `wallet` (DUP9+) to be accessed mid-call-setup.
+    bytes32[] storage expected = expActivitiesOfUser[wallet];
     while (offset < n) {
       (bytes32[] memory ids, ActivityRecord[] memory items, uint256 nextOffset) =
         cb.getUserActivitiesByType(wallet, activityType, offset, limit);
-      _checkWindow(ids, items, activityType, offset, limit, n, nextOffset, expActivitiesOfUser[wallet]);
+      _checkWindow(ids, items, activityType, offset, limit, n, nextOffset, expected);
       found = _concat(found, ids);
       offset = nextOffset;
     }
@@ -266,10 +269,11 @@ contract ActivityViewsPopulatedTest is PopulatedViewsBase {
     uint256 n = cb.getPayableActivityCount(payableId);
     uint256 offset;
     found = new bytes32[](0);
+    bytes32[] storage expected = expActivitiesOfPayable[payableId];
     while (offset < n) {
       (bytes32[] memory ids, ActivityRecord[] memory items, uint256 nextOffset) =
         cb.getPayableActivitiesByType(payableId, activityType, offset, limit);
-      _checkWindow(ids, items, activityType, offset, limit, n, nextOffset, expActivitiesOfPayable[payableId]);
+      _checkWindow(ids, items, activityType, offset, limit, n, nextOffset, expected);
       found = _concat(found, ids);
       offset = nextOffset;
     }

@@ -20,6 +20,7 @@ contract CbPaginationHarness {
   function setAddressLength(uint256 length) external {
     delete _addressList;
     for (uint256 i; i < length; i++) {
+      // forge-lint: disable-next-line(unsafe-typecast)
       _addressList.push(address(uint160(i + 1)));
     }
   }

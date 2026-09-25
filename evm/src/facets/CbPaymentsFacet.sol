@@ -51,42 +51,54 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
     whenNotPaused(FEATURE_PAY)
     returns (bytes32 userPaymentId, bytes32 payablePaymentId)
   {
-    /* CHECKS */
-    TokenConfig storage config = _sharedChecks(token, amount);
-    LibPayableStorage.Layout storage payablesStorage = LibPayableStorage.layout();
-    Payable storage payable_ = payablesStorage.payables[payableId];
-    if (payable_.host == address(0)) revert InvalidPayableId();
-    if (payable_.isClosed) revert PayableIsClosed();
-    if (payable_.allowedTokensAndAmountsCount != 0) {
-      _requireAllowedTokenAndAmount(payablesStorage.allowedTokensAndAmounts[payableId], token, amount);
-    }
-    if (maxAmountIn < amount) revert InvalidMaxAmountIn(maxAmountIn, amount);
-    if (maxAmountIn > amount && !config.isTransferTaxAllowed) revert TransferTaxNotAllowed(token);
-
-    /* TRANSFER */
+    // outer: payableId(p), token(p), amount(p), maxAmountIn(p), userPaymentId(ret), payablePaymentId(ret),
+    //        received, debited = 8 slots across all phases.
     uint256 received;
     uint256 debited;
-    if (LibTokenTransfer.isNative(token)) {
-      if (msg.value != amount || maxAmountIn != amount) revert IncorrectNativeValue(msg.value, amount);
-      received = amount;
-      debited = amount;
-    } else {
-      if (msg.value != 0) revert IncorrectNativeValue(msg.value, 0);
-      received = LibTokenTransfer.pullMeasured(token, msg.sender, maxAmountIn);
-      if (received < amount) revert TransferTaxExceededBuffer(received, amount);
-      if (!config.isTransferTaxAllowed && received != maxAmountIn) {
-        revert UnexpectedAmountReceived(received, maxAmountIn);
+
+    // Phase 1: checks. 8 outer + config, payablesStorage, payable_ = 11 simultaneous slots.
+    {
+      TokenConfig storage config = _sharedChecks(token, amount);
+      LibPayableStorage.Layout storage payablesStorage = LibPayableStorage.layout();
+      Payable storage payable_ = payablesStorage.payables[payableId];
+      if (payable_.host == address(0)) revert InvalidPayableId();
+      if (payable_.isClosed) revert PayableIsClosed();
+      if (payable_.allowedTokensAndAmountsCount != 0) {
+        _requireAllowedTokenAndAmount(payablesStorage.allowedTokensAndAmounts[payableId], token, amount);
       }
-      debited = maxAmountIn;
+      if (maxAmountIn < amount) revert InvalidMaxAmountIn(maxAmountIn, amount);
+      if (maxAmountIn > amount && !config.isTransferTaxAllowed) revert TransferTaxNotAllowed(token);
     }
 
-    /* STATE CHANGES */
-    bytes32 cbChainId = LibConfigStorage.layout().cbChainId;
-    userPaymentId = CbLedger.recordUserPayment(msg.sender, payableId, cbChainId, token, amount, debited);
-    payablePaymentId = CbLedger.recordPayablePayment(
-      payableId, msg.sender.toBytes32(), cbChainId, token, amount, received, userPaymentId
-    );
-    _autoWithdrawIfNeeded(payable_, payableId, token, received);
+    // Phase 2: transfer. 8 outer + config(re-read for transfer-tax guard) = 9 simultaneous slots.
+    {
+      TokenConfig storage config = LibTokenRegistryStorage.layout().configs[token];
+      if (LibTokenTransfer.isNative(token)) {
+        if (msg.value != amount || maxAmountIn != amount) revert IncorrectNativeValue(msg.value, amount);
+        received = amount;
+        debited = amount;
+      } else {
+        if (msg.value != 0) revert IncorrectNativeValue(msg.value, 0);
+        received = LibTokenTransfer.pullMeasured(token, msg.sender, maxAmountIn);
+        if (received < amount) revert TransferTaxExceededBuffer(received, amount);
+        if (!config.isTransferTaxAllowed && received != maxAmountIn) {
+          revert UnexpectedAmountReceived(received, maxAmountIn);
+        }
+        debited = maxAmountIn;
+      }
+    }
+
+    // Phase 3: state changes. 8 outer + cbChainId, payable_(re-read) = 10 simultaneous slots.
+    // Deepest arg in the 6/7-arg record calls reaches DUP13 at most, within limits.
+    {
+      bytes32 cbChainId = LibConfigStorage.layout().cbChainId;
+      Payable storage payable_ = LibPayableStorage.layout().payables[payableId];
+      userPaymentId = CbLedger.recordUserPayment(msg.sender, payableId, cbChainId, token, amount, debited);
+      payablePaymentId = CbLedger.recordPayablePayment(
+        payableId, msg.sender.toBytes32(), cbChainId, token, amount, received, userPaymentId
+      );
+      _autoWithdrawIfNeeded(payable_, payableId, token, received);
+    }
   }
 
   /// @inheritdoc ICbPayments
@@ -96,63 +108,79 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
     whenNotPaused(FEATURE_PAY_FOREIGN)
     returns (bytes32 userPaymentId)
   {
-    /* CHECKS */
-    LibRelayGuard.enforceCctpEnabled();
-    if (LibTokenTransfer.isNative(token)) revert NativeTokenNotBridgeable();
-    _sharedChecks(token, amount);
-    if (amount > type(uint64).max) revert AmountExceedsCrossChainLimit();
+    // outer: payableId(p), token(p), amount(p), maxFee(p), userPaymentId(ret),
+    //        chainId, burnAmount, nonce, finality = 9 slots across all phases.
+    bytes32 chainId;
+    uint256 burnAmount;
+    uint64 nonce;
+    uint32 finality;
 
-    LibForeignPayableStorage.Layout storage foreignPayables = LibForeignPayableStorage.layout();
-    PayableForeign storage foreignPayable = foreignPayables.foreignPayables[payableId];
-    bytes32 chainId = foreignPayable.chainId;
-    if (chainId == bytes32(0)) revert InvalidPayableId();
-    if (foreignPayable.isClosed) revert PayableIsClosed();
+    // Phase 1a: payable + chain validation, capture chainId.
+    // 9 outer + foreignPayables, foreignPayable, chain = 12 simultaneous slots.
+    {
+      LibRelayGuard.enforceCctpEnabled();
+      if (LibTokenTransfer.isNative(token)) revert NativeTokenNotBridgeable();
+      _sharedChecks(token, amount);
+      if (amount > type(uint64).max) revert AmountExceedsCrossChainLimit();
 
-    ForeignChain storage chain = LibRelayGuard.registeredChain(chainId);
-    if (!chain.config.switches.isOutboundPaymentEnabled) revert OutboundPaymentsDisabled(chainId);
-    if (!chain.config.protocolIds.hasCircleDomain) revert ForeignChainHasNoCircleDomain(chainId);
-    if (chain.config.limits.hasMaxOutboundCctpFeeBps) {
-      uint256 limit = (amount * chain.config.limits.maxOutboundCctpFeeBps) / MAX_BPS;
-      if (maxFee > limit) revert CctpMaxFeeTooHigh(maxFee, limit);
+      LibForeignPayableStorage.Layout storage foreignPayables = LibForeignPayableStorage.layout();
+      PayableForeign storage foreignPayable = foreignPayables.foreignPayables[payableId];
+      chainId = foreignPayable.chainId;
+      if (chainId == bytes32(0)) revert InvalidPayableId();
+      if (foreignPayable.isClosed) revert PayableIsClosed();
+
+      ForeignChain storage chain = LibRelayGuard.registeredChain(chainId);
+      if (!chain.config.switches.isOutboundPaymentEnabled) revert OutboundPaymentsDisabled(chainId);
+      if (!chain.config.protocolIds.hasCircleDomain) revert ForeignChainHasNoCircleDomain(chainId);
+      if (chain.config.limits.hasMaxOutboundCctpFeeBps) {
+        uint256 limit = (amount * chain.config.limits.maxOutboundCctpFeeBps) / MAX_BPS;
+        if (maxFee > limit) revert CctpMaxFeeTooHigh(maxFee, limit);
+      }
     }
 
-    LibTokenRegistryStorage.Layout storage tokens = LibTokenRegistryStorage.layout();
-    bytes32 foreignToken = tokens.foreignTokenByLocalToken[token][chainId];
-    if (foreignToken == bytes32(0)) revert MatchingTokenNotFound(chainId, bytes32(0));
-    if (foreignPayable.allowedTokensAndAmountsCount != 0) {
-      _requireAllowedForeignTokenAndAmount(
-        foreignPayables.allowedTokensAndAmounts[payableId], tokens, chainId, token, amount
-      );
+    // Phase 1b: token validation. foreignPayable and chain freed; 9 outer + foreignPayables, tokens = 11 total.
+    // The 5-arg _requireAllowedForeignTokenAndAmount call's deepest arg reaches DUP14 at most.
+    {
+      LibForeignPayableStorage.Layout storage foreignPayables = LibForeignPayableStorage.layout();
+      LibTokenRegistryStorage.Layout storage tokens = LibTokenRegistryStorage.layout();
+      if (tokens.foreignTokenByLocalToken[token][chainId] == bytes32(0)) revert MatchingTokenNotFound(chainId, bytes32(0));
+      if (foreignPayables.foreignPayables[payableId].allowedTokensAndAmountsCount != 0) {
+        _requireAllowedForeignTokenAndAmount(
+          foreignPayables.allowedTokensAndAmounts[payableId], tokens, chainId, token, amount
+        );
+      }
     }
 
-    /* TRANSFER */
-    uint256 burnAmount = amount + maxFee;
-    uint256 received = LibTokenTransfer.pullMeasured(token, msg.sender, burnAmount);
-    if (received != burnAmount) revert UnexpectedAmountReceived(received, burnAmount);
+    // Phase 2: transfer. 9 outer + received = 10 total.
+    {
+      burnAmount = amount + maxFee;
+      uint256 received = LibTokenTransfer.pullMeasured(token, msg.sender, burnAmount);
+      if (received != burnAmount) revert UnexpectedAmountReceived(received, burnAmount);
+    }
 
-    /* STATE CHANGES */
-    LibConfigStorage.Layout storage config = LibConfigStorage.layout();
-    userPaymentId = CbLedger.recordUserPayment(msg.sender, payableId, chainId, token, amount, burnAmount);
-    uint64 nonce = uint64(LibUserStorage.layout().users[msg.sender].paymentsCount);
-    PaymentPayload memory payload = PaymentPayload({
-      payloadType: PAYMENT_PAYLOAD_TYPE,
-      version: PAYLOAD_VERSION,
-      actionType: PAYMENT_ACTION_PAY,
-      payableId: payableId,
-      nonce: nonce,
-      initiatedAt: uint64(block.timestamp),
-      amount: uint64(amount),
-      payableChainToken: foreignToken,
-      payableChainId: chainId,
-      payer: msg.sender.toBytes32(),
-      payerChainToken: token.toBytes32(),
-      payerChainId: config.cbChainId,
-      payerPaymentId: userPaymentId
-    });
+    // Phase 3: state changes + message. 9 outer + payload = 10 total.
+    {
+      userPaymentId = CbLedger.recordUserPayment(msg.sender, payableId, chainId, token, amount, burnAmount);
+      nonce = uint64(LibUserStorage.layout().users[msg.sender].paymentsCount);
+      PaymentPayload memory payload = PaymentPayload({
+        payloadType: PAYMENT_PAYLOAD_TYPE,
+        version: PAYLOAD_VERSION,
+        actionType: PAYMENT_ACTION_PAY,
+        payableId: payableId,
+        nonce: nonce,
+        initiatedAt: uint64(block.timestamp),
+        // forge-lint: disable-next-line(unsafe-typecast)
+        amount: uint64(amount),
+        payableChainToken: LibTokenRegistryStorage.layout().foreignTokenByLocalToken[token][chainId],
+        payableChainId: chainId,
+        payer: msg.sender.toBytes32(),
+        payerChainToken: token.toBytes32(),
+        payerChainId: LibConfigStorage.layout().cbChainId,
+        payerPaymentId: userPaymentId
+      });
+      finality = CbCctpMessaging.burnWithPayment(chainId, token, amount, maxFee, CbPayloadCodec.encodePaymentPayload(payload));
+    }
 
-    /* MESSAGE */
-    uint32 finality =
-      CbCctpMessaging.burnWithPayment(chainId, token, amount, maxFee, CbPayloadCodec.encodePaymentPayload(payload));
     emit SentForeignPaymentViaCctp(payableId, chainId, userPaymentId, nonce, burnAmount, maxFee, finality);
   }
 
@@ -164,43 +192,54 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
     onlyPermittedRelayer
     returns (bytes32 payablePaymentId)
   {
-    /* CHECKS */
-    (PaymentPayload memory payload, CctpBurnMessage memory burn, bytes32 src) =
-      CbCctpMessaging.verifyInboundPayment(burnMessage);
-    bytes32 payableId = payload.payableId;
-    Payable storage payable_ = LibPayableStorage.layout().payables[payableId];
-    if (payable_.host == address(0)) revert InvalidPayableId();
+    // `bytes calldata` params each occupy 2 stack slots (offset + length).
+    // outer: burnMessage(2), attestation(2), payablePaymentId(ret,1), payload(1), burn(1), src(1), token(1), minted(1)
+    // = 10 slots across all phases.
+    PaymentPayload memory payload;
+    CctpBurnMessage memory burn;
+    bytes32 src;
+    address token;
+    uint256 minted;
 
-    LibMessagingStorage.Layout storage messaging = LibMessagingStorage.layout();
-    uint32 sourceDomain = burn.header.sourceDomain;
-    bytes32 burnNonce = burn.header.nonce;
-    if (messaging.isCctpBurnNonceConsumed[sourceDomain][burnNonce]) {
-      revert CctpBurnNonceAlreadyConsumed(sourceDomain, burnNonce);
+    // Phase 1: decode, validate payable, check and mark nonces.
+    // 10 outer + payable_, messaging = 12 simultaneous slots.
+    {
+      (payload, burn, src) = CbCctpMessaging.verifyInboundPayment(burnMessage);
+      Payable storage payable_ = LibPayableStorage.layout().payables[payload.payableId];
+      if (payable_.host == address(0)) revert InvalidPayableId();
+      LibMessagingStorage.Layout storage messaging = LibMessagingStorage.layout();
+      if (messaging.isCctpBurnNonceConsumed[burn.header.sourceDomain][burn.header.nonce]) {
+        revert CctpBurnNonceAlreadyConsumed(burn.header.sourceDomain, burn.header.nonce);
+      }
+      if (messaging.isPaymentNonceConsumed[src][payload.payer][payload.nonce]) {
+        revert PaymentNonceAlreadyConsumed(src, payload.payer, payload.nonce);
+      }
+      messaging.isCctpBurnNonceConsumed[burn.header.sourceDomain][burn.header.nonce] = true;
+      messaging.isPaymentNonceConsumed[src][payload.payer][payload.nonce] = true;
     }
-    if (messaging.isPaymentNonceConsumed[src][payload.payer][payload.nonce]) {
-      revert PaymentNonceAlreadyConsumed(src, payload.payer, payload.nonce);
+
+    // Phase 2: receive minted tokens. 10 outer + balanceBefore = 11 simultaneous slots;
+    // burnMessage sits at DUP12 during the receiveMessage call, well within limits.
+    {
+      token = payload.payableChainToken.toAddress();
+      uint256 balanceBefore = LibTokenTransfer.balanceOfSelf(token);
+      CbCctpMessaging.receiveMessage(burnMessage, attestation);
+      minted = LibTokenTransfer.balanceOfSelf(token) - balanceBefore;
+      if (minted < payload.amount) revert CircleMintedLessThanAmount(minted, payload.amount);
     }
 
-    /* STATE CHANGES */
-    messaging.isCctpBurnNonceConsumed[sourceDomain][burnNonce] = true;
-    messaging.isPaymentNonceConsumed[src][payload.payer][payload.nonce] = true;
-
-    /* TRANSFER */
-    address token = payload.payableChainToken.toAddress();
-    uint256 balanceBefore = LibTokenTransfer.balanceOfSelf(token);
-    CbCctpMessaging.receiveMessage(burnMessage, attestation);
-    uint256 minted = LibTokenTransfer.balanceOfSelf(token) - balanceBefore;
-    if (minted < payload.amount) revert CircleMintedLessThanAmount(minted, payload.amount);
-
-    /* STATE CHANGES */
-    payablePaymentId = CbLedger.recordPayablePayment(
-      payableId, payload.payer, src, token, payload.amount, minted, payload.payerPaymentId
-    );
-    messaging.cctpStats.receivedCctpPaymentMessagesCount++;
-    emit ReceivedForeignPaymentViaCctp(
-      payableId, src, payablePaymentId, burnNonce, minted, burn.header.finalityThresholdExecuted
-    );
-    _autoWithdrawIfNeeded(payable_, payableId, token, minted);
+    // Phase 3: record, emit, auto-withdraw. 10 outer + payable_(re-read) = 11 simultaneous slots.
+    {
+      payablePaymentId = CbLedger.recordPayablePayment(
+        payload.payableId, payload.payer, src, token, payload.amount, minted, payload.payerPaymentId
+      );
+      LibMessagingStorage.layout().cctpStats.receivedCctpPaymentMessagesCount++;
+      emit ReceivedForeignPaymentViaCctp(
+        payload.payableId, src, payablePaymentId, burn.header.nonce, minted, burn.header.finalityThresholdExecuted
+      );
+      Payable storage payable_ = LibPayableStorage.layout().payables[payload.payableId];
+      _autoWithdrawIfNeeded(payable_, payload.payableId, token, minted);
+    }
   }
 
   // ---------------------------------------------------------------------------

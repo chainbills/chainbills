@@ -1147,6 +1147,7 @@ contract PreChecksDifferentialTest is CbTestBase {
     try cb.pay{value: value}(id, token, amount, amount) {
       return (true, bytes4(0));
     } catch (bytes memory reason) {
+      // forge-lint: disable-next-line(unsafe-typecast)
       return (false, bytes4(reason));
     }
   }
@@ -1156,6 +1157,7 @@ contract PreChecksDifferentialTest is CbTestBase {
     try cb.payForeignViaCctp(id, token, amount, maxFee) {
       return (true, bytes4(0));
     } catch (bytes memory reason) {
+      // forge-lint: disable-next-line(unsafe-typecast)
       return (false, bytes4(reason));
     }
   }
@@ -1165,6 +1167,7 @@ contract PreChecksDifferentialTest is CbTestBase {
     try cb.withdraw(id, token, amount) {
       return (true, bytes4(0));
     } catch (bytes memory reason) {
+      // forge-lint: disable-next-line(unsafe-typecast)
       return (false, bytes4(reason));
     }
   }

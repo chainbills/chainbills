@@ -2,6 +2,7 @@
 pragma solidity ^0.8.30;
 
 import {Test} from 'forge-std/Test.sol';
+import {ChainbillsDiamondInit} from '../../src/ChainbillsDiamondInit.sol';
 import {DeployChainbills} from '../../script/DeployChainbills.s.sol';
 import {DiamondCutUpgrade} from '../../script/DiamondCutUpgrade.s.sol';
 import {ICbOwnership} from '../../src/interfaces/ICbOwnership.sol';
@@ -9,10 +10,8 @@ import {IChainbills} from '../../src/interfaces/IChainbills.sol';
 import {IDiamondCut} from '../../src/interfaces/diamond/IDiamondCut.sol';
 import {IERC173} from '../../src/interfaces/diamond/IERC173.sol';
 
-/// Runs `DiamondCutUpgrade` in-process against a diamond whose `OwnershipFacet` routing is deliberately stale, and
-/// checks the Add/Replace/Remove cut it produces.
-/// @dev `vm.setEnv` changes the real process environment, shared by every thread `forge test` runs concurrently —
-/// run this suite with `forge test -j 1` (see the Testing section of the README).
+/// Runs `DiamondCutUpgrade.upgrade` in-process against a diamond whose `OwnershipFacet` routing is deliberately
+/// stale, and checks the Add/Replace/Remove cut it produces.
 contract DiamondCutUpgradeTest is Test {
   bytes32 internal constant DEPLOY_SALT = bytes32(uint256(1));
   bytes32 internal constant UPGRADE_SALT = bytes32(uint256(101));
@@ -21,16 +20,28 @@ contract DiamondCutUpgradeTest is Test {
 
   function setUp() public {
     owner = DEFAULT_SENDER;
-    vm.setEnv('CB_SALT', vm.toString(DEPLOY_SALT));
-    vm.setEnv('OWNER', vm.toString(owner));
-    vm.setEnv('ADMIN', vm.toString(owner));
-    vm.setEnv('FEE_COLLECTOR', vm.toString(owner));
-    vm.setEnv('WITHDRAWAL_FEE_BPS', '200');
-    vm.setEnv('MAX_ALLOWED_TOKENS_AND_AMOUNTS', '10');
-    vm.setEnv('CAIP2', 'eip155:31337');
-    vm.setEnv('CHAIN_NAME', 'test-fixture-chain');
-
-    chainbills = new DeployChainbills().run();
+    chainbills = new DeployChainbills().deploy(
+      DeployChainbills.DeployConfig({
+        salt: DEPLOY_SALT,
+        owner: owner,
+        caip2: 'eip155:31337',
+        chainName: 'test-fixture-chain',
+        params: ChainbillsDiamondInit.InitParams({
+          cbChainId: keccak256(bytes('eip155:31337')),
+          admin: owner,
+          feeCollector: owner,
+          withdrawalFeeBps: 200,
+          maxAllowedTokensAndAmounts: 10
+        }),
+        tokenMessenger: address(0),
+        wormhole: address(0),
+        wormholeChainId: 0,
+        wormholeFinality: 0,
+        allowedTokens: new address[](0),
+        relayers: new address[](0),
+        deployRecordPath: ''
+      })
+    );
   }
 
   function test_Upgrade_ProducesAddReplaceRemove() public {
@@ -54,12 +65,11 @@ contract DiamondCutUpgradeTest is Test {
     assertEq(chainbills.facetAddress(IERC173.transferOwnership.selector), address(0));
     assertEq(chainbills.facetAddress(fakeSelector), staleImpl);
 
-    vm.setEnv('CB_SALT', vm.toString(UPGRADE_SALT));
-    vm.setEnv('DIAMOND', vm.toString(address(chainbills)));
-    vm.setEnv('FACETS', 'OwnershipFacet');
-    vm.setEnv('DRY_RUN', 'false');
-
-    new DiamondCutUpgrade().run();
+    string[] memory facetNames = new string[](1);
+    facetNames[0] = 'OwnershipFacet';
+    new DiamondCutUpgrade().upgrade(
+      DiamondCutUpgrade.UpgradeConfig({salt: UPGRADE_SALT, diamond: address(chainbills), facetNames: facetNames, dryRun: false})
+    );
 
     address freshImpl = chainbills.facetAddress(IERC173.owner.selector);
     assertTrue(freshImpl != staleImpl, 'OwnershipFacet should have moved to a new implementation');
@@ -85,15 +95,14 @@ contract DiamondCutUpgradeTest is Test {
   }
 
   function test_Upgrade_NothingToCutWhenAlreadyCurrent() public {
-    vm.setEnv('CB_SALT', vm.toString(DEPLOY_SALT));
-    vm.setEnv('DIAMOND', vm.toString(address(chainbills)));
-    vm.setEnv('FACETS', 'OwnershipFacet');
-    vm.setEnv('DRY_RUN', 'false');
-
+    string[] memory facetNames = new string[](1);
+    facetNames[0] = 'OwnershipFacet';
     address before = chainbills.facetAddress(IERC173.owner.selector);
     // Same salt as the original deploy: the "new" implementation is exactly what is already cut, so there is
     // nothing to Add, Replace, or Remove.
-    new DiamondCutUpgrade().run();
+    new DiamondCutUpgrade().upgrade(
+      DiamondCutUpgrade.UpgradeConfig({salt: DEPLOY_SALT, diamond: address(chainbills), facetNames: facetNames, dryRun: false})
+    );
     assertEq(chainbills.facetAddress(IERC173.owner.selector), before);
   }
 }

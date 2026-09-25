@@ -28,3 +28,6 @@ deploys/test-fixture-*.json
 
 # Generated ABIs (node script/export-abi.mjs)
 abi/
+
+node_modules
+

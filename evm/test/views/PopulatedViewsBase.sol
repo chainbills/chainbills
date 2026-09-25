@@ -895,30 +895,46 @@ abstract contract PopulatedViewsBase is CbTestBase {
     string memory label
   ) internal view {
     uint256 n = expected.length;
-    uint256 max = type(uint256).max;
-    uint256[7] memory offsets = [0, 1, n / 2, n == 0 ? 0 : n - 1, n, n + 1, max];
-    uint256[8] memory limits = [0, 1, 2, 3, n == 0 ? 0 : n - 1, n, n + 1, max];
-    for (uint256 i; i < offsets.length; i++) {
-      for (uint256 j; j < limits.length; j++) {
-        _assertIds(fetch(key, offsets[i], limits[j]), _page(expected, offsets[i], limits[j]), label);
+
+    // Probe phase: max, offsets, limits declared inside a scope so they are freed before the walk loop.
+    // 5 outer (fetch, key, expected, label, n) + max + offsets + limits + i + j = 10 simultaneous slots max.
+    {
+      uint256 max = type(uint256).max;
+      uint256[7] memory offsets = [0, 1, n / 2, n == 0 ? 0 : n - 1, n, n + 1, max];
+      uint256[8] memory limits = [0, 1, 2, 3, n == 0 ? 0 : n - 1, n, n + 1, max];
+      for (uint256 i; i < offsets.length; i++) {
+        for (uint256 j; j < limits.length; j++) {
+          _assertIds(fetch(key, offsets[i], limits[j]), _page(expected, offsets[i], limits[j]), label);
+        }
       }
     }
 
+    // Walk phase: max/offsets/limits freed. expected+label stay out of the inner loops by
+    // delegating the walk itself to _walkSize, keeping the Yul variable count within limits.
     uint256[4] memory sizes = [uint256(1), 2, 3, 5];
     for (uint256 s; s < sizes.length; s++) {
-      bytes32[] memory walked = new bytes32[](n);
-      uint256 offset;
-      while (offset < n) {
-        bytes32[] memory page = fetch(key, offset, sizes[s]);
-        uint256 remaining = n - offset;
-        assertEq(page.length, remaining < sizes[s] ? remaining : sizes[s], string.concat(label, ': page length'));
-        for (uint256 k; k < page.length; k++) {
-          walked[offset + k] = page[k];
-        }
-        offset += sizes[s];
-      }
-      assertEq(fetch(key, offset, sizes[s]).length, 0, string.concat(label, ': page after the walk'));
+      bytes32[] memory walked = _walkSize(fetch, key, n, sizes[s]);
+      assertEq(fetch(key, n, sizes[s]).length, 0, string.concat(label, ': page after the walk'));
       _assertIds(walked, expected, string.concat(label, ': walk'));
+    }
+  }
+
+  /// Walks `[0, n)` in steps of `size` using `fetch`, collecting all returned IDs into a flat array.
+  function _walkSize(
+    function(bytes32, uint256, uint256) internal view returns (bytes32[] memory) fetch,
+    bytes32 key,
+    uint256 n,
+    uint256 size
+  ) private view returns (bytes32[] memory walked) {
+    // 4 params + walked(ret) + offset + page + k(loop) = 8 simultaneous slots; no expected/label live here.
+    walked = new bytes32[](n);
+    uint256 offset;
+    while (offset < n) {
+      bytes32[] memory page = fetch(key, offset, size);
+      for (uint256 k; k < page.length; k++) {
+        walked[offset + k] = page[k];
+      }
+      offset += size;
     }
   }
 

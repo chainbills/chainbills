@@ -36,6 +36,7 @@ library CbPayloadCodec {
     if (_carriesAllowedTokens(payload.actionType)) {
       uint256 count = payload.allowedTokensAndAmounts.length;
       if (count > type(uint8).max) revert ICbErrors.InvalidPayload();
+      // forge-lint: disable-next-line(unsafe-typecast)
       encoded = abi.encodePacked(encoded, uint8(count));
       for (uint256 i; i < count; i++) {
         encoded = abi.encodePacked(

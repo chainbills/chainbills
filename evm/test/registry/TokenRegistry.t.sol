@@ -151,8 +151,10 @@ contract TokenRegistryTest is CbTestBase {
   }
 
   function test_RevertWhen_RegisterMatchingToken_UnregisteredChain() public {
+    // forge-lint: disable-next-line(unsafe-typecast)
     vm.expectRevert(abi.encodeWithSelector(ForeignChainNotRegistered.selector, bytes32('nope')));
     vm.prank(owner);
+    // forge-lint: disable-next-line(unsafe-typecast)
     cb.registerMatchingToken(bytes32('nope'), foreignToken, address(token));
   }
 

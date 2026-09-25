@@ -188,6 +188,7 @@ library LibDiamond {
     if (position != lastPosition) {
       bytes4 lastSelector = selectors[lastPosition];
       selectors[position] = lastSelector;
+      // forge-lint: disable-next-line(unsafe-typecast)
       $.selectorToFacetAndPosition[lastSelector].functionSelectorPosition = uint96(position);
     }
     selectors.pop();

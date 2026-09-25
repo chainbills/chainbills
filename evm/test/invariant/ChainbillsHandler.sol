@@ -324,6 +324,7 @@ contract ChainbillsHandler is Test {
       ? abi.encodeCall(ICbPayables.closePayable, (payableId))
       : abi.encodeCall(ICbPayables.reopenPayable, (payableId));
     (bool ok, bytes memory ret) = _call(c, caller, WORMHOLE_FEE, data);
+    // forge-lint: disable-next-line(unsafe-typecast)
     if (!_expect(isExpected, ok, isClosing ? bytes32('closePayable') : bytes32('reopenPayable'), ret)) return;
 
     p.isClosed = isClosing;
@@ -458,31 +459,49 @@ contract ChainbillsHandler is Test {
   {
     _tick();
     uint8 s = _chainOf(srcSeed);
-    uint8 d = 1 - s;
-    (bool found, bytes32 payableId) = _pickPayableFor(d, payableSeed, PICK_FOREIGN);
-    if (!found) return;
-    PayableGhost storage p = payableGhosts[payableId];
-    address payer = actors[_bound(payerSeed, 0, ACTORS - 1)];
+    // outer: 5 params + s + payableId + amount + maxFee + isExpected + destUsdc + srcUsdc = 12 slots.
+    // srcUsdc/destUsdc are pre-computed here so neither `d` nor `s` need to be live during the encodeCall.
+    bytes32 payableId;
+    uint256 amount;
+    uint256 maxFee;
+    bool isExpected;
+    address destUsdc;
+    address srcUsdc = tokens[s][USDC];
 
-    // Pick a listed destination-USDC amount when the mirror restricts tokens.
-    uint256 amount = _bound(amountSeed, 1, MAX_USDC_AMOUNT);
-    bool isListed = mirrorAllowedOf[payableId].length == 0;
-    TokenAndAmount[] storage allowed = mirrorAllowedOf[payableId];
-    for (uint256 i; i < allowed.length; i++) {
-      uint256 j = (amountSeed % allowed.length + i) % allowed.length;
-      if (allowed[j].token == tokens[d][USDC]) {
-        amount = allowed[j].amount;
-        isListed = true;
-        break;
-      }
+    // Sub-scope 1: resolve d, destUsdc, payableId. 12 outer + d + found = 14 total.
+    {
+      uint8 d = 1 - s;
+      destUsdc = tokens[d][USDC];
+      (bool found, bytes32 foundId) = _pickPayableFor(d, payableSeed, PICK_FOREIGN);
+      if (!found) return;
+      payableId = foundId;
     }
-    uint256 maxFee = _bound(feeSeed, 0, amount);
-    bool isExpected = !_isPaused(s, FEATURE_PAY_FOREIGN) && p.isMirrored && !p.mirrorIsClosed && isListed;
-    _crossCheckCanPayForeign(s, payableId, amount, maxFee, isExpected);
 
+    // Sub-scope 2: pick amount, derive maxFee/isExpected.
+    // 12 outer + isListed + allowedLen = 14, then + i + j in loop = 16 max (srcSeed sits at DUP16, not accessed).
+    {
+      amount = _bound(amountSeed, 1, MAX_USDC_AMOUNT);
+      bool isListed = mirrorAllowedOf[payableId].length == 0;
+      uint256 allowedLen = mirrorAllowedOf[payableId].length;
+      for (uint256 i; i < allowedLen; i++) {
+        uint256 j = (amountSeed % allowedLen + i) % allowedLen;
+        if (mirrorAllowedOf[payableId][j].token == destUsdc) {
+          amount = mirrorAllowedOf[payableId][j].amount;
+          isListed = true;
+          break;
+        }
+      }
+      PayableGhost storage p = payableGhosts[payableId];
+      maxFee = _bound(feeSeed, 0, amount);
+      isExpected = !_isPaused(s, FEATURE_PAY_FOREIGN) && p.isMirrored && !p.mirrorIsClosed && isListed;
+      _crossCheckCanPayForeign(s, payableId, amount, maxFee, isExpected);
+    }
+
+    // 12 outer vars live here; payer declared late to keep sub-scope 2 tight.
+    address payer = actors[_bound(payerSeed, 0, ACTORS - 1)];
     chains[s].usdc.mint(payer, amount + maxFee);
     (bool ok, bytes memory ret) =
-      _call(s, payer, 0, abi.encodeCall(ICbPayments.payForeignViaCctp, (payableId, tokens[s][USDC], amount, maxFee)));
+      _call(s, payer, 0, abi.encodeCall(ICbPayments.payForeignViaCctp, (payableId, srcUsdc, amount, maxFee)));
     if (!_expect(isExpected, ok, 'payForeign', ret)) return;
 
     _recordUserPayment(s, payer, USDC, amount + maxFee);
@@ -572,6 +591,7 @@ contract ChainbillsHandler is Test {
     bytes32 payableId = updates[s][index].payableId;
     uint64 nonceBefore = chains[d].cb.getForeignPayableUpdateNonce(payableId);
 
+    // forge-lint: disable-next-line(unsafe-typecast)
     (bool ok, bytes memory ret) = _deliverUpdate(s, index, uint8(viaSeed % 3), CCTP_FINALITY_FINALIZED, relayer);
     _expect(false, ok, 'replayUpdate', ret);
     if (chains[d].cb.getForeignPayableUpdateNonce(payableId) != nonceBefore) {
@@ -659,6 +679,7 @@ contract ChainbillsHandler is Test {
     uint8 c = _chainOf(chainSeed);
     uint256 paused = chainGhosts[c].pausedFeatures;
     if (paused != 0 && paused & (paused - 1) != 0) return;
+    // forge-lint: disable-next-line(incorrect-shift)
     uint256 feature = 1 << _bound(featureSeed, 0, 8);
     vm.prank(admin);
     chains[c].cb.pauseFeatures(feature);
@@ -674,6 +695,7 @@ contract ChainbillsHandler is Test {
     if (paused == 0) return;
     uint256 feature;
     for (uint256 i; i < 9; i++) {
+      // forge-lint: disable-next-line(incorrect-shift)
       uint256 candidate = 1 << ((featureSeed % 9 + i) % 9);
       if (paused & candidate != 0) {
         feature = candidate;
@@ -802,23 +824,34 @@ contract ChainbillsHandler is Test {
       for (uint256 ti; ti < TOKENS; ti++) {
         address token = tokens[c][ti];
         TokenGhost storage t = tokenGhosts[c][ti];
-        (uint256 userPaid, uint256 received, uint256 withdrawn, uint256 fees, uint256 balance) = _stats(cb, token);
-        assertEq(received - withdrawn, balance, 'received - withdrawn != balance');
-        assertEq(received, t.received, 'totalPayableReceived');
-        assertEq(withdrawn, t.withdrawn, 'totalWithdrawn');
-        assertEq(balance, t.balance, 'totalPayableBalance');
-        assertEq(fees, t.fees, 'totalWithdrawalFeesCollected');
-        assertEq(userPaid, t.userPaid, 'totalUserPaid');
+        // carry balance across the two sub-checks so the 5 stat vars don't overlap with the inner loop vars.
+        uint256 balance;
 
-        uint256 sum;
-        uint256 count = cb.getChainPayableCount();
-        for (uint256 i; i < count; i++) {
-          bytes32 payableId = cb.getChainPayableIdAt(i);
-          uint256 payableBalance = cb.getBalance(payableId, token);
-          assertEq(payableBalance, balanceOf[payableId][ti], 'payable balance');
-          sum += payableBalance;
+        // Stats assertions. Freed before inner loop: c, cb, ti, token, t, balance = 6 outer + 5 stat vars = 11 total.
+        {
+          (uint256 userPaid, uint256 received, uint256 withdrawn, uint256 fees, uint256 bal) = _stats(cb, token);
+          balance = bal;
+          assertEq(received - withdrawn, balance, 'received - withdrawn != balance');
+          assertEq(received, t.received, 'totalPayableReceived');
+          assertEq(withdrawn, t.withdrawn, 'totalWithdrawn');
+          assertEq(balance, t.balance, 'totalPayableBalance');
+          assertEq(fees, t.fees, 'totalWithdrawalFeesCollected');
+          assertEq(userPaid, t.userPaid, 'totalUserPaid');
         }
-        assertEq(sum, balance, 'sum of payable balances != totalPayableBalance');
+
+        // Per-payable sum check. c, cb, ti, token, t, balance = 6 outer + sum, count, i, payableId, payableBalance
+        // = 11 total; ti sits at DUP9 so balanceOf[payableId][ti] only needs DUP11 during the double-mapping lookup.
+        {
+          uint256 sum;
+          uint256 count = cb.getChainPayableCount();
+          for (uint256 i; i < count; i++) {
+            bytes32 payableId = cb.getChainPayableIdAt(i);
+            uint256 payableBalance = cb.getBalance(payableId, token);
+            assertEq(payableBalance, balanceOf[payableId][ti], 'payable balance');
+            sum += payableBalance;
+          }
+          assertEq(sum, balance, 'sum of payable balances != totalPayableBalance');
+        }
       }
     }
   }
@@ -976,51 +1009,101 @@ contract ChainbillsHandler is Test {
     bool isListed,
     bytes32 action
   ) internal {
-    PayableGhost storage p = payableGhosts[payableId];
-    uint256 received = ti == TAX ? maxAmountIn - _taxOf(maxAmountIn) : maxAmountIn;
-    bool isChecksOk = !_isPaused(c, FEATURE_PAY) && !p.isClosed && isListed;
-    bool isExpected = isChecksOk && received >= amount;
-    _crossCheckCanPay(c, payableId, tokens[c][ti], amount, isChecksOk);
+    // outer: 8 params + received + isExpected = 10 slots.
+    uint256 received;
+    bool isExpected;
 
+    // Phase 1: checks. 10 outer + p + isChecksOk = 12 total; freed before the _call.
+    {
+      PayableGhost storage p = payableGhosts[payableId];
+      received = ti == TAX ? maxAmountIn - _taxOf(maxAmountIn) : maxAmountIn;
+      bool isChecksOk = !_isPaused(c, FEATURE_PAY) && !p.isClosed && isListed;
+      isExpected = isChecksOk && received >= amount;
+      _crossCheckCanPay(c, payableId, tokens[c][ti], amount, isChecksOk);
+    }
+
+    // Phase 2: transfer + call. call+check delegated to _payAndCheck so ok+ret never appear
+    // in this frame alongside the 10 outer vars — keeps peak slot count at 11 (10 outer + value).
     uint256 value;
     if (ti == NATIVE) value = amount;
     else if (ti == USDC) chains[c].usdc.mint(payer, maxAmountIn);
     else taxTokens[c].mint(payer, maxAmountIn);
 
-    (bool ok, bytes memory ret) =
-      _call(c, payer, value, abi.encodeCall(ICbPayments.pay, (payableId, tokens[c][ti], amount, maxAmountIn)));
-    if (!_expect(isExpected, ok, action, ret)) return;
+    if (!_payAndCheck(c, payer, ti, payableId, amount, maxAmountIn, value, isExpected, action)) return;
 
+    // 10 outer live. Pre-compute cbChainId so the 6-arg recordPayablePayment call stays at DUP ≤ 13.
+    bytes32 cbChainId = chains[c].cbChainId;
     _recordUserPayment(c, payer, ti, maxAmountIn);
-    _recordPayablePayment(c, payableId, ti, amount, received, chains[c].cbChainId);
+    _recordPayablePayment(c, payableId, ti, amount, received, cbChainId);
+  }
+
+  /// Encodes and makes the ICbPayments.pay call, returning whether it matched expectation.
+  /// Isolated so calldata_+ok+ret never coexist with the 10 slots in _pay's outer frame.
+  function _payAndCheck(
+    uint8 c,
+    address payer,
+    uint256 ti,
+    bytes32 payableId,
+    uint256 amount,
+    uint256 maxAmountIn,
+    uint256 value,
+    bool isExpected,
+    bytes32 action
+  ) private returns (bool) {
+    // 9 params + calldata_ + ok + ret = 12 simultaneous slots.
+    bytes memory calldata_ = abi.encodeCall(ICbPayments.pay, (payableId, tokens[c][ti], amount, maxAmountIn));
+    (bool ok, bytes memory ret) = _call(c, payer, value, calldata_);
+    return _expect(isExpected, ok, action, ret);
   }
 
   /// Relays pending payment `slot`; returns whether it was credited.
   function _relayPayment(uint256 slot, uint32 finality, uint256 feeSeed, address caller) internal returns (bool) {
+    // outer: slot(p), finality(p), feeSeed(p), caller(p), index, m, feeExecuted = 7 slots.
+    // d is omitted from outer and derived inline as uint8(1 - m.src) to keep Phase 1 at 11 slots.
     uint256 index = pendingPayments[slot];
     PaymentMsg storage m = payments[index];
-    uint8 d = 1 - m.src;
     uint256 feeExecuted = _bound(feeSeed, 0, m.maxFee);
-    (bytes memory message, bytes memory attestation) =
-      chains[m.src].transmitter.attest(chains[m.src].transmitter.sent(m.cctpIndex), finality, feeExecuted, true);
-    bool isExpected = !_isPaused(d, FEATURE_RECEIVE_FOREIGN_PAYMENT) && finality >= CCTP_FINALITY_FAST
-      && _isPermittedRelayer(d, caller);
 
-    (bool ok, bytes memory ret) =
-      _call(d, caller, 0, abi.encodeCall(ICbPayments.receiveForeignPaymentViaCctp, (message, attestation)));
-    if (!_expect(isExpected, ok, 'relayPayment', ret)) return false;
+    // Phase 1: attest, derive d+isExpected, call, check, mark.
+    // 7 outer + message, attestation, d, isExpected = 11 simultaneous slots.
+    // call+check delegated to _relayCctp to keep ok+ret out of this frame.
+    {
+      (bytes memory message, bytes memory attestation) =
+        chains[m.src].transmitter.attest(chains[m.src].transmitter.sent(m.cctpIndex), finality, feeExecuted, true);
+      uint8 d = uint8(1 - m.src);
+      bool isExpected = !_isPaused(d, FEATURE_RECEIVE_FOREIGN_PAYMENT) && finality >= CCTP_FINALITY_FAST
+        && _isPermittedRelayer(d, caller);
+      if (!_relayCctp(d, caller, message, attestation, isExpected)) return false;
+      m.isDelivered = true;
+      deliveredPaymentMessage[index] = message;
+    }
 
+    // Phase 2: state updates. 7 outer + minted = 8 total; slot at DUP8, well within limits.
     uint256 minted = m.amount + m.maxFee - feeExecuted;
-    m.isDelivered = true;
-    deliveredPaymentMessage[index] = message;
     pendingPayments[slot] = pendingPayments[pendingPayments.length - 1];
     pendingPayments.pop();
     deliveredPayments.push(index);
+    uint8 d = uint8(1 - m.src);
     chainGhosts[d].paymentsReceived++;
     chainGhosts[d].crossChainCredited += minted;
     chainGhosts[d].circleFees += feeExecuted;
     _recordPayablePayment(d, m.payableId, USDC, m.amount, minted, chains[m.src].cbChainId);
     return true;
+  }
+
+  /// Makes the receiveForeignPaymentViaCctp call and returns whether it matched expectation.
+  /// Isolated so ok+ret never coexist with the 11 slots in _relayPayment Phase 1.
+  function _relayCctp(
+    uint8 d,
+    address caller,
+    bytes memory message,
+    bytes memory attestation,
+    bool isExpected
+  ) private returns (bool) {
+    // 5 params + ok + ret = 7 simultaneous slots.
+    (bool ok, bytes memory ret) =
+      _call(d, caller, 0, abi.encodeCall(ICbPayments.receiveForeignPaymentViaCctp, (message, attestation)));
+    return _expect(isExpected, ok, 'relayPayment', ret);
   }
 
   /// Delivers the next pending update of chain `s`; returns whether it was applied.
@@ -1098,22 +1181,24 @@ contract ChainbillsHandler is Test {
   }
 
   function _withdraw(uint8 c, bytes32 payableId, uint256 ti, uint256 amount, bool isAll) internal {
+    // outer: 5 params + p + token + isExpected + hostBefore = 9 slots.
     PayableGhost storage p = payableGhosts[payableId];
     address token = tokens[c][ti];
     bool isExpected = !_isPaused(c, FEATURE_WITHDRAW) && amount > 0 && amount <= balanceOf[payableId][ti];
     if (!isAll) _crossCheckCanWithdraw(c, payableId, p.host, token, amount, isExpected);
-
     uint256 hostBefore = _balanceOf(c, ti, p.host);
-    (bool ok, bytes memory ret) = _call(
-      c,
-      p.host,
-      0,
-      isAll
-        ? abi.encodeCall(ICbWithdrawals.withdrawAll, (payableId, token))
-        : abi.encodeCall(ICbWithdrawals.withdraw, (payableId, token, amount))
-    );
-    if (!_expect(isExpected, ok, isAll ? bytes32('withdrawAll') : bytes32('withdraw'), ret)) return;
 
+    // Call scope: 9 outer + calldata_ + ok + ret = 12 total; c stays at DUP12 during _call setup.
+    {
+      bytes memory calldata_ = isAll
+        ? abi.encodeCall(ICbWithdrawals.withdrawAll, (payableId, token))
+        : abi.encodeCall(ICbWithdrawals.withdraw, (payableId, token, amount));
+      (bool ok, bytes memory ret) = _call(c, p.host, 0, calldata_);
+      // forge-lint: disable-next-line(unsafe-typecast)
+      if (!_expect(isExpected, ok, isAll ? bytes32('withdrawAll') : bytes32('withdraw'), ret)) return;
+    }
+
+    // calldata_, ok, ret freed. 9 outer + fee + net + expectedArrival = 12; _balanceOf uses c at DUP12.
     uint256 fee = _recordWithdrawal(c, payableId, ti, amount);
     uint256 net = amount - fee;
     uint256 expectedArrival = ti == TAX ? net - _taxOf(net) : net;
@@ -1246,6 +1331,7 @@ contract ChainbillsHandler is Test {
   }
 
   function _chainOf(uint256 seed) internal pure returns (uint8) {
+    // forge-lint: disable-next-line(unsafe-typecast)
     return uint8(seed % 2);
   }
 

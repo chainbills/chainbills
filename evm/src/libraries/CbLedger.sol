@@ -226,66 +226,73 @@ library CbLedger {
     uint256 amount,
     bytes32 payerPaymentId
   ) public returns (bytes32 payablePaymentId) {
-    ChainStats storage stats = LibStatsStorage.layout().chainStats;
-    LibPayableStorage.Layout storage payables = LibPayableStorage.layout();
-    Payable storage payable_ = payables.payables[payableId];
+    // outer: payableId(p), payer(p), payerChainId(p), token(p), requestedAmount(p), amount(p),
+    //        payerPaymentId(p), payablePaymentId(ret) = 8 slots across all phases.
 
-    // Count the payment and its activity on the payable and the chain.
-    stats.payablePaymentsCount++;
-    stats.activitiesCount++;
-    payable_.paymentsCount++;
-    payable_.activitiesCount++;
+    // Phase 1: counters, credit, ID. 8 outer + stats, payables, payable_ = 11 simultaneous slots.
+    {
+      ChainStats storage stats = LibStatsStorage.layout().chainStats;
+      LibPayableStorage.Layout storage payables = LibPayableStorage.layout();
+      Payable storage payable_ = payables.payables[payableId];
+      stats.payablePaymentsCount++;
+      stats.activitiesCount++;
+      payable_.paymentsCount++;
+      payable_.activitiesCount++;
+      _credit(payableId, token, amount);
+      payablePaymentId = LibCbIds.createId(payableId, EntityType.Payment, payable_.paymentsCount);
+    }
 
-    // Credit the payable balance and the token totals.
-    _credit(payableId, token, amount);
-
-    // Store the receipt and index it on the chain, the payable, and the payer's chain.
-    payablePaymentId = LibCbIds.createId(payableId, EntityType.Payment, payable_.paymentsCount);
-    LibPaymentStorage.Layout storage payments = LibPaymentStorage.layout();
-    payments.payablePaymentIds.push(payablePaymentId);
-    payables.payablePaymentIds[payableId].push(payablePaymentId);
-    bytes32[] storage chainPaymentIds = payables.payableChainPaymentIds[payableId][payerChainId];
-    chainPaymentIds.push(payablePaymentId);
-    payments.payablePayments[payablePaymentId] = PayablePayment({
-      payableId: payableId,
-      payer: payer,
-      token: token,
-      chainCount: stats.payablePaymentsCount,
-      payerChainId: payerChainId,
-      localChainCount: chainPaymentIds.length,
-      payableCount: payable_.paymentsCount,
-      timestamp: block.timestamp,
-      requestedAmount: requestedAmount,
-      amount: amount,
-      payerPaymentId: payerPaymentId
-    });
-
-    // Record the receipt activity on the chain and the payable.
-    bytes32 activityId = LibCbIds.createId(payableId, EntityType.Activity, payable_.activitiesCount);
-    _storeActivity(
-      activityId,
-      ActivityRecord({
-        chainCount: stats.activitiesCount,
-        userCount: 0,
-        payableCount: payable_.activitiesCount,
+    // Phase 2: index pushes + struct write.
+    // 8 outer + payables, payments, chainPaymentIds = 11 simultaneous slots.
+    // chainCount and payableCount are re-read inline from storage to avoid keeping stats/payable_ live.
+    {
+      LibPayableStorage.Layout storage payables = LibPayableStorage.layout();
+      LibPaymentStorage.Layout storage payments = LibPaymentStorage.layout();
+      payments.payablePaymentIds.push(payablePaymentId);
+      payables.payablePaymentIds[payableId].push(payablePaymentId);
+      bytes32[] storage chainPaymentIds = payables.payableChainPaymentIds[payableId][payerChainId];
+      chainPaymentIds.push(payablePaymentId);
+      payments.payablePayments[payablePaymentId] = PayablePayment({
+        payableId: payableId,
+        payer: payer,
+        token: token,
+        chainCount: LibStatsStorage.layout().chainStats.payablePaymentsCount,
+        payerChainId: payerChainId,
+        localChainCount: chainPaymentIds.length,
+        payableCount: LibPayableStorage.layout().payables[payableId].paymentsCount,
         timestamp: block.timestamp,
-        entity: payablePaymentId,
-        activityType: ActivityType.PayableReceived
-      })
-    );
-    payables.payableActivityIds[payableId].push(activityId);
+        requestedAmount: requestedAmount,
+        amount: amount,
+        payerPaymentId: payerPaymentId
+      });
+    }
 
-    emit ICbEvents.PayableReceived(
-      payableId,
-      payer,
-      payablePaymentId,
-      payerChainId,
-      token,
-      requestedAmount,
-      amount,
-      stats.payablePaymentsCount,
-      payable_.paymentsCount
-    );
+    // Phase 3: activity record + emit.
+    // 8 outer + payables, activityId = 10 total; emit re-reads via the just-written PayablePayment struct.
+    {
+      LibPayableStorage.Layout storage payables = LibPayableStorage.layout();
+      bytes32 activityId =
+        LibCbIds.createId(payableId, EntityType.Activity, payables.payables[payableId].activitiesCount);
+      _storeActivity(
+        activityId,
+        ActivityRecord({
+          chainCount: LibStatsStorage.layout().chainStats.activitiesCount,
+          userCount: 0,
+          payableCount: payables.payables[payableId].activitiesCount,
+          timestamp: block.timestamp,
+          entity: payablePaymentId,
+          activityType: ActivityType.PayableReceived
+        })
+      );
+      payables.payableActivityIds[payableId].push(activityId);
+    }
+
+    {
+      PayablePayment storage pp = LibPaymentStorage.layout().payablePayments[payablePaymentId];
+      emit ICbEvents.PayableReceived(
+        payableId, payer, payablePaymentId, payerChainId, token, requestedAmount, amount, pp.chainCount, pp.payableCount
+      );
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -300,85 +307,94 @@ library CbLedger {
   /// @return withdrawalId ID of the withdrawal.
   /// @dev Callers check the caller's permission. External calls happen last.
   function withdraw(bytes32 payableId, address token, uint256 amount) public returns (bytes32 withdrawalId) {
-    LibPayableStorage.Layout storage payables = LibPayableStorage.layout();
-    Payable storage payable_ = payables.payables[payableId];
-    address host = payable_.host;
+    // outer: payableId(p), token(p), amount(p), withdrawalId(ret), host, quote = 6 slots across all phases.
+    address host;
+    WithdrawalQuote memory quote;
 
-    /* CHECKS */
-    // Require a positive amount covered by the payable balance of a token it has received.
-    if (amount == 0) revert ICbErrors.ZeroAmountSpecified();
-    if (!payables.isBalanceToken[payableId][token]) revert ICbErrors.NoBalanceForWithdrawalToken();
-    uint256 balance = payables.balances[payableId][token];
-    if (balance < amount) revert ICbErrors.InsufficientWithdrawAmount(balance, amount);
-    WithdrawalQuote memory quote = LibFees.quote(token, amount);
+    // Phase 1: validate balance, compute fee, deduct.
+    // 6 outer + payables, payable_, balance = 9 simultaneous slots.
+    {
+      LibPayableStorage.Layout storage payables = LibPayableStorage.layout();
+      Payable storage payable_ = payables.payables[payableId];
+      host = payable_.host;
+      if (amount == 0) revert ICbErrors.ZeroAmountSpecified();
+      if (!payables.isBalanceToken[payableId][token]) revert ICbErrors.NoBalanceForWithdrawalToken();
+      uint256 balance = payables.balances[payableId][token];
+      if (balance < amount) revert ICbErrors.InsufficientWithdrawAmount(balance, amount);
+      quote = LibFees.quote(token, amount);
+      payables.balances[payableId][token] = balance - amount;
+    }
 
-    /* STATE CHANGES */
-    // Count the withdrawal and its activity on the host, the payable, and the chain.
-    ChainStats storage stats = LibStatsStorage.layout().chainStats;
-    LibUserStorage.Layout storage users = LibUserStorage.layout();
-    User storage user = users.users[host];
-    stats.withdrawalsCount++;
-    stats.activitiesCount++;
-    user.withdrawalsCount++;
-    user.activitiesCount++;
-    payable_.withdrawalsCount++;
-    payable_.activitiesCount++;
+    // Phase 2: counters, token stats, withdrawal struct, activity record.
+    // Outer (6) + payables, payable_, stats, users, user = 11. tokenStats added for token-stats update = 12.
+    // withdrawals is scoped inside so the struct write never exceeds 12 simultaneous slots.
+    {
+      LibPayableStorage.Layout storage payables = LibPayableStorage.layout();
+      Payable storage payable_ = payables.payables[payableId];
+      ChainStats storage stats = LibStatsStorage.layout().chainStats;
+      LibUserStorage.Layout storage users = LibUserStorage.layout();
+      User storage user = users.users[host];
+      stats.withdrawalsCount++;
+      stats.activitiesCount++;
+      user.withdrawalsCount++;
+      user.activitiesCount++;
+      payable_.withdrawalsCount++;
+      payable_.activitiesCount++;
 
-    // Deduct the payable balance and update the token totals.
-    payables.balances[payableId][token] = balance - amount;
-    TokenStats storage tokenStats = LibTokenRegistryStorage.layout().stats[token];
-    tokenStats.totalWithdrawn += amount;
-    tokenStats.totalWithdrawalFeesCollected += quote.fee;
-    tokenStats.totalPayableBalance -= amount;
+      // tokenStats update; freed before struct write so withdrawals fits within the 12-slot budget.
+      {
+        TokenStats storage tokenStats = LibTokenRegistryStorage.layout().stats[token];
+        tokenStats.totalWithdrawn += amount;
+        tokenStats.totalWithdrawalFeesCollected += quote.fee;
+        tokenStats.totalPayableBalance -= amount;
+      }
 
-    // Store the withdrawal and index it on the chain, the host, and the payable.
-    withdrawalId = LibCbIds.createId(host.toBytes32(), EntityType.Withdrawal, user.withdrawalsCount);
-    LibWithdrawalStorage.Layout storage withdrawals = LibWithdrawalStorage.layout();
-    withdrawals.withdrawalIds.push(withdrawalId);
-    users.userWithdrawalIds[host].push(withdrawalId);
-    payables.payableWithdrawalIds[payableId].push(withdrawalId);
-    withdrawals.withdrawals[withdrawalId] = Withdrawal({
-      payableId: payableId,
-      host: host,
-      token: token,
-      chainCount: stats.withdrawalsCount,
-      hostCount: user.withdrawalsCount,
-      payableCount: payable_.withdrawalsCount,
-      timestamp: block.timestamp,
-      amount: amount,
-      fee: quote.fee
-    });
+      withdrawalId = LibCbIds.createId(host.toBytes32(), EntityType.Withdrawal, user.withdrawalsCount);
 
-    // Record the withdrawal activity on the chain, the host, and the payable.
-    bytes32 activityId = LibCbIds.createId(host.toBytes32(), EntityType.Activity, user.activitiesCount);
-    _storeActivity(
-      activityId,
-      ActivityRecord({
-        chainCount: stats.activitiesCount,
-        userCount: user.activitiesCount,
-        payableCount: payable_.activitiesCount,
-        timestamp: block.timestamp,
-        entity: withdrawalId,
-        activityType: ActivityType.Withdrew
-      })
-    );
-    users.userActivityIds[host].push(activityId);
-    payables.payableActivityIds[payableId].push(activityId);
+      // Struct write + index pushes. 11 outer+phase2 + withdrawals = 12 total.
+      {
+        LibWithdrawalStorage.Layout storage withdrawals = LibWithdrawalStorage.layout();
+        withdrawals.withdrawalIds.push(withdrawalId);
+        users.userWithdrawalIds[host].push(withdrawalId);
+        payables.payableWithdrawalIds[payableId].push(withdrawalId);
+        withdrawals.withdrawals[withdrawalId] = Withdrawal({
+          payableId: payableId,
+          host: host,
+          token: token,
+          chainCount: stats.withdrawalsCount,
+          hostCount: user.withdrawalsCount,
+          payableCount: payable_.withdrawalsCount,
+          timestamp: block.timestamp,
+          amount: amount,
+          fee: quote.fee
+        });
+      }
 
-    emit ICbEvents.Withdrew(
-      payableId,
-      host,
-      withdrawalId,
-      token,
-      amount,
-      quote.fee,
-      stats.withdrawalsCount,
-      user.withdrawalsCount,
-      payable_.withdrawalsCount
-    );
+      // Activity record. withdrawals freed; 11 outer+phase2 + activityId = 12 total.
+      bytes32 activityId = LibCbIds.createId(host.toBytes32(), EntityType.Activity, user.activitiesCount);
+      _storeActivity(
+        activityId,
+        ActivityRecord({
+          chainCount: stats.activitiesCount,
+          userCount: user.activitiesCount,
+          payableCount: payable_.activitiesCount,
+          timestamp: block.timestamp,
+          entity: withdrawalId,
+          activityType: ActivityType.Withdrew
+        })
+      );
+      users.userActivityIds[host].push(activityId);
+      payables.payableActivityIds[payableId].push(activityId);
+    }
+
+    // Phase 3: emit. Re-read the just-written withdrawal via one storage ref.
+    // 6 outer + w = 7 simultaneous slots; payableId sits at DUP7 during the 9-arg emit.
+    {
+      Withdrawal storage w = LibWithdrawalStorage.layout().withdrawals[withdrawalId];
+      emit ICbEvents.Withdrew(payableId, host, withdrawalId, token, amount, quote.fee, w.chainCount, w.hostCount, w.payableCount);
+    }
 
     /* TRANSFER */
-    // Send the net amount to the host and the fee to the fee collector; zero amounts are skipped.
     LibTokenTransfer.push(token, host, quote.net);
     LibTokenTransfer.push(token, LibConfigStorage.layout().feeCollector, quote.fee);
   }

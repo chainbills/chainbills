@@ -70,6 +70,7 @@ contract CrossChainPaymentsTest is CbTestBase {
   function test_RevertWhen_PayForeignViaCctp_InvalidPayableId() public {
     vm.expectRevert(InvalidPayableId.selector);
     vm.prank(payer);
+    // forge-lint: disable-next-line(unsafe-typecast)
     chainA.cb.payForeignViaCctp(bytes32('nope'), address(chainA.usdc), 100e6, 10e6);
   }
 
@@ -409,6 +410,7 @@ contract CrossChainPaymentsTest is CbTestBase {
     // The payable ID sits at the start of the 251-byte hook data appended after the fixed burn body fields.
     uint256 hookDataOffset = CCTP_MESSAGE_BODY_OFFSET + 228;
     uint256 payableIdOffset = hookDataOffset + 3; // payloadType(1) | version(1) | actionType(1) | payableId(32)
+    // forge-lint: disable-next-line(unsafe-typecast)
     return _replaceBytes32(message, payableIdOffset, bytes32('does-not-exist'));
   }
 }

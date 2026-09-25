@@ -14,6 +14,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Logger } from '@nestjs/common';
+import { keccak256 } from 'viem';
 import type { Network } from '../../chains/types';
 
 const logger = new Logger('CctpResolver');
@@ -79,6 +80,66 @@ export async function fetchCctpAttestation(
     return { message: match.message as string, attestation: match.attestation as string };
   } catch (err) {
     logger.warn({ sourceDomain, txHash, err }, 'Iris API request failed');
+    return null;
+  }
+}
+
+/**
+ * Fetches the CCTP V2 message + attestation whose `messageBody` hashes to
+ * `messageBodyHash`, emitted by `senderDiamond` on `sourceDomain` targeting
+ * `destinationDomain`. Used for payable-update relay jobs created off the
+ * on-chain `emittedCctpPayableUpdates` array — we know the body hash from
+ * storage but not the tx hash, so we ask Iris for every message this diamond
+ * emitted to that domain and re-hash each until we find the match.
+ *
+ * @param network            Chain network (selects mainnet vs sandbox API).
+ * @param sourceDomain       Circle uint32 domain of the source chain.
+ * @param destinationDomain  Circle uint32 domain of the destination chain.
+ * @param senderDiamond      0x-hex EVM address of the emitting diamond.
+ * @param messageBodyHash    `keccak256(messageBody)` recorded on-chain at
+ *                            emission time.
+ * @returns                  The matching (message, attestation) pair, or null
+ *                            when not yet complete (caller should retry later).
+ */
+export async function fetchCctpAttestationByMessageBody(
+  network: Network,
+  sourceDomain: number,
+  destinationDomain: number,
+  senderDiamond: string,
+  messageBodyHash: string
+): Promise<CctpAttestation | null> {
+  const targetHash = messageBodyHash.toLowerCase().startsWith('0x')
+    ? messageBodyHash.toLowerCase()
+    : `0x${messageBodyHash.toLowerCase()}`;
+  const url =
+    `${baseUrl(network)}/v2/messages/${sourceDomain}` +
+    `?sender=${senderDiamond}&destinationDomain=${destinationDomain}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      logger.warn({ sourceDomain, destinationDomain, senderDiamond, status: res.status }, 'Iris API non-200 response');
+      return null;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = (await res.json()) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const messages: any[] = body?.messages ?? [];
+
+    for (const m of messages) {
+      if (m?.status !== 'complete' || !m.message || !m.attestation || !m.messageBody) continue;
+      const bodyHex: string = m.messageBody.startsWith('0x') ? m.messageBody : `0x${m.messageBody}`;
+      if (keccak256(bodyHex as `0x${string}`).toLowerCase() === targetHash) {
+        logger.debug({ sourceDomain, destinationDomain, messageBodyHash: targetHash }, 'CCTP attestation ready');
+        return { message: m.message as string, attestation: m.attestation as string };
+      }
+    }
+
+    logger.debug({ sourceDomain, destinationDomain, messageBodyHash: targetHash }, 'CCTP attestation not ready yet');
+    return null;
+  } catch (err) {
+    logger.warn({ sourceDomain, destinationDomain, senderDiamond, err }, 'Iris API request failed');
     return null;
   }
 }

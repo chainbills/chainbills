@@ -306,7 +306,7 @@ onMounted(() => {
         </p>
 
         <button
-          v-for="chain of [megaethInApp, arctestnet, basesepoliaInApp]"
+          v-for="chain of [arctestnet, basesepoliaInApp]"
           :key="chain.name"
           type="button"
           :disabled="dialogMode === 'switch' && activeChainName === chain.name"

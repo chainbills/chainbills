@@ -3,6 +3,7 @@ pragma solidity ^0.8.30;
 
 import {
   CctpConfig,
+  CctpPayableUpdateEmission,
   CctpStats,
   ChainStats,
   ProtocolConfig,
@@ -57,4 +58,15 @@ interface ICbCoreViews {
 
   /// Returns configuration, counters, and pause state in one call.
   function getProtocolOverview() external view returns (ProtocolOverview memory);
+
+  /// Returns a page of the emitted CCTP payable-update log, in emission order.
+  /// The relayer walks this by increasing offset until it catches up to
+  /// `cctpStats.emittedCctpPayableUpdateMessagesCount`; there is no RPC log
+  /// scan involved.
+  /// @param offset First index to return (0-based).
+  /// @param limit  Maximum number of entries to return.
+  function getEmittedCctpPayableUpdateMessages(uint256 offset, uint256 limit)
+    external
+    view
+    returns (CctpPayableUpdateEmission[] memory);
 }

@@ -42,7 +42,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 const auth = useAuthStore();
 const { switchChain } = useSwitchChain();
 
-const availableChains = [megaethApp, arctestnet, basesepoliaApp];
+const availableChains = [arctestnet, basesepoliaApp];
 
 const getViemChainId = (chainName: string): number => {
   if (chainName === 'megaeth') return megaethViem.id;
@@ -125,7 +125,13 @@ const buttonLabel = computed(() => {
         class="w-4 h-4 rounded-full"
       />
       <span>{{ buttonLabel }}</span>
-      <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5 text-muted transition-transform" :class="open && 'rotate-180'" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        class="w-3.5 h-3.5 text-muted transition-transform"
+        :class="open && 'rotate-180'"
+        aria-hidden="true"
+      >
         <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
@@ -148,7 +154,7 @@ const buttonLabel = computed(() => {
           @click="select(c.name)"
           :class="[
             'w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-left transition-colors',
-            (!isNetworkScope && currentChain?.name === c.name)
+            !isNetworkScope && currentChain?.name === c.name
               ? 'bg-fg/10 text-fg font-medium'
               : 'text-muted hover:bg-fg/5 hover:text-fg',
           ]"
@@ -162,7 +168,13 @@ const buttonLabel = computed(() => {
             class="w-4 h-4 ml-auto text-accent shrink-0"
             aria-hidden="true"
           >
-            <path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path
+              d="M20 6 9 17l-5-5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
         </button>
 
@@ -188,8 +200,20 @@ const buttonLabel = computed(() => {
               </svg>
             </span>
             All chains
-            <svg v-if="isNetworkScope" viewBox="0 0 24 24" fill="none" class="w-4 h-4 ml-auto text-accent shrink-0" aria-hidden="true">
-              <path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <svg
+              v-if="isNetworkScope"
+              viewBox="0 0 24 24"
+              fill="none"
+              class="w-4 h-4 ml-auto text-accent shrink-0"
+              aria-hidden="true"
+            >
+              <path
+                d="M20 6 9 17l-5-5"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
           </button>
         </template>

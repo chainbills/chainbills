@@ -27,7 +27,7 @@ import type { EvmChainConfig } from '../chains/types';
 import { AppConfigService } from '../config/app-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { claimJob, markDone, markFailed, patchArtefacts, retryLater } from './job.store';
-import { fetchCctpAttestation } from './resolvers/cctp.resolver';
+import { fetchCctpAttestation, fetchCctpAttestationByMessageBody } from './resolvers/cctp.resolver';
 import { fetchVaa } from './resolvers/wormhole.resolver';
 import {
   submitReceiveForeignPaymentViaCctp,
@@ -200,12 +200,16 @@ export class RelayProcessor {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const originalTxHash = (job.eventData as any)?.originalTxHash ?? job.txHash;
-      const fetched = await fetchCctpAttestation(
+      const eventData = (job.eventData ?? {}) as any;
+      const messageBodyHash: string = eventData.messageBodyHash;
+      const sourceDiamond: string = eventData.sourceDiamond ?? sourceChain.diamondAddress;
+
+      const fetched = await fetchCctpAttestationByMessageBody(
         sourceChain.network,
         sourceChain.circleDomain,
-        originalTxHash,
-        destChain.circleDomain
+        destChain.circleDomain,
+        sourceDiamond,
+        messageBodyHash
       );
 
       if (!fetched) {

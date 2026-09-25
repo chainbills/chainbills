@@ -57,7 +57,7 @@ library CbPayableSync {
         bytes32 cbChainId = registry.registeredChainIds.at(i);
         ForeignChain storage chain = registry.chains[cbChainId];
         if (chain.config.switches.isCctpUpdateEnabled && chain.config.protocolIds.hasCircleDomain) {
-          CbCctpMessaging.sendPayableUpdate(cbChainId, encoded);
+          CbCctpMessaging.sendPayableUpdate(cbChainId, payload.payableId, payload.nonce, encoded);
           cctpMessagesCount++;
           emit ICbEvents.SentPayableUpdateViaCctp(payload.payableId, cbChainId, payload.nonce);
         }

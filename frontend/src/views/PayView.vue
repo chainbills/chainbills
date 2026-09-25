@@ -512,13 +512,8 @@ onMounted(async () => {
             </template>
           </div>
 
-          <!-- Route panel -->
-          <div v-if="routeKind === 'same'" class="rounded-xl bg-fg/[0.03] px-3.5 py-3 text-sm text-fg">
-            Direct payment on <span class="font-medium">{{ payable.chain.displayName }}</span
-            >.
-          </div>
-
-          <div v-else-if="routeKind === 'cross'" class="rounded-xl bg-fg/[0.03] px-3.5 py-3.5">
+          <!-- Route panel — only surfaces for the non-same-chain cases where the payer needs context (cross-chain progress, mismatch, unsupported pairing). -->
+          <div v-if="routeKind === 'cross'" class="rounded-xl bg-fg/[0.03] px-3.5 py-3.5">
             <template v-if="isForeignPayableSynced">
               <CrossChainRoute
                 :source-chain="userChain!"
@@ -613,7 +608,6 @@ onMounted(async () => {
             "
             :amount="selectedConfig"
             :chain="userChain"
-            :spender="contracts[userChain.name]"
             :cross-chain="routeKind === 'cross'"
           />
 

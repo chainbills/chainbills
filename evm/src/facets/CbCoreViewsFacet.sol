@@ -12,6 +12,7 @@ import {LibStatsStorage} from '../storage/LibStatsStorage.sol';
 import {LibTokenRegistryStorage} from '../storage/LibTokenRegistryStorage.sol';
 import {
   CctpConfig,
+  CctpPayableUpdateEmission,
   CctpStats,
   ChainStats,
   ProtocolConfig,
@@ -96,6 +97,21 @@ contract CbCoreViewsFacet is CbFacetBase, ICbCoreViews {
     LibMessagingStorage.Layout storage messaging = LibMessagingStorage.layout();
     wormholeStats = messaging.wormholeStats;
     cctpStats = messaging.cctpStats;
+  }
+
+  /// @inheritdoc ICbCoreViews
+  function getEmittedCctpPayableUpdateMessages(uint256 offset, uint256 limit)
+    external
+    view
+    returns (CctpPayableUpdateEmission[] memory page)
+  {
+    CctpPayableUpdateEmission[] storage all = LibMessagingStorage.layout().emittedCctpPayableUpdates;
+    if (offset >= all.length || limit == 0) return new CctpPayableUpdateEmission[](0);
+    uint256 end = offset + limit;
+    if (end > all.length) end = all.length;
+    uint256 pageSize = end - offset;
+    page = new CctpPayableUpdateEmission[](pageSize);
+    for (uint256 i; i < pageSize; i++) page[i] = all[offset + i];
   }
 
   /// @inheritdoc ICbCoreViews

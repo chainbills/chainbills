@@ -16,10 +16,9 @@ import './assets/main.css';
 import { vReveal } from './directives/reveal';
 import router from './router';
 const wagmiConfig = createConfig({
-  chains: [megaeth, arcTestnet, baseSepolia],
+  chains: [arcTestnet, baseSepolia],
   connectors: [injected()],
   transports: {
-    [megaeth.id]: http(),
     [arcTestnet.id]: http(),
     [baseSepolia.id]: http(),
   },

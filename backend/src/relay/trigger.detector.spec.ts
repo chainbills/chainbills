@@ -11,9 +11,9 @@ import type { EvmChainConfig } from '../chains/types';
 import type { ChainsService } from '../chains/chains.service';
 import type { PrismaService } from '../prisma/prisma.service';
 
-// Minimal chain configs for the test.
+// Minimal chain configs for the test. Use valid slugs from ChainSlug union.
 const TESTNET_CHAIN_A: EvmChainConfig = {
-  slug: 'chainA',
+  slug: 'anvil',
   cbChainId: '0xchainA',
   displayName: 'Chain A',
   caip2: 'eip155:1',
@@ -30,7 +30,7 @@ const TESTNET_CHAIN_A: EvmChainConfig = {
 };
 
 const TESTNET_CHAIN_B: EvmChainConfig = {
-  slug: 'chainB',
+  slug: 'arcmainnet',
   cbChainId: '0xchainB',
   displayName: 'Chain B',
   caip2: 'eip155:2',
@@ -47,7 +47,7 @@ const TESTNET_CHAIN_B: EvmChainConfig = {
 };
 
 const MAINNET_CHAIN: EvmChainConfig = {
-  slug: 'mainnetChain',
+  slug: 'arcmainnet',
   cbChainId: '0xmainnet',
   displayName: 'Mainnet',
   caip2: 'eip155:3',
@@ -161,7 +161,7 @@ describe('detectRelayTriggers', () => {
   });
 
   it('creates separate jobs for multiple SentPayableUpdateViaCctp events in one tx', async () => {
-    const CHAIN_C: EvmChainConfig = { ...TESTNET_CHAIN_B, slug: 'chainC', cbChainId: '0xchainC' };
+    const CHAIN_C: EvmChainConfig = { ...TESTNET_CHAIN_B, slug: 'solanadevnet' as any, cbChainId: '0xchainC' };
     const prisma = makePrisma(TESTNET_CHAIN_A.cbChainId);
     const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B, CHAIN_C]);
     const TX = '0xtx3';

@@ -3,17 +3,19 @@
 //
 // Covers error classification: every idempotent error -> DONE, RelayerOnly ->
 // FAILED immediately, InsufficientFinality -> retryLater, unknown error -> retryLater.
-// Also covers Solana-destination job types left PENDING.
+// Also covers Solana-destination job routing: with relayEnabled Solana dest chain
+// the Solana submitter is invoked; without a Solana keypair the job is FAILED.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { RelayJobStatus, RelayJobType } from '@prisma/client';
 import { RelayProcessor } from './relay.processor';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { ChainsService } from '../chains/chains.service';
-import type { EvmChainConfig } from '../chains/types';
+import type { AppConfigService } from '../config/app-config.service';
+import type { EvmChainConfig, SolanaChainConfig } from '../chains/types';
 
 const SRC_CHAIN: EvmChainConfig = {
-  slug: 'chainA',
+  slug: 'anvil',
   cbChainId: '0xchainA',
   displayName: 'A',
   caip2: 'eip155:1',
@@ -31,12 +33,35 @@ const SRC_CHAIN: EvmChainConfig = {
 
 const DEST_CHAIN: EvmChainConfig = {
   ...SRC_CHAIN,
-  slug: 'chainB',
+  slug: 'arcmainnet',
   cbChainId: '0xchainB',
   circleDomain: 26,
 };
 
-function makeJob(type = RelayJobType.PAYABLE_UPDATE_VIA_WORMHOLE, overrides: Partial<any> = {}) {
+const SOLANA_DEST_CHAIN: SolanaChainConfig = {
+  slug: 'solanadevnet',
+  cbChainId: '0xsolanaChain',
+  displayName: 'Solana Devnet',
+  caip2: 'solana:devnet',
+  network: 'testnet',
+  isEvm: false,
+  isSolana: true,
+  wormholeChainId: 1,
+  circleDomain: 5,
+  pollIntervalMs: 5000,
+  minGasBalance: 50_000_000n,
+  relayEnabled: true,
+  programId: 'DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk',
+  usdcMint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+  wormholeProgramId: '3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5',
+  cctpProgramId: 'CCTPmbSD7gX1bxKPAmg77w8oFzNFpaQiQUWD43TKaecd',
+  wormholeShimProgramId: 'EtZMZM22ViKMo4r5y4Anovs3wKQ2owUmDpjygnMMcdEX',
+};
+
+/** A fake 64-byte keypair (all zeros) for test use. */
+const FAKE_KEYPAIR_BYTES = Array(64).fill(0) as number[];
+
+function makeJob(type: RelayJobType = RelayJobType.PAYABLE_UPDATE_VIA_WORMHOLE, overrides: Partial<any> = {}) {
   return {
     id: 'job-1',
     type,
@@ -74,12 +99,20 @@ function makePrisma(claimedJob?: ReturnType<typeof makeJob>): PrismaService & { 
   } as unknown as PrismaService & { updateCalls: any[] };
 }
 
-function makeChains(): ChainsService {
+function makeChains(extraChains: (EvmChainConfig | SolanaChainConfig)[] = []): ChainsService {
+  const all = [SRC_CHAIN, DEST_CHAIN, ...extraChains];
   return {
-    enabled: [SRC_CHAIN, DEST_CHAIN],
-    byCbChainId: (id: string) => [SRC_CHAIN, DEST_CHAIN].find((c) => c.cbChainId === id),
+    enabled: all,
+    byCbChainId: (id: string) => all.find((c) => c.cbChainId === id),
     getRpcUrl: () => 'http://localhost',
   } as unknown as ChainsService;
+}
+
+function makeConfig(keypairBytes: number[] | null = FAKE_KEYPAIR_BYTES): AppConfigService {
+  return {
+    // Pass null to simulate no keypair configured (undefined triggers the default).
+    env: { solanaRelayerKeypair: keypairBytes ?? undefined },
+  } as unknown as AppConfigService;
 }
 
 // A RelayProcessor that captures what classifyResult was called with.
@@ -90,7 +123,7 @@ describe('RelayProcessor — error classification', () => {
 
   beforeEach(() => {
     prisma = makePrisma(makeJob());
-    processor = new RelayProcessor(prisma, makeChains());
+    processor = new RelayProcessor(prisma, makeChains(), makeConfig());
   });
 
   const IDEMPOTENT = [
@@ -143,32 +176,46 @@ describe('RelayProcessor — error classification', () => {
 });
 
 describe('RelayProcessor — Solana destination jobs', () => {
-  it('leaves SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE PENDING and resets attempts', async () => {
-    const job = makeJob(RelayJobType.SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE);
+  it('marks SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE FAILED when no SOLANA_RELAYER_KEYPAIR configured', async () => {
+    const job = makeJob(RelayJobType.SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+    });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
-
-    // Call dispatch directly.
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig(null));
 
     await (processor as any).dispatch(job, {} as any);
 
-    const resetCall = prisma.updateCalls.find(
-      (c: any) => c.data?.status === RelayJobStatus.PENDING && c.data?.attempts === 0
-    );
-    expect(resetCall).toBeDefined();
+    const failedCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.FAILED);
+    expect(failedCall).toBeDefined();
+    expect(failedCall.data.lastError).toMatch(/SOLANA_RELAYER_KEYPAIR/);
   });
 
-  it('leaves SOLANA_PAYMENT_VIA_CCTP_WORMHOLE PENDING and resets attempts', async () => {
-    const job = makeJob(RelayJobType.SOLANA_PAYMENT_VIA_CCTP_WORMHOLE);
+  it('marks SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE FAILED when dest chain is not an enabled Solana chain', async () => {
+    // destChainId points to a chain not in the enabled list
+    const job = makeJob(RelayJobType.SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE, {
+      destChainId: '0xunknownSolana',
+    });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     await (processor as any).dispatch(job, {} as any);
 
-    const resetCall = prisma.updateCalls.find(
-      (c: any) => c.data?.status === RelayJobStatus.PENDING && c.data?.attempts === 0
-    );
-    expect(resetCall).toBeDefined();
+    const failedCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.FAILED);
+    expect(failedCall).toBeDefined();
+  });
+
+  it('marks SOLANA_PAYMENT_VIA_CCTP_WORMHOLE FAILED when no SOLANA_RELAYER_KEYPAIR configured', async () => {
+    const job = makeJob(RelayJobType.SOLANA_PAYMENT_VIA_CCTP_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig(null));
+
+    await (processor as any).dispatch(job, {} as any);
+
+    const failedCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.FAILED);
+    expect(failedCall).toBeDefined();
+    expect(failedCall.data.lastError).toMatch(/SOLANA_RELAYER_KEYPAIR/);
   });
 });
 
@@ -179,6 +226,11 @@ vi.mock('./submitters/evm.submitter', () => ({
   submitReceivePayableUpdateViaWormhole: vi.fn(),
   submitReceivePayableUpdateViaCctp: vi.fn(),
   submitReceiveForeignPaymentViaCctp: vi.fn(),
+}));
+vi.mock('./submitters/solana.submitter', () => ({
+  submitPayableUpdateToSolana: vi.fn(),
+  submitPaymentToSolana: vi.fn(),
+  SOLANA_NOT_IMPLEMENTED: 'SolanaSubmitterNotImplemented',
 }));
 vi.mock('../chains/clients', () => ({
   createEvmPublicClient: vi.fn().mockReturnValue({}),
@@ -193,6 +245,263 @@ import {
   submitReceivePayableUpdateViaCctp,
   submitReceiveForeignPaymentViaCctp,
 } from './submitters/evm.submitter';
+import {
+  submitPayableUpdateToSolana,
+  submitPaymentToSolana as submitPaymentToSolanaFn,
+} from './submitters/solana.submitter';
+
+describe('RelayProcessor — Solana routing with mocked Solana submitter', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('routes SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE to Solana submitter when keypair is set and dest is Solana', async () => {
+    const vaaHex = Buffer.from([0x01, 0x02, 0x03]).toString('hex');
+    const job = makeJob(RelayJobType.SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      vaa: vaaHex,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig());
+
+    // Solana submitter returns null on success.
+    vi.mocked(submitPayableUpdateToSolana).mockResolvedValue(null);
+
+    await (processor as any).dispatch(job, {} as any);
+
+    expect(submitPayableUpdateToSolana).toHaveBeenCalledOnce();
+    // null -> DONE
+    const doneCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.DONE);
+    expect(doneCall).toBeDefined();
+  });
+
+  it('routes SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE to Solana submitter and retries on SolanaSubmitterNotImplemented', async () => {
+    const vaaHex = Buffer.from([0x01, 0x02, 0x03]).toString('hex');
+    const job = makeJob(RelayJobType.SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      vaa: vaaHex,
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig());
+
+    vi.mocked(submitPayableUpdateToSolana).mockResolvedValue('SolanaSubmitterNotImplemented');
+
+    await (processor as any).dispatch(job, {} as any);
+
+    expect(submitPayableUpdateToSolana).toHaveBeenCalledOnce();
+    // SolanaSubmitterNotImplemented is retryable -> PENDING
+    const pendingCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.PENDING);
+    expect(pendingCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE: fetches VAA when not cached, retries if unavailable', async () => {
+    const job = makeJob(RelayJobType.SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      sourceChainId: SRC_CHAIN.cbChainId,
+      vaa: null,
+      eventData: { sequence: '7' },
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig());
+
+    vi.mocked(fetchVaa).mockResolvedValue(null); // not available yet
+
+    await (processor as any).dispatch(job, {} as any);
+
+    expect(fetchVaa).toHaveBeenCalledOnce();
+    const pendingCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.PENDING);
+    expect(pendingCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE: retries when source chain has no wormholeChainId', async () => {
+    const srcNoWormhole = { ...SRC_CHAIN, wormholeChainId: undefined };
+    const chains = {
+      enabled: [srcNoWormhole, SOLANA_DEST_CHAIN],
+      byCbChainId: (id: string) => [srcNoWormhole, SOLANA_DEST_CHAIN].find((c) => c.cbChainId === id),
+      getRpcUrl: () => 'http://localhost',
+    } as unknown as import('../chains/chains.service').ChainsService;
+
+    const job = makeJob(RelayJobType.SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      sourceChainId: SRC_CHAIN.cbChainId,
+      vaa: null,
+      eventData: { sequence: '7' },
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, chains, makeConfig());
+
+    await (processor as any).dispatch(job, {} as any);
+
+    const pendingCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.PENDING);
+    expect(pendingCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYMENT_VIA_CCTP_WORMHOLE: uses cached artefacts and marks DONE on success', async () => {
+    const vaaHex = Buffer.from([0x01]).toString('hex');
+    const job = makeJob(RelayJobType.SOLANA_PAYMENT_VIA_CCTP_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      vaa: vaaHex,
+      cctpMessage: '0xmsg',
+      cctpAttestation: '0xatt',
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig());
+
+    vi.mocked(submitPaymentToSolanaFn).mockResolvedValue(null);
+
+    await (processor as any).dispatch(job, {} as any);
+
+    expect(submitPaymentToSolanaFn).toHaveBeenCalledOnce();
+    const doneCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.DONE);
+    expect(doneCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYMENT_VIA_CCTP_WORMHOLE: retries when source chain has no wormholeChainId', async () => {
+    const srcNoWormhole = { ...SRC_CHAIN, wormholeChainId: undefined };
+    const chains = {
+      enabled: [srcNoWormhole, SOLANA_DEST_CHAIN],
+      byCbChainId: (id: string) => [srcNoWormhole, SOLANA_DEST_CHAIN].find((c) => c.cbChainId === id),
+      getRpcUrl: () => 'http://localhost',
+    } as unknown as import('../chains/chains.service').ChainsService;
+
+    const job = makeJob(RelayJobType.SOLANA_PAYMENT_VIA_CCTP_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      sourceChainId: SRC_CHAIN.cbChainId,
+      vaa: null,
+      cctpMessage: null,
+      cctpAttestation: null,
+      eventData: { sequence: '7' },
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, chains, makeConfig());
+
+    await (processor as any).dispatch(job, {} as any);
+
+    const pendingCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.PENDING);
+    expect(pendingCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYMENT_VIA_CCTP_WORMHOLE: retries when VAA not yet available', async () => {
+    const job = makeJob(RelayJobType.SOLANA_PAYMENT_VIA_CCTP_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      sourceChainId: SRC_CHAIN.cbChainId,
+      vaa: null,
+      cctpMessage: null,
+      cctpAttestation: null,
+      eventData: { sequence: '7' },
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig());
+
+    vi.mocked(fetchVaa).mockResolvedValue(null);
+
+    await (processor as any).dispatch(job, {} as any);
+
+    const pendingCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.PENDING);
+    expect(pendingCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYMENT_VIA_CCTP_WORMHOLE: marks FAILED when CCTP circle domain missing', async () => {
+    const srcNoCctp = { ...SRC_CHAIN, circleDomain: undefined };
+    const chains = {
+      enabled: [srcNoCctp, SOLANA_DEST_CHAIN],
+      byCbChainId: (id: string) => [srcNoCctp, SOLANA_DEST_CHAIN].find((c) => c.cbChainId === id),
+      getRpcUrl: () => 'http://localhost',
+    } as unknown as import('../chains/chains.service').ChainsService;
+
+    const job = makeJob(RelayJobType.SOLANA_PAYMENT_VIA_CCTP_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      sourceChainId: SRC_CHAIN.cbChainId,
+      vaa: null,
+      cctpMessage: null,
+      cctpAttestation: null,
+      eventData: { sequence: '7' },
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, chains, makeConfig());
+
+    vi.mocked(fetchVaa).mockResolvedValue(Buffer.from([0x01, 0x02]));
+
+    await (processor as any).dispatch(job, {} as any);
+
+    const failedCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.FAILED);
+    expect(failedCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYMENT_VIA_CCTP_WORMHOLE: retries when CCTP attestation not yet available', async () => {
+    const job = makeJob(RelayJobType.SOLANA_PAYMENT_VIA_CCTP_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      sourceChainId: SRC_CHAIN.cbChainId,
+      vaa: null,
+      cctpMessage: null,
+      cctpAttestation: null,
+      eventData: { sequence: '7' },
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig());
+
+    vi.mocked(fetchVaa).mockResolvedValue(Buffer.from([0x01, 0x02]));
+    vi.mocked(fetchCctpAttestation).mockResolvedValue(null);
+
+    await (processor as any).dispatch(job, {} as any);
+
+    const pendingCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.PENDING);
+    expect(pendingCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYMENT_VIA_CCTP_WORMHOLE: fetches VAA and CCTP then submits', async () => {
+    const job = makeJob(RelayJobType.SOLANA_PAYMENT_VIA_CCTP_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      sourceChainId: SRC_CHAIN.cbChainId,
+      vaa: null,
+      cctpMessage: null,
+      cctpAttestation: null,
+      eventData: { sequence: '7' },
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig());
+
+    vi.mocked(fetchVaa).mockResolvedValue(Buffer.from([0x01, 0x02]));
+    vi.mocked(fetchCctpAttestation).mockResolvedValue({ message: '0xmsg', attestation: '0xatt' });
+    vi.mocked(submitPaymentToSolanaFn).mockResolvedValue(null);
+
+    await (processor as any).dispatch(job, {} as any);
+
+    expect(submitPaymentToSolanaFn).toHaveBeenCalledOnce();
+    const doneCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.DONE);
+    expect(doneCall).toBeDefined();
+  });
+
+  it('SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE: fetches VAA then submits', async () => {
+    const job = makeJob(RelayJobType.SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE, {
+      destChainId: SOLANA_DEST_CHAIN.cbChainId,
+      sourceChainId: SRC_CHAIN.cbChainId,
+      vaa: null,
+      eventData: { sequence: '7' },
+      attempts: 1,
+    });
+    const prisma = makePrisma(job);
+    const processor = new RelayProcessor(prisma, makeChains([SOLANA_DEST_CHAIN]), makeConfig());
+
+    vi.mocked(fetchVaa).mockResolvedValue(Buffer.from([0x01, 0x02]));
+    vi.mocked(submitPayableUpdateToSolana).mockResolvedValue(null);
+
+    await (processor as any).dispatch(job, {} as any);
+
+    expect(submitPayableUpdateToSolana).toHaveBeenCalledOnce();
+    const doneCall = prisma.updateCalls.find((c: any) => c.data?.status === RelayJobStatus.DONE);
+    expect(doneCall).toBeDefined();
+  });
+});
 
 describe('RelayProcessor — dispatch with mocked submitters', () => {
   afterEach(() => {
@@ -203,7 +512,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     const vaaHex = Buffer.from([0x01, 0x02, 0x03]).toString('hex');
     const job = makeJob(RelayJobType.PAYABLE_UPDATE_VIA_WORMHOLE, { vaa: vaaHex });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     vi.mocked(submitReceivePayableUpdateViaWormhole).mockResolvedValue(null);
 
@@ -221,7 +530,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     });
     const src = { ...SRC_CHAIN, wormholeChainId: 10002, diamondAddress: '0xdiamond' };
     const prisma = makePrisma(jobWithWormhole);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     vi.mocked(fetchVaa).mockResolvedValue(null);
 
@@ -239,7 +548,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       eventData: { originalTxHash: '0xtx' },
     });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     vi.mocked(submitReceivePayableUpdateViaCctp).mockResolvedValue(null);
 
@@ -259,7 +568,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       eventData: { originalTxHash: '0xtx' },
     });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     vi.mocked(fetchCctpAttestation).mockResolvedValue(null);
 
@@ -275,7 +584,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       cctpAttestation: '0xatt',
     });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     vi.mocked(submitReceiveForeignPaymentViaCctp).mockResolvedValue(null);
 
@@ -289,7 +598,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
   it('dispatch: marks ADMIN_SYNC FAILED immediately', async () => {
     const job = makeJob(RelayJobType.ADMIN_SYNC);
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     await (processor as any).dispatch(job, {} as any);
 
@@ -304,7 +613,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       updateCalls: [],
     } as unknown as PrismaService & { updateCalls: any[] };
 
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
     const result = await processor.processOne({} as any);
     expect(result).toBe(false);
   });
@@ -325,7 +634,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       return Promise.resolve({});
     });
 
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
     const result = await processor.processOne({} as any);
     expect(result).toBe(true);
   });
@@ -337,7 +646,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       eventData: { wormholeSequence: '42' },
     });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     await (processor as any).handleWormholeUpdate(job, src, DEST_CHAIN, {}, {});
 
@@ -353,7 +662,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       eventData: { originalTxHash: '0xtx' },
     });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     await (processor as any).handleCctpUpdate(job, src, DEST_CHAIN, {}, {});
 
@@ -368,7 +677,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       cctpAttestation: null,
     });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     await (processor as any).handleCctpPayment(job, src, DEST_CHAIN, {}, {});
 
@@ -384,7 +693,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       cctpAttestation: null,
     });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     vi.mocked(fetchCctpAttestation).mockResolvedValue(null);
 
@@ -399,7 +708,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
       sourceChainId: '0xunknown',
     });
     const prisma = makePrisma(job);
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
     await (processor as any).dispatch(job, {} as any);
 
@@ -425,7 +734,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     // Make the submitter throw an unhandled error.
     vi.mocked(submitReceivePayableUpdateViaWormhole).mockRejectedValue(new Error('network down'));
 
-    const processor = new RelayProcessor(prisma, makeChains());
+    const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
     const result = await processor.processOne({} as any);
     // Should still return true (a job was claimed).
     expect(result).toBe(true);

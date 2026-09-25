@@ -74,7 +74,7 @@ describe('TokenResolverService', () => {
     const { readContract } = await import('viem/actions');
     const spy = vi
       .spyOn({ readContract }, 'readContract')
-      .mockImplementation((_client: PublicClient, { functionName }: { functionName: string }) => {
+      .mockImplementation((_client: unknown, { functionName }: { functionName: string }) => {
         if (functionName === 'symbol') return Promise.resolve('TKN');
         if (functionName === 'decimals') return Promise.resolve(18);
         return Promise.reject(new Error('unknown'));

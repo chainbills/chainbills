@@ -13,12632 +13,12632 @@
 
 export const chainbillsAbi = [
   {
-    "type": "function",
-    "name": "CHAIN_MANAGER_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'CHAIN_MANAGER_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "CONFIG_MANAGER_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'CONFIG_MANAGER_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "DEFAULT_ADMIN_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'DEFAULT_ADMIN_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "FEE_MANAGER_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'FEE_MANAGER_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "PAUSER_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'PAUSER_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "PAYABLE_SYNC_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'PAYABLE_SYNC_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "RELAYER_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'RELAYER_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "RESCUER_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'RESCUER_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "TOKEN_MANAGER_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'TOKEN_MANAGER_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "UNPAUSER_ROLE",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'UNPAUSER_ROLE',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "pure"
+    stateMutability: 'pure',
   },
   {
-    "type": "function",
-    "name": "acceptOwnership",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    type: 'function',
+    name: 'acceptOwnership',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "adminSyncForeignPayable",
-    "inputs": [
+    type: 'function',
+    name: 'adminSyncForeignPayable',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "nonce",
-        "type": "uint64",
-        "internalType": "uint64"
+        name: 'nonce',
+        type: 'uint64',
+        internalType: 'uint64',
       },
       {
-        "name": "initiatedAt",
-        "type": "uint64",
-        "internalType": "uint64"
+        name: 'initiatedAt',
+        type: 'uint64',
+        internalType: 'uint64',
       },
       {
-        "name": "actionType",
-        "type": "uint8",
-        "internalType": "uint8"
+        name: 'actionType',
+        type: 'uint8',
+        internalType: 'uint8',
       },
       {
-        "name": "isClosed",
-        "type": "bool",
-        "internalType": "bool"
+        name: 'isClosed',
+        type: 'bool',
+        internalType: 'bool',
       },
       {
-        "name": "allowedTokensAndAmounts",
-        "type": "tuple[]",
-        "internalType": "struct TokenAndAmountForeign[]",
-        "components": [
+        name: 'allowedTokensAndAmounts',
+        type: 'tuple[]',
+        internalType: 'struct TokenAndAmountForeign[]',
+        components: [
           {
-            "name": "token",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'token',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "amount",
-            "type": "uint64",
-            "internalType": "uint64"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint64',
+            internalType: 'uint64',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "allowPaymentsForToken",
-    "inputs": [
+    type: 'function',
+    name: 'allowPaymentsForToken',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "canPay",
-    "inputs": [
+    type: 'function',
+    name: 'canPay',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
       },
       {
-        "name": "",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
+        name: '',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "canPayForeign",
-    "inputs": [
+    type: 'function',
+    name: 'canPayForeign',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "maxFee",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'maxFee',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
       },
       {
-        "name": "",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
+        name: '',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "canWithdraw",
-    "inputs": [
+    type: 'function',
+    name: 'canWithdraw',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
+        name: 'caller',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
       },
       {
-        "name": "",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
+        name: '',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "cbChainId",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'cbChainId',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "clearTokenFeeBps",
-    "inputs": [
+    type: 'function',
+    name: 'clearTokenFeeBps',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "clearTokenMaxWithdrawalFee",
-    "inputs": [
+    type: 'function',
+    name: 'clearTokenMaxWithdrawalFee',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "closePayable",
-    "inputs": [
+    type: 'function',
+    name: 'closePayable',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "wormholeSequence",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: 'wormholeSequence',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "stateMutability": "payable"
+    stateMutability: 'payable',
   },
   {
-    "type": "function",
-    "name": "createPayable",
-    "inputs": [
+    type: 'function',
+    name: 'createPayable',
+    inputs: [
       {
-        "name": "allowedTokensAndAmounts",
-        "type": "tuple[]",
-        "internalType": "struct TokenAndAmount[]",
-        "components": [
+        name: 'allowedTokensAndAmounts',
+        type: 'tuple[]',
+        internalType: 'struct TokenAndAmount[]',
+        components: [
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
       },
       {
-        "name": "isAutoWithdraw",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: 'isAutoWithdraw',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "wormholeSequence",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: 'wormholeSequence',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "stateMutability": "payable"
+    stateMutability: 'payable',
   },
   {
-    "type": "function",
-    "name": "diamondCut",
-    "inputs": [
+    type: 'function',
+    name: 'diamondCut',
+    inputs: [
       {
-        "name": "diamondCut",
-        "type": "tuple[]",
-        "internalType": "struct IDiamondCut.FacetCut[]",
-        "components": [
+        name: 'diamondCut',
+        type: 'tuple[]',
+        internalType: 'struct IDiamondCut.FacetCut[]',
+        components: [
           {
-            "name": "facetAddress",
-            "type": "address",
-            "internalType": "address"
+            name: 'facetAddress',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "action",
-            "type": "uint8",
-            "internalType": "enum IDiamondCut.FacetCutAction"
+            name: 'action',
+            type: 'uint8',
+            internalType: 'enum IDiamondCut.FacetCutAction',
           },
           {
-            "name": "functionSelectors",
-            "type": "bytes4[]",
-            "internalType": "bytes4[]"
-          }
-        ]
+            name: 'functionSelectors',
+            type: 'bytes4[]',
+            internalType: 'bytes4[]',
+          },
+        ],
       },
       {
-        "name": "init",
-        "type": "address",
-        "internalType": "address"
+        name: 'init',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "calldata_",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: 'calldata_',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "facetAddress",
-    "inputs": [
+    type: 'function',
+    name: 'facetAddress',
+    inputs: [
       {
-        "name": "functionSelector",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
+        name: 'functionSelector',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "facetAddress_",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'facetAddress_',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "facetAddresses",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'facetAddresses',
+    inputs: [],
+    outputs: [
       {
-        "name": "facetAddresses_",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: 'facetAddresses_',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "facetFunctionSelectors",
-    "inputs": [
+    type: 'function',
+    name: 'facetFunctionSelectors',
+    inputs: [
       {
-        "name": "facet",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'facet',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "facetFunctionSelectors_",
-        "type": "bytes4[]",
-        "internalType": "bytes4[]"
-      }
+        name: 'facetFunctionSelectors_',
+        type: 'bytes4[]',
+        internalType: 'bytes4[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "facets",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'facets',
+    inputs: [],
+    outputs: [
       {
-        "name": "facets_",
-        "type": "tuple[]",
-        "internalType": "struct IDiamondLoupe.Facet[]",
-        "components": [
+        name: 'facets_',
+        type: 'tuple[]',
+        internalType: 'struct IDiamondLoupe.Facet[]',
+        components: [
           {
-            "name": "facetAddress",
-            "type": "address",
-            "internalType": "address"
+            name: 'facetAddress',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "functionSelectors",
-            "type": "bytes4[]",
-            "internalType": "bytes4[]"
-          }
-        ]
-      }
+            name: 'functionSelectors',
+            type: 'bytes4[]',
+            internalType: 'bytes4[]',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "foreignPayableExists",
-    "inputs": [
+    type: 'function',
+    name: 'foreignPayableExists',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getActivitiesBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getActivitiesBulk',
+    inputs: [
       {
-        "name": "activityIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: 'activityIds',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
-      }
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getActivity",
-    "inputs": [
+    type: 'function',
+    name: 'getActivity',
+    inputs: [
       {
-        "name": "activityId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'activityId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ActivityRecord",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct ActivityRecord',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
-      }
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getAllStats",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getAllStats',
+    inputs: [],
+    outputs: [
       {
-        "name": "chainStats",
-        "type": "tuple",
-        "internalType": "struct ChainStats",
-        "components": [
+        name: 'chainStats',
+        type: 'tuple',
+        internalType: 'struct ChainStats',
+        components: [
           {
-            "name": "usersCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'usersCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payablesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payablesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "foreignPayablesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'foreignPayablesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userPaymentsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userPaymentsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payablePaymentsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payablePaymentsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "withdrawalsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'withdrawalsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "activitiesCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
+            name: 'activitiesCount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
       },
       {
-        "name": "wormholeStats",
-        "type": "tuple",
-        "internalType": "struct WormholeStats",
-        "components": [
+        name: 'wormholeStats',
+        type: 'tuple',
+        internalType: 'struct WormholeStats',
+        components: [
           {
-            "name": "publishedWormholeMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'publishedWormholeMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "consumedWormholeMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
+            name: 'consumedWormholeMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
       },
       {
-        "name": "cctpStats",
-        "type": "tuple",
-        "internalType": "struct CctpStats",
-        "components": [
+        name: 'cctpStats',
+        type: 'tuple',
+        internalType: 'struct CctpStats',
+        components: [
           {
-            "name": "emittedCctpPaymentMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'emittedCctpPaymentMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "emittedCctpPayableUpdateMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'emittedCctpPayableUpdateMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "receivedCctpPaymentMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'receivedCctpPaymentMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "receivedCctpPayableUpdateMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'receivedCctpPayableUpdateMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getAllowedTokensAndAmounts",
-    "inputs": [
+    type: 'function',
+    name: 'getAllowedTokensAndAmounts',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct TokenAndAmount[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct TokenAndAmount[]',
+        components: [
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getBalance",
-    "inputs": [
+    type: 'function',
+    name: 'getBalance',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getBalanceTokens",
-    "inputs": [
+    type: 'function',
+    name: 'getBalanceTokens',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: '',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getBalances",
-    "inputs": [
+    type: 'function',
+    name: 'getBalances',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct TokenAndAmount[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct TokenAndAmount[]',
+        components: [
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getCctpConfig",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getCctpConfig',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct CctpConfig",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct CctpConfig',
+        components: [
           {
-            "name": "tokenMessenger",
-            "type": "address",
-            "internalType": "address"
+            name: 'tokenMessenger',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "messageTransmitter",
-            "type": "address",
-            "internalType": "address"
+            name: 'messageTransmitter',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "tokenMinter",
-            "type": "address",
-            "internalType": "address"
+            name: 'tokenMinter',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "domain",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'domain',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "isEnabled",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isEnabled',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getCctpStats",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getCctpStats',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct CctpStats",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct CctpStats',
+        components: [
           {
-            "name": "emittedCctpPaymentMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'emittedCctpPaymentMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "emittedCctpPayableUpdateMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'emittedCctpPayableUpdateMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "receivedCctpPaymentMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'receivedCctpPaymentMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "receivedCctpPayableUpdateMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'receivedCctpPayableUpdateMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainActivities",
-    "inputs": [
+    type: 'function',
+    name: 'getChainActivities',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
-      }
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainActivitiesDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainActivitiesDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
-      }
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainActivityCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getChainActivityCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainActivityIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getChainActivityIdAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainActivityIds",
-    "inputs": [
+    type: 'function',
+    name: 'getChainActivityIds',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainActivityIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainActivityIdsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainForeignPayableCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getChainForeignPayableCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainForeignPayableIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getChainForeignPayableIdAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainForeignPayableIds",
-    "inputs": [
+    type: 'function',
+    name: 'getChainForeignPayableIds',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainForeignPayableIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainForeignPayableIdsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainForeignPayables",
-    "inputs": [
+    type: 'function',
+    name: 'getChainForeignPayables',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct ForeignPayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct ForeignPayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct PayableForeign",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct PayableForeign',
+            components: [
               {
-                "name": "chainId",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'chainId',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "lastUpdateNonce",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateNonce',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastUpdateInitiatedAt",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateInitiatedAt',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastSyncedAt",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'lastSyncedAt',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmountForeign[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmountForeign[]',
+            components: [
               {
-                "name": "token",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'token',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "amount",
-                "type": "uint64",
-                "internalType": "uint64"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainForeignPayablesDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainForeignPayablesDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct ForeignPayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct ForeignPayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct PayableForeign",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct PayableForeign',
+            components: [
               {
-                "name": "chainId",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'chainId',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "lastUpdateNonce",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateNonce',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastUpdateInitiatedAt",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateInitiatedAt',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastSyncedAt",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'lastSyncedAt',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmountForeign[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmountForeign[]',
+            components: [
               {
-                "name": "token",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'token',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "amount",
-                "type": "uint64",
-                "internalType": "uint64"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayableCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getChainPayableCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayableIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayableIdAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayableIds",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayableIds',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayableIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayableIdsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayablePaymentCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getChainPayablePaymentCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayablePaymentIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayablePaymentIdAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayablePaymentIds",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayablePaymentIds',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayablePaymentIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayablePaymentIdsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayablePayments",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayablePayments',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct PayablePayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct PayablePayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payer',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payerChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localChainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'localChainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerPaymentId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'payerPaymentId',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayablePaymentsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayablePaymentsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct PayablePayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct PayablePayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payer',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payerChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localChainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'localChainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerPaymentId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'payerPaymentId',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayables",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayables',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct PayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct PayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct Payable",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct Payable',
+            components: [
               {
-                "name": "host",
-                "type": "address",
-                "internalType": "address"
+                name: 'host',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "chainCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'chainCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "hostCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'hostCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "createdAt",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'createdAt',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "paymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'paymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "balancesCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'balancesCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isAutoWithdraw",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isAutoWithdraw',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "balances",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'balances',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainPayablesDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainPayablesDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct PayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct PayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct Payable",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct Payable',
+            components: [
               {
-                "name": "host",
-                "type": "address",
-                "internalType": "address"
+                name: 'host',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "chainCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'chainCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "hostCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'hostCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "createdAt",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'createdAt',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "paymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'paymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "balancesCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'balancesCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isAutoWithdraw",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isAutoWithdraw',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "balances",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'balances',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainStats",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getChainStats',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ChainStats",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct ChainStats',
+        components: [
           {
-            "name": "usersCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'usersCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payablesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payablesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "foreignPayablesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'foreignPayablesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userPaymentsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userPaymentsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payablePaymentsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payablePaymentsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "withdrawalsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'withdrawalsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "activitiesCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'activitiesCount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserAddresses",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUserAddresses',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: '',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserAddressesDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUserAddressesDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: '',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserAt",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUserAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getChainUserCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserPaymentCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getChainUserPaymentCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserPaymentIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUserPaymentIdAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserPaymentIds",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUserPaymentIds',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserPaymentIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUserPaymentIdsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserPayments",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUserPayments',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct UserPayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct UserPayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "address",
-            "internalType": "address"
+            name: 'payer',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "payableChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payerCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUserPaymentsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUserPaymentsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct UserPayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct UserPayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "address",
-            "internalType": "address"
+            name: 'payer',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "payableChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payerCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUsers",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUsers',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct UserView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct UserView[]',
+        components: [
           {
-            "name": "wallet",
-            "type": "address",
-            "internalType": "address"
+            name: 'wallet',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct User",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct User',
+            components: [
               {
-                "name": "chainCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'chainCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "payablesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'payablesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "paymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'paymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainUsersDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainUsersDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct UserView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct UserView[]',
+        components: [
           {
-            "name": "wallet",
-            "type": "address",
-            "internalType": "address"
+            name: 'wallet',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct User",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct User',
+            components: [
               {
-                "name": "chainCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'chainCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "payablesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'payablesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "paymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'paymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainWithdrawalCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getChainWithdrawalCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainWithdrawalIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getChainWithdrawalIdAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainWithdrawalIds",
-    "inputs": [
+    type: 'function',
+    name: 'getChainWithdrawalIds',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainWithdrawalIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainWithdrawalIdsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainWithdrawals",
-    "inputs": [
+    type: 'function',
+    name: 'getChainWithdrawals',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct Withdrawal[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct Withdrawal[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getChainWithdrawalsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getChainWithdrawalsDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct Withdrawal[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct Withdrawal[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getConsumedWormholeMessageCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getConsumedWormholeMessageCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getConsumedWormholeMessageCountByChain",
-    "inputs": [
+    type: 'function',
+    name: 'getConsumedWormholeMessageCountByChain',
+    inputs: [
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
+        name: 'wormholeChainId',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getConsumedWormholeMessages",
-    "inputs": [
+    type: 'function',
+    name: 'getConsumedWormholeMessages',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getConsumedWormholeMessagesByChain",
-    "inputs": [
+    type: 'function',
+    name: 'getConsumedWormholeMessagesByChain',
+    inputs: [
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "internalType": "uint16"
+        name: 'wormholeChainId',
+        type: 'uint16',
+        internalType: 'uint16',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getConsumedWormholeMessagesByChainDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getConsumedWormholeMessagesByChainDesc',
+    inputs: [
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "internalType": "uint16"
+        name: 'wormholeChainId',
+        type: 'uint16',
+        internalType: 'uint16',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getConsumedWormholeMessagesDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getConsumedWormholeMessagesDesc',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getEffectiveWithdrawalFeeBps",
-    "inputs": [
+    type: 'function',
+    name: 'getEffectiveWithdrawalFeeBps',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
+        name: '',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignChain",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignChain',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ForeignChain",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct ForeignChain',
+        components: [
           {
-            "name": "cbChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cbChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "isRegistered",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isRegistered',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "registeredAt",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'registeredAt',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "config",
-            "type": "tuple",
-            "internalType": "struct ForeignChainConfig",
-            "components": [
+            name: 'config',
+            type: 'tuple',
+            internalType: 'struct ForeignChainConfig',
+            components: [
               {
-                "name": "protocolIds",
-                "type": "tuple",
-                "internalType": "struct ForeignChainProtocolIds",
-                "components": [
+                name: 'protocolIds',
+                type: 'tuple',
+                internalType: 'struct ForeignChainProtocolIds',
+                components: [
                   {
-                    "name": "wormholeChainId",
-                    "type": "uint16",
-                    "internalType": "uint16"
+                    name: 'wormholeChainId',
+                    type: 'uint16',
+                    internalType: 'uint16',
                   },
                   {
-                    "name": "hasWormholeChainId",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasWormholeChainId',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "circleDomain",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    name: 'circleDomain',
+                    type: 'uint32',
+                    internalType: 'uint32',
                   },
                   {
-                    "name": "hasCircleDomain",
-                    "type": "bool",
-                    "internalType": "bool"
-                  }
-                ]
+                    name: 'hasCircleDomain',
+                    type: 'bool',
+                    internalType: 'bool',
+                  },
+                ],
               },
               {
-                "name": "addresses",
-                "type": "tuple",
-                "internalType": "struct ForeignChainAddresses",
-                "components": [
+                name: 'addresses',
+                type: 'tuple',
+                internalType: 'struct ForeignChainAddresses',
+                components: [
                   {
-                    "name": "wormholeEmitter",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'wormholeEmitter',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpMessageSender",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'cctpMessageSender',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpBurnSender",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'cctpBurnSender',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpRecipient",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'cctpRecipient',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpMintRecipient",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'cctpMintRecipient',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpDestinationCaller",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
-                  }
-                ]
+                    name: 'cctpDestinationCaller',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
+                  },
+                ],
               },
               {
-                "name": "switches",
-                "type": "tuple",
-                "internalType": "struct ForeignChainSwitches",
-                "components": [
+                name: 'switches',
+                type: 'tuple',
+                internalType: 'struct ForeignChainSwitches',
+                components: [
                   {
-                    "name": "isCctpUpdateEnabled",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'isCctpUpdateEnabled',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "isInboundUpdateEnabled",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'isInboundUpdateEnabled',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "isOutboundPaymentEnabled",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'isOutboundPaymentEnabled',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "isInboundPaymentEnabled",
-                    "type": "bool",
-                    "internalType": "bool"
-                  }
-                ]
+                    name: 'isInboundPaymentEnabled',
+                    type: 'bool',
+                    internalType: 'bool',
+                  },
+                ],
               },
               {
-                "name": "finality",
-                "type": "tuple",
-                "internalType": "struct ForeignChainFinality",
-                "components": [
+                name: 'finality',
+                type: 'tuple',
+                internalType: 'struct ForeignChainFinality',
+                components: [
                   {
-                    "name": "outboundUpdateFinality",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    name: 'outboundUpdateFinality',
+                    type: 'uint32',
+                    internalType: 'uint32',
                   },
                   {
-                    "name": "outboundPaymentFinality",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    name: 'outboundPaymentFinality',
+                    type: 'uint32',
+                    internalType: 'uint32',
                   },
                   {
-                    "name": "minInboundUpdateFinality",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    name: 'minInboundUpdateFinality',
+                    type: 'uint32',
+                    internalType: 'uint32',
                   },
                   {
-                    "name": "minInboundPaymentFinality",
-                    "type": "uint32",
-                    "internalType": "uint32"
-                  }
-                ]
+                    name: 'minInboundPaymentFinality',
+                    type: 'uint32',
+                    internalType: 'uint32',
+                  },
+                ],
               },
               {
-                "name": "limits",
-                "type": "tuple",
-                "internalType": "struct ForeignChainLimits",
-                "components": [
+                name: 'limits',
+                type: 'tuple',
+                internalType: 'struct ForeignChainLimits',
+                components: [
                   {
-                    "name": "hasMaxOutboundCctpFeeBps",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMaxOutboundCctpFeeBps',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "maxOutboundCctpFeeBps",
-                    "type": "uint16",
-                    "internalType": "uint16"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+                    name: 'maxOutboundCctpFeeBps',
+                    type: 'uint16',
+                    internalType: 'uint16',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignChainCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getForeignChainCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignChainIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignChainIdAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignChainIdByCircleDomain",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignChainIdByCircleDomain',
+    inputs: [
       {
-        "name": "circleDomain",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
+        name: 'circleDomain',
+        type: 'uint32',
+        internalType: 'uint32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignChainIdByWormholeChainId",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignChainIdByWormholeChainId',
+    inputs: [
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
+        name: 'wormholeChainId',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignChainIds",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getForeignChainIds',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignChains",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getForeignChains',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct ForeignChain[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct ForeignChain[]',
+        components: [
           {
-            "name": "cbChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cbChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "isRegistered",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isRegistered',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "registeredAt",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'registeredAt',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "config",
-            "type": "tuple",
-            "internalType": "struct ForeignChainConfig",
-            "components": [
+            name: 'config',
+            type: 'tuple',
+            internalType: 'struct ForeignChainConfig',
+            components: [
               {
-                "name": "protocolIds",
-                "type": "tuple",
-                "internalType": "struct ForeignChainProtocolIds",
-                "components": [
+                name: 'protocolIds',
+                type: 'tuple',
+                internalType: 'struct ForeignChainProtocolIds',
+                components: [
                   {
-                    "name": "wormholeChainId",
-                    "type": "uint16",
-                    "internalType": "uint16"
+                    name: 'wormholeChainId',
+                    type: 'uint16',
+                    internalType: 'uint16',
                   },
                   {
-                    "name": "hasWormholeChainId",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasWormholeChainId',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "circleDomain",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    name: 'circleDomain',
+                    type: 'uint32',
+                    internalType: 'uint32',
                   },
                   {
-                    "name": "hasCircleDomain",
-                    "type": "bool",
-                    "internalType": "bool"
-                  }
-                ]
+                    name: 'hasCircleDomain',
+                    type: 'bool',
+                    internalType: 'bool',
+                  },
+                ],
               },
               {
-                "name": "addresses",
-                "type": "tuple",
-                "internalType": "struct ForeignChainAddresses",
-                "components": [
+                name: 'addresses',
+                type: 'tuple',
+                internalType: 'struct ForeignChainAddresses',
+                components: [
                   {
-                    "name": "wormholeEmitter",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'wormholeEmitter',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpMessageSender",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'cctpMessageSender',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpBurnSender",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'cctpBurnSender',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpRecipient",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'cctpRecipient',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpMintRecipient",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
+                    name: 'cctpMintRecipient',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
                   },
                   {
-                    "name": "cctpDestinationCaller",
-                    "type": "bytes32",
-                    "internalType": "bytes32"
-                  }
-                ]
+                    name: 'cctpDestinationCaller',
+                    type: 'bytes32',
+                    internalType: 'bytes32',
+                  },
+                ],
               },
               {
-                "name": "switches",
-                "type": "tuple",
-                "internalType": "struct ForeignChainSwitches",
-                "components": [
+                name: 'switches',
+                type: 'tuple',
+                internalType: 'struct ForeignChainSwitches',
+                components: [
                   {
-                    "name": "isCctpUpdateEnabled",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'isCctpUpdateEnabled',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "isInboundUpdateEnabled",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'isInboundUpdateEnabled',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "isOutboundPaymentEnabled",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'isOutboundPaymentEnabled',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "isInboundPaymentEnabled",
-                    "type": "bool",
-                    "internalType": "bool"
-                  }
-                ]
+                    name: 'isInboundPaymentEnabled',
+                    type: 'bool',
+                    internalType: 'bool',
+                  },
+                ],
               },
               {
-                "name": "finality",
-                "type": "tuple",
-                "internalType": "struct ForeignChainFinality",
-                "components": [
+                name: 'finality',
+                type: 'tuple',
+                internalType: 'struct ForeignChainFinality',
+                components: [
                   {
-                    "name": "outboundUpdateFinality",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    name: 'outboundUpdateFinality',
+                    type: 'uint32',
+                    internalType: 'uint32',
                   },
                   {
-                    "name": "outboundPaymentFinality",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    name: 'outboundPaymentFinality',
+                    type: 'uint32',
+                    internalType: 'uint32',
                   },
                   {
-                    "name": "minInboundUpdateFinality",
-                    "type": "uint32",
-                    "internalType": "uint32"
+                    name: 'minInboundUpdateFinality',
+                    type: 'uint32',
+                    internalType: 'uint32',
                   },
                   {
-                    "name": "minInboundPaymentFinality",
-                    "type": "uint32",
-                    "internalType": "uint32"
-                  }
-                ]
+                    name: 'minInboundPaymentFinality',
+                    type: 'uint32',
+                    internalType: 'uint32',
+                  },
+                ],
               },
               {
-                "name": "limits",
-                "type": "tuple",
-                "internalType": "struct ForeignChainLimits",
-                "components": [
+                name: 'limits',
+                type: 'tuple',
+                internalType: 'struct ForeignChainLimits',
+                components: [
                   {
-                    "name": "hasMaxOutboundCctpFeeBps",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMaxOutboundCctpFeeBps',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "maxOutboundCctpFeeBps",
-                    "type": "uint16",
-                    "internalType": "uint16"
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
+                    name: 'maxOutboundCctpFeeBps',
+                    type: 'uint16',
+                    internalType: 'uint16',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayable",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayable',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct PayableForeign",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct PayableForeign',
+        components: [
           {
-            "name": "chainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'chainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "allowedTokensAndAmountsCount",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'allowedTokensAndAmountsCount',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "isClosed",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isClosed',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "lastUpdateNonce",
-            "type": "uint64",
-            "internalType": "uint64"
+            name: 'lastUpdateNonce',
+            type: 'uint64',
+            internalType: 'uint64',
           },
           {
-            "name": "lastUpdateInitiatedAt",
-            "type": "uint64",
-            "internalType": "uint64"
+            name: 'lastUpdateInitiatedAt',
+            type: 'uint64',
+            internalType: 'uint64',
           },
           {
-            "name": "lastSyncedAt",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'lastSyncedAt',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayableAllowedTokensAndAmounts",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayableAllowedTokensAndAmounts',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct TokenAndAmountForeign[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct TokenAndAmountForeign[]',
+        components: [
           {
-            "name": "token",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'token',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "amount",
-            "type": "uint64",
-            "internalType": "uint64"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint64',
+            internalType: 'uint64',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayableCountByChain",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayableCountByChain',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayableIdByChainAt",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayableIdByChainAt',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayableIdsByChain",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayableIdsByChain',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayableIdsByChainDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayableIdsByChainDesc',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayableUpdateNonce",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayableUpdateNonce',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: '',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayableView",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayableView',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ForeignPayableView",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct ForeignPayableView',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct PayableForeign",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct PayableForeign',
+            components: [
               {
-                "name": "chainId",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'chainId',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "lastUpdateNonce",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateNonce',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastUpdateInitiatedAt",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateInitiatedAt',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastSyncedAt",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'lastSyncedAt',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmountForeign[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmountForeign[]',
+            components: [
               {
-                "name": "token",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'token',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "amount",
-                "type": "uint64",
-                "internalType": "uint64"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayableViewsBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayableViewsBulk',
+    inputs: [
       {
-        "name": "payableIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: 'payableIds',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct ForeignPayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct ForeignPayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct PayableForeign",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct PayableForeign',
+            components: [
               {
-                "name": "chainId",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'chainId',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "lastUpdateNonce",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateNonce',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastUpdateInitiatedAt",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateInitiatedAt',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastSyncedAt",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'lastSyncedAt',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmountForeign[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmountForeign[]',
+            components: [
               {
-                "name": "token",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'token',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "amount",
-                "type": "uint64",
-                "internalType": "uint64"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayablesBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayablesBulk',
+    inputs: [
       {
-        "name": "payableIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: 'payableIds',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct PayableForeign[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct PayableForeign[]',
+        components: [
           {
-            "name": "chainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'chainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "allowedTokensAndAmountsCount",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'allowedTokensAndAmountsCount',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "isClosed",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isClosed',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "lastUpdateNonce",
-            "type": "uint64",
-            "internalType": "uint64"
+            name: 'lastUpdateNonce',
+            type: 'uint64',
+            internalType: 'uint64',
           },
           {
-            "name": "lastUpdateInitiatedAt",
-            "type": "uint64",
-            "internalType": "uint64"
+            name: 'lastUpdateInitiatedAt',
+            type: 'uint64',
+            internalType: 'uint64',
           },
           {
-            "name": "lastSyncedAt",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'lastSyncedAt',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayablesByChain",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayablesByChain',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct ForeignPayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct ForeignPayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct PayableForeign",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct PayableForeign',
+            components: [
               {
-                "name": "chainId",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'chainId',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "lastUpdateNonce",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateNonce',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastUpdateInitiatedAt",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateInitiatedAt',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastSyncedAt",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'lastSyncedAt',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmountForeign[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmountForeign[]',
+            components: [
               {
-                "name": "token",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'token',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "amount",
-                "type": "uint64",
-                "internalType": "uint64"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getForeignPayablesByChainDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getForeignPayablesByChainDesc',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct ForeignPayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct ForeignPayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct PayableForeign",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct PayableForeign',
+            components: [
               {
-                "name": "chainId",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'chainId',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "lastUpdateNonce",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateNonce',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastUpdateInitiatedAt",
-                "type": "uint64",
-                "internalType": "uint64"
+                name: 'lastUpdateInitiatedAt',
+                type: 'uint64',
+                internalType: 'uint64',
               },
               {
-                "name": "lastSyncedAt",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'lastSyncedAt',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmountForeign[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmountForeign[]',
+            components: [
               {
-                "name": "token",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'token',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "amount",
-                "type": "uint64",
-                "internalType": "uint64"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint64',
+                internalType: 'uint64',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getKnownRoles",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getKnownRoles',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getLastPayableUpdateNonce",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getLastPayableUpdateNonce',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: '',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getMatchingForeignToken",
-    "inputs": [
+    type: 'function',
+    name: 'getMatchingForeignToken',
+    inputs: [
       {
-        "name": "localToken",
-        "type": "address",
-        "internalType": "address"
+        name: 'localToken',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getMatchingLocalToken",
-    "inputs": [
+    type: 'function',
+    name: 'getMatchingLocalToken',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "foreignToken",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'foreignToken',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getMatchingTokenCount",
-    "inputs": [
+    type: 'function',
+    name: 'getMatchingTokenCount',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getMatchingTokens",
-    "inputs": [
+    type: 'function',
+    name: 'getMatchingTokens',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct MatchingToken[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct MatchingToken[]',
+        components: [
           {
-            "name": "foreignToken",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'foreignToken',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localToken",
-            "type": "address",
-            "internalType": "address"
-          }
-        ]
-      }
+            name: 'localToken',
+            type: 'address',
+            internalType: 'address',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getNextPaymentNonce",
-    "inputs": [
+    type: 'function',
+    name: 'getNextPaymentNonce',
+    inputs: [
       {
-        "name": "payer",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'payer',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: '',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayable",
-    "inputs": [
+    type: 'function',
+    name: 'getPayable',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct Payable",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct Payable',
+        components: [
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "createdAt",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'createdAt',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "paymentsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'paymentsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "withdrawalsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'withdrawalsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "activitiesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'activitiesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "allowedTokensAndAmountsCount",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'allowedTokensAndAmountsCount',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "balancesCount",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'balancesCount',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "isClosed",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isClosed',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isAutoWithdraw",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isAutoWithdraw',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableActivities",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableActivities',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
-      }
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableActivitiesByType",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableActivitiesByType',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "activityType",
-        "type": "uint8",
-        "internalType": "enum ActivityType"
+        name: 'activityType',
+        type: 'uint8',
+        internalType: 'enum ActivityType',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
       },
       {
-        "name": "nextOffset",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'nextOffset',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableActivitiesDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableActivitiesDesc',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
-      }
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableActivityCount",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableActivityCount',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableActivityIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableActivityIdAt',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableActivityIds",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableActivityIds',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableActivityIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableActivityIdsDesc',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableChainPaymentCount",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableChainPaymentCount',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableChainPaymentIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableChainPaymentIdAt',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableChainPaymentIds",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableChainPaymentIds',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableChainPaymentIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableChainPaymentIdsDesc',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableChainPayments",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableChainPayments',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct PayablePayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct PayablePayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payer',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payerChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localChainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'localChainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerPaymentId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'payerPaymentId',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableChainPaymentsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableChainPaymentsDesc',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct PayablePayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct PayablePayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payer',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payerChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localChainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'localChainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerPaymentId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'payerPaymentId',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablePayment",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablePayment',
+    inputs: [
       {
-        "name": "paymentId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'paymentId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct PayablePayment",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct PayablePayment',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payer',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payerChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localChainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'localChainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerPaymentId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'payerPaymentId',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablePaymentCount",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablePaymentCount',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablePaymentIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablePaymentIdAt',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablePaymentIds",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablePaymentIds',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablePaymentIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablePaymentIdsDesc',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablePayments",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablePayments',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct PayablePayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct PayablePayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payer',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payerChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localChainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'localChainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerPaymentId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'payerPaymentId',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablePaymentsBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablePaymentsBulk',
+    inputs: [
       {
-        "name": "paymentIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: 'paymentIds',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct PayablePayment[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct PayablePayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payer',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payerChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localChainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'localChainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerPaymentId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'payerPaymentId',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablePaymentsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablePaymentsDesc',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct PayablePayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct PayablePayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payer',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payerChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "localChainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'localChainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerPaymentId",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'payerPaymentId',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableView",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableView',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct PayableView",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct PayableView',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct Payable",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct Payable',
+            components: [
               {
-                "name": "host",
-                "type": "address",
-                "internalType": "address"
+                name: 'host',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "chainCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'chainCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "hostCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'hostCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "createdAt",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'createdAt',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "paymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'paymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "balancesCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'balancesCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isAutoWithdraw",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isAutoWithdraw',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "balances",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'balances',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableViewsBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableViewsBulk',
+    inputs: [
       {
-        "name": "payableIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: 'payableIds',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct PayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct PayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct Payable",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct Payable',
+            components: [
               {
-                "name": "host",
-                "type": "address",
-                "internalType": "address"
+                name: 'host',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "chainCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'chainCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "hostCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'hostCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "createdAt",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'createdAt',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "paymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'paymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "balancesCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'balancesCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isAutoWithdraw",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isAutoWithdraw',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "balances",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'balances',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableWithdrawalCount",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableWithdrawalCount',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableWithdrawalIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableWithdrawalIdAt',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableWithdrawalIds",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableWithdrawalIds',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableWithdrawalIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableWithdrawalIdsDesc',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableWithdrawals",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableWithdrawals',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct Withdrawal[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct Withdrawal[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayableWithdrawalsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getPayableWithdrawalsDesc',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct Withdrawal[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct Withdrawal[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getPayablesBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getPayablesBulk',
+    inputs: [
       {
-        "name": "payableIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: 'payableIds',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct Payable[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct Payable[]',
+        components: [
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "createdAt",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'createdAt',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "paymentsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'paymentsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "withdrawalsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'withdrawalsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "activitiesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'activitiesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "allowedTokensAndAmountsCount",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'allowedTokensAndAmountsCount',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "balancesCount",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'balancesCount',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "isClosed",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isClosed',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isAutoWithdraw",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isAutoWithdraw',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getProtocolConfig",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getProtocolConfig',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ProtocolConfig",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct ProtocolConfig',
+        components: [
           {
-            "name": "cbChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cbChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "feeCollector",
-            "type": "address",
-            "internalType": "address"
+            name: 'feeCollector',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "withdrawalFeeBps",
-            "type": "uint16",
-            "internalType": "uint16"
+            name: 'withdrawalFeeBps',
+            type: 'uint16',
+            internalType: 'uint16',
           },
           {
-            "name": "maxAllowedTokensAndAmounts",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'maxAllowedTokensAndAmounts',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "isRelayerRestricted",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isRelayerRestricted',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isPublishPayableRestricted",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isPublishPayableRestricted',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getProtocolOverview",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getProtocolOverview',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct ProtocolOverview",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct ProtocolOverview',
+        components: [
           {
-            "name": "protocol",
-            "type": "tuple",
-            "internalType": "struct ProtocolConfig",
-            "components": [
+            name: 'protocol',
+            type: 'tuple',
+            internalType: 'struct ProtocolConfig',
+            components: [
               {
-                "name": "cbChainId",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cbChainId',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "feeCollector",
-                "type": "address",
-                "internalType": "address"
+                name: 'feeCollector',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "withdrawalFeeBps",
-                "type": "uint16",
-                "internalType": "uint16"
+                name: 'withdrawalFeeBps',
+                type: 'uint16',
+                internalType: 'uint16',
               },
               {
-                "name": "maxAllowedTokensAndAmounts",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'maxAllowedTokensAndAmounts',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isRelayerRestricted",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isRelayerRestricted',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isPublishPayableRestricted",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isPublishPayableRestricted',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "wormhole",
-            "type": "tuple",
-            "internalType": "struct WormholeConfig",
-            "components": [
+            name: 'wormhole',
+            type: 'tuple',
+            internalType: 'struct WormholeConfig',
+            components: [
               {
-                "name": "wormhole",
-                "type": "address",
-                "internalType": "address"
+                name: 'wormhole',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "wormholeChainId",
-                "type": "uint16",
-                "internalType": "uint16"
+                name: 'wormholeChainId',
+                type: 'uint16',
+                internalType: 'uint16',
               },
               {
-                "name": "finality",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'finality',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isEnabled",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isEnabled',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "cctp",
-            "type": "tuple",
-            "internalType": "struct CctpConfig",
-            "components": [
+            name: 'cctp',
+            type: 'tuple',
+            internalType: 'struct CctpConfig',
+            components: [
               {
-                "name": "tokenMessenger",
-                "type": "address",
-                "internalType": "address"
+                name: 'tokenMessenger',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "messageTransmitter",
-                "type": "address",
-                "internalType": "address"
+                name: 'messageTransmitter',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "tokenMinter",
-                "type": "address",
-                "internalType": "address"
+                name: 'tokenMinter',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "domain",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'domain',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "isEnabled",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isEnabled',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "chainStats",
-            "type": "tuple",
-            "internalType": "struct ChainStats",
-            "components": [
+            name: 'chainStats',
+            type: 'tuple',
+            internalType: 'struct ChainStats',
+            components: [
               {
-                "name": "usersCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'usersCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "payablesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'payablesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "foreignPayablesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'foreignPayablesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "userPaymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'userPaymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "payablePaymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'payablePaymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "wormholeStats",
-            "type": "tuple",
-            "internalType": "struct WormholeStats",
-            "components": [
+            name: 'wormholeStats',
+            type: 'tuple',
+            internalType: 'struct WormholeStats',
+            components: [
               {
-                "name": "publishedWormholeMessagesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'publishedWormholeMessagesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "consumedWormholeMessagesCount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'consumedWormholeMessagesCount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "cctpStats",
-            "type": "tuple",
-            "internalType": "struct CctpStats",
-            "components": [
+            name: 'cctpStats',
+            type: 'tuple',
+            internalType: 'struct CctpStats',
+            components: [
               {
-                "name": "emittedCctpPaymentMessagesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'emittedCctpPaymentMessagesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "emittedCctpPayableUpdateMessagesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'emittedCctpPayableUpdateMessagesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "receivedCctpPaymentMessagesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'receivedCctpPaymentMessagesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "receivedCctpPayableUpdateMessagesCount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'receivedCctpPayableUpdateMessagesCount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "isPaused",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isPaused',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "pausedFeatures",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'pausedFeatures',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "foreignChainsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'foreignChainsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "registeredTokensCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'registeredTokensCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "lastPayableUpdateNonce",
-            "type": "uint64",
-            "internalType": "uint64"
-          }
-        ]
-      }
+            name: 'lastPayableUpdateNonce',
+            type: 'uint64',
+            internalType: 'uint64',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRegisteredTokenAt",
-    "inputs": [
+    type: 'function',
+    name: 'getRegisteredTokenAt',
+    inputs: [
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRegisteredTokenCount",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getRegisteredTokenCount',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRegisteredTokenDetails",
-    "inputs": [
+    type: 'function',
+    name: 'getRegisteredTokenDetails',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct TokenDetails[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct TokenDetails[]',
+        components: [
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "isRegistered",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isRegistered',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "config",
-            "type": "tuple",
-            "internalType": "struct TokenConfig",
-            "components": [
+            name: 'config',
+            type: 'tuple',
+            internalType: 'struct TokenConfig',
+            components: [
               {
-                "name": "isSupported",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isSupported',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isTransferTaxAllowed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isTransferTaxAllowed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "fee",
-                "type": "tuple",
-                "internalType": "struct TokenFeeConfig",
-                "components": [
+                name: 'fee',
+                type: 'tuple',
+                internalType: 'struct TokenFeeConfig',
+                components: [
                   {
-                    "name": "hasFeeBpsOverride",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasFeeBpsOverride',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "feeBps",
-                    "type": "uint16",
-                    "internalType": "uint16"
+                    name: 'feeBps',
+                    type: 'uint16',
+                    internalType: 'uint16',
                   },
                   {
-                    "name": "hasMaxWithdrawalFee",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMaxWithdrawalFee',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "maxWithdrawalFee",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                  }
-                ]
+                    name: 'maxWithdrawalFee',
+                    type: 'uint256',
+                    internalType: 'uint256',
+                  },
+                ],
               },
               {
-                "name": "limits",
-                "type": "tuple",
-                "internalType": "struct TokenPaymentLimits",
-                "components": [
+                name: 'limits',
+                type: 'tuple',
+                internalType: 'struct TokenPaymentLimits',
+                components: [
                   {
-                    "name": "hasMinPaymentAmount",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMinPaymentAmount',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "minPaymentAmount",
-                    "type": "uint256",
-                    "internalType": "uint256"
+                    name: 'minPaymentAmount',
+                    type: 'uint256',
+                    internalType: 'uint256',
                   },
                   {
-                    "name": "hasMaxPaymentAmount",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMaxPaymentAmount',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "maxPaymentAmount",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                  }
-                ]
-              }
-            ]
+                    name: 'maxPaymentAmount',
+                    type: 'uint256',
+                    internalType: 'uint256',
+                  },
+                ],
+              },
+            ],
           },
           {
-            "name": "stats",
-            "type": "tuple",
-            "internalType": "struct TokenStats",
-            "components": [
+            name: 'stats',
+            type: 'tuple',
+            internalType: 'struct TokenStats',
+            components: [
               {
-                "name": "totalUserPaid",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalUserPaid',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalPayableReceived",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalPayableReceived',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalWithdrawn",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalWithdrawn',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalWithdrawalFeesCollected",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalWithdrawalFeesCollected',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalPayableBalance",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'totalPayableBalance',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRegisteredTokens",
-    "inputs": [
+    type: 'function',
+    name: 'getRegisteredTokens',
+    inputs: [
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: '',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRoleAdmin",
-    "inputs": [
+    type: 'function',
+    name: 'getRoleAdmin',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRoleMember",
-    "inputs": [
+    type: 'function',
+    name: 'getRoleMember',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRoleMemberCount",
-    "inputs": [
+    type: 'function',
+    name: 'getRoleMemberCount',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRoleMembers",
-    "inputs": [
+    type: 'function',
+    name: 'getRoleMembers',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: '',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getRolesOf",
-    "inputs": [
+    type: 'function',
+    name: 'getRolesOf',
+    inputs: [
       {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getSupportedTokens",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getSupportedTokens',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: '',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getTokenConfig",
-    "inputs": [
+    type: 'function',
+    name: 'getTokenConfig',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct TokenConfig",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct TokenConfig',
+        components: [
           {
-            "name": "isSupported",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isSupported',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isTransferTaxAllowed",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isTransferTaxAllowed',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "fee",
-            "type": "tuple",
-            "internalType": "struct TokenFeeConfig",
-            "components": [
+            name: 'fee',
+            type: 'tuple',
+            internalType: 'struct TokenFeeConfig',
+            components: [
               {
-                "name": "hasFeeBpsOverride",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'hasFeeBpsOverride',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "feeBps",
-                "type": "uint16",
-                "internalType": "uint16"
+                name: 'feeBps',
+                type: 'uint16',
+                internalType: 'uint16',
               },
               {
-                "name": "hasMaxWithdrawalFee",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'hasMaxWithdrawalFee',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "maxWithdrawalFee",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'maxWithdrawalFee',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "limits",
-            "type": "tuple",
-            "internalType": "struct TokenPaymentLimits",
-            "components": [
+            name: 'limits',
+            type: 'tuple',
+            internalType: 'struct TokenPaymentLimits',
+            components: [
               {
-                "name": "hasMinPaymentAmount",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'hasMinPaymentAmount',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "minPaymentAmount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'minPaymentAmount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "hasMaxPaymentAmount",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'hasMaxPaymentAmount',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "maxPaymentAmount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'maxPaymentAmount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getTokenDetails",
-    "inputs": [
+    type: 'function',
+    name: 'getTokenDetails',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct TokenDetails",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct TokenDetails',
+        components: [
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "isRegistered",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isRegistered',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "config",
-            "type": "tuple",
-            "internalType": "struct TokenConfig",
-            "components": [
+            name: 'config',
+            type: 'tuple',
+            internalType: 'struct TokenConfig',
+            components: [
               {
-                "name": "isSupported",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isSupported',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isTransferTaxAllowed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isTransferTaxAllowed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "fee",
-                "type": "tuple",
-                "internalType": "struct TokenFeeConfig",
-                "components": [
+                name: 'fee',
+                type: 'tuple',
+                internalType: 'struct TokenFeeConfig',
+                components: [
                   {
-                    "name": "hasFeeBpsOverride",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasFeeBpsOverride',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "feeBps",
-                    "type": "uint16",
-                    "internalType": "uint16"
+                    name: 'feeBps',
+                    type: 'uint16',
+                    internalType: 'uint16',
                   },
                   {
-                    "name": "hasMaxWithdrawalFee",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMaxWithdrawalFee',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "maxWithdrawalFee",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                  }
-                ]
+                    name: 'maxWithdrawalFee',
+                    type: 'uint256',
+                    internalType: 'uint256',
+                  },
+                ],
               },
               {
-                "name": "limits",
-                "type": "tuple",
-                "internalType": "struct TokenPaymentLimits",
-                "components": [
+                name: 'limits',
+                type: 'tuple',
+                internalType: 'struct TokenPaymentLimits',
+                components: [
                   {
-                    "name": "hasMinPaymentAmount",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMinPaymentAmount',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "minPaymentAmount",
-                    "type": "uint256",
-                    "internalType": "uint256"
+                    name: 'minPaymentAmount',
+                    type: 'uint256',
+                    internalType: 'uint256',
                   },
                   {
-                    "name": "hasMaxPaymentAmount",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMaxPaymentAmount',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "maxPaymentAmount",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                  }
-                ]
-              }
-            ]
+                    name: 'maxPaymentAmount',
+                    type: 'uint256',
+                    internalType: 'uint256',
+                  },
+                ],
+              },
+            ],
           },
           {
-            "name": "stats",
-            "type": "tuple",
-            "internalType": "struct TokenStats",
-            "components": [
+            name: 'stats',
+            type: 'tuple',
+            internalType: 'struct TokenStats',
+            components: [
               {
-                "name": "totalUserPaid",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalUserPaid',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalPayableReceived",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalPayableReceived',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalWithdrawn",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalWithdrawn',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalWithdrawalFeesCollected",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalWithdrawalFeesCollected',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalPayableBalance",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'totalPayableBalance',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getTokenDetailsBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getTokenDetailsBulk',
+    inputs: [
       {
-        "name": "tokens",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: 'tokens',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct TokenDetails[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct TokenDetails[]',
+        components: [
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "isRegistered",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isRegistered',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "config",
-            "type": "tuple",
-            "internalType": "struct TokenConfig",
-            "components": [
+            name: 'config',
+            type: 'tuple',
+            internalType: 'struct TokenConfig',
+            components: [
               {
-                "name": "isSupported",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isSupported',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isTransferTaxAllowed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isTransferTaxAllowed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "fee",
-                "type": "tuple",
-                "internalType": "struct TokenFeeConfig",
-                "components": [
+                name: 'fee',
+                type: 'tuple',
+                internalType: 'struct TokenFeeConfig',
+                components: [
                   {
-                    "name": "hasFeeBpsOverride",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasFeeBpsOverride',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "feeBps",
-                    "type": "uint16",
-                    "internalType": "uint16"
+                    name: 'feeBps',
+                    type: 'uint16',
+                    internalType: 'uint16',
                   },
                   {
-                    "name": "hasMaxWithdrawalFee",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMaxWithdrawalFee',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "maxWithdrawalFee",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                  }
-                ]
+                    name: 'maxWithdrawalFee',
+                    type: 'uint256',
+                    internalType: 'uint256',
+                  },
+                ],
               },
               {
-                "name": "limits",
-                "type": "tuple",
-                "internalType": "struct TokenPaymentLimits",
-                "components": [
+                name: 'limits',
+                type: 'tuple',
+                internalType: 'struct TokenPaymentLimits',
+                components: [
                   {
-                    "name": "hasMinPaymentAmount",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMinPaymentAmount',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "minPaymentAmount",
-                    "type": "uint256",
-                    "internalType": "uint256"
+                    name: 'minPaymentAmount',
+                    type: 'uint256',
+                    internalType: 'uint256',
                   },
                   {
-                    "name": "hasMaxPaymentAmount",
-                    "type": "bool",
-                    "internalType": "bool"
+                    name: 'hasMaxPaymentAmount',
+                    type: 'bool',
+                    internalType: 'bool',
                   },
                   {
-                    "name": "maxPaymentAmount",
-                    "type": "uint256",
-                    "internalType": "uint256"
-                  }
-                ]
-              }
-            ]
+                    name: 'maxPaymentAmount',
+                    type: 'uint256',
+                    internalType: 'uint256',
+                  },
+                ],
+              },
+            ],
           },
           {
-            "name": "stats",
-            "type": "tuple",
-            "internalType": "struct TokenStats",
-            "components": [
+            name: 'stats',
+            type: 'tuple',
+            internalType: 'struct TokenStats',
+            components: [
               {
-                "name": "totalUserPaid",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalUserPaid',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalPayableReceived",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalPayableReceived',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalWithdrawn",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalWithdrawn',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalWithdrawalFeesCollected",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'totalWithdrawalFeesCollected',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "totalPayableBalance",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'totalPayableBalance',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getTokenStats",
-    "inputs": [
+    type: 'function',
+    name: 'getTokenStats',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct TokenStats",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct TokenStats',
+        components: [
           {
-            "name": "totalUserPaid",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'totalUserPaid',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "totalPayableReceived",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'totalPayableReceived',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "totalWithdrawn",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'totalWithdrawn',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "totalWithdrawalFeesCollected",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'totalWithdrawalFeesCollected',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "totalPayableBalance",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'totalPayableBalance',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUntrackedBalance",
-    "inputs": [
+    type: 'function',
+    name: 'getUntrackedBalance',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUser",
-    "inputs": [
+    type: 'function',
+    name: 'getUser',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct User",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct User',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payablesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payablesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "paymentsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'paymentsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "withdrawalsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'withdrawalsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "activitiesCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'activitiesCount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserActivities",
-    "inputs": [
+    type: 'function',
+    name: 'getUserActivities',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
-      }
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserActivitiesByType",
-    "inputs": [
+    type: 'function',
+    name: 'getUserActivitiesByType',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "activityType",
-        "type": "uint8",
-        "internalType": "enum ActivityType"
+        name: 'activityType',
+        type: 'uint8',
+        internalType: 'enum ActivityType',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
       },
       {
-        "name": "nextOffset",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'nextOffset',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserActivitiesDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getUserActivitiesDesc',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct ActivityRecord[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct ActivityRecord[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "userCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'userCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "entity",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'entity',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "activityType",
-            "type": "uint8",
-            "internalType": "enum ActivityType"
-          }
-        ]
-      }
+            name: 'activityType',
+            type: 'uint8',
+            internalType: 'enum ActivityType',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserActivityCount",
-    "inputs": [
+    type: 'function',
+    name: 'getUserActivityCount',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserActivityIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getUserActivityIdAt',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserActivityIds",
-    "inputs": [
+    type: 'function',
+    name: 'getUserActivityIds',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserActivityIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getUserActivityIdsDesc',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPayableCount",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPayableCount',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPayableIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPayableIdAt',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPayableIds",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPayableIds',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPayableIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPayableIdsDesc',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPayables",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPayables',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct PayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct PayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct Payable",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct Payable',
+            components: [
               {
-                "name": "host",
-                "type": "address",
-                "internalType": "address"
+                name: 'host',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "chainCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'chainCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "hostCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'hostCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "createdAt",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'createdAt',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "paymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'paymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "balancesCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'balancesCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isAutoWithdraw",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isAutoWithdraw',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "balances",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'balances',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPayablesDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPayablesDesc',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct PayableView[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct PayableView[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "info",
-            "type": "tuple",
-            "internalType": "struct Payable",
-            "components": [
+            name: 'info',
+            type: 'tuple',
+            internalType: 'struct Payable',
+            components: [
               {
-                "name": "host",
-                "type": "address",
-                "internalType": "address"
+                name: 'host',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "chainCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'chainCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "hostCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'hostCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "createdAt",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'createdAt',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "paymentsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'paymentsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "withdrawalsCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'withdrawalsCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "activitiesCount",
-                "type": "uint256",
-                "internalType": "uint256"
+                name: 'activitiesCount',
+                type: 'uint256',
+                internalType: 'uint256',
               },
               {
-                "name": "allowedTokensAndAmountsCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'allowedTokensAndAmountsCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "balancesCount",
-                "type": "uint8",
-                "internalType": "uint8"
+                name: 'balancesCount',
+                type: 'uint8',
+                internalType: 'uint8',
               },
               {
-                "name": "isClosed",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isClosed',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isAutoWithdraw",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isAutoWithdraw',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "allowedTokensAndAmounts",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'allowedTokensAndAmounts',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
           },
           {
-            "name": "balances",
-            "type": "tuple[]",
-            "internalType": "struct TokenAndAmount[]",
-            "components": [
+            name: 'balances',
+            type: 'tuple[]',
+            internalType: 'struct TokenAndAmount[]',
+            components: [
               {
-                "name": "token",
-                "type": "address",
-                "internalType": "address"
+                name: 'token',
+                type: 'address',
+                internalType: 'address',
               },
               {
-                "name": "amount",
-                "type": "uint256",
-                "internalType": "uint256"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'amount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPayment",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPayment',
+    inputs: [
       {
-        "name": "paymentId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'paymentId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct UserPayment",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct UserPayment',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "address",
-            "internalType": "address"
+            name: 'payer',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "payableChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payerCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPaymentCount",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPaymentCount',
+    inputs: [
       {
-        "name": "payer",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'payer',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPaymentIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPaymentIdAt',
+    inputs: [
       {
-        "name": "payer",
-        "type": "address",
-        "internalType": "address"
+        name: 'payer',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPaymentIds",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPaymentIds',
+    inputs: [
       {
-        "name": "payer",
-        "type": "address",
-        "internalType": "address"
+        name: 'payer',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPaymentIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPaymentIdsDesc',
+    inputs: [
       {
-        "name": "payer",
-        "type": "address",
-        "internalType": "address"
+        name: 'payer',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPayments",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPayments',
+    inputs: [
       {
-        "name": "payer",
-        "type": "address",
-        "internalType": "address"
+        name: 'payer',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct UserPayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct UserPayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "address",
-            "internalType": "address"
+            name: 'payer',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "payableChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payerCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPaymentsBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPaymentsBulk',
+    inputs: [
       {
-        "name": "paymentIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: 'paymentIds',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct UserPayment[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct UserPayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "address",
-            "internalType": "address"
+            name: 'payer',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "payableChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payerCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserPaymentsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getUserPaymentsDesc',
+    inputs: [
       {
-        "name": "payer",
-        "type": "address",
-        "internalType": "address"
+        name: 'payer',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct UserPayment[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct UserPayment[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "payer",
-            "type": "address",
-            "internalType": "address"
+            name: 'payer',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "payableChainId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableChainId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payerCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payerCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "requestedAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'requestedAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserWithdrawalCount",
-    "inputs": [
+    type: 'function',
+    name: 'getUserWithdrawalCount',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserWithdrawalIdAt",
-    "inputs": [
+    type: 'function',
+    name: 'getUserWithdrawalIdAt',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "index",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'index',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: '',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserWithdrawalIds",
-    "inputs": [
+    type: 'function',
+    name: 'getUserWithdrawalIds',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserWithdrawalIdsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getUserWithdrawalIdsDesc',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: '',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserWithdrawals",
-    "inputs": [
+    type: 'function',
+    name: 'getUserWithdrawals',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct Withdrawal[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct Withdrawal[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUserWithdrawalsDesc",
-    "inputs": [
+    type: 'function',
+    name: 'getUserWithdrawalsDesc',
+    inputs: [
       {
-        "name": "host",
-        "type": "address",
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "offset",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'offset',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "ids",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
+        name: 'ids',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
       },
       {
-        "name": "items",
-        "type": "tuple[]",
-        "internalType": "struct Withdrawal[]",
-        "components": [
+        name: 'items',
+        type: 'tuple[]',
+        internalType: 'struct Withdrawal[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getUsersBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getUsersBulk',
+    inputs: [
       {
-        "name": "wallets",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: 'wallets',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct User[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct User[]',
+        components: [
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payablesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payablesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "paymentsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'paymentsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "withdrawalsCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'withdrawalsCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "activitiesCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'activitiesCount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getWithdrawal",
-    "inputs": [
+    type: 'function',
+    name: 'getWithdrawal',
+    inputs: [
       {
-        "name": "withdrawalId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'withdrawalId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct Withdrawal",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct Withdrawal',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getWithdrawalsBulk",
-    "inputs": [
+    type: 'function',
+    name: 'getWithdrawalsBulk',
+    inputs: [
       {
-        "name": "withdrawalIds",
-        "type": "bytes32[]",
-        "internalType": "bytes32[]"
-      }
+        name: 'withdrawalIds',
+        type: 'bytes32[]',
+        internalType: 'bytes32[]',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple[]",
-        "internalType": "struct Withdrawal[]",
-        "components": [
+        name: '',
+        type: 'tuple[]',
+        internalType: 'struct Withdrawal[]',
+        components: [
           {
-            "name": "payableId",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'payableId',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "host",
-            "type": "address",
-            "internalType": "address"
+            name: 'host',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "chainCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'chainCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hostCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'hostCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "payableCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'payableCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "timestamp",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'timestamp',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getWormholeConfig",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getWormholeConfig',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct WormholeConfig",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct WormholeConfig',
+        components: [
           {
-            "name": "wormhole",
-            "type": "address",
-            "internalType": "address"
+            name: 'wormhole',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "wormholeChainId",
-            "type": "uint16",
-            "internalType": "uint16"
+            name: 'wormholeChainId',
+            type: 'uint16',
+            internalType: 'uint16',
           },
           {
-            "name": "finality",
-            "type": "uint8",
-            "internalType": "uint8"
+            name: 'finality',
+            type: 'uint8',
+            internalType: 'uint8',
           },
           {
-            "name": "isEnabled",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isEnabled',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getWormholeMessageFee",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getWormholeMessageFee',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "getWormholeStats",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'getWormholeStats',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct WormholeStats",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct WormholeStats',
+        components: [
           {
-            "name": "publishedWormholeMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'publishedWormholeMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "consumedWormholeMessagesCount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'consumedWormholeMessagesCount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "grantRole",
-    "inputs": [
+    type: 'function',
+    name: 'grantRole',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "grantRoleBatch",
-    "inputs": [
+    type: 'function',
+    name: 'grantRoleBatch',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "accounts",
-        "type": "address[]",
-        "internalType": "address[]"
-      }
+        name: 'accounts',
+        type: 'address[]',
+        internalType: 'address[]',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "handleReceiveFinalizedMessage",
-    "inputs": [
+    type: 'function',
+    name: 'handleReceiveFinalizedMessage',
+    inputs: [
       {
-        "name": "sourceDomain",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'sourceDomain',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "sender",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'sender',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "finalityThresholdExecuted",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'finalityThresholdExecuted',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "messageBody",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: 'messageBody',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "nonpayable"
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "handleReceiveUnfinalizedMessage",
-    "inputs": [
+    type: 'function',
+    name: 'handleReceiveUnfinalizedMessage',
+    inputs: [
       {
-        "name": "sourceDomain",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'sourceDomain',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "sender",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'sender',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "finalityThresholdExecuted",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'finalityThresholdExecuted',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "messageBody",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: 'messageBody',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "nonpayable"
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "hasCctp",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'hasCctp',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "hasRole",
-    "inputs": [
+    type: 'function',
+    name: 'hasRole',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "hasWormhole",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'hasWormhole',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isCctpBurnNonceConsumed",
-    "inputs": [
+    type: 'function',
+    name: 'isCctpBurnNonceConsumed',
+    inputs: [
       {
-        "name": "sourceDomain",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'sourceDomain',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "nonce",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'nonce',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isCctpDataNonceConsumed",
-    "inputs": [
+    type: 'function',
+    name: 'isCctpDataNonceConsumed',
+    inputs: [
       {
-        "name": "sourceDomain",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'sourceDomain',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "nonce",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'nonce',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isFeaturePaused",
-    "inputs": [
+    type: 'function',
+    name: 'isFeaturePaused',
+    inputs: [
       {
-        "name": "feature",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'feature',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isForeignChainRegistered",
-    "inputs": [
+    type: 'function',
+    name: 'isForeignChainRegistered',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isInitialized",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'isInitialized',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isPayableHost",
-    "inputs": [
+    type: 'function',
+    name: 'isPayableHost',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isPaymentNonceConsumed",
-    "inputs": [
+    type: 'function',
+    name: 'isPaymentNonceConsumed',
+    inputs: [
       {
-        "name": "payerChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payerChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "payer",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payer',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "nonce",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: 'nonce',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isTokenSupported",
-    "inputs": [
+    type: 'function',
+    name: 'isTokenSupported',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isUserInitialized",
-    "inputs": [
+    type: 'function',
+    name: 'isUserInitialized',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'wallet',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "isWormholeMessageConsumed",
-    "inputs": [
+    type: 'function',
+    name: 'isWormholeMessageConsumed',
+    inputs: [
       {
-        "name": "wormholeHash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'wormholeHash',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "nativeToken",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'nativeToken',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "owner",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'owner',
+    inputs: [],
+    outputs: [
       {
-        "name": "owner_",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'owner_',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "pause",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    type: 'function',
+    name: 'pause',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "pauseFeatures",
-    "inputs": [
+    type: 'function',
+    name: 'pauseFeatures',
+    inputs: [
       {
-        "name": "features",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'features',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "paused",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'paused',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "pausedFeatures",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'pausedFeatures',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "pay",
-    "inputs": [
+    type: 'function',
+    name: 'pay',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "maxAmountIn",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'maxAmountIn',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "userPaymentId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'userPaymentId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "payablePaymentId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payablePaymentId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "payable"
+    stateMutability: 'payable',
   },
   {
-    "type": "function",
-    "name": "payForeignViaCctp",
-    "inputs": [
+    type: 'function',
+    name: 'payForeignViaCctp',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "maxFee",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'maxFee',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "userPaymentId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'userPaymentId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "nonpayable"
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "payableExists",
-    "inputs": [
+    type: 'function',
+    name: 'payableExists',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "pendingOwner",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'pendingOwner',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: '',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "publishPayableDetails",
-    "inputs": [
+    type: 'function',
+    name: 'publishPayableDetails',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "wormholeSequence",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: 'wormholeSequence',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "stateMutability": "payable"
+    stateMutability: 'payable',
   },
   {
-    "type": "function",
-    "name": "quoteBroadcastFee",
-    "inputs": [],
-    "outputs": [
+    type: 'function',
+    name: 'quoteBroadcastFee',
+    inputs: [],
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "quotePublishPayableDetailsFee",
-    "inputs": [
+    type: 'function',
+    name: 'quotePublishPayableDetailsFee',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "quoteWithdrawal",
-    "inputs": [
+    type: 'function',
+    name: 'quoteWithdrawal',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct WithdrawalQuote",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct WithdrawalQuote',
+        components: [
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "net",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'net',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "feeBps",
-            "type": "uint16",
-            "internalType": "uint16"
+            name: 'feeBps',
+            type: 'uint16',
+            internalType: 'uint16',
           },
           {
-            "name": "isFeeCapped",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isFeeCapped',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "quoteWithdrawalFee",
-    "inputs": [
+    type: 'function',
+    name: 'quoteWithdrawalFee',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "tuple",
-        "internalType": "struct WithdrawalQuote",
-        "components": [
+        name: '',
+        type: 'tuple',
+        internalType: 'struct WithdrawalQuote',
+        components: [
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "fee",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'fee',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "net",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'net',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "feeBps",
-            "type": "uint16",
-            "internalType": "uint16"
+            name: 'feeBps',
+            type: 'uint16',
+            internalType: 'uint16',
           },
           {
-            "name": "isFeeCapped",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isFeeCapped',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "receiveForeignPaymentViaCctp",
-    "inputs": [
+    type: 'function',
+    name: 'receiveForeignPaymentViaCctp',
+    inputs: [
       {
-        "name": "burnMessage",
-        "type": "bytes",
-        "internalType": "bytes"
+        name: 'burnMessage',
+        type: 'bytes',
+        internalType: 'bytes',
       },
       {
-        "name": "attestation",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: 'attestation',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "payablePaymentId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payablePaymentId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "nonpayable"
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "receivePayableUpdateViaCctp",
-    "inputs": [
+    type: 'function',
+    name: 'receivePayableUpdateViaCctp',
+    inputs: [
       {
-        "name": "message",
-        "type": "bytes",
-        "internalType": "bytes"
+        name: 'message',
+        type: 'bytes',
+        internalType: 'bytes',
       },
       {
-        "name": "attestation",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: 'attestation',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "receivePayableUpdateViaWormhole",
-    "inputs": [
+    type: 'function',
+    name: 'receivePayableUpdateViaWormhole',
+    inputs: [
       {
-        "name": "encodedVaa",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
+        name: 'encodedVaa',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "registerForeignChain",
-    "inputs": [
+    type: 'function',
+    name: 'registerForeignChain',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "config",
-        "type": "tuple",
-        "internalType": "struct ForeignChainConfig",
-        "components": [
+        name: 'config',
+        type: 'tuple',
+        internalType: 'struct ForeignChainConfig',
+        components: [
           {
-            "name": "protocolIds",
-            "type": "tuple",
-            "internalType": "struct ForeignChainProtocolIds",
-            "components": [
+            name: 'protocolIds',
+            type: 'tuple',
+            internalType: 'struct ForeignChainProtocolIds',
+            components: [
               {
-                "name": "wormholeChainId",
-                "type": "uint16",
-                "internalType": "uint16"
+                name: 'wormholeChainId',
+                type: 'uint16',
+                internalType: 'uint16',
               },
               {
-                "name": "hasWormholeChainId",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'hasWormholeChainId',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "circleDomain",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'circleDomain',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "hasCircleDomain",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'hasCircleDomain',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "addresses",
-            "type": "tuple",
-            "internalType": "struct ForeignChainAddresses",
-            "components": [
+            name: 'addresses',
+            type: 'tuple',
+            internalType: 'struct ForeignChainAddresses',
+            components: [
               {
-                "name": "wormholeEmitter",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'wormholeEmitter',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpMessageSender",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cctpMessageSender',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpBurnSender",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cctpBurnSender',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpRecipient",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cctpRecipient',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpMintRecipient",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cctpMintRecipient',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpDestinationCaller",
-                "type": "bytes32",
-                "internalType": "bytes32"
-              }
-            ]
+                name: 'cctpDestinationCaller',
+                type: 'bytes32',
+                internalType: 'bytes32',
+              },
+            ],
           },
           {
-            "name": "switches",
-            "type": "tuple",
-            "internalType": "struct ForeignChainSwitches",
-            "components": [
+            name: 'switches',
+            type: 'tuple',
+            internalType: 'struct ForeignChainSwitches',
+            components: [
               {
-                "name": "isCctpUpdateEnabled",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isCctpUpdateEnabled',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isInboundUpdateEnabled",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isInboundUpdateEnabled',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isOutboundPaymentEnabled",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isOutboundPaymentEnabled',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isInboundPaymentEnabled",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isInboundPaymentEnabled',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "finality",
-            "type": "tuple",
-            "internalType": "struct ForeignChainFinality",
-            "components": [
+            name: 'finality',
+            type: 'tuple',
+            internalType: 'struct ForeignChainFinality',
+            components: [
               {
-                "name": "outboundUpdateFinality",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'outboundUpdateFinality',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "outboundPaymentFinality",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'outboundPaymentFinality',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "minInboundUpdateFinality",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'minInboundUpdateFinality',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "minInboundPaymentFinality",
-                "type": "uint32",
-                "internalType": "uint32"
-              }
-            ]
+                name: 'minInboundPaymentFinality',
+                type: 'uint32',
+                internalType: 'uint32',
+              },
+            ],
           },
           {
-            "name": "limits",
-            "type": "tuple",
-            "internalType": "struct ForeignChainLimits",
-            "components": [
+            name: 'limits',
+            type: 'tuple',
+            internalType: 'struct ForeignChainLimits',
+            components: [
               {
-                "name": "hasMaxOutboundCctpFeeBps",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'hasMaxOutboundCctpFeeBps',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "maxOutboundCctpFeeBps",
-                "type": "uint16",
-                "internalType": "uint16"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'maxOutboundCctpFeeBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "registerMatchingToken",
-    "inputs": [
+    type: 'function',
+    name: 'registerMatchingToken',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "foreignToken",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'foreignToken',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "localToken",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'localToken',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "renounceRole",
-    "inputs": [
+    type: 'function',
+    name: 'renounceRole',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "callerConfirmation",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'callerConfirmation',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "reopenPayable",
-    "inputs": [
+    type: 'function',
+    name: 'reopenPayable',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "wormholeSequence",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: 'wormholeSequence',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "stateMutability": "payable"
+    stateMutability: 'payable',
   },
   {
-    "type": "function",
-    "name": "rescueUntrackedBalance",
-    "inputs": [
+    type: 'function',
+    name: 'rescueUntrackedBalance',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'to',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "stateMutability": "nonpayable"
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "revokeRole",
-    "inputs": [
+    type: 'function',
+    name: 'revokeRole',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setCctpEnabled",
-    "inputs": [
+    type: 'function',
+    name: 'setCctpEnabled',
+    inputs: [
       {
-        "name": "isEnabled",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: 'isEnabled',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setFeeCollector",
-    "inputs": [
+    type: 'function',
+    name: 'setFeeCollector',
+    inputs: [
       {
-        "name": "feeCollector",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'feeCollector',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setForeignChainAddresses",
-    "inputs": [
+    type: 'function',
+    name: 'setForeignChainAddresses',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "addresses",
-        "type": "tuple",
-        "internalType": "struct ForeignChainAddresses",
-        "components": [
+        name: 'addresses',
+        type: 'tuple',
+        internalType: 'struct ForeignChainAddresses',
+        components: [
           {
-            "name": "wormholeEmitter",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'wormholeEmitter',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpMessageSender",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cctpMessageSender',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpBurnSender",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cctpBurnSender',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpRecipient",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cctpRecipient',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpMintRecipient",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cctpMintRecipient',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpDestinationCaller",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'cctpDestinationCaller',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setForeignChainFinality",
-    "inputs": [
+    type: 'function',
+    name: 'setForeignChainFinality',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "finality",
-        "type": "tuple",
-        "internalType": "struct ForeignChainFinality",
-        "components": [
+        name: 'finality',
+        type: 'tuple',
+        internalType: 'struct ForeignChainFinality',
+        components: [
           {
-            "name": "outboundUpdateFinality",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'outboundUpdateFinality',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "outboundPaymentFinality",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'outboundPaymentFinality',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "minInboundUpdateFinality",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'minInboundUpdateFinality',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "minInboundPaymentFinality",
-            "type": "uint32",
-            "internalType": "uint32"
-          }
-        ]
-      }
+            name: 'minInboundPaymentFinality',
+            type: 'uint32',
+            internalType: 'uint32',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setForeignChainLimits",
-    "inputs": [
+    type: 'function',
+    name: 'setForeignChainLimits',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "limits",
-        "type": "tuple",
-        "internalType": "struct ForeignChainLimits",
-        "components": [
+        name: 'limits',
+        type: 'tuple',
+        internalType: 'struct ForeignChainLimits',
+        components: [
           {
-            "name": "hasMaxOutboundCctpFeeBps",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasMaxOutboundCctpFeeBps',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "maxOutboundCctpFeeBps",
-            "type": "uint16",
-            "internalType": "uint16"
-          }
-        ]
-      }
+            name: 'maxOutboundCctpFeeBps',
+            type: 'uint16',
+            internalType: 'uint16',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setForeignChainProtocolIds",
-    "inputs": [
+    type: 'function',
+    name: 'setForeignChainProtocolIds',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "protocolIds",
-        "type": "tuple",
-        "internalType": "struct ForeignChainProtocolIds",
-        "components": [
+        name: 'protocolIds',
+        type: 'tuple',
+        internalType: 'struct ForeignChainProtocolIds',
+        components: [
           {
-            "name": "wormholeChainId",
-            "type": "uint16",
-            "internalType": "uint16"
+            name: 'wormholeChainId',
+            type: 'uint16',
+            internalType: 'uint16',
           },
           {
-            "name": "hasWormholeChainId",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasWormholeChainId',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "circleDomain",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'circleDomain',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "hasCircleDomain",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'hasCircleDomain',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setForeignChainSwitches",
-    "inputs": [
+    type: 'function',
+    name: 'setForeignChainSwitches',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "switches",
-        "type": "tuple",
-        "internalType": "struct ForeignChainSwitches",
-        "components": [
+        name: 'switches',
+        type: 'tuple',
+        internalType: 'struct ForeignChainSwitches',
+        components: [
           {
-            "name": "isCctpUpdateEnabled",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isCctpUpdateEnabled',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isInboundUpdateEnabled",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isInboundUpdateEnabled',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isOutboundPaymentEnabled",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isOutboundPaymentEnabled',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isInboundPaymentEnabled",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isInboundPaymentEnabled',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setMaxAllowedTokensAndAmounts",
-    "inputs": [
+    type: 'function',
+    name: 'setMaxAllowedTokensAndAmounts',
+    inputs: [
       {
-        "name": "maxAllowedTokensAndAmounts",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
+        name: 'maxAllowedTokensAndAmounts',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setPublishPayableRestricted",
-    "inputs": [
+    type: 'function',
+    name: 'setPublishPayableRestricted',
+    inputs: [
       {
-        "name": "isPublishPayableRestricted",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: 'isPublishPayableRestricted',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setRelayerRestricted",
-    "inputs": [
+    type: 'function',
+    name: 'setRelayerRestricted',
+    inputs: [
       {
-        "name": "isRelayerRestricted",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: 'isRelayerRestricted',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setRoleAdmin",
-    "inputs": [
+    type: 'function',
+    name: 'setRoleAdmin',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "adminRole",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'adminRole',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setTokenFeeBps",
-    "inputs": [
+    type: 'function',
+    name: 'setTokenFeeBps',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "feeBps",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
+        name: 'feeBps',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setTokenFeeConfig",
-    "inputs": [
+    type: 'function',
+    name: 'setTokenFeeConfig',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "fee",
-        "type": "tuple",
-        "internalType": "struct TokenFeeConfig",
-        "components": [
+        name: 'fee',
+        type: 'tuple',
+        internalType: 'struct TokenFeeConfig',
+        components: [
           {
-            "name": "hasFeeBpsOverride",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasFeeBpsOverride',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "feeBps",
-            "type": "uint16",
-            "internalType": "uint16"
+            name: 'feeBps',
+            type: 'uint16',
+            internalType: 'uint16',
           },
           {
-            "name": "hasMaxWithdrawalFee",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasMaxWithdrawalFee',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "maxWithdrawalFee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'maxWithdrawalFee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setTokenMaxWithdrawalFee",
-    "inputs": [
+    type: 'function',
+    name: 'setTokenMaxWithdrawalFee',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "maxWithdrawalFee",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'maxWithdrawalFee',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setTokenPaymentLimits",
-    "inputs": [
+    type: 'function',
+    name: 'setTokenPaymentLimits',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "limits",
-        "type": "tuple",
-        "internalType": "struct TokenPaymentLimits",
-        "components": [
+        name: 'limits',
+        type: 'tuple',
+        internalType: 'struct TokenPaymentLimits',
+        components: [
           {
-            "name": "hasMinPaymentAmount",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasMinPaymentAmount',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "minPaymentAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'minPaymentAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hasMaxPaymentAmount",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasMaxPaymentAmount',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "maxPaymentAmount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'maxPaymentAmount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setTokenTransferTaxAllowed",
-    "inputs": [
+    type: 'function',
+    name: 'setTokenTransferTaxAllowed',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "isTransferTaxAllowed",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: 'isTransferTaxAllowed',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setWithdrawalFeeBps",
-    "inputs": [
+    type: 'function',
+    name: 'setWithdrawalFeeBps',
+    inputs: [
       {
-        "name": "feeBps",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
+        name: 'feeBps',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setWormholeEnabled",
-    "inputs": [
+    type: 'function',
+    name: 'setWormholeEnabled',
+    inputs: [
       {
-        "name": "isEnabled",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: 'isEnabled',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setWormholeFinality",
-    "inputs": [
+    type: 'function',
+    name: 'setWormholeFinality',
+    inputs: [
       {
-        "name": "finality",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
+        name: 'finality',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setupCctp",
-    "inputs": [
+    type: 'function',
+    name: 'setupCctp',
+    inputs: [
       {
-        "name": "tokenMessenger",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'tokenMessenger',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "setupWormhole",
-    "inputs": [
+    type: 'function',
+    name: 'setupWormhole',
+    inputs: [
       {
-        "name": "wormhole",
-        "type": "address",
-        "internalType": "address"
+        name: 'wormhole',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "internalType": "uint16"
+        name: 'wormholeChainId',
+        type: 'uint16',
+        internalType: 'uint16',
       },
       {
-        "name": "finality",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
+        name: 'finality',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "stopPaymentsForToken",
-    "inputs": [
+    type: 'function',
+    name: 'stopPaymentsForToken',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "supportsInterface",
-    "inputs": [
+    type: 'function',
+    name: 'supportsInterface',
+    inputs: [
       {
-        "name": "interfaceId",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
+        name: 'interfaceId',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: '',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "stateMutability": "view"
+    stateMutability: 'view',
   },
   {
-    "type": "function",
-    "name": "transferOwnership",
-    "inputs": [
+    type: 'function',
+    name: 'transferOwnership',
+    inputs: [
       {
-        "name": "newOwner",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'newOwner',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "unpause",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    type: 'function',
+    name: 'unpause',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "unpauseFeatures",
-    "inputs": [
+    type: 'function',
+    name: 'unpauseFeatures',
+    inputs: [
       {
-        "name": "features",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'features',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "unregisterForeignChain",
-    "inputs": [
+    type: 'function',
+    name: 'unregisterForeignChain',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "unregisterMatchingToken",
-    "inputs": [
+    type: 'function',
+    name: 'unregisterMatchingToken',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "foreignToken",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'foreignToken',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "updateForeignChain",
-    "inputs": [
+    type: 'function',
+    name: 'updateForeignChain',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "config",
-        "type": "tuple",
-        "internalType": "struct ForeignChainConfig",
-        "components": [
+        name: 'config',
+        type: 'tuple',
+        internalType: 'struct ForeignChainConfig',
+        components: [
           {
-            "name": "protocolIds",
-            "type": "tuple",
-            "internalType": "struct ForeignChainProtocolIds",
-            "components": [
+            name: 'protocolIds',
+            type: 'tuple',
+            internalType: 'struct ForeignChainProtocolIds',
+            components: [
               {
-                "name": "wormholeChainId",
-                "type": "uint16",
-                "internalType": "uint16"
+                name: 'wormholeChainId',
+                type: 'uint16',
+                internalType: 'uint16',
               },
               {
-                "name": "hasWormholeChainId",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'hasWormholeChainId',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "circleDomain",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'circleDomain',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "hasCircleDomain",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'hasCircleDomain',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "addresses",
-            "type": "tuple",
-            "internalType": "struct ForeignChainAddresses",
-            "components": [
+            name: 'addresses',
+            type: 'tuple',
+            internalType: 'struct ForeignChainAddresses',
+            components: [
               {
-                "name": "wormholeEmitter",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'wormholeEmitter',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpMessageSender",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cctpMessageSender',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpBurnSender",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cctpBurnSender',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpRecipient",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cctpRecipient',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpMintRecipient",
-                "type": "bytes32",
-                "internalType": "bytes32"
+                name: 'cctpMintRecipient',
+                type: 'bytes32',
+                internalType: 'bytes32',
               },
               {
-                "name": "cctpDestinationCaller",
-                "type": "bytes32",
-                "internalType": "bytes32"
-              }
-            ]
+                name: 'cctpDestinationCaller',
+                type: 'bytes32',
+                internalType: 'bytes32',
+              },
+            ],
           },
           {
-            "name": "switches",
-            "type": "tuple",
-            "internalType": "struct ForeignChainSwitches",
-            "components": [
+            name: 'switches',
+            type: 'tuple',
+            internalType: 'struct ForeignChainSwitches',
+            components: [
               {
-                "name": "isCctpUpdateEnabled",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isCctpUpdateEnabled',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isInboundUpdateEnabled",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isInboundUpdateEnabled',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isOutboundPaymentEnabled",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'isOutboundPaymentEnabled',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "isInboundPaymentEnabled",
-                "type": "bool",
-                "internalType": "bool"
-              }
-            ]
+                name: 'isInboundPaymentEnabled',
+                type: 'bool',
+                internalType: 'bool',
+              },
+            ],
           },
           {
-            "name": "finality",
-            "type": "tuple",
-            "internalType": "struct ForeignChainFinality",
-            "components": [
+            name: 'finality',
+            type: 'tuple',
+            internalType: 'struct ForeignChainFinality',
+            components: [
               {
-                "name": "outboundUpdateFinality",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'outboundUpdateFinality',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "outboundPaymentFinality",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'outboundPaymentFinality',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "minInboundUpdateFinality",
-                "type": "uint32",
-                "internalType": "uint32"
+                name: 'minInboundUpdateFinality',
+                type: 'uint32',
+                internalType: 'uint32',
               },
               {
-                "name": "minInboundPaymentFinality",
-                "type": "uint32",
-                "internalType": "uint32"
-              }
-            ]
+                name: 'minInboundPaymentFinality',
+                type: 'uint32',
+                internalType: 'uint32',
+              },
+            ],
           },
           {
-            "name": "limits",
-            "type": "tuple",
-            "internalType": "struct ForeignChainLimits",
-            "components": [
+            name: 'limits',
+            type: 'tuple',
+            internalType: 'struct ForeignChainLimits',
+            components: [
               {
-                "name": "hasMaxOutboundCctpFeeBps",
-                "type": "bool",
-                "internalType": "bool"
+                name: 'hasMaxOutboundCctpFeeBps',
+                type: 'bool',
+                internalType: 'bool',
               },
               {
-                "name": "maxOutboundCctpFeeBps",
-                "type": "uint16",
-                "internalType": "uint16"
-              }
-            ]
-          }
-        ]
-      }
+                name: 'maxOutboundCctpFeeBps',
+                type: 'uint16',
+                internalType: 'uint16',
+              },
+            ],
+          },
+        ],
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "updatePayableAllowedTokensAndAmounts",
-    "inputs": [
+    type: 'function',
+    name: 'updatePayableAllowedTokensAndAmounts',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "allowedTokensAndAmounts",
-        "type": "tuple[]",
-        "internalType": "struct TokenAndAmount[]",
-        "components": [
+        name: 'allowedTokensAndAmounts',
+        type: 'tuple[]',
+        internalType: 'struct TokenAndAmount[]',
+        components: [
           {
-            "name": "token",
-            "type": "address",
-            "internalType": "address"
+            name: 'token',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "amount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'amount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "wormholeSequence",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
+        name: 'wormholeSequence',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
     ],
-    "stateMutability": "payable"
+    stateMutability: 'payable',
   },
   {
-    "type": "function",
-    "name": "updatePayableAutoWithdraw",
-    "inputs": [
+    type: 'function',
+    name: 'updatePayableAutoWithdraw',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "isAutoWithdraw",
-        "type": "bool",
-        "internalType": "bool"
-      }
+        name: 'isAutoWithdraw',
+        type: 'bool',
+        internalType: 'bool',
+      },
     ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "withdraw",
-    "inputs": [
+    type: 'function',
+    name: 'withdraw',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "withdrawalId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'withdrawalId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "nonpayable"
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "function",
-    "name": "withdrawAll",
-    "inputs": [
+    type: 'function',
+    name: 'withdrawAll',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
     ],
-    "outputs": [
+    outputs: [
       {
-        "name": "withdrawalId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
+        name: 'withdrawalId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
     ],
-    "stateMutability": "nonpayable"
+    stateMutability: 'nonpayable',
   },
   {
-    "type": "event",
-    "name": "AutoWithdrawSkipped",
-    "inputs": [
+    type: 'event',
+    name: 'AutoWithdrawSkipped',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "CctpConfigured",
-    "inputs": [
+    type: 'event',
+    name: 'CctpConfigured',
+    inputs: [
       {
-        "name": "tokenMessenger",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'tokenMessenger',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "messageTransmitter",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'messageTransmitter',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "tokenMinter",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
+        name: 'tokenMinter',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
       },
       {
-        "name": "domain",
-        "type": "uint32",
-        "indexed": false,
-        "internalType": "uint32"
-      }
+        name: 'domain',
+        type: 'uint32',
+        indexed: false,
+        internalType: 'uint32',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "CctpEnabledUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'CctpEnabledUpdated',
+    inputs: [
       {
-        "name": "isEnabled",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
+        name: 'isEnabled',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ClosedPayable",
-    "inputs": [
+    type: 'event',
+    name: 'ClosedPayable',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "host",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'host',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "CreatedPayable",
-    "inputs": [
+    type: 'event',
+    name: 'CreatedPayable',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "host",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "chainCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'chainCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "hostCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
+        name: 'hostCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "DiamondCut",
-    "inputs": [
+    type: 'event',
+    name: 'DiamondCut',
+    inputs: [
       {
-        "name": "diamondCut",
-        "type": "tuple[]",
-        "indexed": false,
-        "internalType": "struct IDiamondCut.FacetCut[]",
-        "components": [
+        name: 'diamondCut',
+        type: 'tuple[]',
+        indexed: false,
+        internalType: 'struct IDiamondCut.FacetCut[]',
+        components: [
           {
-            "name": "facetAddress",
-            "type": "address",
-            "internalType": "address"
+            name: 'facetAddress',
+            type: 'address',
+            internalType: 'address',
           },
           {
-            "name": "action",
-            "type": "uint8",
-            "internalType": "enum IDiamondCut.FacetCutAction"
+            name: 'action',
+            type: 'uint8',
+            internalType: 'enum IDiamondCut.FacetCutAction',
           },
           {
-            "name": "functionSelectors",
-            "type": "bytes4[]",
-            "internalType": "bytes4[]"
-          }
-        ]
+            name: 'functionSelectors',
+            type: 'bytes4[]',
+            internalType: 'bytes4[]',
+          },
+        ],
       },
       {
-        "name": "init",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
+        name: 'init',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
       },
       {
-        "name": "calldata_",
-        "type": "bytes",
-        "indexed": false,
-        "internalType": "bytes"
-      }
+        name: 'calldata_',
+        type: 'bytes',
+        indexed: false,
+        internalType: 'bytes',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "FeaturesPaused",
-    "inputs": [
+    type: 'event',
+    name: 'FeaturesPaused',
+    inputs: [
       {
-        "name": "features",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'features',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "pausedFeatures",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'pausedFeatures',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "account",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "FeaturesUnpaused",
-    "inputs": [
+    type: 'event',
+    name: 'FeaturesUnpaused',
+    inputs: [
       {
-        "name": "features",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'features',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "pausedFeatures",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'pausedFeatures',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "account",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "FeeCollectorUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'FeeCollectorUpdated',
+    inputs: [
       {
-        "name": "feeCollector",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'feeCollector',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ForeignChainAddressesUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'ForeignChainAddressesUpdated',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "addresses",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct ForeignChainAddresses",
-        "components": [
+        name: 'addresses',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct ForeignChainAddresses',
+        components: [
           {
-            "name": "wormholeEmitter",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'wormholeEmitter',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpMessageSender",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cctpMessageSender',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpBurnSender",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cctpBurnSender',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpRecipient",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cctpRecipient',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpMintRecipient",
-            "type": "bytes32",
-            "internalType": "bytes32"
+            name: 'cctpMintRecipient',
+            type: 'bytes32',
+            internalType: 'bytes32',
           },
           {
-            "name": "cctpDestinationCaller",
-            "type": "bytes32",
-            "internalType": "bytes32"
-          }
-        ]
-      }
+            name: 'cctpDestinationCaller',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+        ],
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ForeignChainFinalityUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'ForeignChainFinalityUpdated',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "finality",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct ForeignChainFinality",
-        "components": [
+        name: 'finality',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct ForeignChainFinality',
+        components: [
           {
-            "name": "outboundUpdateFinality",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'outboundUpdateFinality',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "outboundPaymentFinality",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'outboundPaymentFinality',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "minInboundUpdateFinality",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'minInboundUpdateFinality',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "minInboundPaymentFinality",
-            "type": "uint32",
-            "internalType": "uint32"
-          }
-        ]
-      }
+            name: 'minInboundPaymentFinality',
+            type: 'uint32',
+            internalType: 'uint32',
+          },
+        ],
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ForeignChainLimitsUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'ForeignChainLimitsUpdated',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "limits",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct ForeignChainLimits",
-        "components": [
+        name: 'limits',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct ForeignChainLimits',
+        components: [
           {
-            "name": "hasMaxOutboundCctpFeeBps",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasMaxOutboundCctpFeeBps',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "maxOutboundCctpFeeBps",
-            "type": "uint16",
-            "internalType": "uint16"
-          }
-        ]
-      }
+            name: 'maxOutboundCctpFeeBps',
+            type: 'uint16',
+            internalType: 'uint16',
+          },
+        ],
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ForeignChainProtocolIdsUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'ForeignChainProtocolIdsUpdated',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "protocolIds",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct ForeignChainProtocolIds",
-        "components": [
+        name: 'protocolIds',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct ForeignChainProtocolIds',
+        components: [
           {
-            "name": "wormholeChainId",
-            "type": "uint16",
-            "internalType": "uint16"
+            name: 'wormholeChainId',
+            type: 'uint16',
+            internalType: 'uint16',
           },
           {
-            "name": "hasWormholeChainId",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasWormholeChainId',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "circleDomain",
-            "type": "uint32",
-            "internalType": "uint32"
+            name: 'circleDomain',
+            type: 'uint32',
+            internalType: 'uint32',
           },
           {
-            "name": "hasCircleDomain",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'hasCircleDomain',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ForeignChainRegistered",
-    "inputs": [
+    type: 'event',
+    name: 'ForeignChainRegistered',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ForeignChainSwitchesUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'ForeignChainSwitchesUpdated',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "switches",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct ForeignChainSwitches",
-        "components": [
+        name: 'switches',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct ForeignChainSwitches',
+        components: [
           {
-            "name": "isCctpUpdateEnabled",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isCctpUpdateEnabled',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isInboundUpdateEnabled",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isInboundUpdateEnabled',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isOutboundPaymentEnabled",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'isOutboundPaymentEnabled',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "isInboundPaymentEnabled",
-            "type": "bool",
-            "internalType": "bool"
-          }
-        ]
-      }
+            name: 'isInboundPaymentEnabled',
+            type: 'bool',
+            internalType: 'bool',
+          },
+        ],
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ForeignChainUnregistered",
-    "inputs": [
+    type: 'event',
+    name: 'ForeignChainUnregistered',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      }
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "Initialized",
-    "inputs": [
+    type: 'event',
+    name: 'Initialized',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "owner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'owner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "InitializedUser",
-    "inputs": [
+    type: 'event',
+    name: 'InitializedUser',
+    inputs: [
       {
-        "name": "wallet",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'wallet',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "chainCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
+        name: 'chainCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "MatchingTokenRegistered",
-    "inputs": [
+    type: 'event',
+    name: 'MatchingTokenRegistered',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "foreignToken",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'foreignToken',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "localToken",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'localToken',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "MatchingTokenUnregistered",
-    "inputs": [
+    type: 'event',
+    name: 'MatchingTokenUnregistered',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "foreignToken",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'foreignToken',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "localToken",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'localToken',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "MaxAllowedTokensAndAmountsUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'MaxAllowedTokensAndAmountsUpdated',
+    inputs: [
       {
-        "name": "maxAllowedTokensAndAmounts",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "uint8"
-      }
+        name: 'maxAllowedTokensAndAmounts',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "OwnershipTransferStarted",
-    "inputs": [
+    type: 'event',
+    name: 'OwnershipTransferStarted',
+    inputs: [
       {
-        "name": "previousOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'previousOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'newOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "OwnershipTransferred",
-    "inputs": [
+    type: 'event',
+    name: 'OwnershipTransferred',
+    inputs: [
       {
-        "name": "previousOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'previousOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'newOwner',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "Paused",
-    "inputs": [
+    type: 'event',
+    name: 'Paused',
+    inputs: [
       {
-        "name": "account",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "PayableReceived",
-    "inputs": [
+    type: 'event',
+    name: 'PayableReceived',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "payer",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payer',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "payablePaymentId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payablePaymentId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "payerChainId",
-        "type": "bytes32",
-        "indexed": false,
-        "internalType": "bytes32"
+        name: 'payerChainId',
+        type: 'bytes32',
+        indexed: false,
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
       },
       {
-        "name": "requestedAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'requestedAmount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "chainCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'chainCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "payableCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
+        name: 'payableCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "PayableUpdateBroadcasted",
-    "inputs": [
+    type: 'event',
+    name: 'PayableUpdateBroadcasted',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "nonce",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
+        name: 'nonce',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64',
       },
       {
-        "name": "actionType",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "uint8"
+        name: 'actionType',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
       },
       {
-        "name": "wormholeSequence",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
+        name: 'wormholeSequence',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64',
       },
       {
-        "name": "cctpMessagesCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
+        name: 'cctpMessagesCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "PublishPayableRestrictionUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'PublishPayableRestrictionUpdated',
+    inputs: [
       {
-        "name": "isPublishPayableRestricted",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
+        name: 'isPublishPayableRestricted',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ReceivedForeignPaymentViaCctp",
-    "inputs": [
+    type: 'event',
+    name: 'ReceivedForeignPaymentViaCctp',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "payerChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payerChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "payablePaymentId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payablePaymentId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "burnNonce",
-        "type": "bytes32",
-        "indexed": false,
-        "internalType": "bytes32"
+        name: 'burnNonce',
+        type: 'bytes32',
+        indexed: false,
+        internalType: 'bytes32',
       },
       {
-        "name": "mintedAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'mintedAmount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "finalityThresholdExecuted",
-        "type": "uint32",
-        "indexed": false,
-        "internalType": "uint32"
-      }
+        name: 'finalityThresholdExecuted',
+        type: 'uint32',
+        indexed: false,
+        internalType: 'uint32',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ReceivedPayableUpdateViaAdminSync",
-    "inputs": [
+    type: 'event',
+    name: 'ReceivedPayableUpdateViaAdminSync',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "nonce",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
+        name: 'nonce',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64',
       },
       {
-        "name": "syncer",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'syncer',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ReceivedPayableUpdateViaCctp",
-    "inputs": [
+    type: 'event',
+    name: 'ReceivedPayableUpdateViaCctp',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "nonce",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
+        name: 'nonce',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64',
       },
       {
-        "name": "finalityThresholdExecuted",
-        "type": "uint32",
-        "indexed": false,
-        "internalType": "uint32"
-      }
+        name: 'finalityThresholdExecuted',
+        type: 'uint32',
+        indexed: false,
+        internalType: 'uint32',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ReceivedPayableUpdateViaWormhole",
-    "inputs": [
+    type: 'event',
+    name: 'ReceivedPayableUpdateViaWormhole',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "nonce",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
+        name: 'nonce',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64',
       },
       {
-        "name": "wormholeHash",
-        "type": "bytes32",
-        "indexed": false,
-        "internalType": "bytes32"
-      }
+        name: 'wormholeHash',
+        type: 'bytes32',
+        indexed: false,
+        internalType: 'bytes32',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "RelayerRestrictionUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'RelayerRestrictionUpdated',
+    inputs: [
       {
-        "name": "isRelayerRestricted",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
+        name: 'isRelayerRestricted',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "ReopenedPayable",
-    "inputs": [
+    type: 'event',
+    name: 'ReopenedPayable',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "host",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'host',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "RoleAdminChanged",
-    "inputs": [
+    type: 'event',
+    name: 'RoleAdminChanged',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "previousAdminRole",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'previousAdminRole',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "newAdminRole",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
-      }
+        name: 'newAdminRole',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "RoleGranted",
-    "inputs": [
+    type: 'event',
+    name: 'RoleGranted',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "account",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'account',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "sender",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'sender',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "RoleRevoked",
-    "inputs": [
+    type: 'event',
+    name: 'RoleRevoked',
+    inputs: [
       {
-        "name": "role",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'role',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "account",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'account',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "sender",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'sender',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "SentForeignPaymentViaCctp",
-    "inputs": [
+    type: 'event',
+    name: 'SentForeignPaymentViaCctp',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "payableChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "userPaymentId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'userPaymentId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "paymentNonce",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
+        name: 'paymentNonce',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64',
       },
       {
-        "name": "burnAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'burnAmount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "maxFee",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'maxFee',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "minFinalityThreshold",
-        "type": "uint32",
-        "indexed": false,
-        "internalType": "uint32"
-      }
+        name: 'minFinalityThreshold',
+        type: 'uint32',
+        indexed: false,
+        internalType: 'uint32',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "SentPayableUpdateViaCctp",
-    "inputs": [
+    type: 'event',
+    name: 'SentPayableUpdateViaCctp',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "nonce",
-        "type": "uint64",
-        "indexed": false,
-        "internalType": "uint64"
-      }
+        name: 'nonce',
+        type: 'uint64',
+        indexed: false,
+        internalType: 'uint64',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "TokenFeeConfigUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'TokenFeeConfigUpdated',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "fee",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct TokenFeeConfig",
-        "components": [
+        name: 'fee',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct TokenFeeConfig',
+        components: [
           {
-            "name": "hasFeeBpsOverride",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasFeeBpsOverride',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "feeBps",
-            "type": "uint16",
-            "internalType": "uint16"
+            name: 'feeBps',
+            type: 'uint16',
+            internalType: 'uint16',
           },
           {
-            "name": "hasMaxWithdrawalFee",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasMaxWithdrawalFee',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "maxWithdrawalFee",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'maxWithdrawalFee',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "TokenPaymentLimitsUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'TokenPaymentLimitsUpdated',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "limits",
-        "type": "tuple",
-        "indexed": false,
-        "internalType": "struct TokenPaymentLimits",
-        "components": [
+        name: 'limits',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct TokenPaymentLimits',
+        components: [
           {
-            "name": "hasMinPaymentAmount",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasMinPaymentAmount',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "minPaymentAmount",
-            "type": "uint256",
-            "internalType": "uint256"
+            name: 'minPaymentAmount',
+            type: 'uint256',
+            internalType: 'uint256',
           },
           {
-            "name": "hasMaxPaymentAmount",
-            "type": "bool",
-            "internalType": "bool"
+            name: 'hasMaxPaymentAmount',
+            type: 'bool',
+            internalType: 'bool',
           },
           {
-            "name": "maxPaymentAmount",
-            "type": "uint256",
-            "internalType": "uint256"
-          }
-        ]
-      }
+            name: 'maxPaymentAmount',
+            type: 'uint256',
+            internalType: 'uint256',
+          },
+        ],
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "TokenPaymentsAllowed",
-    "inputs": [
+    type: 'event',
+    name: 'TokenPaymentsAllowed',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "TokenPaymentsStopped",
-    "inputs": [
+    type: 'event',
+    name: 'TokenPaymentsStopped',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "TokenTransferTaxAllowanceUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'TokenTransferTaxAllowanceUpdated',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "isTransferTaxAllowed",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
+        name: 'isTransferTaxAllowed',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "Unpaused",
-    "inputs": [
+    type: 'event',
+    name: 'Unpaused',
+    inputs: [
       {
-        "name": "account",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
+        name: 'account',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "UntrackedBalanceRescued",
-    "inputs": [
+    type: 'event',
+    name: 'UntrackedBalanceRescued',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "to",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'to',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "UpdatedPayableAllowedTokensAndAmounts",
-    "inputs": [
+    type: 'event',
+    name: 'UpdatedPayableAllowedTokensAndAmounts',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "host",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
+        name: 'host',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "UpdatedPayableAutoWithdrawStatus",
-    "inputs": [
+    type: 'event',
+    name: 'UpdatedPayableAutoWithdrawStatus',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "host",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "isAutoWithdraw",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
+        name: 'isAutoWithdraw',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "UserPaid",
-    "inputs": [
+    type: 'event',
+    name: 'UserPaid',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "payer",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'payer',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "userPaymentId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'userPaymentId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "payableChainId",
-        "type": "bytes32",
-        "indexed": false,
-        "internalType": "bytes32"
+        name: 'payableChainId',
+        type: 'bytes32',
+        indexed: false,
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
       },
       {
-        "name": "requestedAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'requestedAmount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "chainCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'chainCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "payerCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
+        name: 'payerCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "WithdrawalFeeBpsUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'WithdrawalFeeBpsUpdated',
+    inputs: [
       {
-        "name": "feeBps",
-        "type": "uint16",
-        "indexed": false,
-        "internalType": "uint16"
-      }
+        name: 'feeBps',
+        type: 'uint16',
+        indexed: false,
+        internalType: 'uint16',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "Withdrew",
-    "inputs": [
+    type: 'event',
+    name: 'Withdrew',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "host",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'host',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "withdrawalId",
-        "type": "bytes32",
-        "indexed": true,
-        "internalType": "bytes32"
+        name: 'withdrawalId',
+        type: 'bytes32',
+        indexed: true,
+        internalType: 'bytes32',
       },
       {
-        "name": "token",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
+        name: 'token',
+        type: 'address',
+        indexed: false,
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'amount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "fee",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'fee',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "chainCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'chainCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "hostCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
+        name: 'hostCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
       },
       {
-        "name": "payableCount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
+        name: 'payableCount',
+        type: 'uint256',
+        indexed: false,
+        internalType: 'uint256',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "WormholeConfigured",
-    "inputs": [
+    type: 'event',
+    name: 'WormholeConfigured',
+    inputs: [
       {
-        "name": "wormhole",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        name: 'wormhole',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
       },
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "indexed": false,
-        "internalType": "uint16"
+        name: 'wormholeChainId',
+        type: 'uint16',
+        indexed: false,
+        internalType: 'uint16',
       },
       {
-        "name": "finality",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "uint8"
-      }
+        name: 'finality',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "WormholeEnabledUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'WormholeEnabledUpdated',
+    inputs: [
       {
-        "name": "isEnabled",
-        "type": "bool",
-        "indexed": false,
-        "internalType": "bool"
-      }
+        name: 'isEnabled',
+        type: 'bool',
+        indexed: false,
+        internalType: 'bool',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "event",
-    "name": "WormholeFinalityUpdated",
-    "inputs": [
+    type: 'event',
+    name: 'WormholeFinalityUpdated',
+    inputs: [
       {
-        "name": "finality",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "uint8"
-      }
+        name: 'finality',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
     ],
-    "anonymous": false
+    anonymous: false,
   },
   {
-    "type": "error",
-    "name": "AccessControlBadConfirmation",
-    "inputs": []
+    type: 'error',
+    name: 'AccessControlBadConfirmation',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "AccessControlUnauthorizedAccount",
-    "inputs": [
+    type: 'error',
+    name: 'AccessControlUnauthorizedAccount',
+    inputs: [
       {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "role",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'role',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "AddressHasNoCode",
-    "inputs": [
+    type: 'error',
+    name: 'AddressHasNoCode',
+    inputs: [
       {
-        "name": "account",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'account',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "AlreadyInitialized",
-    "inputs": []
+    type: 'error',
+    name: 'AlreadyInitialized',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "AmountExceedsCrossChainLimit",
-    "inputs": []
+    type: 'error',
+    name: 'AmountExceedsCrossChainLimit',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "CctpBurnNonceAlreadyConsumed",
-    "inputs": [
+    type: 'error',
+    name: 'CctpBurnNonceAlreadyConsumed',
+    inputs: [
       {
-        "name": "sourceDomain",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'sourceDomain',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "nonce",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'nonce',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CctpDataNonceAlreadyConsumed",
-    "inputs": [
+    type: 'error',
+    name: 'CctpDataNonceAlreadyConsumed',
+    inputs: [
       {
-        "name": "sourceDomain",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'sourceDomain',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "nonce",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'nonce',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CctpMaxFeeTooHigh",
-    "inputs": [
+    type: 'error',
+    name: 'CctpMaxFeeTooHigh',
+    inputs: [
       {
-        "name": "maxFee",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'maxFee',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "limit",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'limit',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CctpNotEnabled",
-    "inputs": []
+    type: 'error',
+    name: 'CctpNotEnabled',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "CircleDestinationDomainMismatch",
-    "inputs": [
+    type: 'error',
+    name: 'CircleDestinationDomainMismatch',
+    inputs: [
       {
-        "name": "destinationDomain",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ]
+        name: 'destinationDomain',
+        type: 'uint32',
+        internalType: 'uint32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CircleDomainTaken",
-    "inputs": [
+    type: 'error',
+    name: 'CircleDomainTaken',
+    inputs: [
       {
-        "name": "circleDomain",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'circleDomain',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CircleMessageReceivingFailed",
-    "inputs": []
+    type: 'error',
+    name: 'CircleMessageReceivingFailed',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "CircleMintedLessThanAmount",
-    "inputs": [
+    type: 'error',
+    name: 'CircleMintedLessThanAmount',
+    inputs: [
       {
-        "name": "minted",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'minted',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CircleRecipientMismatch",
-    "inputs": [
+    type: 'error',
+    name: 'CircleRecipientMismatch',
+    inputs: [
       {
-        "name": "recipient",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'recipient',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CircleSenderMismatch",
-    "inputs": [
+    type: 'error',
+    name: 'CircleSenderMismatch',
+    inputs: [
       {
-        "name": "sender",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'sender',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CircleTokenMismatch",
-    "inputs": [
+    type: 'error',
+    name: 'CircleTokenMismatch',
+    inputs: [
       {
-        "name": "burnToken",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'burnToken',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "payableChainToken",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'payableChainToken',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "CircleTransmitterOnly",
-    "inputs": []
+    type: 'error',
+    name: 'CircleTransmitterOnly',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "DuplicateTokenAndAmount",
-    "inputs": []
+    type: 'error',
+    name: 'DuplicateTokenAndAmount',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "EmitterNotRegistered",
-    "inputs": [
+    type: 'error',
+    name: 'EmitterNotRegistered',
+    inputs: [
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "internalType": "uint16"
+        name: 'wormholeChainId',
+        type: 'uint16',
+        internalType: 'uint16',
       },
       {
-        "name": "emitter",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'emitter',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "EnforcedPause",
-    "inputs": []
+    type: 'error',
+    name: 'EnforcedPause',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "ExpectedPause",
-    "inputs": []
+    type: 'error',
+    name: 'ExpectedPause',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "FeaturePaused",
-    "inputs": [
+    type: 'error',
+    name: 'FeaturePaused',
+    inputs: [
       {
-        "name": "features",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'features',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "ForeignChainAlreadyRegistered",
-    "inputs": [
+    type: 'error',
+    name: 'ForeignChainAlreadyRegistered',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "ForeignChainHasNoCircleDomain",
-    "inputs": [
+    type: 'error',
+    name: 'ForeignChainHasNoCircleDomain',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "ForeignChainNotRegistered",
-    "inputs": [
+    type: 'error',
+    name: 'ForeignChainNotRegistered',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "ForeignPayableChainMismatch",
-    "inputs": [
+    type: 'error',
+    name: 'ForeignPayableChainMismatch',
+    inputs: [
       {
-        "name": "payableId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payableId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "expected",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'expected',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "actual",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'actual',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InboundPaymentsDisabled",
-    "inputs": [
+    type: 'error',
+    name: 'InboundPaymentsDisabled',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InboundUpdatesDisabled",
-    "inputs": [
+    type: 'error',
+    name: 'InboundUpdatesDisabled',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "IncorrectNativeValue",
-    "inputs": [
+    type: 'error',
+    name: 'IncorrectNativeValue',
+    inputs: [
       {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'value',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "expected",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'expected',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "IncorrectWormholeFee",
-    "inputs": [
+    type: 'error',
+    name: 'IncorrectWormholeFee',
+    inputs: [
       {
-        "name": "value",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'value',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "expected",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'expected',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InsufficientFinality",
-    "inputs": [
+    type: 'error',
+    name: 'InsufficientFinality',
+    inputs: [
       {
-        "name": "executed",
-        "type": "uint32",
-        "internalType": "uint32"
+        name: 'executed',
+        type: 'uint32',
+        internalType: 'uint32',
       },
       {
-        "name": "minimum",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ]
+        name: 'minimum',
+        type: 'uint32',
+        internalType: 'uint32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InsufficientWithdrawAmount",
-    "inputs": [
+    type: 'error',
+    name: 'InsufficientWithdrawAmount',
+    inputs: [
       {
-        "name": "balance",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'balance',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InvalidAddress",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidAddress',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidCctpConfig",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidCctpConfig',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidCctpMessageLength",
-    "inputs": [
+    type: 'error',
+    name: 'InvalidCctpMessageLength',
+    inputs: [
       {
-        "name": "length",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'length',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InvalidChainId",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidChainId',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidFeatures",
-    "inputs": [
+    type: 'error',
+    name: 'InvalidFeatures',
+    inputs: [
       {
-        "name": "features",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'features',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InvalidFeeBps",
-    "inputs": [
+    type: 'error',
+    name: 'InvalidFeeBps',
+    inputs: [
       {
-        "name": "feeBps",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ]
+        name: 'feeBps',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InvalidFeeCollector",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidFeeCollector',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidFinalityThreshold",
-    "inputs": [
+    type: 'error',
+    name: 'InvalidFinalityThreshold',
+    inputs: [
       {
-        "name": "threshold",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ]
+        name: 'threshold',
+        type: 'uint32',
+        internalType: 'uint32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InvalidForeignChainAddress",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidForeignChainAddress',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidForeignToken",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidForeignToken',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidMaxAllowedTokensAndAmounts",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidMaxAllowedTokensAndAmounts',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidMaxAmountIn",
-    "inputs": [
+    type: 'error',
+    name: 'InvalidMaxAmountIn',
+    inputs: [
       {
-        "name": "maxAmountIn",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'maxAmountIn',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InvalidPayableId",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidPayableId',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidPayablePayloadActionType",
-    "inputs": [
+    type: 'error',
+    name: 'InvalidPayablePayloadActionType',
+    inputs: [
       {
-        "name": "actionType",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
-    ]
+        name: 'actionType',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "InvalidPayload",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidPayload',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidPaymentLimits",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidPaymentLimits',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidTokenAddress",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidTokenAddress',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidWormholeConfig",
-    "inputs": []
+    type: 'error',
+    name: 'InvalidWormholeConfig',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "InvalidWormholeMessage",
-    "inputs": [
+    type: 'error',
+    name: 'InvalidWormholeMessage',
+    inputs: [
       {
-        "name": "reason",
-        "type": "string",
-        "internalType": "string"
-      }
-    ]
+        name: 'reason',
+        type: 'string',
+        internalType: 'string',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "LastDefaultAdmin",
-    "inputs": []
+    type: 'error',
+    name: 'LastDefaultAdmin',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "MatchingTokenAndAmountNotFound",
-    "inputs": []
+    type: 'error',
+    name: 'MatchingTokenAndAmountNotFound',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "MatchingTokenNotFound",
-    "inputs": [
+    type: 'error',
+    name: 'MatchingTokenNotFound',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "foreignToken",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'foreignToken',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "NativeTokenNotBridgeable",
-    "inputs": []
+    type: 'error',
+    name: 'NativeTokenNotBridgeable',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "NativeTransferFailed",
-    "inputs": [
+    type: 'error',
+    name: 'NativeTransferFailed',
+    inputs: [
       {
-        "name": "to",
-        "type": "address",
-        "internalType": "address"
+        name: 'to',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "NoBalanceForWithdrawalToken",
-    "inputs": []
+    type: 'error',
+    name: 'NoBalanceForWithdrawalToken',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "NotContractOwner",
-    "inputs": [
+    type: 'error',
+    name: 'NotContractOwner',
+    inputs: [
       {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'caller',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "NotPendingOwner",
-    "inputs": [
+    type: 'error',
+    name: 'NotPendingOwner',
+    inputs: [
       {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'caller',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "NotYourPayable",
-    "inputs": []
+    type: 'error',
+    name: 'NotYourPayable',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "NothingToRescue",
-    "inputs": [
+    type: 'error',
+    name: 'NothingToRescue',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "OutboundPaymentsDisabled",
-    "inputs": [
+    type: 'error',
+    name: 'OutboundPaymentsDisabled',
+    inputs: [
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "PayableIsAlreadyClosed",
-    "inputs": []
+    type: 'error',
+    name: 'PayableIsAlreadyClosed',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "PayableIsClosed",
-    "inputs": []
+    type: 'error',
+    name: 'PayableIsClosed',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "PayableIsNotClosed",
-    "inputs": []
+    type: 'error',
+    name: 'PayableIsNotClosed',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "PaymentAboveMaximum",
-    "inputs": [
+    type: 'error',
+    name: 'PaymentAboveMaximum',
+    inputs: [
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "maximum",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'maximum',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "PaymentBelowMinimum",
-    "inputs": [
+    type: 'error',
+    name: 'PaymentBelowMinimum',
+    inputs: [
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "minimum",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'minimum',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "PaymentChainMismatch",
-    "inputs": []
+    type: 'error',
+    name: 'PaymentChainMismatch',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "PaymentNonceAlreadyConsumed",
-    "inputs": [
+    type: 'error',
+    name: 'PaymentNonceAlreadyConsumed',
+    inputs: [
       {
-        "name": "payerChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payerChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "payer",
-        "type": "bytes32",
-        "internalType": "bytes32"
+        name: 'payer',
+        type: 'bytes32',
+        internalType: 'bytes32',
       },
       {
-        "name": "nonce",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ]
+        name: 'nonce',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "PublishPayableRestricted",
-    "inputs": [
+    type: 'error',
+    name: 'PublishPayableRestricted',
+    inputs: [
       {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'caller',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "ReentrancyGuardReentrantCall",
-    "inputs": []
+    type: 'error',
+    name: 'ReentrancyGuardReentrantCall',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "RelayerOnly",
-    "inputs": [
+    type: 'error',
+    name: 'RelayerOnly',
+    inputs: [
       {
-        "name": "caller",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'caller',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "StalePayableUpdateNonce",
-    "inputs": [
+    type: 'error',
+    name: 'StalePayableUpdateNonce',
+    inputs: [
       {
-        "name": "nonce",
-        "type": "uint64",
-        "internalType": "uint64"
+        name: 'nonce',
+        type: 'uint64',
+        internalType: 'uint64',
       },
       {
-        "name": "lastNonce",
-        "type": "uint64",
-        "internalType": "uint64"
-      }
-    ]
+        name: 'lastNonce',
+        type: 'uint64',
+        internalType: 'uint64',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "TooManyAllowedTokensAndAmounts",
-    "inputs": [
+    type: 'error',
+    name: 'TooManyAllowedTokensAndAmounts',
+    inputs: [
       {
-        "name": "count",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'count',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "max",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'max',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "TooManyBalanceTokens",
-    "inputs": []
+    type: 'error',
+    name: 'TooManyBalanceTokens',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "TransferTaxExceededBuffer",
-    "inputs": [
+    type: 'error',
+    name: 'TransferTaxExceededBuffer',
+    inputs: [
       {
-        "name": "received",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'received',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "amount",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'amount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "TransferTaxNotAllowed",
-    "inputs": [
+    type: 'error',
+    name: 'TransferTaxNotAllowed',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "UnexpectedAmountReceived",
-    "inputs": [
+    type: 'error',
+    name: 'UnexpectedAmountReceived',
+    inputs: [
       {
-        "name": "received",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'received',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "expected",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
+        name: 'expected',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "UnknownCircleDomain",
-    "inputs": [
+    type: 'error',
+    name: 'UnknownCircleDomain',
+    inputs: [
       {
-        "name": "circleDomain",
-        "type": "uint32",
-        "internalType": "uint32"
-      }
-    ]
+        name: 'circleDomain',
+        type: 'uint32',
+        internalType: 'uint32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "UnknownWormholeChain",
-    "inputs": [
+    type: 'error',
+    name: 'UnknownWormholeChain',
+    inputs: [
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "internalType": "uint16"
-      }
-    ]
+        name: 'wormholeChainId',
+        type: 'uint16',
+        internalType: 'uint16',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "UnsupportedToken",
-    "inputs": [
+    type: 'error',
+    name: 'UnsupportedToken',
+    inputs: [
       {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "WormholeChainIdTaken",
-    "inputs": [
+    type: 'error',
+    name: 'WormholeChainIdTaken',
+    inputs: [
       {
-        "name": "wormholeChainId",
-        "type": "uint16",
-        "internalType": "uint16"
+        name: 'wormholeChainId',
+        type: 'uint16',
+        internalType: 'uint16',
       },
       {
-        "name": "cbChainId",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'cbChainId',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "WormholeMessageAlreadyConsumed",
-    "inputs": [
+    type: 'error',
+    name: 'WormholeMessageAlreadyConsumed',
+    inputs: [
       {
-        "name": "hash",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
+        name: 'hash',
+        type: 'bytes32',
+        internalType: 'bytes32',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "WormholeNotEnabled",
-    "inputs": []
+    type: 'error',
+    name: 'WormholeNotEnabled',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "ZeroAmountSpecified",
-    "inputs": []
+    type: 'error',
+    name: 'ZeroAmountSpecified',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "DiamondCutFacetHasNoCode",
-    "inputs": [
+    type: 'error',
+    name: 'DiamondCutFacetHasNoCode',
+    inputs: [
       {
-        "name": "facet",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'facet',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "DiamondCutFunctionAlreadyExists",
-    "inputs": [
+    type: 'error',
+    name: 'DiamondCutFunctionAlreadyExists',
+    inputs: [
       {
-        "name": "selector",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
-    ]
+        name: 'selector',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "DiamondCutFunctionDoesNotExist",
-    "inputs": [
+    type: 'error',
+    name: 'DiamondCutFunctionDoesNotExist',
+    inputs: [
       {
-        "name": "selector",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
-    ]
+        name: 'selector',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "DiamondCutImmutableFunction",
-    "inputs": [
+    type: 'error',
+    name: 'DiamondCutImmutableFunction',
+    inputs: [
       {
-        "name": "selector",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
-    ]
+        name: 'selector',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "DiamondCutInitAddressHasNoCode",
-    "inputs": [
+    type: 'error',
+    name: 'DiamondCutInitAddressHasNoCode',
+    inputs: [
       {
-        "name": "init",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
+        name: 'init',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "DiamondCutInitFailed",
-    "inputs": [
+    type: 'error',
+    name: 'DiamondCutInitFailed',
+    inputs: [
       {
-        "name": "init",
-        "type": "address",
-        "internalType": "address"
+        name: 'init',
+        type: 'address',
+        internalType: 'address',
       },
       {
-        "name": "data",
-        "type": "bytes",
-        "internalType": "bytes"
-      }
-    ]
+        name: 'data',
+        type: 'bytes',
+        internalType: 'bytes',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "DiamondCutInvalidAction",
-    "inputs": [
+    type: 'error',
+    name: 'DiamondCutInvalidAction',
+    inputs: [
       {
-        "name": "action",
-        "type": "uint8",
-        "internalType": "uint8"
-      }
-    ]
+        name: 'action',
+        type: 'uint8',
+        internalType: 'uint8',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "DiamondCutInvalidFacetAddress",
-    "inputs": []
+    type: 'error',
+    name: 'DiamondCutInvalidFacetAddress',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "DiamondCutInvalidInitCalldata",
-    "inputs": []
+    type: 'error',
+    name: 'DiamondCutInvalidInitCalldata',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "DiamondCutNoSelectors",
-    "inputs": []
+    type: 'error',
+    name: 'DiamondCutNoSelectors',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "FunctionNotFound",
-    "inputs": [
+    type: 'error',
+    name: 'FunctionNotFound',
+    inputs: [
       {
-        "name": "selector",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
-    ]
+        name: 'selector',
+        type: 'bytes4',
+        internalType: 'bytes4',
+      },
+    ],
   },
   {
-    "type": "error",
-    "name": "ZeroOwner",
-    "inputs": []
+    type: 'error',
+    name: 'ZeroOwner',
+    inputs: [],
   },
   {
-    "type": "error",
-    "name": "FacetCountMismatch",
-    "inputs": [
+    type: 'error',
+    name: 'FacetCountMismatch',
+    inputs: [
       {
-        "name": "expected",
-        "type": "uint256",
-        "internalType": "uint256"
+        name: 'expected',
+        type: 'uint256',
+        internalType: 'uint256',
       },
       {
-        "name": "actual",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  }
+        name: 'actual',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+  },
 ] as const;

@@ -11,7 +11,6 @@
 import { Client } from 'pg';
 import { CHAINBILLS_WORKER_LOCK } from '../src/worker/advisory-lock';
 
-// eslint-disable-next-line no-restricted-syntax
 const TEST_DB_URL = process.env['TEST_DATABASE_URL'];
 
 const describeIf = TEST_DB_URL ? describe : describe.skip;

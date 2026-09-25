@@ -311,7 +311,7 @@ export const useEvmStore = defineStore('evm', () => {
       if (confirmStep && confirmStep !== steps?.sign) confirmStep.progress({ txHash: hash, explorerUrl });
       const receipt = await waitForTransactionReceipt(config, { hash });
 
-      confirmStep?.progress({ description: 'Finalizing…' });
+      confirmStep?.progress({ description: 'Finalizing...' });
       await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait more for confirmations
       analytics.recordEvent('completed_evm_transaction');
       confirmStep?.done({ txHash: hash, explorerUrl });

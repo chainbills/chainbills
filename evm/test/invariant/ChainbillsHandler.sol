@@ -536,22 +536,7 @@ contract ChainbillsHandler is Test {
     uint256 index = deliveredPayments[_bound(indexSeed, 0, deliveredPayments.length - 1)];
     PaymentMsg storage m = payments[index];
     uint8 d = 1 - m.src;
-    bytes memory message = deliveredPaymentMessage[index];
-    bytes memory attestation;
-    uint256 variant = variantSeed % 3;
-    if (variant == 0) {
-      attestation = abi.encodePacked(keccak256(message));
-    } else if (variant == 1) {
-      (message, attestation) =
-        chains[m.src].transmitter.attest(chains[m.src].transmitter.sent(m.cctpIndex), CCTP_FINALITY_FINALIZED, 0, true);
-    } else {
-      // A different physical message (fresh header nonce) carrying the same payment payload.
-      bytes32 freshNonce = keccak256(abi.encode('replay', variantSeed));
-      assembly {
-        mstore(add(add(message, 32), 12), freshNonce)
-      }
-      attestation = abi.encodePacked(keccak256(message));
-    }
+    (bytes memory message, bytes memory attestation) = _replayMessage(index, m, variantSeed);
 
     uint256 balanceBefore = chains[d].usdc.balanceOf(address(chains[d].cb));
     (bool ok, bytes memory ret) =
@@ -559,6 +544,33 @@ contract ChainbillsHandler is Test {
     _expect(false, ok, 'replayPayment', ret);
     if (chains[d].usdc.balanceOf(address(chains[d].cb)) != balanceBefore) {
       _violate('replayPayment: balance changed', '');
+    }
+  }
+
+  /// Builds one of three replay variants of an already-relayed payment: the delivered message re-attested,
+  /// a fresh finalized attestation of the same burn, or the same payload under a fresh header nonce.
+  function _replayMessage(uint256 index, PaymentMsg storage m, uint256 variantSeed)
+    private
+    view
+    returns (bytes memory message, bytes memory attestation)
+  {
+    message = deliveredPaymentMessage[index];
+    uint256 variant = variantSeed % 3;
+    if (variant == 0) {
+      attestation = abi.encodePacked(keccak256(message));
+    } else if (variant == 1) {
+      (message, attestation) =
+        chains[m.src].transmitter.attest(chains[m.src].transmitter.sent(m.cctpIndex), CCTP_FINALITY_FINALIZED, 0, true);
+    } else {
+      _rewriteHeaderNonce(message, keccak256(abi.encode('replay', variantSeed)));
+      attestation = abi.encodePacked(keccak256(message));
+    }
+  }
+
+  /// Overwrites the 32-byte header nonce at offset 12 of a CCTP message in place.
+  function _rewriteHeaderNonce(bytes memory message, bytes32 freshNonce) private pure {
+    assembly {
+      mstore(add(add(message, 32), 12), freshNonce)
     }
   }
 

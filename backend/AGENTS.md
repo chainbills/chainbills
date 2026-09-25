@@ -371,6 +371,27 @@ prisma/
 - **Unsubscribe signatures bind userId and type.** `sig = base64url(HMAC-SHA256(UNSUBSCRIBE_SECRET,
   userId + ':' + type))`. Verified with `timingSafeEqual`. Invalid signatures return 400
   without leaking whether the userId or type exists.
+- **EVM addresses in API output are checksummed.** All EVM address fields in public API responses
+  go through viem `getAddress`. Solana addresses are returned as stored (base58, case-preserved).
+  DB storage is always lowercase hex for EVM.
+- **API amount shape is `{ token, symbol, decimals, amount, formatted }`.** `amount` is the raw
+  integer string; `formatted` is produced by `formatAmount`. Payments expose `requestedAmount`
+  and `amount`. Withdrawals expose `amount`, `fee`, and `netAmount` (amount minus fee, BigInt
+  subtraction, no floating point).
+- **Stats are cached in-process for 30 s.** `PublicApiService` holds a `{ data, computedAt }`
+  object; a call within 30 s of `computedAt` returns the cached slice without hitting Postgres.
+  The next call after 30 s runs fresh `groupBy` queries.
+- **`relayStatus` on `GET /payments/user/:id` is `null` for same-chain payments.** For
+  cross-chain payments, `findByPaymentId` in `job.store.ts` queries `RelayJob.eventData` by
+  `userPaymentId`; the result is exposed as `{ status, attempts, lastError }` or `null` when no
+  job exists.
+- **Description writes strip HTML and enforce 3–3000 chars on the stripped text.** `stripHtml`
+  removes tag brackets via `/<[^>]*>/g`; text content between tags is preserved. The stripped,
+  trimmed string is validated before the database upsert.
+- **On-chain host verification runs only when the payable is not in the database.** For EVM wallets
+  the diamond's `isPayableHost(payableId, address)` is called on every enabled EVM chain with a
+  diamond address; for Solana the payable PDA is fetched and the `host` field compared. Chains
+  with `diamondAddress: null` are silently skipped.
 
 ## Commands
 

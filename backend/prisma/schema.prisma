@@ -147,6 +147,7 @@ model UserPayment {
 
   @@index([payerWalletKey, timestamp])
   @@index([payableId])
+  @@index([chainId, timestamp])
   @@map("user_payments")
 }
 
@@ -179,6 +180,7 @@ model PayablePayment {
 
   @@index([payableId, timestamp])
   @@index([payerPaymentId])
+  @@index([chainId, timestamp])
   @@map("payable_payments")
 }
 
@@ -242,6 +244,7 @@ model Activity {
 
   @@unique([chainId, chainCount])
   @@index([entity])
+  @@index([chainId, timestamp])
   @@map("activities")
 }
 

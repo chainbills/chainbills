@@ -22,6 +22,16 @@ diamond ABI (`chainbillsAbi`). Registry updated to `arcmainnet`, `anvil`,
 RPC vars. Second Prisma migration adds `requestedAmount`, `fee`,
 `relayScanBlock`, and aligns `RelayJobType` and `RelayJob`. All checks pass.
 
+**Phase 3a (Solana indexer and relay) complete.** Solana activity indexer
+(Stats PDA cursor, ActivityRecord dispatch into the same tables as EVM).
+Solana relay trigger detector (signature scanning for Wormhole and CCTP
+messages, gated by `relayEnabled`). Solana submitter (stubs pointing to
+the Wormhole SDK integration needed for postVAA). Relay processor updated
+to route `SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE` and
+`SOLANA_PAYMENT_VIA_CCTP_WORMHOLE` jobs to the Solana submitter. Solana
+gas-balance check added to the worker housekeeping loop. All checks pass
+(433+ unit tests, coverage thresholds met).
+
 **Phase 2a (EVM indexer and relay) complete.** Worker module with advisory
 lock, loop runner, gas-balance and heartbeat loops. EVM activity indexer
 (activity-driven, one transaction per activity, stop-on-failure). Relay
@@ -96,6 +106,19 @@ src/
       payer-normalise.ts      normalisePayerBytes32(): bytes32 -> EVM hex address (last 20 bytes) or
                              Solana base58 (all 32 bytes) based on the payer's chain
       evm-indexer.module.ts   Provides EvmIndexer; imported by WorkerModule
+    solana/
+      solana.client.ts        makeConnection() / makeCoder() / makeProgram() / getPDA() / decodeAccount():
+                             wraps @coral-xyz/anchor BorshAccountsCoder and @solana/web3.js Connection;
+                             takes RPC URL as an argument, never a global
+      solana.accounts.ts      Pure PDA derivation helpers mirroring the Rust seed constants:
+                             statsPDA, activityRecordPDA, payablePaymentPDA, and all others needed
+                             by the indexer and submitter
+      solana.indexer.ts       Activity-driven Solana indexer; reads Stats PDA cursor each tick;
+                             dispatches ActivityRecord variants to upserts of Payable, UserPayment,
+                             PayablePayment, Withdrawal, and Activity rows (same tables as EVM);
+                             calls detectSolanaRelayTriggers only when chain.relayEnabled is true;
+                             Solana hosts/payers use walletKey('solana', base58)
+      solana-indexer.module.ts  Provides SolanaIndexer; imported by WorkerModule
   relay/
     job.store.ts              RelayJob CRUD: createJob (skipDuplicates), claimJob (FOR UPDATE SKIP LOCKED),
                              patchArtefacts, markDone, markFailed, retryLater (backoff = 30s × 2^attempts
@@ -104,11 +127,18 @@ src/
                              cursor.relayScanBlock+1; creates PAYABLE_UPDATE_VIA_WORMHOLE,
                              PAYABLE_UPDATE_VIA_CCTP, and PAYMENT_VIA_CCTP jobs; advances relayScanBlock
                              after each chunk; dedupes via unique key (type,txHash,destChainId)
+    solana-trigger.detector.ts  detectSolanaRelayTriggers(): compares Stats PDA counters to
+                             cursor.wormholeRelayed/cctpPaymentsRelayed/cctpPayableUpdatesRelayed;
+                             creates SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE and SOLANA_PAYMENT_VIA_CCTP_WORMHOLE
+                             jobs; gated on chain.relayEnabled (currently false for solanadevnet);
+                             uses circleDomain === undefined check (not !x) so domain=0 is valid
     relay.processor.ts        RelayProcessor: claims one job, resolves artefacts (VAA/CCTP attestation),
                              submits to dest diamond, classifies result; idempotent errors -> DONE;
-                             RelayerOnly -> FAILED; InsufficientFinality + pending -> retry; Solana
-                             job types left PENDING (phase 3a); processOne() returns bool
-    relay.module.ts           Provides RelayProcessor; imported by WorkerModule
+                             RelayerOnly -> FAILED; InsufficientFinality + pending -> retry;
+                             SOLANA_* job types routed to SolanaSubmitter;
+                             SolanaSubmitterNotImplemented is a retryable error (Wormhole SDK pending);
+                             processOne() returns bool
+    relay.module.ts           Provides RelayProcessor; imports AppConfigModule for keypair access
     resolvers/
       wormhole.resolver.ts    fetchVaa(): fetches signed VAA from WormholeScan by (chainId, emitter, seq);
                              returns null when not yet available; mainnet/sandbox URLs by network
@@ -118,14 +148,18 @@ src/
       evm.submitter.ts        submitReceivePayableUpdate{ViaWormhole,ViaCctp} and
                              submitReceiveForeignPaymentViaCctp: simulate then writeContract on dest diamond;
                              decodes custom ABI errors; strips abi from viem errors before logging
+      solana.submitter.ts     submitPaymentToSolana() and submitPayableUpdateToSolana(): Solana relay
+                             submission stubs; return SOLANA_NOT_IMPLEMENTED until @wormhole-foundation/sdk-
+                             solana-core is integrated for the postVAA step; validate inputs eagerly
   worker/
     advisory-lock.ts          acquireAdvisoryLock(): pg_try_advisory_lock on a dedicated connection;
                              retries every 30s; releaseAdvisoryLock(): pg_advisory_unlock + end connection
     loop-runner.ts            runLoop(): starts a named async loop; catches iteration errors without crashing;
                              returns a stop() function that waits for the current iteration to finish
     worker.module.ts          WorkerModule: acquires advisory lock on bootstrap; checks RELAYER_ROLE on each
-                             enabled EVM chain; starts per-chain indexer loops, relay processor loop,
-                             gas-balance check (every 5 min), and heartbeat (every 15 min); stops gracefully
+                             enabled EVM chain; starts per-chain EVM and Solana indexer loops, relay processor
+                             loop, gas-balance check (every 5 min, covers both EVM wei and Solana lamports),
+                             and heartbeat (every 15 min); stops gracefully
   api/
     api.module.ts             Imports AuthModule; placeholder for public API controllers (phases 3b/4)
   auth/
@@ -202,6 +236,26 @@ prisma/
   are accepted.
 - **SIWS:** custom parser in `siws-parser.ts` + tweetnacl ed25519 verify. Signature
   accepted as base58 (Solana wallet-standard) or base64.
+- **Solana indexing uses PDAs, not contract calls.** The indexer reads the Stats
+  PDA for the activity count, then fetches each ActivityRecord PDA by global index.
+  Account data is decoded with `BorshAccountsCoder` from the Chainbills IDL.
+  The activity-id is `"<cbChainId>-<globalIndex>"` (not a public key) because
+  the Solana program does not expose a native activity-id field.
+- **Solana relay is disabled by default (`relayEnabled: false`).** The Solana
+  program uses CCTP V1 + Wormhole for payments while the EVM diamond uses CCTP V2.
+  The relay code is fully ported and tested but gated by `relayEnabled` in the
+  chain registry. The relay trigger detector is only called when `relayEnabled`
+  is true. When enabled, the Solana submitter returns `SOLANA_NOT_IMPLEMENTED`
+  (a retryable error) until @wormhole-foundation/sdk-solana-core is integrated
+  for the postVAA step.
+- **`circleDomain === undefined` not `!circleDomain`.** Domain 0 is a valid
+  Circle CCTP domain (Ethereum Sepolia). All circleDomain presence checks use
+  `=== undefined` guards, never falsy `!x` checks.
+- **Solana payer address in `PayablePayment`:** `payer` is stored as `[u8; 32]`
+  on the Solana program. For cross-chain payments the payer's chain determines
+  encoding: Solana payers use base58 (all 32 bytes); EVM payers use the last
+  20 bytes as lowercase hex. `normalisePayerBytes32` from `payer-normalise.ts`
+  handles both cases.
 - **Tooling is Node.js 24 + pnpm + Vitest.** Never use npm/yarn or commit a
   `package-lock.json`. Dependency install scripts run only when approved in
   `pnpm-workspace.yaml#allowBuilds`. Vitest uses SWC (`unplugin-swc`)

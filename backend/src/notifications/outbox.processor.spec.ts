@@ -17,6 +17,7 @@ function makeConfig() {
       appUrl: 'https://chainbills.xyz',
       publicApiUrl: 'https://api.chainbills.xyz',
       unsubscribeSecret: 'unsubscribe-secret-at-least-32-chars-xxx',
+      emailsEnabled: true,
     },
   };
 }

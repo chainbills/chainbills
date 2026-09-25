@@ -120,8 +120,23 @@ export class OutboxProcessor {
   private async claimPending(): Promise<Outbox[]> {
     const now = new Date();
     return this.prisma.$transaction(async (tx) => {
+      // $queryRaw returns raw Postgres columns as-is (snake_case) — alias each
+      // to the Prisma model's camelCase field name so the returned rows match
+      // the Outbox type the rest of processRow reads from.
       const rows = await tx.$queryRaw<Outbox[]>`
-        SELECT * FROM "outbox"
+        SELECT id,
+               dedupe_key         AS "dedupeKey",
+               type,
+               wallet_key         AS "walletKey",
+               payload,
+               status,
+               attempts,
+               next_attempt_at    AS "nextAttemptAt",
+               last_error         AS "lastError",
+               provider_message_id AS "providerMessageId",
+               created_at         AS "createdAt",
+               sent_at            AS "sentAt"
+        FROM "outbox"
         WHERE status = 'PENDING'::"outbox_status"
           AND next_attempt_at <= ${now}
         ORDER BY next_attempt_at ASC

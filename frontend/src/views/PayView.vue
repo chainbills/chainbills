@@ -48,7 +48,7 @@ import {
 import { useAnalyticsStore, useAuthStore, useEvmStore, usePayableStore, usePaymentStore } from '@/stores';
 import type { PayableAvailability } from '@/stores/payable';
 import NotFoundView from '@/views/NotFoundView.vue';
-import { useAppKitNetwork } from '@reown/appkit/vue';
+import { useSwitchChain } from '@wagmi/vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
 import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
@@ -66,7 +66,7 @@ const paymentStore = usePaymentStore();
 const route = useRoute();
 const router = useRouter();
 const { setRetry } = useTxRetry();
-const appkitNetwork = useAppKitNetwork();
+const { switchChain } = useSwitchChain();
 
 const payable = ref<Payable | null>(null);
 const isLoading = ref(true);
@@ -232,7 +232,7 @@ const switchToChain = (chainName: ChainName) => {
     chainName as 'megaeth' | 'arctestnet' | 'sepolia'
   ];
   if (!viemChain) return;
-  appkitNetwork.value.switchNetwork(viemChain);
+  switchChain({ chainId: viemChain.id });
   analytics.recordEvent('clicked_switch_chain', { to: chainName, from: 'pay_page' });
 };
 
@@ -319,6 +319,15 @@ watch([selectedConfig, () => auth.currentUser], async () => {
   await loadCrossChainFees();
 });
 
+watch(needsApproval, (required) => {
+  if (required && selectedConfig.value && userChain.value) {
+    analytics.recordEvent('approval_required', {
+      token: selectedConfig.value.name,
+      chain: userChain.value.name,
+    });
+  }
+});
+
 watch(
   () => auth.currentUser,
   () => {
@@ -366,7 +375,7 @@ onMounted(async () => {
         </div>
 
         <div class="flex flex-wrap items-center gap-2 mb-4">
-          <ChainBadge :chain="payable.chain" network />
+          <ChainBadge :chain="payable.chain" />
           <StatusPill :tone="payable.isClosed ? 'danger' : 'success'" :label="payable.isClosed ? 'Closed' : 'Open'" />
         </div>
 
@@ -492,6 +501,7 @@ onMounted(async () => {
                 :dest-chain="payable.chain"
                 :cctp-fee="cctpFeeAsTokenAndAmount"
                 :wormhole-fee="wormholeFeeAsTokenAndAmount"
+                tracked
               />
             </template>
             <template v-else>

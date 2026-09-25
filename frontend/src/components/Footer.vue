@@ -9,20 +9,27 @@
  * inactive this round (see `frontend/docs/redesign/README.md` §1) and isn't
  * a chain a payer or host can actually use yet.
  */
+import IconBlog from '@/icons/IconBlog.vue';
+import IconDashboard from '@/icons/IconDashboard.vue';
 import IconDiscord from '@/icons/IconDiscord.vue';
+import IconEmail from '@/icons/IconEmail.vue';
 import IconGithub from '@/icons/IconGithub.vue';
+import IconGlobe from '@/icons/IconGlobe.vue';
+import IconReplay from '@/icons/IconReplay.vue';
+import IconWallet from '@/icons/IconWallet.vue';
 import IconX from '@/icons/IconX.vue';
 import { useAnalyticsStore, useThemeStore } from '@/stores';
+import type { Component } from 'vue';
 
 const analytics = useAnalyticsStore();
 const theme = useThemeStore();
 const year = new Date().getFullYear();
 
-const productLinks = [
-  { to: '/start', label: 'Create a payable' },
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/activity', label: 'Activity' },
-  { to: '/scan', label: 'Scan' },
+const productLinks: { to: string; label: string; icon: Component }[] = [
+  { to: '/start', label: 'Create a payable', icon: IconWallet },
+  { to: '/dashboard', label: 'Dashboard', icon: IconDashboard },
+  { to: '/activity', label: 'My Activity', icon: IconReplay },
+  { to: '/scan', label: 'Chainbills Scan', icon: IconGlobe },
 ];
 
 </script>
@@ -32,8 +39,8 @@ const productLinks = [
     <div class="max-w-7xl mx-auto glass-surface glass-frost rounded-3xl p-6 sm:p-10 relative overflow-hidden">
       <span class="glass-sheen" aria-hidden="true"></span>
 
-      <div class="relative flex flex-col gap-10 sm:flex-row sm:justify-between">
-        <div class="max-w-xs">
+      <div class="relative flex flex-col gap-10 lg:gap-8 xl:gap-10 lg:flex-row lg:justify-between">
+        <div class="max-w-sm">
           <router-link to="/" class="flex items-center gap-2 mb-4">
             <img :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`" class="h-8 w-8" alt="" />
             <span class="font-display text-lg text-fg">Chainbills</span>
@@ -44,12 +51,15 @@ const productLinks = [
           </p>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-8">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-8 lg:gap-0 xl:gap-8">
           <div>
             <h3 class="text-xs uppercase tracking-[0.12em] text-muted mb-3">Product</h3>
             <ul class="space-y-2 text-sm">
               <li v-for="link in productLinks" :key="link.to">
-                <router-link :to="link.to" class="text-fg hover:text-accent">{{ link.label }}</router-link>
+                <router-link :to="link.to" class="flex items-center gap-2 text-fg hover:text-accent">
+                  <component :is="link.icon" class="w-4 h-4 shrink-0" />
+                  {{ link.label }}
+                </router-link>
               </li>
             </ul>
           </div>
@@ -62,20 +72,22 @@ const productLinks = [
                   href="https://blog.chainbills.xyz"
                   rel="noopener noreferrer"
                   target="_blank"
-                  class="text-fg hover:text-accent"
+                  class="flex items-center gap-2 text-fg hover:text-accent"
                   @click="analytics.recordNavigation('/blog', 'blog')"
-                  >Blog</a
                 >
+                  <IconBlog class="w-4 h-4 shrink-0" />Blog
+                </a>
               </li>
               <li>
                 <a
                   href="https://github.com/chainbills/chainbills"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-fg hover:text-accent"
+                  class="flex items-center gap-2 text-fg hover:text-accent"
                   @click="analytics.recordEvent('clicked_github_link')"
-                  >GitHub</a
                 >
+                  <IconGithub class="w-4 h-4 shrink-0" />GitHub
+                </a>
               </li>
             </ul>
           </div>
@@ -105,9 +117,9 @@ const productLinks = [
               <li>
                 <a
                   href="mailto:contact@chainbills.xyz"
-                  class="text-fg hover:text-accent"
+                  class="flex items-center gap-2 text-fg hover:text-accent"
                   @click="analytics.recordEvent('clicked_email_link')"
-                  >contact@chainbills.xyz</a
+                  ><IconEmail class="w-4 h-4 shrink-0" /> contact@chainbills.xyz</a
                 >
               </li>
             </ul>

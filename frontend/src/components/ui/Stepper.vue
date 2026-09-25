@@ -98,7 +98,10 @@ onMounted(syncTimers);
 watch(() => props.steps.map((s) => `${s.status}:${s.hints?.join('|') ?? ''}`).join(','), syncTimers);
 onBeforeUnmount(() => Object.values(timers).forEach(clearInterval));
 
-const currentHint = (step: StepperStep, index: number) => step.hints?.[hintIndex[index] ?? 0];
+const currentHint = (step: StepperStep, index: number) => {
+  if (step.status !== 'active' && step.status !== 'waiting') return undefined;
+  return step.hints?.[hintIndex[index] ?? 0];
+};
 
 const activeIndex = () => {
   const found = props.steps.findIndex((s) => s.status === 'active' || s.status === 'waiting');

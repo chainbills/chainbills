@@ -1,4 +1,3 @@
-import { useAppKitTheme } from '@reown/appkit/vue';
 import { defineStore } from 'pinia';
 import { onMounted, ref, watch } from 'vue';
 import { useAnalyticsStore } from './analytics';
@@ -32,7 +31,6 @@ export const useThemeStore = defineStore('theme', () => {
   const icon = ref<ThemeMode>('Dark Theme');
   const isDisplayDark = ref(false);
   const mode = ref<ThemeMode>('System Mode');
-  const { setThemeMode: setWalletConnectTheme } = useAppKitTheme();
 
   const css = () => {
     if (mode.value == 'Dark Theme') {
@@ -67,11 +65,6 @@ export const useThemeStore = defineStore('theme', () => {
       if (mode.value == 'System Mode') withViewTransition(css);
     });
 
-    setWalletConnectTheme(isDisplayDark.value ? 'dark' : 'light');
-    watch(
-      () => isDisplayDark.value,
-      (yes) => setWalletConnectTheme(yes ? 'dark' : 'light')
-    );
     watch(
       () => mode.value,
       (value) => {

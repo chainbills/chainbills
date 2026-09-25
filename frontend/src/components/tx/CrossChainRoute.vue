@@ -22,8 +22,12 @@
  */
 import { ChainBadge, TokenAmount } from '@/components/ui';
 import { TokenAndAmount, type Chain } from '@/schemas';
+import { useAnalyticsStore } from '@/stores';
+import { onMounted } from 'vue';
 
-withDefaults(
+const analytics = useAnalyticsStore();
+
+const props = withDefaults(
   defineProps<{
     /** The chain the payer pays from. */
     sourceChain: Chain;
@@ -35,9 +39,20 @@ withDefaults(
     wormholeFee?: TokenAndAmount;
     /** Plain-language arrival estimate shown next to the bridge name. */
     estimatedTime?: string;
+    /** When true, fires a cross_chain_route_shown analytics event on mount. Set on the pay and receipt pages; omit on the landing page demo. */
+    tracked?: boolean;
   }>(),
-  { estimatedTime: 'usually 1–3 min' }
+  { estimatedTime: 'usually 1-3 min', tracked: false }
 );
+
+onMounted(() => {
+  if (props.tracked) {
+    analytics.recordEvent('cross_chain_route_shown', {
+      from_chain: props.sourceChain.name,
+      to_chain: props.destChain.name,
+    });
+  }
+});
 </script>
 
 <template>

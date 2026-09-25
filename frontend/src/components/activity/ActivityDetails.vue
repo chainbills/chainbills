@@ -47,6 +47,4 @@ const settingsSummary = computed(() => {
 
 <template>
   <TokenAmount v-if="activity.amount" :amount="activity.amount" :chain="activity.chain" size="sm" />
-  <span v-else-if="activity.type === ActivityType.InitializedUser" class="text-sm text-muted">New wallet</span>
-  <span v-else class="text-sm text-muted">{{ settingsSummary }}</span>
 </template>

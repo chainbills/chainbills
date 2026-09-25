@@ -11,6 +11,7 @@
  */
 import IconMoon from '@/icons/IconMoon.vue';
 import IconSun from '@/icons/IconSun.vue';
+import IconSystem from '@/icons/IconSystem.vue';
 import { themes, useSidebarStore, useThemeStore, type ThemeMode } from '@/stores';
 import Menu from 'primevue/menu';
 import { ref } from 'vue';
@@ -20,7 +21,7 @@ const { full = false } = defineProps<{ full?: boolean }>();
 const icons = () => ({
   'Dark Theme': IconMoon,
   'Light Theme': IconSun,
-  'System Mode': theme.isSystemDark() ? IconMoon : IconSun,
+  'System Mode': IconSystem,
 });
 const items = ref(
   themes.map((mode) => ({
@@ -54,7 +55,10 @@ const theme = useThemeStore();
   </button>
   <Menu ref="menu" id="theme-menu" :model="items" :popup="true">
     <template #item="{ item, props }">
-      <button v-bind="props.action" class="flex items-center gap-3 w-full px-2 py-1.5 text-sm text-fg">
+      <button
+        v-bind="props.action"
+        class="flex items-center gap-3 w-full rounded-xl px-3 py-2 text-sm text-fg/75 hover:text-fg hover:bg-fg/10 transition-colors text-left"
+      >
         <component :is="icons()[item.label as ThemeMode]" class="w-4 h-4" />
         {{ item.label }}
       </button>

@@ -131,8 +131,8 @@ export const useActivityStore = defineStore('activity', () => {
 
     await Promise.all(
       Array.from(groups.values()).map(async (group) => {
-        const chain = group[0].chain;
-        const chainName = chain.name;
+        const chainName = group[0].chain.name;
+        const chain = chainNamesToChains[chainName];
         const type = group[0].type;
 
         if (type === ActivityType.InitializedUser) {

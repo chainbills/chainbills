@@ -2,37 +2,17 @@
 /**
  * src/components/ui/StatTile.vue — a single labelled statistic, used on
  * dashboards, the scan explorer and payable pages.
- *
- * Renders the "stat tile" recipe from design-language.md §7.4: a muted
- * uppercase label, a large tabular-numeral value in the display font, an
- * optional hint line, an optional signed delta badge, and a decorative
- * corner glow. While `loading` is true, the value and hint are replaced by
- * `Skeleton` blocks so the layout doesn't shift once real data arrives.
- *
- * Usage:
- * ```vue
- * <StatTile label="Total received" :value="'128,430 USDC'" hint="across 3 chains" />
- * <StatTile label="Payables" :value="12" :delta="{ value: '+2', tone: 'success' }" />
- * <StatTile label="Total received" loading />
- * ```
  */
 import Skeleton from './Skeleton.vue';
+import { ref, watch } from 'vue';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
-    /** The stat's name, e.g. "Total received". Rendered muted and uppercase. */
     label: string;
-    /** The headline value. Accepts a pre-formatted string or number so callers
-     *  control exact formatting (token symbols, decimals, bigint conversions)
-     *  before passing it in — this component only lays it out. */
     value?: string | number;
-    /** A short supporting line under the value, e.g. "across 3 chains". */
     hint?: string;
-    /** An optional signed change indicator, e.g. `{ value: '+12%', tone: 'success' }`. */
     delta?: { value: string; tone?: 'success' | 'warning' | 'danger' | 'neutral' };
-    /** When true, shows skeleton placeholders instead of `value`/`hint`. */
     loading?: boolean;
-    /** Renders `value` in the accent colour instead of the default foreground. */
     accent?: boolean;
   }>(),
   { loading: false, accent: false }
@@ -44,15 +24,49 @@ const deltaClasses: Record<string, string> = {
   danger: 'text-danger bg-danger/10',
   neutral: 'text-muted bg-fg/5',
 };
+
+/** Animated display value — counts from previous to new number. */
+const displayValue = ref(props.value);
+let animationFrame: number | undefined;
+
+watch(
+  () => props.value,
+  (next, prev) => {
+    if (animationFrame) cancelAnimationFrame(animationFrame);
+
+    const nextNum = typeof next === 'number' ? next : parseInt(String(next ?? '').replace(/[^0-9]/g, ''), 10);
+    const prevNum = typeof prev === 'number' ? prev : parseInt(String(prev ?? '').replace(/[^0-9]/g, ''), 10);
+
+    if (isNaN(nextNum) || isNaN(prevNum) || nextNum === prevNum) {
+      displayValue.value = next;
+      return;
+    }
+
+    const duration = 600;
+    const start = performance.now();
+    const diff = nextNum - prevNum;
+
+    const step = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(prevNum + diff * eased);
+      displayValue.value = typeof next === 'string' ? current.toLocaleString() : current;
+      if (progress < 1) animationFrame = requestAnimationFrame(step);
+      else displayValue.value = next;
+    };
+
+    animationFrame = requestAnimationFrame(step);
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
   <div class="glass-surface glass-frost rounded-2xl p-5 relative overflow-hidden">
     <span class="glass-sheen" aria-hidden="true"></span>
-    <!-- Decorative corner orb, purely visual. -->
     <div class="absolute -top-14 -right-14 w-40 h-40 rounded-full bg-accent/10 blur-2xl pointer-events-none"></div>
 
-    <div class="relative">
+    <div class="relative flex flex-col h-full">
       <p class="text-xs uppercase tracking-[0.12em] text-muted mb-2">{{ label }}</p>
 
       <template v-if="loading">
@@ -62,16 +76,17 @@ const deltaClasses: Record<string, string> = {
       <template v-else>
         <div class="flex items-baseline gap-2 flex-wrap">
           <p class="font-display text-display-md tabular-nums" :class="accent ? 'text-accent' : 'text-fg'">
-            {{ value }}
+            {{ displayValue }}
           </p>
           <span
             v-if="delta"
-            :class="['text-xs font-medium rounded-full px-2 py-0.5', deltaClasses[delta.tone ?? 'neutral']]"
+            :class="['text-xs font-medium rounded-full px-2 py-0.5 shrink-0', deltaClasses[delta.tone ?? 'neutral']]"
           >
             {{ delta.value }}
           </span>
         </div>
-        <p v-if="hint" class="mt-1 text-xs text-muted">{{ hint }}</p>
+        <!-- hint is inline after value, not a separate line, to prevent tile height variation -->
+        <p v-if="hint" class="mt-1 text-xs text-muted whitespace-nowrap overflow-hidden text-ellipsis">{{ hint }}</p>
       </template>
     </div>
   </div>

@@ -44,7 +44,7 @@ defineSlots<{
         <slot name="description" />
       </p>
     </div>
-    <div v-if="$slots.actions" class="flex items-center gap-2 shrink-0">
+    <div v-if="$slots.actions" class="flex items-center gap-2 shrink-0 self-end sm:self-auto">
       <slot name="actions" />
     </div>
   </header>

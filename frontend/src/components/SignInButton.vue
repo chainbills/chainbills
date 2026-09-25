@@ -20,6 +20,7 @@
  *    sidebar copies of this component (both rendered at once) don't clash.
  */
 const { id } = defineProps(['id']);
+import { useSolanaConnector } from '@/composables/useSolanaConnector';
 import IconArc from '@/icons/IconArc.vue';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconEthereum from '@/icons/IconEthereum.vue';
@@ -38,15 +39,14 @@ import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
-import { useAnchorWallet } from 'solana-wallets-vue';
 import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
 import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const account = useAccount();
 const analytics = useAnalyticsStore();
-const anchorWallet = useAnchorWallet();
 const auth = useAuthStore();
+const solanaConnector = useSolanaConnector();
 const { connect } = useConnect();
 const connectors = useConnectors();
 const { switchChain } = useSwitchChain();
@@ -131,7 +131,7 @@ const onClickConnector = (connector: Connector) => {
     {
       onError: (err) =>
         toast.add({ severity: 'error', summary: 'Connection Failed', detail: err.message, life: 12000 }),
-    },
+    }
   );
   isModalVisible.value = false;
   selectedChainName.value = null;
@@ -212,32 +212,32 @@ const walletItems = () => [
 
 onMounted(() => {
   watch(
-    () => anchorWallet.value,
-    (v) => {
-      if (v) {
+    () => solanaConnector.isConnectedSolana.value,
+    (connected) => {
+      if (connected) {
         isModalVisible.value = false;
         sidebar.close();
       }
-    },
+    }
   );
 
   watch(
     () => account.chain?.value,
     (v) => {
       if (v && route.name == 'payable') router.push('/dashboard');
-    },
+    }
   );
 });
 </script>
 
 <template>
   <div @click="$emit('click')">
-    <Button class="px-4 py-2" @click="toastLoadingAuth" v-if="auth.isLoading">
+    <Button class="px-2 py-1" @click="toastLoadingAuth" v-if="auth.isLoading">
       <IconSpinnerBlack class="mx-4" v-if="theme.isDisplayDark" />
       <IconSpinnerWhite class="mx-4" v-else />
     </Button>
 
-    <Button @click="openModal" v-else-if="!auth.currentUser" class="px-4 py-2"> Sign In </Button>
+    <Button @click="openModal" v-else-if="!auth.currentUser" class="px-3 py-1"> Sign In </Button>
 
     <Button
       v-else
@@ -249,7 +249,7 @@ onMounted(() => {
       "
       aria-haspopup="true"
       aria-controls="wallet-menu"
-      class="px-4 py-2 gap-0"
+      class="px-2 py-1 gap-0"
     >
       <component :is="icons[auth.currentUser.chain.name]" :id="`signed-in-menu-${id}`" class="w-5 h-5 mr-1.5" />
       <span>{{ shortenAddress(auth.currentUser!.walletAddress) }}</span>
@@ -317,12 +317,7 @@ onMounted(() => {
           class="w-full flex items-center gap-2.5 rounded-xl border border-glass-border bg-fg/5 px-3 py-2.5 mb-3 text-sm font-medium text-fg hover:bg-fg/10 transition-colors"
           @click="onClickConnector(connector)"
         >
-          <img
-            v-if="connector.icon"
-            :src="connector.icon"
-            :alt="connector.name"
-            class="w-5 h-5 rounded-md"
-          />
+          <img v-if="connector.icon" :src="connector.icon" :alt="connector.name" class="w-5 h-5 rounded-md" />
           <span v-else class="w-5 h-5 rounded-md bg-fg/10 flex-shrink-0" />
           <span>{{ connector.name }}</span>
         </button>
@@ -332,11 +327,7 @@ onMounted(() => {
         </p>
 
         <p class="pt-2 pb-1">
-          <button
-            type="button"
-            class="text-sm text-muted hover:text-fg transition-colors"
-            @click="dialogStep = 1"
-          >
+          <button type="button" class="text-sm text-muted hover:text-fg transition-colors" @click="dialogStep = 1">
             Back
           </button>
         </p>

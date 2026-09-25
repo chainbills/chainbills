@@ -10,7 +10,7 @@
  */
 import PayableInfoCard from '@/components/PayableInfoCard.vue';
 import SignInButton from '@/components/SignInButton.vue';
-import { ChainBadge, EmptyState, SectionHeader, StatTile } from '@/components/ui';
+import { ChainSwitcher, EmptyState, ScrollToTop, SectionHeader, StatTile } from '@/components/ui';
 import { useAnalyticsStore, useAuthStore, useEvmStore, usePaginatorsStore, usePayableStore } from '@/stores';
 import Button from 'primevue/button';
 import Paginator from 'primevue/paginator';
@@ -121,7 +121,7 @@ onMounted(async () => {
   <section class="pt-6 pb-20 max-w-screen-xl mx-auto">
     <SectionHeader eyebrow="Dashboard" title="Your payables">
       <template #actions>
-        <ChainBadge v-if="auth.currentUser" :chain="auth.currentUser.chain" size="sm" />
+        <ChainSwitcher v-if="auth.currentUser" :model-value="auth.currentUser.chain.name" />
         <router-link to="/start" @click="analytics.recordEvent('clicked_create_payable', { from: 'dashboard_page' })">
           <Button class="px-4">Create payable</Button>
         </router-link>
@@ -166,22 +166,28 @@ onMounted(async () => {
         />
       </div>
 
-      <Paginator
-        :currentPage="currentPage"
-        currentPageReportTemplate="{first} to {last} of {totalRecords}"
-        :first="paginators.rowsPerPage * currentPage"
-        :rows="paginators.rowsPerPage"
-        :rowsPerPageOptions="paginators.rowsPerPageOptions"
-        template="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
-        :totalRecords="displayCount"
-        @page="
-          (e) => {
-            paginators.setRowsPerPage(e.rows);
-            updatePage(e.page);
-            analytics.recordEvent('updated_payables_list_pagination');
-          }
-        "
-      />
+      <div class="flex justify-end mt-4">
+        <div class="glass-surface glass-frost rounded-2xl overflow-hidden">
+          <Paginator
+            :currentPage="currentPage"
+            currentPageReportTemplate="{first} to {last} of {totalRecords}"
+            :first="paginators.rowsPerPage * currentPage"
+            :rows="paginators.rowsPerPage"
+            :rowsPerPageOptions="paginators.rowsPerPageOptions"
+            template="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+            :totalRecords="displayCount"
+            @page="
+              (e) => {
+                paginators.setRowsPerPage(e.rows);
+                updatePage(e.page);
+                analytics.recordEvent('updated_payables_list_pagination');
+              }
+            "
+          />
+        </div>
+      </div>
     </template>
   </section>
+
+  <ScrollToTop />
 </template>

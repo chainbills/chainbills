@@ -53,12 +53,9 @@
  * <ActivityFeed :source="{ kind: 'network', networkType: 'mainnet' }" filterable />
  * ```
  */
-import ActivityList from './ActivityList.vue';
-import ActivityTable, { type ActivityTableColumn } from './ActivityTable.vue';
 import {
   EmptyState,
   ErrorState,
-  FilterChips,
   SearchInput,
   SegmentedTabs,
   Skeleton,
@@ -67,16 +64,20 @@ import {
 } from '@/components/ui';
 import {
   Activity,
-  activityTypeMeta,
   ActivityType,
+  activityTypeMeta,
   chainNamesEvm,
   chainNamesToChains,
+  getChainLogo,
   Payable,
   type Chain,
   type ChainNetworkType,
 } from '@/schemas';
-import { useActivityStore, useAnalyticsStore, useEvmStore, type MultiChainCursor } from '@/stores';
+import { useActivityStore, useAnalyticsStore, useEvmStore, usePaginatorsStore, type MultiChainCursor } from '@/stores';
+import Paginator from 'primevue/paginator';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import ActivityList from './ActivityList.vue';
+import ActivityTable, { type ActivityTableColumn } from './ActivityTable.vue';
 
 /** Which feed to render. A `'user'` source with no `chain` merges every EVM chain of `networkType` into one stream. */
 export type ActivitySource =
@@ -117,17 +118,20 @@ const props = withDefaults(
     searchable?: boolean;
     filterable?: boolean;
   }>(),
-  { tabs: () => ['all', 'payments', 'withdrawals', 'payables'], pageSize: 20, searchable: false, filterable: false }
+  { tabs: () => ['all', 'payables', 'payments', 'withdrawals'], pageSize: 20, searchable: false, filterable: false }
 );
 
 const emit = defineEmits<{
   select: [activity: Activity];
   loaded: [payload: { total: number }];
+  /** Fires whenever the chain filter changes — lets a parent sync stats to the selected chain. */
+  'update:chainFilter': [value: string];
 }>();
 
 const activityStore = useActivityStore();
 const evm = useEvmStore();
 const analytics = useAnalyticsStore();
+const paginators = usePaginatorsStore();
 
 // ---------------------------------------------------------------------------
 // Source classification
@@ -145,6 +149,19 @@ const countField = computed<'chainCount' | 'userCount' | 'payableCount'>(() => {
   return 'chainCount';
 });
 
+const sourceNetworkType = computed<ChainNetworkType | null>(() => {
+  if (!isMerged.value) return null;
+  const src = props.source;
+  if (src.kind === 'network') return src.networkType;
+  if (src.kind === 'user') return src.networkType;
+  return null;
+});
+
+const networkChains = computed<Chain[]>(() => {
+  if (!sourceNetworkType.value) return [];
+  return chainNamesEvm.map((n) => chainNamesToChains[n]).filter((c) => c.networkType === sourceNetworkType.value);
+});
+
 /** Every tab to offer: the `tabs` prop, plus a `Settings` tab automatically for a payable source. */
 const availableTabs = computed<TabKey[]>(() => {
   const base = [...props.tabs];
@@ -159,21 +176,84 @@ const availableTabs = computed<TabKey[]>(() => {
 const activeTab = ref<TabKey>('all');
 const activeTypeFilters = ref<string[]>([]);
 const activeTokenFilter = ref<string[]>([]);
-const activeChainFilter = ref<string[]>([]);
+const singleChainFilter = ref<string>('all');
 const searchQuery = ref('');
 const showFilters = ref(false);
+
+// Chain filter popover — teleported to body so it escapes any overflow-x-auto ancestor
+const chainFilterOpen = ref(false);
+const chainFilterEl = ref<HTMLElement | null>(null);
+const chainFilterDropdownEl = ref<HTMLElement | null>(null);
+const chainDropdownStyle = ref({ top: '0px', left: '0px' });
+
+const openChainFilter = () => {
+  if (!chainFilterOpen.value) {
+    const btn = chainFilterEl.value?.querySelector('button');
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      chainDropdownStyle.value = {
+        top: `${rect.bottom + 8}px`,
+        left: `${rect.left}px`,
+      };
+    }
+  }
+  chainFilterOpen.value = !chainFilterOpen.value;
+};
+
+const closeChainFilter = (e: MouseEvent) => {
+  if (!chainFilterOpen.value) return;
+  const target = e.target as Node;
+  const inButton = chainFilterEl.value?.contains(target) ?? false;
+  const inDropdown = chainFilterDropdownEl.value?.contains(target) ?? false;
+  if (!inButton && !inDropdown) chainFilterOpen.value = false;
+};
+
+// Filters popover
+const filtersEl = ref<HTMLElement | null>(null);
+
+const closeFiltersPopover = (e: MouseEvent) => {
+  if (showFilters.value && filtersEl.value && !filtersEl.value.contains(e.target as Node)) {
+    showFilters.value = false;
+  }
+};
+
+const toggleTypeFilter = (value: string) => {
+  activeTypeFilters.value = activeTypeFilters.value.includes(value)
+    ? activeTypeFilters.value.filter((v) => v !== value)
+    : [...activeTypeFilters.value, value];
+};
+
+const toggleTokenFilter = (value: string) => {
+  activeTokenFilter.value = activeTokenFilter.value.includes(value)
+    ? activeTokenFilter.value.filter((v) => v !== value)
+    : [...activeTokenFilter.value, value];
+};
+
+const activeChainOption = computed(() => {
+  if (singleChainFilter.value === 'all') return null;
+  return networkChains.value.find((c) => c.name === singleChainFilter.value) ?? null;
+});
+
+const selectChain = (value: string) => {
+  singleChainFilter.value = value;
+  chainFilterOpen.value = false;
+};
+
+// Expand/collapse all rows
+const expandAllRows = ref(false);
 
 const hasActiveFilter = computed(
   () =>
     activeTab.value !== 'all' ||
     activeTypeFilters.value.length > 0 ||
     activeTokenFilter.value.length > 0 ||
-    activeChainFilter.value.length > 0
+    (isMerged.value && singleChainFilter.value !== 'all')
 );
 
-const activeFilterCount = computed(
-  () => activeTypeFilters.value.length + activeTokenFilter.value.length + activeChainFilter.value.length
-);
+/** True when any filter or search is active — used to distinguish "no matching results" from "truly empty feed". */
+const hasAnyFilterOrSearch = computed(() => hasActiveFilter.value || !!searchQuery.value.trim());
+
+const activeFilterCount = computed(() => activeTypeFilters.value.length + activeTokenFilter.value.length);
 
 /** True when `a` belongs under the active tab/type/token/chain filters (search is applied separately, on top of this). */
 const matchesFilters = (a: Activity): boolean => {
@@ -183,7 +263,7 @@ const matchesFilters = (a: Activity): boolean => {
   if (def.types && !def.types.includes(a.type)) return false;
   if (activeTypeFilters.value.length && !activeTypeFilters.value.includes(String(a.type))) return false;
   if (activeTokenFilter.value.length && !(a.amount && activeTokenFilter.value.includes(a.amount.name))) return false;
-  if (isMerged.value && activeChainFilter.value.length && !activeChainFilter.value.includes(a.chain.name)) return false;
+  if (isMerged.value && singleChainFilter.value !== 'all' && a.chain.name !== singleChainFilter.value) return false;
   return true;
 };
 
@@ -302,6 +382,19 @@ const loadMore = async () => {
   }
 };
 
+const goToMergedPage = async (uiPage: number) => {
+  mergedPage.value = uiPage;
+  const needed = (uiPage + 1) * paginators.rowsPerPage;
+  if (mergedFiltered.value.length < needed && mergedHasMore.value) {
+    loadingMore.value = true;
+    try {
+      await fillMergedTo(needed);
+    } finally {
+      loadingMore.value = false;
+    }
+  }
+};
+
 // ---------------------------------------------------------------------------
 // Orchestration: loading/error state, (re)fetch on source/tab/filter change
 // ---------------------------------------------------------------------------
@@ -320,14 +413,22 @@ const fetchCurrent = async (mergedTargetCount: number) => {
   emit('loaded', { total: displayTotal.value });
 };
 
-/** Resets to the first page/batch and fetches it — used on mount, whenever the tab/filters change, and by the error state's retry. */
-const load = async () => {
-  loading.value = true;
+/** Resets to the first page/batch and fetches it.
+ *  Pass `alwaysSkeleton = true` when a user-initiated filter change should
+ *  always show the shimmer skeleton rather than keeping stale rows visible. */
+const load = async (alwaysSkeleton = false) => {
+  const hasData = isMerged.value ? mergedRaw.value.length > 0 : singleItems.value.length > 0;
+  if (hasData && !alwaysSkeleton) {
+    refreshing.value = true;
+  } else {
+    loading.value = true;
+  }
   page.value = 0;
   if (isMerged.value) {
     mergedRaw.value = [];
     mergedCursor.value = undefined;
     mergedHasMore.value = true;
+    mergedPage.value = 0;
   }
   try {
     await fetchCurrent(props.pageSize);
@@ -336,6 +437,7 @@ const load = async () => {
     failed.value = true;
   }
   loading.value = false;
+  refreshing.value = false;
 };
 
 const goToPage = async (uiPage: number) => {
@@ -366,9 +468,11 @@ const refresh = async () => {
   analytics.recordEvent('refreshed_activity_feed', { source: props.source.kind });
 };
 
-watch([activeTab, activeTypeFilters, activeTokenFilter, activeChainFilter], () => {
-  load();
+watch([activeTab, activeTypeFilters, activeTokenFilter, singleChainFilter], () => {
+  load(true); // explicit filter change — always shimmer, never show stale rows
 });
+
+watch(singleChainFilter, (v) => emit('update:chainFilter', v));
 
 onMounted(async () => {
   if (props.persistKey) {
@@ -388,8 +492,14 @@ onMounted(async () => {
   loading.value = false;
 
   window.addEventListener('focus', onWindowFocus);
+  document.addEventListener('click', closeChainFilter);
+  document.addEventListener('click', closeFiltersPopover);
 });
-onUnmounted(() => window.removeEventListener('focus', onWindowFocus));
+onUnmounted(() => {
+  window.removeEventListener('focus', onWindowFocus);
+  document.removeEventListener('click', closeChainFilter);
+  document.removeEventListener('click', closeFiltersPopover);
+});
 
 watch(activeTab, (v) => {
   if (props.persistKey) {
@@ -409,20 +519,35 @@ const highlightedIds = ref<Set<string>>(new Set());
 
 const onWindowFocus = async () => {
   if (isMerged.value) {
-    if (mergedRaw.value.length > props.pageSize) return; // user has scrolled past the first "Load more" batch
+    if (mergedRaw.value.length > props.pageSize) return;
     const before = new Set(mergedRaw.value.map((a) => a.id));
     const previousTotal = mergedTotal.value;
-    mergedRaw.value = [];
-    mergedCursor.value = undefined;
-    mergedHasMore.value = true;
-    await Promise.all([fillMergedTo(props.pageSize), fetchMergedTotal()]);
+    // Fetch a fresh first batch without clearing the displayed data, to avoid an empty-state flash
+    const source = props.source;
+    try {
+      const result =
+        source.kind === 'network'
+          ? await activityStore.getForNetwork(source.networkType, undefined, props.pageSize)
+          : source.kind === 'user' && !source.chain
+            ? await activityStore.getForUserAcrossChains(source.address, source.networkType, undefined, props.pageSize)
+            : null;
+      if (result) {
+        // Atomically replace: old items stay visible until the swap
+        mergedRaw.value = result.items;
+        mergedCursor.value = result.cursor;
+        mergedHasMore.value = result.hasMore;
+      }
+    } catch {
+      return;
+    }
+    await fetchMergedTotal();
     if (previousTotal !== null && (mergedTotal.value ?? 0) > previousTotal) {
       highlight(mergedRaw.value.filter((a) => !before.has(a.id)).map((a) => a.id));
     }
     return;
   }
 
-  if (page.value !== 0) return; // only the newest page auto-refreshes
+  if (page.value !== 0) return;
   const before = new Set(singleItems.value.map((a) => a.id));
   const previousTotal = singleTotal.value;
   await fetchSingleChainPage(0);
@@ -441,7 +566,17 @@ const highlight = (ids: string[]) => {
 // Display data
 // ---------------------------------------------------------------------------
 
-const rawWindow = computed(() => (isMerged.value ? mergedFiltered.value : singleItems.value));
+// Current page index for the merged paginator
+const mergedPage = ref(0);
+
+// For merged: show only the current page slice; for single: show whatever page was fetched
+const rawWindow = computed(() => {
+  if (isMerged.value) {
+    const rpp = paginators.rowsPerPage;
+    return mergedFiltered.value.slice(mergedPage.value * rpp, (mergedPage.value + 1) * rpp);
+  }
+  return singleItems.value;
+});
 const displayItems = computed(() => rawWindow.value.filter(matchesSearch));
 const displayTotal = computed(() =>
   isMerged.value ? (mergedTotal.value ?? mergedFiltered.value.length) : singleTotal.value
@@ -466,16 +601,17 @@ const typeChipOptions = computed<FilterChipOption[]>(() => {
 });
 
 const showTokenChips = computed(() => ['all', 'payments', 'withdrawals'].includes(activeTab.value));
-const tokenChipOptions = computed<FilterChipOption[]>(() => {
-  const names = new Set<string>();
-  for (const a of rawWindow.value) if (a.amount) names.add(a.amount.name);
-  return [...names].sort().map((name) => ({ label: name, value: name }));
-});
 
-const chainChipOptions = computed<FilterChipOption[]>(() => {
-  const names = new Map<string, string>();
-  for (const a of mergedRaw.value) names.set(a.chain.name, a.chain.displayName);
-  return [...names.entries()].map(([value, label]) => ({ label, value }));
+/** True when there is at least one filter section to show in the popover. */
+const hasFilterOptions = computed(
+  () => typeChipOptions.value.length > 1 || (showTokenChips.value && tokenChipOptions.value.length > 1)
+);
+const tokenChipOptions = computed<FilterChipOption[]>(() => {
+  // Scan all loaded items, not just the current page, so filter chips stay stable during pagination
+  const allLoaded = isMerged.value ? mergedFiltered.value : singleItems.value;
+  const names = new Set<string>();
+  for (const a of allLoaded) if (a.amount) names.add(a.amount.name);
+  return [...names].sort().map((name) => ({ label: name, value: name }));
 });
 
 const emptyCopy = computed(() => {
@@ -503,34 +639,266 @@ const emptyCopy = computed(() => {
 
 <template>
   <div>
-    <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
-      <SegmentedTabs v-model="activeTab" :options="tabOptions" />
-      <div v-if="filterable || searchable" class="flex flex-wrap items-center gap-2">
+    <!-- Toolbar: tabs row + actions row — always stacked to prevent tablet cramping -->
+    <div class="mb-6 gap-2 items-end flex flex-wrap">
+      <!-- Row 1: chain filter + tabs (scrollable) -->
+      <div class="flex items-center gap-2 overflow-x-auto">
+        <!-- Decorated chain filter popover (only for merged/network sources) -->
+        <div v-if="isMerged && networkChains.length > 1" ref="chainFilterEl" class="relative shrink-0">
+          <button
+            type="button"
+            :aria-expanded="chainFilterOpen"
+            aria-haspopup="listbox"
+            @click="openChainFilter"
+            :class="[
+              'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
+              singleChainFilter !== 'all'
+                ? 'border-accent bg-accent/10 text-accent'
+                : 'border-glass-border bg-glass-tint text-fg hover:border-fg/30',
+            ]"
+          >
+            <img
+              v-if="activeChainOption"
+              :src="getChainLogo(activeChainOption)"
+              :alt="activeChainOption.displayName"
+              class="w-4 h-4 rounded-full"
+            />
+            <span>{{ activeChainOption ? activeChainOption.displayName : 'All chains' }}</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              class="w-3.5 h-3.5 text-muted transition-transform"
+              :class="chainFilterOpen && 'rotate-180'"
+              aria-hidden="true"
+            >
+              <path
+                d="m6 9 6 6 6-6"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+          <Teleport to="body">
+          <div
+            v-if="chainFilterOpen"
+            ref="chainFilterDropdownEl"
+            role="listbox"
+            aria-label="Select chain"
+            class="fixed z-50 w-52 glass-popover rounded-2xl p-1.5 shadow-glass"
+            :style="chainDropdownStyle"
+          >
+            <button
+              type="button"
+              role="option"
+              :aria-selected="singleChainFilter === 'all'"
+              @click="selectChain('all')"
+              :class="[
+                'w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-left transition-colors',
+                singleChainFilter === 'all' ? 'bg-fg/10 text-fg font-medium' : 'text-muted hover:bg-fg/5 hover:text-fg',
+              ]"
+            >
+              <span class="w-5 h-5 rounded-full border border-glass-border shrink-0 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" fill="none" class="w-3 h-3" aria-hidden="true">
+                  <path
+                    d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zM2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10A15.3 15.3 0 0 1 8 12a15.3 15.3 0 0 1 4-10z"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  />
+                </svg>
+              </span>
+              All chains
+              <svg
+                v-if="singleChainFilter === 'all'"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="w-4 h-4 ml-auto text-accent shrink-0"
+                aria-hidden="true"
+              >
+                <path
+                  d="M20 6 9 17l-5-5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+            <button
+              v-for="c in networkChains"
+              :key="c.name"
+              type="button"
+              role="option"
+              :aria-selected="singleChainFilter === c.name"
+              @click="selectChain(c.name)"
+              :class="[
+                'w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-left transition-colors',
+                singleChainFilter === c.name
+                  ? 'bg-fg/10 text-fg font-medium'
+                  : 'text-muted hover:bg-fg/5 hover:text-fg',
+              ]"
+            >
+              <img :src="getChainLogo(c)" :alt="c.displayName" class="w-5 h-5 rounded-full shrink-0" />
+              {{ c.displayName }}
+              <svg
+                v-if="singleChainFilter === c.name"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="w-4 h-4 ml-auto text-accent shrink-0"
+                aria-hidden="true"
+              >
+                <path
+                  d="M20 6 9 17l-5-5"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+          </Teleport>
+        </div>
+        <SegmentedTabs v-model="activeTab" :options="tabOptions" />
+      </div>
+      <!-- Row 2: search + filters + expand + refresh — right-aligned, wrappable -->
+      <div v-if="filterable || searchable" class="ml-auto flex flex-wrap items-center justify-end gap-2">
         <SearchInput
           v-if="searchable"
           v-model="searchQuery"
           placeholder="Search by id, address or payable"
           class="max-w-xs"
         />
+        <!-- Filters popover trigger + floating panel -->
+        <div v-if="filterable && hasFilterOptions" ref="filtersEl" class="relative">
+          <button
+            type="button"
+            :aria-expanded="showFilters"
+            aria-haspopup="dialog"
+            @click="showFilters = !showFilters"
+            :class="[
+              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+              showFilters || activeFilterCount > 0
+                ? 'border-accent bg-accent/10 text-accent'
+                : 'border-glass-border bg-glass-tint text-muted hover:text-fg',
+            ]"
+          >
+            <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" aria-hidden="true">
+              <path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+            Filters
+            <span
+              v-if="activeFilterCount > 0"
+              class="rounded-full bg-accent text-accent-fg px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+            >
+              {{ activeFilterCount }}
+            </span>
+          </button>
+          <!-- Floating filters panel — vertical list layout -->
+          <div
+            v-if="showFilters"
+            role="dialog"
+            aria-label="Filters"
+            class="absolute right-0 top-full mt-2 z-30 w-60 glass-popover rounded-2xl py-3 shadow-glass"
+          >
+            <!-- Activity type section -->
+            <template v-if="typeChipOptions.length > 1">
+              <p class="text-[10px] uppercase tracking-wider text-muted font-semibold px-4 pb-2">Activity type</p>
+              <button
+                v-for="opt in typeChipOptions"
+                :key="opt.value"
+                type="button"
+                @click="toggleTypeFilter(opt.value)"
+                :class="[
+                  'w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors',
+                  activeTypeFilters.includes(opt.value) ? 'text-fg font-medium' : 'text-muted hover:text-fg',
+                ]"
+              >
+                <span>{{ opt.label }}</span>
+                <svg
+                  v-if="activeTypeFilters.includes(opt.value)"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  class="w-3.5 h-3.5 text-accent shrink-0"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M20 6 9 17l-5-5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </template>
+
+            <!-- Token section -->
+            <template v-if="showTokenChips && tokenChipOptions.length > 1">
+              <div v-if="typeChipOptions.length > 1" class="my-3 border-t border-glass-border" />
+              <p class="text-[10px] uppercase tracking-wider text-muted font-semibold px-4 pb-2">Token</p>
+              <button
+                v-for="opt in tokenChipOptions"
+                :key="opt.value"
+                type="button"
+                @click="toggleTokenFilter(opt.value)"
+                :class="[
+                  'w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors',
+                  activeTokenFilter.includes(opt.value) ? 'text-fg font-medium' : 'text-muted hover:text-fg',
+                ]"
+              >
+                <span>{{ opt.label }}</span>
+                <svg
+                  v-if="activeTokenFilter.includes(opt.value)"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  class="w-3.5 h-3.5 text-accent shrink-0"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M20 6 9 17l-5-5"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
+            </template>
+
+            <!-- Empty state -->
+            <p
+              v-if="typeChipOptions.length <= 1 && !(showTokenChips && tokenChipOptions.length > 1)"
+              class="text-xs text-muted px-4 py-1"
+            >
+              No filters available.
+            </p>
+
+            <!-- Clear all -->
+            <template v-if="activeFilterCount > 0">
+              <div class="mt-3 border-t border-glass-border" />
+              <button
+                type="button"
+                class="w-full flex items-center justify-between px-4 py-2.5 text-sm text-muted hover:text-fg transition-colors"
+                @click="
+                  activeTypeFilters = [];
+                  activeTokenFilter = [];
+                "
+              >
+                Clear all
+                <span class="text-xs tabular-nums text-accent">{{ activeFilterCount }} active</span>
+              </button>
+            </template>
+          </div>
+        </div>
         <button
-          v-if="filterable"
+          v-if="displayItems.length > 0"
           type="button"
-          :aria-pressed="showFilters"
-          @click="showFilters = !showFilters"
-          :class="[
-            'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-            showFilters || activeFilterCount > 0
-              ? 'border-accent bg-accent/10 text-accent'
-              : 'border-glass-border bg-glass-tint text-muted hover:text-fg',
-          ]"
+          class="inline-flex items-center gap-1.5 rounded-full border border-glass-border bg-glass-tint px-3 py-1.5 text-xs font-medium text-muted hover:text-fg transition-colors"
+          @click="expandAllRows = !expandAllRows"
         >
-          <svg viewBox="0 0 24 24" fill="none" class="w-3.5 h-3.5" aria-hidden="true">
-            <path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          </svg>
-          Filters
-          <span v-if="activeFilterCount > 0" class="rounded-full bg-accent text-accent-fg px-1.5 py-0.5 text-[10px] font-semibold leading-none">
-            {{ activeFilterCount }}
-          </span>
+          {{ expandAllRows ? 'Collapse all' : 'Expand all' }}
         </button>
         <button
           type="button"
@@ -552,31 +920,6 @@ const emptyCopy = computed(() => {
         </button>
       </div>
     </div>
-
-    <div v-if="filterable && showFilters" class="flex flex-col gap-2 mb-4 p-3 rounded-2xl bg-fg/[0.03] border border-glass-border">
-      <FilterChips v-if="typeChipOptions.length > 1" v-model="activeTypeFilters" multi :options="typeChipOptions" />
-      <FilterChips
-        v-if="showTokenChips && tokenChipOptions.length > 1"
-        v-model="activeTokenFilter"
-        multi
-        :options="tokenChipOptions"
-      />
-      <FilterChips
-        v-if="isMerged && chainChipOptions.length > 1"
-        v-model="activeChainFilter"
-        multi
-        :options="chainChipOptions"
-      />
-      <button
-        v-if="activeFilterCount > 0"
-        type="button"
-        class="self-start text-xs text-muted hover:text-fg mt-1"
-        @click="activeTypeFilters = []; activeTokenFilter = []; activeChainFilter = []"
-      >
-        Clear all filters
-      </button>
-    </div>
-
     <p v-if="!loading && !failed" class="text-xs text-muted mb-2">
       Showing {{ displayItems.length }} of {{ displayTotal }}
     </p>
@@ -591,46 +934,74 @@ const emptyCopy = computed(() => {
       <ErrorState message="Couldn't load this activity feed from the chain." @retry="load" />
     </template>
 
+    <!-- Filter/search produced no results — offer a clear action -->
+    <template v-else-if="displayItems.length === 0 && hasAnyFilterOrSearch">
+      <EmptyState
+        title="No matching activity"
+        description="No activities match your current filters or search. Try adjusting or clearing them."
+      >
+        <template #action>
+          <button
+            type="button"
+            class="rounded-full border border-glass-border bg-glass-tint backdrop-blur px-4 py-2 text-sm text-fg hover:bg-fg/5 transition-colors"
+            @click="
+              activeTypeFilters = [];
+              activeTokenFilter = [];
+              singleChainFilter = 'all';
+              activeTab = 'all';
+              searchQuery = '';
+            "
+          >
+            Clear filters
+          </button>
+        </template>
+      </EmptyState>
+    </template>
+
+    <!-- True empty: nothing exists on-chain for this feed -->
     <template v-else-if="displayItems.length === 0">
       <EmptyState :title="emptyCopy.title" :description="emptyCopy.description" />
     </template>
 
     <template v-else>
-      <div class="hidden md:block">
+      <div class="hidden lg:block">
         <ActivityTable
           :activities="displayItems"
           :columns="columns"
           :count-field="countField"
           :highlight-ids="highlightedIds"
+          :expand-all="expandAllRows"
           @select="(a) => emit('select', a)"
         />
       </div>
-      <div class="md:hidden">
+      <div class="lg:hidden">
         <ActivityList :activities="displayItems" :highlight-ids="highlightedIds" @select="(a) => emit('select', a)" />
       </div>
 
-      <div v-if="!isMerged" class="flex items-center justify-between mt-4 text-sm">
-        <button
-          type="button"
-          class="rounded-full border border-glass-border bg-glass-tint backdrop-blur px-3.5 py-1.5 disabled:opacity-40"
-          :disabled="page === 0"
-          @click="goToPage(page - 1)"
-        >
-          Previous
-        </button>
-        <span class="text-muted text-xs">Page {{ page + 1 }}</span>
-        <button
-          type="button"
-          class="rounded-full border border-glass-border bg-glass-tint backdrop-blur px-3.5 py-1.5 disabled:opacity-40"
-          :disabled="!singleHasNext"
-          @click="goToPage(page + 1)"
-        >
-          Next
-        </button>
+      <!-- Single-chain paginator: right-aligned, glassy -->
+      <div v-if="!isMerged && displayTotal > 0" class="flex justify-end mt-4">
+        <div class="glass-surface glass-frost rounded-2xl overflow-hidden">
+          <Paginator
+            :first="page * paginators.rowsPerPage"
+            :rows="paginators.rowsPerPage"
+            :total-records="displayTotal"
+            :rows-per-page-options="paginators.rowsPerPageOptions"
+            current-page-report-template="{first} to {last} of {totalRecords}"
+            template="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+            @page="
+              (e) => {
+                paginators.setRowsPerPage(e.rows);
+                goToPage(e.page);
+              }
+            "
+          />
+        </div>
       </div>
 
-      <div v-else-if="mergedHasMore" class="flex justify-center mt-4">
+      <!-- Merged: Load more (left) + paginator (right) -->
+      <div v-else-if="isMerged" class="flex flex-wrap items-center justify-between gap-4 mt-4">
         <button
+          v-if="mergedHasMore"
           type="button"
           class="rounded-full border border-glass-border bg-glass-tint backdrop-blur px-4 py-2 text-sm disabled:opacity-60"
           :disabled="loadingMore"
@@ -638,6 +1009,24 @@ const emptyCopy = computed(() => {
         >
           {{ loadingMore ? 'Loading...' : 'Load more' }}
         </button>
+        <span v-else class="text-xs text-muted">All loaded</span>
+
+        <div v-if="displayTotal > 0" class="glass-surface glass-frost rounded-2xl overflow-hidden">
+          <Paginator
+            :first="mergedPage * paginators.rowsPerPage"
+            :rows="paginators.rowsPerPage"
+            :total-records="displayTotal"
+            :rows-per-page-options="paginators.rowsPerPageOptions"
+            current-page-report-template="{first} to {last} of {totalRecords}"
+            template="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+            @page="
+              (e) => {
+                paginators.setRowsPerPage(e.rows);
+                goToMergedPage(e.page);
+              }
+            "
+          />
+        </div>
       </div>
     </template>
   </div>

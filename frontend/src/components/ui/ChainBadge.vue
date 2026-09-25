@@ -44,7 +44,7 @@ const tintStyle = computed(() => ({
 
 <template>
   <span
-    class="inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-1"
+    class="inline-flex shrink-0 items-center gap-1.5 rounded-full border pl-1 pr-3 py-1 whitespace-nowrap"
     :style="tintStyle"
     :class="size === 'sm' ? 'text-xs' : 'text-sm'"
   >

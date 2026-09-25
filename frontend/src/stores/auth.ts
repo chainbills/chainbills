@@ -7,11 +7,11 @@ import {
   type Token,
   User,
 } from '@/schemas';
-import { useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
+import { errorMsg, useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
+import { useSolanaConnector } from '@/composables/useSolanaConnector';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { useAnchorWallet, useWallet as useSolanaWallet } from 'solana-wallets-vue';
 import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
 import { onMounted, ref, watch } from 'vue';
 import * as encoding from './encoding';
@@ -27,7 +27,6 @@ export const denormalizeBytes = (bytes: Uint8Array, chain: Chain): string => {
 };
 
 export const useAuthStore = defineStore('auth', () => {
-  const anchorWallet = useAnchorWallet();
   const cache = useCacheStore();
   const currentUser = ref<User | null>(null);
   const evm = useEvmStore();
@@ -35,7 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadingMessage = ref('');
   const signature = ref<string | null>(null);
   const solana = useSolanaStore();
-  const solanaWallet = useSolanaWallet();
+  const solanaConnector = useSolanaConnector();
   const toast = useToast();
   const { disconnect: evmDisconnect } = useDisconnect();
   const evmAccount = useAccount();
@@ -71,7 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
         arctestnet: evmDisconnect,
         megaeth: evmDisconnect,
         sepolia: evmDisconnect,
-        solanadevnet: solanaWallet.disconnect,
+        solanadevnet: solanaConnector.disconnect,
       }[(chain ?? currentUser.value!.chain).name]();
     }
   };
@@ -116,7 +115,7 @@ export const useAuthStore = defineStore('auth', () => {
         signature.value = null;
         const detail = `${e}`.toLocaleLowerCase().includes('rejected')
           ? 'Please Sign to Continue'
-          : `Couldn't sign: ${e}`;
+          : `Couldn't sign: ${errorMsg(e)}`;
         toastError(detail);
       }
     }
@@ -129,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
-  const updateCurrentUser = async ([newAnchorWallet, newEvmAddress]: any[]) => {
+  const updateCurrentUser = async ([newSolanaConnected, newEvmAddress]: any[]) => {
     isLoading.value = true;
     loadingMessage.value = 'Authenticating ...';
     let newChain: Chain | null = null;
@@ -140,7 +139,7 @@ export const useAuthStore = defineStore('auth', () => {
       else if (evmChainId === arcTestnet.id) newChain = arctestnet;
       else if (evmChainId === sepoliaViem.id) newChain = sepoliaInApp;
     }
-    if (newAnchorWallet) newChain = solanadevnet;
+    if (newSolanaConnected) newChain = solanadevnet;
 
     if (!newChain) {
       currentUser.value = null;
@@ -171,7 +170,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const disconnectFns = [
-      ...(newAnchorWallet ? [] : [solanaWallet.disconnect]),
+      ...(newSolanaConnected ? [] : [solanaConnector.disconnect]),
       ...(newEvmAddress ? [] : [evmDisconnect]),
     ];
     await Promise.all(disconnectFns.map((d) => d()));
@@ -180,11 +179,13 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   onMounted(() => {
-    updateCurrentUser([anchorWallet.value, evmAccount.address.value]);
+    updateCurrentUser([solanaConnector.isConnectedSolana.value, evmAccount.address.value]);
 
-    watch([() => anchorWallet.value, () => evmAccount.address.value, () => evmAccount.chain.value], updateCurrentUser, {
-      deep: true,
-    });
+    watch(
+      [() => solanaConnector.isConnectedSolana.value, () => evmAccount.address.value, () => evmAccount.chain.value],
+      updateCurrentUser,
+      { deep: true },
+    );
   });
 
   return {

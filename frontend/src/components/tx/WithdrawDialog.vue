@@ -18,7 +18,7 @@
  */
 import { AddressChip } from '@/components/ui';
 import { contracts, parseTokenAmount, TokenAndAmount, type Payable } from '@/schemas';
-import { useEvmStore, useStatsStore, useWithdrawalStore } from '@/stores';
+import { useAnalyticsStore, useEvmStore, useStatsStore, useWithdrawalStore } from '@/stores';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import { computed, ref, watch } from 'vue';
@@ -40,6 +40,7 @@ const emit = defineEmits<{
   withdrawn: [withdrawalId: string];
 }>();
 
+const analytics = useAnalyticsStore();
 const evm = useEvmStore();
 const stats = useStatsStore();
 const withdrawals = useWithdrawalStore();
@@ -110,6 +111,11 @@ const close = () => emit('update:visible', false);
 
 const submit = async () => {
   if (amountError.value || rawAmount.value === null) return;
+  analytics.recordEvent('withdraw_submitted', {
+    payable_id: props.payable.id,
+    token: props.balance.name,
+    chain: props.payable.chain.name,
+  });
   setRetry(() => submit());
   isSubmitting.value = true;
   close();

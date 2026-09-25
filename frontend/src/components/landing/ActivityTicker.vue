@@ -13,8 +13,17 @@
  * Usage: `<ActivityTicker />` inside `HomeView.vue`.
  */
 import { activityTypeMeta, chainNamesToChains } from '@/schemas';
-import { ChainBadge, IconChip, SectionHeader } from '@/components/ui';
-import { landingActivitySamples } from './placeholders';
+import { IconChip, SectionHeader } from '@/components/ui';
+import { landingActivitySamples, type LandingChainName } from './placeholders';
+
+/** Display info for each chain used in the ticker. */
+const chainMeta: Record<LandingChainName, { name: string; logo: string; color: string }> = {
+  arctestnet: { name: 'Arc', logo: '/assets/tokens/ARC.png', color: '#00d2ff' },
+  base: { name: 'Base', logo: '/assets/tokens/BASE.png', color: '#0052FF' },
+  megaeth: { name: 'MegaETH', logo: '/assets/tokens/MegaETH.png', color: '#c6f135' },
+  sepolia: { name: 'Sepolia', logo: '/assets/tokens/ETH.png', color: '#627eea' },
+  solanadevnet: { name: 'Solana', logo: '/assets/tokens/SOL.png', color: '#9945ff' },
+};
 
 const prefersReducedMotion =
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -61,10 +70,22 @@ const glyphs: Record<string, string> = {
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
                 <p class="text-sm font-medium text-fg">{{ activityTypeMeta[sample.type].label }}</p>
-                <ChainBadge :chain="chainNamesToChains[sample.chainName]" size="sm" />
+                <span
+                  class="inline-flex items-center gap-1 rounded-full border pl-1 pr-2 py-0.5 text-xs font-medium text-fg"
+                  :style="{ backgroundColor: `${chainMeta[sample.chainName].color}1f`, borderColor: `${chainMeta[sample.chainName].color}4d` }"
+                >
+                  <img :src="chainMeta[sample.chainName].logo" :alt="chainMeta[sample.chainName].name" class="w-3.5 h-3.5 rounded-full" />
+                  {{ chainMeta[sample.chainName].name }}
+                </span>
                 <template v-if="sample.counterpartChainName">
                   <span class="text-muted text-xs" aria-hidden="true">from</span>
-                  <ChainBadge :chain="chainNamesToChains[sample.counterpartChainName]" size="sm" />
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full border pl-1 pr-2 py-0.5 text-xs font-medium text-fg"
+                    :style="{ backgroundColor: `${chainMeta[sample.counterpartChainName].color}1f`, borderColor: `${chainMeta[sample.counterpartChainName].color}4d` }"
+                  >
+                    <img :src="chainMeta[sample.counterpartChainName].logo" :alt="chainMeta[sample.counterpartChainName].name" class="w-3.5 h-3.5 rounded-full" />
+                    {{ chainMeta[sample.counterpartChainName].name }}
+                  </span>
                 </template>
               </div>
               <p class="font-mono text-[11px] text-muted truncate">{{ sample.detail }}</p>

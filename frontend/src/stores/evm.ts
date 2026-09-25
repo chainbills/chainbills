@@ -38,7 +38,7 @@ import {
   type ChainName,
   type Token,
 } from '@/schemas';
-import { erc20Abi, gettersAbi, mainAbi, useAnalyticsStore } from '@/stores';
+import { erc20Abi, errorMsg, gettersAbi, mainAbi, useAnalyticsStore } from '@/stores';
 import type { TxFlowHandle, TxStepHandle } from '@/stores/tx-flow';
 import {
   createConfig,
@@ -171,7 +171,7 @@ export const useEvmStore = defineStore('evm', () => {
       if (opts?.rethrowError) throw e;
       if (!opts?.ignoreErrors) {
         logError(e);
-        toastError(`${e}`);
+        toastError(errorMsg(e));
       }
       return null;
     }
@@ -201,7 +201,7 @@ export const useEvmStore = defineStore('evm', () => {
       if (opts?.rethrowError) throw e;
       if (!opts?.ignoreErrors) {
         logError(e);
-        toastError(`${e}`);
+        toastError(errorMsg(e));
       }
       return null;
     }
@@ -242,7 +242,7 @@ export const useEvmStore = defineStore('evm', () => {
         args: [account.address.value],
       });
     } catch (e) {
-      toastError(`Couldn't fetch ${token.name} balance: ${e}`);
+      toastError(`Couldn't fetch ${token.name} balance: ${errorMsg(e)}`);
       return null;
     }
   };
@@ -342,7 +342,10 @@ export const useEvmStore = defineStore('evm', () => {
       steps?.sign?.wait('Confirm in your wallet');
       const hash = await rawWriteContract(config, request);
       const explorerUrl = chain ? getTxUrl(hash, chain) : undefined;
-      steps?.sign?.done({ txHash: hash, explorerUrl });
+      // Only attach the tx metadata to the sign step when it doubles as the
+      // confirm step. When a separate confirm step exists, it will display the
+      // hash and explorer link, so attaching them here too would duplicate them.
+      steps?.sign?.done(confirmStep !== steps?.sign ? undefined : { txHash: hash, explorerUrl });
 
       confirmStep?.activate(chain ? `Confirming on ${chain.displayName}…` : 'Confirming…');
       if (confirmStep && confirmStep !== steps?.sign) confirmStep.progress({ txHash: hash, explorerUrl });
@@ -355,9 +358,7 @@ export const useEvmStore = defineStore('evm', () => {
       return { hash, receipt, result };
     } catch (e: any) {
       if (!`${e}`.toLowerCase().includes('user rejected')) {
-        const message = `${e}`.toLowerCase().includes('failed to fetch')
-          ? 'Network Error'
-          : (e['details'] ?? e['shortMessage'] ?? e['message'] ?? `${e}`).split('()')[0]; // Message just before the EVM Revert error
+        const message = errorMsg(e);
         toastError(message);
         (confirmStep ?? steps?.sign)?.fail(message);
         analytics.recordEvent('failed_evm_transaction');
@@ -602,7 +603,7 @@ export const useEvmStore = defineStore('evm', () => {
         return new User(chain, addr, null);
       } else {
         logError(e);
-        toastError(`${e}`);
+        toastError(errorMsg(e));
       }
     }
     if (!raw) return null;

@@ -52,8 +52,8 @@ const emit = defineEmits<{
 const analytics = useAnalyticsStore();
 
 const ruleOptions = [
-  { label: 'Any token, any amount', value: 'any' },
-  { label: 'Specific tokens and amounts', value: 'specific' },
+  { label: 'Any amount', value: 'any' },
+  { label: 'Specific amounts', value: 'specific' },
 ];
 
 /** Current mode: 'any' shows no row list; 'specific' shows the token/amount builder. */
@@ -122,9 +122,9 @@ const removeRow = (index: number) => {
 watch(parsedValue, (val) => emit('update:modelValue', val), { immediate: true });
 watch(configError, (err) => emit('update:error', err), { immediate: true });
 
-// When mode switches to 'any', emit an empty list immediately.
 watch(ruleMode, (mode) => {
   if (mode === 'any') emit('update:modelValue', []);
+  if (mode === 'specific' && rows.value.length === 0) addRow();
 });
 </script>
 

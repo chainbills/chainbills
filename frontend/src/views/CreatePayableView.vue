@@ -144,8 +144,8 @@ const previewTitle = computed(() => `Payable preview`);
           </div>
 
           <label class="flex items-start gap-3">
-            <ToggleSwitch v-model="isAutoWithdraw" />
-            <span>
+            <ToggleSwitch v-model="isAutoWithdraw" class="shrink-0 mt-0.5" />
+            <span class="min-w-0">
               <span class="block text-sm font-medium text-fg">Auto-withdraw</span>
               <span class="block text-xs text-muted">
                 Every payment is sent straight to your wallet, minus the 2% fee, instead of sitting in the payable's
@@ -160,7 +160,7 @@ const previewTitle = computed(() => `Payable preview`);
               This payable lives on the chain you're connected to, and syncs automatically to every other chain of the
               same network.
             </p>
-            <ChainBadge :chain="homeChain" network />
+            <ChainBadge :chain="homeChain" />
             <p v-if="syncChains.length" class="mt-2 text-xs text-muted">
               Will also sync to:
               <span class="text-fg">{{ syncChains.map((c) => c.displayName).join(', ') }}</span>

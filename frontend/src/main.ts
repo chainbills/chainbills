@@ -1,52 +1,29 @@
 import '@fontsource-variable/space-grotesk';
-import 'solana-wallets-vue/styles.css';
-import './assets/main.css';
-
 import { definePreset } from '@primevue/themes';
 import Aura from '@primevue/themes/aura';
-import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
-import { arcTestnet, megaeth, sepolia, type AppKitNetwork } from '@reown/appkit/networks';
-import { createAppKit } from '@reown/appkit/vue';
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
+import { createConfig, http, injected } from '@wagmi/core';
 import { WagmiPlugin } from '@wagmi/vue';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Ripple from 'primevue/ripple';
 import ToastService from 'primevue/toastservice';
-import SolanaWallets from 'solana-wallets-vue';
+import { arcTestnet, megaeth, sepolia } from 'viem/chains';
 import { createApp } from 'vue';
+import { createGtag } from 'vue-gtag';
 import App from './App.vue';
+import './assets/main.css';
 import { vReveal } from './directives/reveal';
 import router from './router';
-
-const projectId = import.meta.env.VITE_WC_PROJECT_ID;
-const networks: [AppKitNetwork, ...AppKitNetwork[]] = [megaeth, arcTestnet, sepolia];
-const wagmiAdapter = new WagmiAdapter({ projectId, networks });
-
-createAppKit({
-  projectId,
-  networks,
-  adapters: [wagmiAdapter],
-  features: {
-    analytics: true,
-    email: false,
-    socials: false,
-    emailShowWallets: false,
-  },
-  metadata: {
-    name: 'Chainbills',
-    description: 'Chainbills',
-    url: window.location.origin,
-    icons: [`${window.location.origin}/assets/chainbills-light.png`],
+const wagmiConfig = createConfig({
+  chains: [megaeth, arcTestnet, sepolia],
+  connectors: [injected()],
+  transports: {
+    [megaeth.id]: http(),
+    [arcTestnet.id]: http(),
+    [sepolia.id]: http(),
   },
 });
-
-const solanaWalletOptions: any = {
-  wallets: [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-  autoConnect: true,
-  cluster: 'devnet',
-};
 
 /**
  * PrimeVue theme preset — the "liquid glass" restyle of the Aura preset.
@@ -262,8 +239,8 @@ createApp(App)
   .directive('ripple', Ripple)
   .directive('reveal', vReveal)
   .use(router)
-  .use(SolanaWallets, solanaWalletOptions)
+  .use(createGtag({ tagId: 'G-H8GS7VVSED', pageTracker: { router } }))
   .use(ToastService)
-  .use(WagmiPlugin, { config: wagmiAdapter.wagmiConfig })
+  .use(WagmiPlugin, { config: wagmiConfig })
   .use(VueQueryPlugin, { queryClient: new QueryClient() })
   .mount('#app');

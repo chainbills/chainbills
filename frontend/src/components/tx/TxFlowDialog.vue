@@ -27,7 +27,7 @@ import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import { useAnalyticsStore, useTxFlowStore } from '@/stores';
 import type { TxFlow, TxStep } from '@/stores/tx-flow';
 import Button from 'primevue/button';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { primaryActionsFor, type FlowAction } from './flow-actions';
 import { useTxRetry } from './retry';
@@ -70,7 +70,19 @@ watch(
   }
 );
 
+/** Whether the panel is currently fading out before auto-close. */
+const fadingOut = ref(false);
+let collapseTimer: ReturnType<typeof setTimeout> | null = null;
+let fadeTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearAutoTimers = () => {
+  if (collapseTimer) { clearTimeout(collapseTimer); collapseTimer = null; }
+  if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+};
+
 const close = () => {
+  clearAutoTimers();
+  fadingOut.value = false;
   txFlow.dismiss();
   shownFlow.value = null;
 };
@@ -93,20 +105,39 @@ const asTxStep = (step: StepperStep) => step as unknown as TxStep;
 /** When true, the panel shows only the header bar (title + status). */
 const collapsed = ref(false);
 
-watch(
-  () => flow.value?.status,
-  (status) => {
-    if (status && status !== 'running') collapsed.value = false;
-  }
-);
-
 /** Shows "Continue in background" instead of the plain "keep this window open" hint once the active step is a background-eligible wait (e.g. a relay). */
 const showBackgroundButton = computed(() => !!flow.value?.canRunInBackground && activeStep.value?.status === 'waiting');
 
 const continueInBackground = () => {
+  clearAutoTimers();
   if (flow.value) txFlow.moveToBackground(flow.value.id);
   shownFlow.value = null;
 };
+
+/** Auto-collapse then fade when all steps are done (success) or the only remaining step is a background relay. */
+watch(
+  [() => flow.value?.status, showBackgroundButton],
+  ([status, canBackground]) => {
+    clearAutoTimers();
+    if (status === 'succeeded' || canBackground) {
+      collapsed.value = true;
+      collapseTimer = setTimeout(() => {
+        fadingOut.value = true;
+        fadeTimer = setTimeout(() => {
+          if (canBackground) {
+            continueInBackground();
+          } else {
+            close();
+          }
+          fadingOut.value = false;
+        }, 350);
+      }, 1000);
+    }
+  },
+  { immediate: false }
+);
+
+onBeforeUnmount(clearAutoTimers);
 
 const tryAgain = () => {
   close();
@@ -144,7 +175,8 @@ const runAction = (action: FlowAction) => {
   <Teleport to="body">
     <div
       v-if="flow"
-      class="fixed z-50 bottom-4 right-4 left-4 sm:left-auto w-auto sm:w-full sm:max-w-sm shadow-glass"
+      class="fixed z-50 bottom-4 right-4 left-4 sm:left-auto w-auto sm:w-full sm:max-w-sm shadow-glass transition-[opacity,transform] duration-[350ms] ease-out"
+      :class="fadingOut ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'"
     >
       <div class="glass-popover rounded-2xl overflow-hidden">
         <!-- Panel header -->
@@ -155,10 +187,13 @@ const runAction = (action: FlowAction) => {
             <p v-if="collapsed && activeStep" class="text-xs text-muted mt-0.5 truncate">{{ activeStep.description }}</p>
           </div>
           <div class="flex items-center gap-1 shrink-0">
-            <!-- Status dot (running) -->
+            <!-- Status dot (running = pulsing accent, succeeded = solid green) -->
             <span v-if="flow.status === 'running'" class="relative flex w-2 h-2 mr-1" aria-hidden="true">
               <span class="absolute inline-flex h-full w-full rounded-full bg-accent animate-ping opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+            </span>
+            <span v-else-if="flow.status === 'succeeded'" class="relative flex w-2 h-2 mr-1" aria-hidden="true">
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
             </span>
             <!-- Collapse toggle -->
             <button

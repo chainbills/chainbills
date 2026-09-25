@@ -15,10 +15,7 @@
  *    ids (linked to `/receipt/:id`) plus source/destination chains; a
  *    still-in-flight cross-chain `UserPaid` shows a "checking delivery"
  *    state while `payment.trackArrival` runs, then "Delivered"/"Pending".
- *  - `Withdrew`: gross amount, the 2% (or chain-configured) withdrawal fee,
- *    and the net amount the host received — the fee is derived from
- *    `stats.getChainStats(chain).withdrawalFeePercentage` since
- *    `Withdrawal.amount` itself already has the fee deducted.
+ *  - `Withdrew`: the on-chain net amount received.
  *
  * Usage: `<ActivityDetailPanel :activity="activity" @resolved="onResolved" />`
  */
@@ -33,7 +30,7 @@ import {
   Withdrawal,
   type Activity,
 } from '@/schemas';
-import { usePaymentStore, useStatsStore } from '@/stores';
+import { usePaymentStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps<{
@@ -47,14 +44,10 @@ const emit = defineEmits<{
 }>();
 
 const payment = usePaymentStore();
-const stats = useStatsStore();
 
 /** `'idle'` when there's nothing to check (not a pending cross-chain `UserPaid`), `'checking'` while `trackArrival` polls, then `'arrived'`/`'pending'`. */
 const arrivalStatus = ref<'idle' | 'checking' | 'arrived' | 'pending'>('idle');
 const destinationPaymentId = ref<string | null>(null);
-
-/** Gross/fee/net breakdown for a `Withdrew` activity, filled in once the withdrawal's chain config loads. */
-const withdrawalFee = ref<{ gross: bigint; fee: bigint } | null>(null);
 
 const entity = computed(() => props.activity.entity);
 
@@ -67,18 +60,6 @@ onMounted(async () => {
     if (arrived && payablePayment) destinationPaymentId.value = payablePayment.id;
     arrivalStatus.value = arrived ? 'arrived' : 'pending';
     emit('resolved', arrived);
-  }
-
-  if (props.activity.type === ActivityType.Withdrew && e instanceof Withdrawal) {
-    const chainStats = await stats.getChainStats(e.chain);
-    if (chainStats) {
-      const feeBps = BigInt(chainStats.withdrawalFeePercentage);
-      // `e.amount` is already net of the fee — reconstruct the pre-fee gross by inverting the
-      // contract's `fee = gross * feeBps / 10000` (rounding differences against the exact
-      // on-chain fee are possible but stay within a fraction of a token unit).
-      const gross = feeBps >= 10_000n ? e.amount : (e.amount * 10_000n) / (10_000n - feeBps);
-      withdrawalFee.value = { gross, fee: gross - e.amount };
-    }
   }
 });
 
@@ -97,17 +78,12 @@ const items = computed<KeyValueItem[]>(() => {
     return [...base, { key: 'route', label: 'Route' }, { key: 'payment', label: 'Payment' }];
   }
   if (a.type === ActivityType.Withdrew) {
-    return [
-      ...base,
-      { key: 'gross', label: 'Gross amount' },
-      { key: 'fee', label: 'Withdrawal fee' },
-      { key: 'net', label: 'Net received' },
-    ];
+    return [...base, { key: 'amount', label: 'Amount' }];
   }
   if (a.type === ActivityType.InitializedUser) {
     return [...base, { key: 'wallet', label: 'Wallet' }];
   }
-  return [...base, { key: 'host', label: 'Host' }];
+  return [...base, { key: 'host', label: 'Owner' }];
 });
 
 const absoluteTimestamp = computed(() => new Date(props.activity.timestamp * 1000).toLocaleString());
@@ -122,7 +98,7 @@ const absoluteTimestamp = computed(() => new Date(props.activity.timestamp * 100
       <span class="font-mono text-xs break-all">{{ activity.entityId }}</span>
     </template>
     <template #chain>
-      <ChainBadge :chain="activity.chain" size="sm" network />
+      <ChainBadge :chain="activity.chain" size="sm" />
     </template>
     <template #counts>
       <span class="font-mono text-xs"
@@ -136,54 +112,31 @@ const absoluteTimestamp = computed(() => new Date(props.activity.timestamp * 100
     <template #route v-if="entity instanceof UserPayment || entity instanceof PayablePayment">
       <span class="inline-flex items-center gap-2">
         <ChainBadge :chain="entity instanceof UserPayment ? activity.chain : entity.payerChain" size="sm" />
-        <span class="text-muted">→</span>
+        <span class="text-muted text-xs">-&gt;</span>
         <ChainBadge :chain="entity instanceof UserPayment ? entity.payableChain : activity.chain" size="sm" />
       </span>
     </template>
     <template #payment v-if="entity instanceof UserPayment || entity instanceof PayablePayment">
-      <div class="flex flex-col items-end gap-1">
-        <router-link :to="`/receipt/${activity.id}`" class="text-accent hover:underline text-xs font-mono">
-          {{ activity.id.slice(0, 10) }}…
-        </router-link>
+      <div class="flex flex-col items-end gap-2">
+        <AddressChip :value="activity.id" kind="id" :to="`/receipt/${activity.id}`" />
         <template v-if="entity instanceof PayablePayment">
-          <router-link :to="`/receipt/${entity.payerPaymentId}`" class="text-accent hover:underline text-xs font-mono">
-            from {{ entity.payerPaymentId.slice(0, 10) }}…
-          </router-link>
+          <AddressChip :value="entity.payerPaymentId" kind="id" :to="`/receipt/${entity.payerPaymentId}`" />
         </template>
         <template v-else-if="entity.isCrossChain">
-          <StatusPill v-if="arrivalStatus === 'checking'" tone="info" label="Checking delivery…" pulse />
+          <StatusPill v-if="arrivalStatus === 'checking'" tone="info" label="Checking delivery" pulse />
           <StatusPill v-else-if="arrivalStatus === 'pending'" tone="warning" label="Delivery pending" pulse />
-          <router-link
+          <AddressChip
             v-else-if="arrivalStatus === 'arrived' && destinationPaymentId"
+            :value="destinationPaymentId"
+            kind="id"
             :to="`/receipt/${destinationPaymentId}`"
-            class="text-accent hover:underline text-xs font-mono"
-          >
-            Delivered → {{ destinationPaymentId.slice(0, 10) }}…
-          </router-link>
+          />
         </template>
       </div>
     </template>
 
-    <!-- Withdrawal fee breakdown. -->
-    <template #gross v-if="entity instanceof Withdrawal">
-      <TokenAmount
-        v-if="withdrawalFee"
-        :amount="new TokenAndAmount(entity.token, withdrawalFee.gross)"
-        :chain="entity.chain"
-        size="sm"
-      />
-      <span v-else class="text-muted text-xs">Loading…</span>
-    </template>
-    <template #fee v-if="entity instanceof Withdrawal">
-      <TokenAmount
-        v-if="withdrawalFee"
-        :amount="new TokenAndAmount(entity.token, withdrawalFee.fee)"
-        :chain="entity.chain"
-        size="sm"
-      />
-      <span v-else class="text-muted text-xs">Loading…</span>
-    </template>
-    <template #net v-if="entity instanceof Withdrawal">
+    <!-- Withdrawal amount (on-chain net received). -->
+    <template #amount v-if="entity instanceof Withdrawal">
       <TokenAmount :amount="new TokenAndAmount(entity.token, entity.amount)" :chain="entity.chain" size="sm" />
     </template>
 

@@ -95,9 +95,9 @@ const feeLabel = computed(() => {
       </div>
       <p class="text-[11px] text-muted mt-1">
         <template v-if="payable.isAutoWithdraw">
-          Each payment is sent straight to the host's wallet minus the fee.
+          Each payment is sent straight to the owner's wallet minus the fee.
         </template>
-        <template v-else> Payments accumulate in the payable's balance until the host withdraws. </template>
+        <template v-else> Payments accumulate in the payable's balance until the owner withdraws. </template>
       </p>
     </div>
 

@@ -69,10 +69,6 @@ export const useServerStore = defineStore('server', () => {
     return await call(`/payable/${payableId}`, null, ignoreErrors);
   };
 
-  const saveNotificationToken = async (fcmToken: string): Promise<boolean> => {
-    return await call('/notifications', { fcmToken });
-  };
-
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
   const volumes = async (): Promise<any> => {
@@ -82,7 +78,6 @@ export const useServerStore = defineStore('server', () => {
   return {
     createPayable,
     getPayable,
-    saveNotificationToken,
     volumes,
   };
 });

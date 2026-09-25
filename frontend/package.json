@@ -17,27 +17,33 @@
     "@fontsource-variable/space-grotesk": "^5.3.0",
     "@primevue/themes": "^4.3.3",
     "@project-serum/anchor": "^0.26.0",
-    "@reown/appkit": "^1.7.3",
-    "@reown/appkit-adapter-wagmi": "^1.7.3",
     "@scure/base": "^1.2.5",
+    "@solana/connector": "^0.2.6",
     "@solana/spl-token": "^0.4.13",
-    "@solana/wallet-adapter-wallets": "^0.19.36",
     "@solana/web3.js": "^1.98.2",
     "@tanstack/vue-query": "^5.74.6",
     "@wagmi/vue": "^0.1.16",
     "bs58": "^6.0.0",
     "dompurify": "^3.2.5",
-    "firebase": "^11.6.1",
+    "idb": "^8.0.3",
     "pinia": "^3.0.1",
     "primevue": "^4.3.3",
     "qrcode": "^1.5.4",
-    "solana-wallets-vue": "^0.7.1",
     "tailwindcss-primeui": "^0.6.1",
     "viem": "^2.48.11",
     "vue": "^3.5.13",
+    "vue-gtag": "^3.7.1",
     "vue-router": "^4.5.0",
     "vue3-loading-shimmer": "^1.0.0",
     "wagmi": "^2.15.0"
+  },
+  "overrides": {
+    "@solana/spl-token-group": {
+      "@solana/codecs": "^7.0.0"
+    },
+    "@solana/spl-token-metadata": {
+      "@solana/codecs": "^7.0.0"
+    }
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.1",

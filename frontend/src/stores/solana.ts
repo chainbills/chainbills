@@ -1,5 +1,6 @@
 import { OnChainSuccess, TokenAndAmount, User, contracts, solanadevnet, type Chain, type Token } from '@/schemas';
 import { useAnalyticsStore } from '@/stores/analytics';
+import { errorMsg } from '@/stores/errors';
 import { IDL } from '@/stores/idl';
 import { AnchorProvider, BN, Program } from '@coral-xyz/anchor';
 import {
@@ -10,9 +11,10 @@ import {
 } from '@solana/spl-token';
 import { Connection, PublicKey, SystemProgram, clusterApiUrl } from '@solana/web3.js';
 import bs58 from 'bs58';
+import { useSolanaConnector } from '@/composables/useSolanaConnector';
+import { isConnected } from '@solana/connector/headless';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { useAnchorWallet, useWallet as useSolanaWallet } from 'solana-wallets-vue';
 
 const USDC_MINT = new PublicKey('4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
 
@@ -75,17 +77,26 @@ function isNativeSol(tokenAddress: string): boolean {
 
 export const useSolanaStore = defineStore('solana', () => {
   const analytics = useAnalyticsStore();
-  const anchorWallet = useAnchorWallet();
+  const solanaConnector = useSolanaConnector();
   const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
-  const solanaWallet = useSolanaWallet();
   const toast = useToast();
+
+  const getPublicKey = (): PublicKey | null => {
+    const address = solanaConnector.solanaAddress.value;
+    return address ? new PublicKey(address) : null;
+  };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const program = (): any => {
-    const provider = anchorWallet.value
-      ? new AnchorProvider(connection, anchorWallet.value, { commitment: 'confirmed' })
-      : new AnchorProvider(connection, {} as any, { commitment: 'confirmed' });
-    return new Program(IDL, provider);
+    const walletStatus = solanaConnector.state.value.wallet;
+    const walletAdapter = isConnected(walletStatus)
+      ? {
+          publicKey: new PublicKey(walletStatus.session.selectedAccount.address as string),
+          signTransaction: async (tx: any) => tx,
+          signAllTransactions: async (txs: any[]) => txs,
+        }
+      : ({} as any);
+    return new Program(IDL, new AnchorProvider(connection, walletAdapter, { commitment: 'confirmed' }));
   };
 
   const acct = (prog: any) => prog.account as Record<string, any>;
@@ -98,7 +109,7 @@ export const useSolanaStore = defineStore('solana', () => {
       return new OnChainSuccess({ created, txHash, chain: solanadevnet });
     } catch (e) {
       if (!`${e}`.includes('rejected')) {
-        toastError(`${e}`);
+        toastError(errorMsg(e));
         analytics.recordEvent('failed_solana_transaction');
         console.error(e);
       } else {
@@ -111,13 +122,13 @@ export const useSolanaStore = defineStore('solana', () => {
   /** Raw on-chain balance (lamports, or the SPL token's smallest unit) of the given token for the connected wallet. Returns null on error. */
   const balance = async (token: Token): Promise<bigint | null> => {
     try {
-      if (!anchorWallet.value) return null;
+      if (!solanaConnector.isConnectedSolana.value) return null;
       if (!token.details.solanadevnet) return null;
       const addr = token.details.solanadevnet.address;
       if (isNativeSol(addr)) {
-        return BigInt(await connection.getBalance(anchorWallet.value.publicKey));
+        return BigInt(await connection.getBalance(getPublicKey()!));
       }
-      const ata = getATA(new PublicKey(addr), anchorWallet.value.publicKey);
+      const ata = getATA(new PublicKey(addr), getPublicKey()!);
       return BigInt((await connection.getTokenAccountBalance(ata)).value.amount);
     } catch (e) {
       if (`${e}`.includes('could not find account')) return 0n;
@@ -131,11 +142,11 @@ export const useSolanaStore = defineStore('solana', () => {
     tokensAndAmounts: TokenAndAmount[],
     isAutoWithdraw: boolean
   ): Promise<OnChainSuccess | null> => {
-    if (!anchorWallet.value) {
+    const signer = getPublicKey();
+    if (!signer) {
       toastError('Connect Solana Wallet First!');
       return null;
     }
-    const signer = anchorWallet.value.publicKey;
     const prog = program();
 
     const [statsData, userRecDataOrNull] = await Promise.all([
@@ -178,7 +189,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
   /** Close a payable (stop accepting payments). */
   const closePayable = async (payableId: string): Promise<OnChainSuccess | null> => {
-    if (!anchorWallet.value) {
+    if (!solanaConnector.isConnectedSolana.value) {
       toastError('Connect Solana Wallet First!');
       return null;
     }
@@ -187,7 +198,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
   /** Reopen a closed payable. */
   const reopenPayable = async (payableId: string): Promise<OnChainSuccess | null> => {
-    if (!anchorWallet.value) {
+    if (!solanaConnector.isConnectedSolana.value) {
       toastError('Connect Solana Wallet First!');
       return null;
     }
@@ -199,11 +210,11 @@ export const useSolanaStore = defineStore('solana', () => {
     payableId: string,
     tokensAndAmounts: TokenAndAmount[]
   ): Promise<OnChainSuccess | null> => {
-    if (!anchorWallet.value) {
+    const signer = getPublicKey();
+    if (!signer) {
       toastError('Connect Solana Wallet First!');
       return null;
     }
-    const signer = anchorWallet.value.publicKey;
     const prog = program();
     const payableKey = new PublicKey(payableId);
 
@@ -234,7 +245,7 @@ export const useSolanaStore = defineStore('solana', () => {
     payableId: string,
     { amount, details, name: tokenName }: TokenAndAmount
   ): Promise<OnChainSuccess | null> => {
-    if (!anchorWallet.value) {
+    if (!solanaConnector.isConnectedSolana.value) {
       toastError('Connect Solana Wallet First!');
       return null;
     }
@@ -242,7 +253,7 @@ export const useSolanaStore = defineStore('solana', () => {
       toastError('Token not supported on Solana');
       return null;
     }
-    const signer = anchorWallet.value.publicKey;
+    const signer = getPublicKey()!;
     const prog = program();
     const payableKey = new PublicKey(payableId);
 
@@ -337,7 +348,7 @@ export const useSolanaStore = defineStore('solana', () => {
     { amount, details }: TokenAndAmount,
     payableChain: Chain
   ): Promise<OnChainSuccess | null> => {
-    if (!anchorWallet.value) {
+    if (!solanaConnector.isConnectedSolana.value) {
       toastError('Connect Solana Wallet First!');
       return null;
     }
@@ -345,7 +356,7 @@ export const useSolanaStore = defineStore('solana', () => {
       toastError('Only USDC supported for cross-chain payments');
       return null;
     }
-    const signer = anchorWallet.value.publicKey;
+    const signer = getPublicKey()!;
     const prog = program();
 
     const foreignPayableIdBytes = hexToBytes32(payableId);
@@ -402,7 +413,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
   /** Withdraw from a Solana payable. */
   const withdraw = async (payableId: string, { amount, details }: TokenAndAmount): Promise<OnChainSuccess | null> => {
-    if (!anchorWallet.value) {
+    if (!solanaConnector.isConnectedSolana.value) {
       toastError('Connect Solana Wallet First!');
       return null;
     }
@@ -410,7 +421,7 @@ export const useSolanaStore = defineStore('solana', () => {
       toastError('Token not supported on Solana');
       return null;
     }
-    const signer = anchorWallet.value.publicKey;
+    const signer = getPublicKey()!;
     const prog = program();
     const payableKey = new PublicKey(payableId);
 
@@ -491,7 +502,7 @@ export const useSolanaStore = defineStore('solana', () => {
     } catch (e) {
       if (!ignoreErrors) {
         console.error(e);
-        toastError(`${e}`);
+        toastError(errorMsg(e));
       }
       return null;
     }
@@ -499,9 +510,9 @@ export const useSolanaStore = defineStore('solana', () => {
 
   /** Current user record (null if not initialized). */
   const getCurrentUser = async (): Promise<User | null> => {
-    if (!anchorWallet.value) return null;
-    const wallet = anchorWallet.value.publicKey.toBase58();
-    const pdaAddr = userRecordPDA(anchorWallet.value.publicKey).toBase58();
+    if (!solanaConnector.isConnectedSolana.value) return null;
+    const wallet = getPublicKey()!.toBase58();
+    const pdaAddr = userRecordPDA(getPublicKey()!).toBase58();
     try {
       return new User(solanadevnet, wallet, await fetchEntity('userRecord', pdaAddr));
     } catch (_) {
@@ -511,29 +522,40 @@ export const useSolanaStore = defineStore('solana', () => {
 
   /** ID of the nth payable created by the connected wallet (1-based). */
   const getUserPayableId = async (count: number): Promise<string | null> => {
-    if (!anchorWallet.value) return null;
-    const userRec = await tryFetchEntity('userRecord', userRecordPDA(anchorWallet.value.publicKey).toBase58(), true);
+    if (!solanaConnector.isConnectedSolana.value) return null;
+    const userRec = await tryFetchEntity('userRecord', userRecordPDA(getPublicKey()!).toBase58(), true);
     if (!userRec) return null;
-    return payablePDA(anchorWallet.value.publicKey, BigInt(count) - 1n).toBase58();
+    return payablePDA(getPublicKey()!, BigInt(count) - 1n).toBase58();
   };
 
   /** ID of the nth payment made by the connected wallet (1-based). */
   const getUserPaymentId = async (count: number): Promise<string | null> => {
-    if (!anchorWallet.value) return null;
-    return userPaymentPDA(anchorWallet.value.publicKey, BigInt(count) - 1n).toBase58();
+    if (!solanaConnector.isConnectedSolana.value) return null;
+    return userPaymentPDA(getPublicKey()!, BigInt(count) - 1n).toBase58();
   };
 
   /** ID of the nth payment received by a payable (1-based). */
   const getPayablePaymentId = (payableId: string, count: number): string =>
     payablePaymentPDA(new PublicKey(payableId), BigInt(count) - 1n).toBase58();
 
-  /** Sign an arbitrary message with the connected wallet. */
+  /** Sign an arbitrary message with the connected wallet (Wallet Standard signMessage feature). */
   const sign = async (message: string): Promise<string | null> => {
-    if (!solanaWallet.connected.value) {
+    const walletStatus = solanaConnector.state.value.wallet;
+    if (!isConnected(walletStatus)) {
       toastError('Connect Solana Wallet First!');
       return null;
     }
-    return bs58.encode(await solanaWallet.signMessage.value!(new TextEncoder().encode(message)));
+    const account = walletStatus.session.selectedAccount.account;
+    const signFeature = (account.features as any)['solana:signMessage'];
+    if (!signFeature) {
+      toastError('Wallet does not support message signing');
+      return null;
+    }
+    const [result] = await signFeature.signMessage([{
+      message: new TextEncoder().encode(message),
+      account,
+    }]);
+    return bs58.encode(result.signature);
   };
 
   // ── Internal helpers ─────────────────────────────────────────────────────────
@@ -567,7 +589,7 @@ export const useSolanaStore = defineStore('solana', () => {
 
   /** Shared logic for close/reopen payable. */
   const _payableAction = async (method: string, payableId: string): Promise<OnChainSuccess | null> => {
-    const signer = anchorWallet.value!.publicKey;
+    const signer = getPublicKey()!;
     const prog = program();
     const payableKey = new PublicKey(payableId);
 

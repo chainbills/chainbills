@@ -9,6 +9,7 @@
 // `views/UserActivityView.vue`, `stores/activity.ts`.
 import { chainNames, chainNamesToChains, Payable, TokenAndAmount, Withdrawal, type ChainName } from '@/schemas';
 import {
+  errorMsg,
   useAnalyticsStore,
   useAuthStore,
   useCacheStore,
@@ -209,7 +210,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       return withdrawals;
     } catch (e) {
       console.error(e);
-      toastError(`${e}`);
+      toastError(errorMsg(e));
       return null;
     }
   };
@@ -273,7 +274,7 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       return withdrawals;
     } catch (e) {
       console.error(e);
-      toastError(`${e}`);
+      toastError(errorMsg(e));
       return null;
     }
   };

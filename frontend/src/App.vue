@@ -5,11 +5,10 @@
  * router view and the global toast host.
  *
  * The stores instantiated here (`useAuthStore`, `useCacheStore`,
- * `useNotificationsStore`, `useThemeStore`) have no template output of their
- * own; calling them once at the root ensures their `onMounted` side effects
- * (wallet auth listeners, cache hydration, FCM token setup, the initial
- * theme class) run exactly once for the whole app rather than once per
- * component that happens to use them.
+ * `useThemeStore`) have no template output of their own; calling them once
+ * at the root ensures their `onMounted` side effects (wallet auth listeners,
+ * cache hydration, the initial theme class) run exactly once for the whole
+ * app rather than once per component that happens to use them.
  */
 import AmbientBackdrop from '@/components/ui/AmbientBackdrop.vue';
 import IconChip from '@/components/ui/IconChip.vue';
@@ -17,13 +16,12 @@ import Footer from '@/components/Footer.vue';
 import Header from '@/components/Header.vue';
 import Sidebar from '@/components/Sidebar.vue';
 import TxFlowDialog from '@/components/tx/TxFlowDialog.vue';
-import { useAuthStore, useCacheStore, useNotificationsStore, useThemeStore } from '@/stores';
+import { useAuthStore, useCacheStore, useThemeStore } from '@/stores';
 import Toast from 'primevue/toast';
 import { RouterView } from 'vue-router';
 
 useAuthStore();
 useCacheStore();
-useNotificationsStore();
 useThemeStore();
 
 /** Maps a PrimeVue toast severity to the `IconChip` tone and PrimeIcons class
@@ -58,47 +56,47 @@ const visualsFor = (severity: string) => toastVisuals[severity] ?? toastVisuals.
 
   <Header />
 
-  <main class="p-8 lg:px-12">
+  <main class="px-4 py-8 sm:px-8 lg:px-12">
     <Sidebar />
 
     <RouterView />
-
-    <Toast>
-      <template #message="slotProps">
-        <div class="flex flex-col gap-2 w-full">
-          <div class="flex gap-3 items-start">
-            <IconChip :tone="visualsFor(slotProps.message.severity).tone">
-              <span :class="['pi', visualsFor(slotProps.message.severity).icon]"></span>
-            </IconChip>
-            <div class="flex flex-col gap-1 min-w-0">
-              <div class="font-semibold text-sm text-fg">{{ slotProps.message.summary }}</div>
-              <div class="text-sm text-muted">{{ slotProps.message.detail }}</div>
-              <a
-                v-if="slotProps.message.data?.url"
-                :href="slotProps.message.data.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-xs text-accent underline hover:opacity-80 transition-opacity w-fit"
-              >
-                View on Explorer
-              </a>
-            </div>
-          </div>
-          <!-- Countdown bar: shrinks from full width to empty over the
-               toast's own `life` duration, giving a visual cue for how long
-               is left before it auto-dismisses. -->
-          <div class="h-0.5 rounded-full bg-fg/10 overflow-hidden">
-            <div
-              class="h-full bg-accent origin-left toast-countdown"
-              :style="{ animationDuration: `${slotProps.message.life ?? 3000}ms` }"
-            ></div>
-          </div>
-        </div>
-      </template>
-    </Toast>
   </main>
 
   <TxFlowDialog />
+
+  <Toast position="top-right">
+    <template #message="slotProps">
+      <div class="flex flex-col gap-2 w-full">
+        <div class="flex gap-3 items-start">
+          <IconChip :tone="visualsFor(slotProps.message.severity).tone">
+            <span :class="['pi', visualsFor(slotProps.message.severity).icon]"></span>
+          </IconChip>
+          <div class="flex flex-col gap-1 min-w-0">
+            <div class="font-semibold text-sm text-fg">{{ slotProps.message.summary }}</div>
+            <div class="text-sm text-muted line-clamp-3">{{ slotProps.message.detail }}</div>
+            <a
+              v-if="slotProps.message.data?.url"
+              :href="slotProps.message.data.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-xs text-accent underline hover:opacity-80 transition-opacity w-fit"
+            >
+              View on Explorer
+            </a>
+          </div>
+        </div>
+        <!-- Countdown bar: shrinks from full width to empty over the
+             toast's own `life` duration, giving a visual cue for how long
+             is left before it auto-dismisses. -->
+        <div class="h-0.5 rounded-full bg-fg/10 overflow-hidden">
+          <div
+            class="h-full bg-accent origin-left toast-countdown"
+            :style="{ animationDuration: `${slotProps.message.life ?? 3000}ms` }"
+          ></div>
+        </div>
+      </div>
+    </template>
+  </Toast>
 
   <Footer />
 </template>

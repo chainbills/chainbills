@@ -11,7 +11,11 @@
  */
 import ThemeMenu from '@/components/ThemeMenu.vue';
 import TxBackgroundTray from '@/components/tx/TxBackgroundTray.vue';
+import IconBlog from '@/icons/IconBlog.vue';
+import IconDashboard from '@/icons/IconDashboard.vue';
+import IconGlobe from '@/icons/IconGlobe.vue';
 import IconMenu from '@/icons/IconMenu.vue';
+import IconReplay from '@/icons/IconReplay.vue';
 import { useAnalyticsStore, useSidebarStore, useThemeStore } from '@/stores';
 import Button from 'primevue/button';
 import { onMounted, onUnmounted, ref } from 'vue';
@@ -37,9 +41,9 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll));
  *  until then it resolves to the 404 page, which is an acceptable interim
  *  state per the design system brief. */
 const navLinks = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/activity', label: 'Activity' },
-  { to: '/scan', label: 'Scan' },
+  { to: '/dashboard', label: 'Dashboard', icon: IconDashboard },
+  { to: '/activity', label: 'My Activity', icon: IconReplay },
+  { to: '/scan', label: 'Scan', icon: IconGlobe },
 ];
 
 const isActive = (to: string) => route.path === to || route.path.startsWith(`${to}/`);
@@ -63,43 +67,54 @@ const isActive = (to: string) => route.path === to || route.path.startsWith(`${t
     ></div>
 
     <div class="relative h-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-      <router-link to="/" class="flex items-center gap-2 shrink-0">
-        <img
-          :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
-          class="h-8 w-8"
-          alt="Chainbills"
-        />
-        <span class="font-display text-lg text-fg">Chainbills</span>
-      </router-link>
+      <!-- Left group: logo + primary nav -->
+      <div class="flex items-center gap-2">
+        <router-link to="/" class="flex items-center gap-2 shrink-0 mr-6">
+          <img
+            :src="`/assets/chainbills-${theme.isDisplayDark ? 'dark' : 'light'}.png`"
+            class="h-8 w-8"
+            alt="Chainbills"
+          />
+          <span class="font-display text-lg text-fg">Chainbills</span>
+        </router-link>
 
-      <nav class="max-md:hidden">
-        <ul class="flex items-center gap-6">
-          <li v-for="link in navLinks" :key="link.to">
-            <router-link :to="link.to" :class="isActive(link.to) ? 'text-accent' : 'text-muted hover:text-fg'">
-              {{ link.label }}
-            </router-link>
-          </li>
-          <li>
-            <a
-              href="https://blog.chainbills.xyz"
-              rel="noopener noreferrer"
-              target="_blank"
-              class="text-muted hover:text-fg"
-              @click="analytics.recordNavigation('/blog', 'blog')"
-            >
-              Blog
-            </a>
-          </li>
-        </ul>
-      </nav>
+        <nav class="max-[876px]:hidden">
+          <ul class="flex items-center gap-1">
+            <li v-for="link in navLinks" :key="link.to">
+              <router-link
+                :to="link.to"
+                :class="[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm transition-colors',
+                  isActive(link.to) ? 'text-accent bg-accent/10' : 'text-muted hover:text-fg hover:bg-fg/8',
+                ]"
+              >
+                <component :is="link.icon" class="w-4 h-4 shrink-0" />
+                {{ link.label }}
+              </router-link>
+            </li>
+            <li>
+              <a
+                href="https://blog.chainbills.xyz"
+                rel="noopener noreferrer"
+                target="_blank"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-muted hover:text-fg hover:bg-fg/8 transition-colors"
+                @click="analytics.recordNavigation('/blog', 'blog')"
+              >
+                <IconBlog class="w-4 h-4 shrink-0" />
+                Blog
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
 
       <div class="flex items-center gap-2">
         <TxBackgroundTray />
-        <div class="max-md:hidden flex items-center gap-2">
+        <div class="max-[876px]:hidden flex items-center gap-2">
           <SignInButton id="header" />
           <ThemeMenu />
         </div>
-        <Button @click="sidebar.open" text rounded aria-label="Open menu" title="Open menu" class="md:hidden text-fg">
+        <Button @click="sidebar.open" text rounded aria-label="Open menu" title="Open menu" class="min-[876px]:hidden text-fg">
           <IconMenu />
         </Button>
       </div>

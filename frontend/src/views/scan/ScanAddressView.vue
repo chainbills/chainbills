@@ -21,20 +21,10 @@
  * Reads go through `evm.publicClientFor` (wallet-less). The `auth` store is
  * consulted only to detect "This is you".
  */
-import ScanPayablesTable from '@/components/scan/ScanPayablesTable.vue';
-import ScanPaymentsTable from '@/components/scan/ScanPaymentsTable.vue';
-import ScanWithdrawalsTable from '@/components/scan/ScanWithdrawalsTable.vue';
 import { ActivityFeed, type ActivitySource } from '@/components/activity';
-import {
-  AddressChip,
-  ChainBadge,
-  EmptyState,
-  GlassCard,
-  NetworkPill,
-  SegmentedTabs,
-  Skeleton,
-  StatusPill,
-} from '@/components/ui';
+import type { SegmentedTabOption } from '@/components/ui';
+import { AddressChip, ChainBadge, EmptyState, GlassCard, Skeleton, StatusPill } from '@/components/ui';
+import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import {
   chainNamesEvm,
   chainNamesToChains,
@@ -45,16 +35,13 @@ import {
 } from '@/schemas';
 import { useAuthStore, useEvmStore } from '@/stores';
 import { DEFAULT_NETWORK } from '@/stores/scan';
-import { useScanStore } from '@/stores/scan';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import type { SegmentedTabOption } from '@/components/ui';
 
 const route = useRoute();
 const router = useRouter();
 const evm = useEvmStore();
 const auth = useAuthStore();
-const scan = useScanStore();
 
 /** The EVM address from the route parameter. */
 const address = route.params.address as string;
@@ -85,9 +72,7 @@ watch([network, activeTab, page], syncRoute);
 // -------------------------------------------------------------------------
 
 const isCurrentUser = computed(
-  () =>
-    !!auth.currentUser &&
-    auth.currentUser.walletAddress?.toLowerCase() === address.toLowerCase()
+  () => !!auth.currentUser && auth.currentUser.walletAddress?.toLowerCase() === address.toLowerCase()
 );
 
 // -------------------------------------------------------------------------
@@ -98,38 +83,33 @@ const isCurrentUser = computed(
 interface ChainPresence {
   chain: Chain;
   /** Null while loading; false when the call reverted (no activity). */
-  data: {
-    payablesCount: number;
-    paymentsCount: number;
-    withdrawalsCount: number;
-    activitiesCount: number;
-  } | null | false;
+  data:
+    | {
+        payablesCount: number;
+        paymentsCount: number;
+        withdrawalsCount: number;
+        activitiesCount: number;
+      }
+    | null
+    | false;
 }
 
 const chainPresences = ref<ChainPresence[]>([]);
 const presenceLoading = ref(false);
 
 /** The chains in the selected network where this address has activity. */
-const activeChains = computed<Chain[]>(() =>
-  chainPresences.value.filter((p) => !!p.data).map((p) => p.chain)
-);
+const activeChains = computed<Chain[]>(() => chainPresences.value.filter((p) => !!p.data).map((p) => p.chain));
 
 /** True when the address has no activity on any chain of the current network. */
-const noActivityOnNetwork = computed(() =>
-  !presenceLoading.value &&
-  chainPresences.value.length > 0 &&
-  chainPresences.value.every((p) => p.data === false)
+const noActivityOnNetwork = computed(
+  () => !presenceLoading.value && chainPresences.value.length > 0 && chainPresences.value.every((p) => p.data === false)
 );
 
-const otherNetwork = computed<ChainNetworkType>(() =>
-  network.value === 'mainnet' ? 'testnet' : 'mainnet'
-);
+const otherNetwork = computed<ChainNetworkType>(() => (network.value === 'mainnet' ? 'testnet' : 'mainnet'));
 
 const loadPresences = async () => {
   presenceLoading.value = true;
-  const chains = chainNamesEvm
-    .map((n) => chainNamesToChains[n])
-    .filter((c) => c.networkType === network.value);
+  const chains = chainNamesEvm.map((n) => chainNamesToChains[n]).filter((c) => c.networkType === network.value);
 
   chainPresences.value = chains.map((chain) => ({ chain, data: null }));
 
@@ -180,9 +160,7 @@ const tabOptions: SegmentedTabOption[] = [
 const PAGE_SIZE = 20;
 
 /** The first chain with activity, for single-chain paginated tables on the address page. */
-const firstActiveChain = computed<ChainName | null>(() =>
-  activeChains.value[0]?.name ?? null
-);
+const firstActiveChain = computed<ChainName | null>(() => activeChains.value[0]?.name ?? null);
 </script>
 
 <template>
@@ -198,33 +176,8 @@ const firstActiveChain = computed<ChainName | null>(() =>
             <StatusPill v-if="isCurrentUser" label="This is you" tone="accent" />
           </div>
         </div>
-
-        <!-- Network switch -->
-        <div class="flex items-center gap-3">
-          <NetworkPill :type="network" />
-          <SegmentedTabs
-            :modelValue="network"
-            :options="[{ label: 'Mainnet', value: 'mainnet' }, { label: 'Testnet', value: 'testnet' }]"
-            @update:modelValue="network = $event as ChainNetworkType"
-          />
-        </div>
       </div>
 
-      <!-- Per-chain explorer links (only chains with activity) -->
-      <div v-if="activeChains.length > 0" class="flex flex-wrap gap-2">
-        <a
-          v-for="chain in activeChains"
-          :key="chain.name"
-          :href="getWalletUrl(address, chain)"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs border border-glass-border text-muted hover:text-fg transition-colors"
-          :aria-label="`View on ${chain.displayName} explorer`"
-        >
-          <ChainBadge :chain="chain" :show-name="false" class="w-4 h-4" />
-          {{ chain.displayName }}
-        </a>
-      </div>
     </header>
 
     <!-- 2. Per-chain presence cards -->
@@ -243,16 +196,36 @@ const firstActiveChain = computed<ChainName | null>(() =>
 
           <!-- No activity on this chain -->
           <GlassCard v-else-if="presence.data === false" variant="dense" padding="px-5 py-4">
-            <div class="flex items-center gap-3">
-              <ChainBadge :chain="presence.chain" />
-              <span class="text-sm text-muted">No activity</span>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <ChainBadge :chain="presence.chain" />
+                <span class="text-sm text-muted">No activity</span>
+              </div>
+              <a
+                :href="getWalletUrl(address, presence.chain)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-muted hover:text-fg transition-colors"
+                :aria-label="`View on ${presence.chain.displayName} explorer`"
+              >
+                <IconOpenInNew class="w-4 h-4" />
+              </a>
             </div>
           </GlassCard>
 
           <!-- Has activity -->
           <GlassCard v-else variant="frost">
-            <div class="flex items-center gap-3 mb-3">
+            <div class="flex items-center justify-between gap-3 mb-3">
               <ChainBadge :chain="presence.chain" />
+              <a
+                :href="getWalletUrl(address, presence.chain)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-muted hover:text-fg transition-colors"
+                :aria-label="`View on ${presence.chain.displayName} explorer`"
+              >
+                <IconOpenInNew class="w-4 h-4" />
+              </a>
             </div>
             <dl class="grid grid-cols-2 gap-y-1.5 text-sm">
               <dt class="text-muted">Payables</dt>
@@ -271,10 +244,7 @@ const firstActiveChain = computed<ChainName | null>(() =>
 
     <!-- Empty state: no activity on any chain of the current network -->
     <div v-if="noActivityOnNetwork" class="py-16">
-      <EmptyState
-        title="No activity on this network"
-        :description="`This address has no activity on ${network} yet.`"
-      >
+      <EmptyState title="No activity on this network" :description="`This address has no activity on ${network} yet.`">
         <template #action>
           <button
             type="button"
@@ -289,53 +259,14 @@ const firstActiveChain = computed<ChainName | null>(() =>
 
     <!-- 3. Tabs (only shown when there is activity) -->
     <template v-if="!noActivityOnNetwork && activeChains.length > 0">
-      <SegmentedTabs v-model="activeTab" :options="tabOptions" />
-
-      <!-- Tab panels -->
-      <div>
-        <!-- Activity -->
-        <div v-show="activeTab === 'activity'" role="tabpanel" aria-label="Address activity feed">
-          <ActivityFeed
-            :source="activitySource"
-            :page-size="PAGE_SIZE"
-            searchable
-            filterable
-            :persist-key="`scan-address-${address}-${network}`"
-          />
-        </div>
-
-        <!-- Payables -->
-        <div v-show="activeTab === 'payables'" role="tabpanel" aria-label="Address payables">
-          <ScanPayablesTable
-            :chain-name="firstActiveChain"
-            :network-type="network"
-            :page="page"
-            :page-size="PAGE_SIZE"
-            @update:page="page = $event"
-          />
-        </div>
-
-        <!-- Payments -->
-        <div v-show="activeTab === 'payments'" role="tabpanel" aria-label="Address payments">
-          <ScanPaymentsTable
-            :chain-name="firstActiveChain"
-            :network-type="network"
-            :page="page"
-            :page-size="PAGE_SIZE"
-            @update:page="page = $event"
-          />
-        </div>
-
-        <!-- Withdrawals -->
-        <div v-show="activeTab === 'withdrawals'" role="tabpanel" aria-label="Address withdrawals">
-          <ScanWithdrawalsTable
-            :chain-name="firstActiveChain"
-            :network-type="network"
-            :page="page"
-            :page-size="PAGE_SIZE"
-            @update:page="page = $event"
-          />
-        </div>
+      <div aria-label="Address activity feed">
+        <ActivityFeed
+          :source="activitySource"
+          :page-size="PAGE_SIZE"
+          searchable
+          filterable
+          :persist-key="`scan-address-${address}-${network}`"
+        />
       </div>
     </template>
   </main>

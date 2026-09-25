@@ -19,8 +19,41 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionPanel from 'primevue/accordionpanel';
 import { computed, ref } from 'vue';
 
+const faqs = [
+  {
+    question: 'What is a payable?',
+    answer:
+      'A payable is a public, shareable invoice. A host creates one, configures what it accepts, and shares its link — anyone can pay it from any supported chain.',
+  },
+  {
+    question: 'How long do cross-chain payments take?',
+    answer:
+      "Usually 1-3 minutes: the payer's wallet burns funds via Circle CCTP, Circle attests to the burn, and the Chainbills relayer submits that attestation on the payable's home chain.",
+  },
+  {
+    question: 'What are the fees?',
+    answer:
+      "A flat 2% is taken when an owner withdraws — nothing is taken from the payer, and there's no subscription or setup cost.",
+  },
+  {
+    question: 'Can I restrict what a payable accepts?',
+    answer:
+      'Yes. Lock a payable to specific tokens and exact amounts, or leave it open to accept any amount of any supported token.',
+  },
+  {
+    question: 'Is Chainbills custodial?',
+    answer:
+      "No. Funds sit in the Chainbills contract on the payable's own chain until the owner withdraws them — Chainbills never takes custody.",
+  },
+  {
+    question: 'What is auto-withdraw?',
+    answer:
+      "A per-payable setting that sweeps every incoming payment straight to the host's wallet automatically, instead of waiting for a manual withdrawal.",
+  },
+];
+
 const analytics = useAnalyticsStore();
-const activePanels = ref<string[]>(['0']);
+const activePanels = ref<string[]>(faqs.map((_, i) => String(i)));
 
 const allExpanded = computed(() => activePanels.value.length === faqs.length);
 
@@ -37,63 +70,26 @@ const toggleAll = () => {
 const onFaqChange = (newVal: string | string[] | null | undefined) => {
   const next = Array.isArray(newVal) ? newVal : newVal != null ? [newVal] : [];
   const prev = activePanels.value;
-  next.filter((v) => !prev.includes(v)).forEach((v) => {
-    analytics.recordEvent('faq_expanded', { question: faqs[parseInt(v)]?.question });
-  });
-  prev.filter((v) => !next.includes(v)).forEach((v) => {
-    analytics.recordEvent('faq_collapsed', { question: faqs[parseInt(v)]?.question });
-  });
+  next
+    .filter((v) => !prev.includes(v))
+    .forEach((v) => {
+      analytics.recordEvent('faq_expanded', { question: faqs[parseInt(v)]?.question });
+    });
+  prev
+    .filter((v) => !next.includes(v))
+    .forEach((v) => {
+      analytics.recordEvent('faq_collapsed', { question: faqs[parseInt(v)]?.question });
+    });
   activePanels.value = next;
 };
-
-const faqs = [
-  {
-    question: 'What is a payable?',
-    answer:
-      'A payable is a public, shareable invoice. A host creates one, configures what it accepts, and shares its link — anyone can pay it from any supported chain.',
-  },
-  {
-    question: 'Which chains does Chainbills support?',
-    answer:
-      'MegaETH mainnet, Ethereum Sepolia and Arc Testnet today, all EVM. Solana support is in progress and shows as "coming soon" until it opens for payments.',
-  },
-  {
-    question: 'How long do cross-chain payments take?',
-    answer:
-      'Usually 1–3 minutes: the payer\'s wallet burns funds via Circle CCTP, Circle attests to the burn, and the Chainbills relayer submits that attestation on the payable\'s home chain.',
-  },
-  {
-    question: 'What are the fees?',
-    answer:
-      'A flat 2% is taken when a host withdraws — nothing is taken from the payer, and there\'s no subscription or setup cost.',
-  },
-  {
-    question: 'Can I restrict what a payable accepts?',
-    answer:
-      'Yes. Lock a payable to specific tokens and exact amounts, or leave it open to accept any amount of any supported token.',
-  },
-  {
-    question: 'Is Chainbills custodial?',
-    answer:
-      'No. Funds sit in the Chainbills contract on the payable\'s own chain until the host withdraws them — Chainbills never takes custody.',
-  },
-  {
-    question: 'What is auto-withdraw?',
-    answer:
-      'A per-payable setting that sweeps every incoming payment straight to the host\'s wallet automatically, instead of waiting for a manual withdrawal.',
-  },
-  {
-    question: 'Where is my payable\'s description stored?',
-    answer:
-      'Off-chain, on the Chainbills server — it\'s the one piece of a payable that isn\'t on-chain. Everything else (balances, settings, payments, withdrawals) lives on the chain itself.',
-  },
-];
 </script>
 
 <template>
   <section class="py-10 sm:py-14">
-    <SectionHeader eyebrow="FAQ" title="Questions," accent-tail="answered.">
-      <template #actions>
+    <SectionHeader eyebrow="FAQ" title="Questions," accent-tail="answered." />
+
+    <div class="max-w-4xl">
+      <div class="flex justify-end mb-4">
         <button
           type="button"
           class="text-xs font-medium text-muted hover:text-fg border border-glass-border rounded-full px-3 py-1.5 transition-colors"
@@ -101,17 +97,17 @@ const faqs = [
         >
           {{ allExpanded ? 'Collapse all' : 'Expand all' }}
         </button>
-      </template>
-    </SectionHeader>
+      </div>
 
-    <Accordion multiple :value="activePanels" class="cb-faq-accordion" @update:value="onFaqChange">
-      <AccordionPanel v-for="(faq, i) in faqs" :key="faq.question" :value="String(i)" v-reveal="{ delay: i * 40 }">
-        <AccordionHeader>{{ faq.question }}</AccordionHeader>
-        <AccordionContent>
-          <p class="text-sm text-muted pb-3">{{ faq.answer }}</p>
-        </AccordionContent>
-      </AccordionPanel>
-    </Accordion>
+      <Accordion multiple :value="activePanels" class="cb-faq-accordion" @update:value="onFaqChange">
+        <AccordionPanel v-for="(faq, i) in faqs" :key="faq.question" :value="String(i)" v-reveal="{ delay: i * 40 }">
+          <AccordionHeader>{{ faq.question }}</AccordionHeader>
+          <AccordionContent>
+            <p class="text-sm text-muted pt-4 pb-3">{{ faq.answer }}</p>
+          </AccordionContent>
+        </AccordionPanel>
+      </Accordion>
+    </div>
   </section>
 </template>
 
@@ -124,17 +120,22 @@ const faqs = [
   background: var(--glass-tint);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
   overflow: hidden;
 }
 .cb-faq-accordion :deep(.p-accordionheader) {
   background: transparent;
   color: var(--fg);
   font-weight: 500;
-  padding: 1rem 1.25rem;
+  padding: 1.125rem 1.5rem;
 }
 .cb-faq-accordion :deep(.p-accordioncontent-content) {
-  padding: 0 1.25rem;
+  padding: 0 1.5rem;
+  padding-bottom: 0.25rem;
+}
+.cb-faq-accordion :deep(.p-accordioncontent-content p) {
+  padding-bottom: 1.25rem;
+  line-height: 1.7;
 }
 .cb-faq-accordion :deep(.p-accordionpanel-active .p-accordionheader) {
   color: var(--accent);

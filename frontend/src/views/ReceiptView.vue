@@ -13,9 +13,7 @@
  * standalone from whatever `'pay-cross-chain'` tx-flow may or may not
  * still be tracking the same payment in the background. A cross-chain
  * `PayablePayment` instead links back to its origin `UserPayment` receipt.
- * A `Withdrawal` shows a gross/fee/net breakdown; only the net amount is
- * ever stored on-chain, so the gross and fee shown are estimates from the
- * chain's *current* fee config, labelled as such.
+ * A `Withdrawal` shows the on-chain amount received.
  */
 import CrossChainRoute from '@/components/tx/CrossChainRoute.vue';
 import {
@@ -31,12 +29,11 @@ import {
   type StepperStep,
 } from '@/components/ui';
 import ReceiptLoader from '@/components/ReceiptLoader.vue';
-import { PayablePayment, TokenAndAmount, UserPayment, Withdrawal, type Receipt } from '@/schemas';
+import { PayablePayment, UserPayment, Withdrawal, type Receipt } from '@/schemas';
 import {
   useAnalyticsStore,
   useAuthStore,
   usePaymentStore,
-  useStatsStore,
   useTimeStore,
   useWithdrawalStore,
 } from '@/stores';
@@ -49,7 +46,6 @@ import { useRoute } from 'vue-router';
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const paymentStore = usePaymentStore();
-const stats = useStatsStore();
 const time = useTimeStore();
 const toast = useToast();
 const withdrawalStore = useWithdrawalStore();
@@ -112,26 +108,6 @@ const trackDelivery = async (userPayment: UserPayment) => {
   }
 };
 
-// --- Withdrawal breakdown. The on-chain record keeps only the net amount, so the gross and fee here are reconstructed from the chain's *current* fee config and labelled as estimates. ---
-const withdrawalFeeBps = ref(0);
-const loadWithdrawalFeeConfig = async (withdrawal: Withdrawal) => {
-  const chainStats = await stats.getChainStats(withdrawal.chain);
-  withdrawalFeeBps.value = chainStats?.withdrawalFeePercentage ?? 0;
-};
-
-const withdrawalBreakdown = computed(() => {
-  if (!(receipt.value instanceof Withdrawal) || withdrawalFeeBps.value <= 0) return null;
-  const w = receipt.value;
-  const net = w.amount;
-  const grossEstimate = (net * 10_000n) / (10_000n - BigInt(withdrawalFeeBps.value));
-  const feeEstimate = grossEstimate - net;
-  return {
-    gross: new TokenAndAmount(w.token, grossEstimate).display(w.chain),
-    fee: new TokenAndAmount(w.token, feeEstimate).display(w.chain),
-    net: new TokenAndAmount(w.token, net).display(w.chain),
-  };
-});
-
 const statusTone = computed<'success' | 'warning'>(() =>
   isUserPayment.value && isCrossChain.value && deliveryStatus.value !== 'delivered' ? 'warning' : 'success'
 );
@@ -144,10 +120,10 @@ const statusLabel = computed(() => {
 const detailItems = computed<KeyValueItem[]>(() => {
   if (!receipt.value) return [];
   const items: KeyValueItem[] = [{ key: 'id', label: 'Receipt ID', mono: true }];
-  items.push({ key: 'user', label: isWithdrawal.value ? 'Host' : 'Payer' });
+  items.push({ key: 'user', label: isWithdrawal.value ? 'Owner' : 'Payer' });
   items.push({ key: 'payableId', label: 'Payable' });
   if (isCrossChain.value) {
-    items.push({ key: 'userChain', label: isWithdrawal.value ? "Host's chain" : "Payer's chain" });
+    items.push({ key: 'userChain', label: isWithdrawal.value ? "Owner's chain" : "Payer's chain" });
     items.push({ key: 'payableChain', label: "Payable's chain" });
   } else {
     items.push({ key: 'chain', label: 'Chain' });
@@ -189,7 +165,6 @@ onMounted(async () => {
   isLoading.value = false;
 
   if (receipt.value instanceof UserPayment && receipt.value.isCrossChain) trackDelivery(receipt.value);
-  if (receipt.value instanceof Withdrawal) loadWithdrawalFeeConfig(receipt.value);
 });
 </script>
 
@@ -239,7 +214,7 @@ onMounted(async () => {
     <!-- Cross-chain delivery tracker: only for the payer's own (UserPayment) receipt. -->
     <GlassCard v-if="receipt instanceof UserPayment && receipt.isCrossChain" class="mb-6">
       <p class="text-sm font-medium text-fg mb-4">Delivery status</p>
-      <CrossChainRoute :source-chain="receipt.chain" :dest-chain="receipt.payableChain" class="mb-5" />
+      <CrossChainRoute :source-chain="receipt.chain" :dest-chain="receipt.payableChain" class="mb-5" tracked />
       <Stepper :steps="deliverySteps" />
       <div
         v-if="deliveryStatus === 'delivered' && destinationPayablePaymentId"
@@ -248,25 +223,6 @@ onMounted(async () => {
         <span class="text-muted mr-2">Destination receipt:</span>
         <AddressChip :value="destinationPayablePaymentId" kind="id" :to="`/receipt/${destinationPayablePaymentId}`" />
       </div>
-    </GlassCard>
-
-    <!-- Withdrawal breakdown. -->
-    <GlassCard v-if="withdrawalBreakdown" class="mb-6">
-      <p class="text-sm font-medium text-fg mb-3">Breakdown</p>
-      <dl class="divide-y divide-fg/5">
-        <div class="flex items-center justify-between py-2 text-sm">
-          <dt class="text-muted">Amount withdrawn (est.)</dt>
-          <dd class="tabular-nums text-fg">{{ withdrawalBreakdown.gross }}</dd>
-        </div>
-        <div class="flex items-center justify-between py-2 text-sm">
-          <dt class="text-muted">Fee (est.)</dt>
-          <dd class="tabular-nums text-fg">− {{ withdrawalBreakdown.fee }}</dd>
-        </div>
-        <div class="flex items-center justify-between py-2 text-sm font-semibold">
-          <dt class="text-fg">You received</dt>
-          <dd class="tabular-nums text-fg">{{ withdrawalBreakdown.net }}</dd>
-        </div>
-      </dl>
     </GlassCard>
 
     <p v-if="!isWithdrawal" class="text-center text-sm text-muted max-w-md mx-auto pt-4">

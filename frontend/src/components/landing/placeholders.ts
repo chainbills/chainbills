@@ -30,6 +30,10 @@ export const landingStats: {
   volumeReceived: '$482K',
 };
 
+/** Chain identifier for landing ticker samples. Extends real `ChainName`
+ *  with `'base'` which is illustration-only (not deployed). */
+export type LandingChainName = ChainName | 'base';
+
 /** One row of the illustrative activity ticker. Mirrors the shape of a real
  *  `Activity` (schemas/activity.ts) closely enough to reuse its display
  *  metadata (`activityTypeMeta`), but every field here is hand-typed rather
@@ -40,10 +44,10 @@ export interface LandingActivitySample {
   /** Which `ActivityType` this row illustrates, for its icon/tone/label. */
   type: ActivityType;
   /** The chain this activity is shown as happening on. */
-  chainName: ChainName;
+  chainName: LandingChainName;
   /** For a cross-chain payment row, the chain on the other side of the
    *  payment. Omitted for same-chain and non-payment activities. */
-  counterpartChainName?: ChainName;
+  counterpartChainName?: LandingChainName;
   /** Pre-formatted token amount, e.g. `"25 USDC"`. Omitted for activities
    *  that carry no amount (payable created, user joined). */
   amount?: string;
@@ -54,25 +58,23 @@ export interface LandingActivitySample {
   timeAgo: string;
 }
 
-/** Eight sample rows for the activity ticker, covering
- *  every category the real feed can show: payments (same-chain and
- *  cross-chain), withdrawals, and payable lifecycle events. */
+/** Eight sample rows for the activity ticker using only Arc and Base chains. */
 export const landingActivitySamples: LandingActivitySample[] = [
   {
     id: 'sample-1',
     type: ActivityType.PayableReceived,
-    chainName: 'sepolia',
+    chainName: 'arctestnet',
     amount: '25 USDC',
-    detail: 'Payable 0x8f21…4a0c',
+    detail: 'Payable 0x8f21...4a0c',
     timeAgo: '2m ago',
   },
   {
     id: 'sample-2',
     type: ActivityType.PayableReceived,
-    chainName: 'megaeth',
-    counterpartChainName: 'sepolia',
-    amount: '0.01 ETH',
-    detail: 'Payable 0x51ce…9b3d',
+    chainName: 'arctestnet',
+    counterpartChainName: 'base',
+    amount: '50 USDC',
+    detail: 'Payable 0x51ce...9b3d',
     timeAgo: '4m ago',
   },
   {
@@ -80,46 +82,46 @@ export const landingActivitySamples: LandingActivitySample[] = [
     type: ActivityType.Withdrew,
     chainName: 'arctestnet',
     amount: '118 USDC',
-    detail: 'Withdrawal 0x2a77…e610',
+    detail: 'Withdrawal 0x2a77...e610',
     timeAgo: '9m ago',
   },
   {
     id: 'sample-4',
     type: ActivityType.CreatedPayable,
-    chainName: 'sepolia',
-    detail: 'Payable 0x9d04…7f2b',
+    chainName: 'base',
+    detail: 'Payable 0x9d04...7f2b',
     timeAgo: '13m ago',
   },
   {
     id: 'sample-5',
     type: ActivityType.PayableReceived,
-    chainName: 'arctestnet',
-    counterpartChainName: 'sepolia',
+    chainName: 'base',
+    counterpartChainName: 'arctestnet',
     amount: '60 USDC',
-    detail: 'Payable 0x3bc8…12aa',
+    detail: 'Payable 0x3bc8...12aa',
     timeAgo: '17m ago',
   },
   {
     id: 'sample-6',
     type: ActivityType.UserPaid,
-    chainName: 'megaeth',
-    amount: '0.004 ETH',
-    detail: 'Payment 0x77e1…d904',
+    chainName: 'base',
+    amount: '75 USDC',
+    detail: 'Payment 0x77e1...d904',
     timeAgo: '22m ago',
   },
   {
     id: 'sample-7',
     type: ActivityType.ReopenedPayable,
-    chainName: 'sepolia',
-    detail: 'Payable 0x1f6a…c377',
+    chainName: 'arctestnet',
+    detail: 'Payable 0x1f6a...c377',
     timeAgo: '28m ago',
   },
   {
     id: 'sample-8',
     type: ActivityType.Withdrew,
-    chainName: 'megaeth',
-    amount: '0.12 ETH',
-    detail: 'Withdrawal 0x6c9f…3e18',
+    chainName: 'arctestnet',
+    amount: '200 USDC',
+    detail: 'Withdrawal 0x6c9f...3e18',
     timeAgo: '35m ago',
   },
 ];

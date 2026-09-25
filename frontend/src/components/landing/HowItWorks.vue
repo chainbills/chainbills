@@ -71,10 +71,14 @@ const steps = [
               </div>
             </template>
             <template v-else-if="step.mock === 'pay'">
-              <div class="flex items-center justify-between">
-                <span class="rounded-full bg-fg/5 px-2 py-0.5 font-medium text-fg">Arc Testnet</span>
-                <span class="text-accent" aria-hidden="true">→ CCTP →</span>
-                <span class="rounded-full bg-fg/5 px-2 py-0.5 font-medium text-fg">Sepolia</span>
+              <div class="flex items-center justify-between gap-1">
+                <span class="inline-flex items-center gap-1 rounded-full bg-[#0052FF]/10 border border-[#0052FF]/30 px-2 py-0.5 font-medium text-fg">
+                  <img src="/assets/tokens/BASE.png" alt="Base" class="w-3.5 h-3.5 rounded-full" />Base
+                </span>
+                <span class="text-accent text-[10px]" aria-hidden="true">CCTP</span>
+                <span class="inline-flex items-center gap-1 rounded-full bg-fg/5 border border-glass-border px-2 py-0.5 font-medium text-fg">
+                  <img src="/assets/tokens/ARC.png" alt="Arc" class="w-3.5 h-3.5 rounded-full" />Arc
+                </span>
               </div>
             </template>
             <template v-else>

@@ -13,9 +13,11 @@
  * Usage: `<CrossChainDeepDive />` inside `HomeView.vue`.
  */
 import { GlassCard, SectionHeader, Stepper, type StepperStep } from '@/components/ui';
-import { arctestnet, sepolia } from '@/schemas';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import CrossChainRoute from './CrossChainRoute.vue';
+import CrossChainRoute, { type RouteNode } from './CrossChainRoute.vue';
+
+const baseNode: RouteNode = { displayName: 'Base', logoSrc: '/assets/tokens/BASE.png', brandColor: '#0052FF' };
+const arcNode: RouteNode = { displayName: 'Arc', logoSrc: '/assets/tokens/ARC.png', brandColor: '#00d2ff' };
 
 /** The relay steps a cross-chain payment goes through, shown in the looping
  *  stepper. Titles match the prose at left so the two stay easy to follow
@@ -68,7 +70,7 @@ const steps = () =>
           chain — crediting the payable automatically.
         </p>
         <p>
-          The same relay path keeps a payable's settings in sync everywhere it's reachable from. When a host creates,
+          The same relay path keeps a payable's settings in sync everywhere it's reachable from. When an owner creates,
           closes, reopens or reconfigures a payable, that update is broadcast to every other chain over a
           <strong class="text-fg font-medium">Wormhole</strong> message or a CCTP message, so a payer on any chain
           always sees the payable's current state.
@@ -79,7 +81,7 @@ const steps = () =>
     <div v-reveal="{ delay: 100 }" class="space-y-6 min-w-0">
       <GlassCard variant="refract">
         <p class="text-xs uppercase tracking-[0.12em] text-muted mb-3">Example route</p>
-        <CrossChainRoute :source="arctestnet" :destination="sepolia" />
+        <CrossChainRoute :source="baseNode" :destination="arcNode" />
       </GlassCard>
       <GlassCard>
         <Stepper :steps="steps()" />

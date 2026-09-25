@@ -29,9 +29,10 @@
  * <PayableHero :payable="payable" :payer-payment-count="2" @manage="scrollToControls" />
  * ```
  */
-import { AddressChip, GlassCard, NetworkPill, PayableAvatar, QrCode, StatusPill } from '@/components/ui';
+import { AddressChip, ChainBadge, GlassCard, PayableAvatar, QrCode, StatusPill } from '@/components/ui';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconGlobe from '@/icons/IconGlobe.vue';
+import IconHorizontalAdjustments from '@/icons/IconHorizontalAdjustments.vue';
 import { type Payable } from '@/schemas';
 import { useAnalyticsStore, useAuthStore } from '@/stores';
 import Dialog from 'primevue/dialog';
@@ -149,7 +150,7 @@ const share = async () => {
 
         <!-- Network + status + auto-withdraw badges -->
         <div class="flex flex-wrap items-center gap-2 mb-2">
-          <NetworkPill :type="payable.chain.networkType" />
+          <ChainBadge :chain="payable.chain" size="sm" />
           <StatusPill
             :tone="payable.isClosed ? 'danger' : 'success'"
             :label="payable.isClosed ? 'Closed' : 'Open'"
@@ -165,7 +166,7 @@ const share = async () => {
 
         <!-- Host address + created date -->
         <div class="flex flex-wrap items-center gap-3 text-xs text-muted">
-          <span class="shrink-0">Host:</span>
+          <span class="shrink-0">Owner:</span>
           <AddressChip
             :value="payable.host"
             :chain="payable.chain"
@@ -217,11 +218,14 @@ const share = async () => {
         title="Share"
         aria-label="Share payable link"
       >
-        <IconGlobe class="w-4 h-4" />
+        <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4" aria-hidden="true">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
         Share
       </button>
 
-      <!-- Show QR -->
+      <!-- QR (temporarily disabled) -->
+      <!--
       <button
         type="button"
         @click="showQr = true"
@@ -231,15 +235,17 @@ const share = async () => {
       >
         QR
       </button>
+      -->
 
       <!-- Host: Manage scroll anchor -->
       <button
         v-if="isHost"
         type="button"
         @click="emit('manage')"
-        class="rounded-full border border-accent/50 bg-accent/10 text-accent px-4 py-2 text-sm font-medium hover:bg-accent/20"
+        class="inline-flex items-center gap-1.5 rounded-full border border-accent/50 bg-accent/10 text-accent px-4 py-2 text-sm font-medium hover:bg-accent/20"
         aria-label="Scroll to host management controls"
       >
+        <IconHorizontalAdjustments class="w-4 h-4 stroke-current" />
         Manage
       </button>
     </div>

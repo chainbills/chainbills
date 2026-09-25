@@ -68,7 +68,7 @@ const copy = async () => {
       @click="copy"
       :aria-label="copied ? 'Copied' : 'Copy to clipboard'"
       :title="copied ? 'Copied' : 'Copy to clipboard'"
-      class="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:text-accent"
+      class="opacity-25 hover:opacity-100 transition-opacity hover:text-accent"
     >
       <span v-if="copied" class="text-success text-[10px] font-bold">ok</span>
       <IconCopy v-else class="w-3.5 h-3.5" />
@@ -81,7 +81,7 @@ const copy = async () => {
       rel="noopener noreferrer"
       title="View in explorer"
       aria-label="View in explorer"
-      class="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:text-accent"
+      class="opacity-25 hover:opacity-100 transition-opacity hover:text-accent"
       @click="analytics.recordEvent('outbound_explorer_link', { chain: chain?.name, kind })"
     >
       <IconOpenInNew class="w-3.5 h-3.5" />

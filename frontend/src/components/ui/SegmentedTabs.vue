@@ -83,7 +83,7 @@ const onKeydown = (event: KeyboardEvent) => {
       :tabindex="modelValue === option.value ? 0 : -1"
       @click="select(option.value)"
       :class="[
-        'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium transition-colors',
         modelValue === option.value ? 'bg-fg text-bg' : 'text-muted hover:text-fg',
       ]"
     >

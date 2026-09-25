@@ -37,10 +37,12 @@ const props = withDefaults(
     countField?: 'chainCount' | 'userCount' | 'payableCount';
     /** Activity ids to give a brief accent highlight to — set by `ActivityFeed` right after a live-refresh prepends newly-arrived items. */
     highlightIds?: Set<string>;
+    /** When true, all rows show their detail panel simultaneously. */
+    expandAll?: boolean;
   }>(),
   // `defineProps` defaults are hoisted out of `<script setup>`'s scope, so this list is inlined here
   // rather than shared with a module-level constant (see `ActivityTableColumn` above for the same set, named).
-  { columns: () => ['count', 'activity', 'details', 'route', 'payable', 'actor', 'time'], countField: 'chainCount' }
+  { columns: () => ['count', 'activity', 'details', 'route', 'payable', 'actor', 'time'], countField: 'chainCount', expandAll: false }
 );
 
 const emit = defineEmits<{
@@ -66,7 +68,7 @@ const has = (column: ActivityTableColumn) => props.columns.includes(column);
 </script>
 
 <template>
-  <div class="glass-surface glass-dense rounded-2xl overflow-hidden overflow-x-auto">
+  <div class="glass-surface glass-dense rounded-2xl overflow-x-auto">
     <table class="w-full text-sm">
       <thead class="sticky top-0 bg-bg/80 backdrop-blur text-xs uppercase tracking-wider text-muted">
         <tr>
@@ -74,8 +76,8 @@ const has = (column: ActivityTableColumn) => props.columns.includes(column);
           <th v-if="has('activity')" class="text-left px-4 py-3.5 font-medium">Activity</th>
           <th v-if="has('details')" class="text-left px-4 py-3.5 font-medium">Details</th>
           <th v-if="has('route')" class="text-left px-4 py-3.5 font-medium">Route</th>
-          <th v-if="has('payable')" class="text-left px-4 py-3.5 font-medium">Payable</th>
-          <th v-if="has('actor')" class="text-left px-4 py-3.5 font-medium">Actor</th>
+          <th v-if="has('payable')" class="hidden xl:table-cell text-left px-4 py-3.5 font-medium">Payable</th>
+          <th v-if="has('actor')" class="hidden xl:table-cell text-left px-4 py-3.5 font-medium">Actor</th>
           <th v-if="has('time')" class="text-left px-4 py-3.5 font-medium">Time</th>
           <th class="w-10"></th>
         </tr>
@@ -95,7 +97,7 @@ const has = (column: ActivityTableColumn) => props.columns.includes(column);
               ></span>
               #{{ activity[countField] || '—' }}
             </td>
-            <td v-if="has('activity')" class="px-4 py-3.5">
+            <td v-if="has('activity')" class="px-4 py-3.5 whitespace-nowrap">
               <span class="inline-flex items-center gap-2">
                 <ActivityIcon :type="activity.type" size="sm" />
                 <span class="font-medium text-fg">{{ activity.meta.label }}</span>
@@ -116,7 +118,7 @@ const has = (column: ActivityTableColumn) => props.columns.includes(column);
               </span>
               <ChainBadge v-else :chain="activity.chain" size="sm" />
             </td>
-            <td v-if="has('payable')" class="px-4 py-3.5">
+            <td v-if="has('payable')" class="hidden xl:table-cell px-4 py-3.5">
               <AddressChip
                 v-if="activity.payableId"
                 :value="activity.payableId"
@@ -125,7 +127,7 @@ const has = (column: ActivityTableColumn) => props.columns.includes(column);
               />
               <span v-else class="text-muted text-xs">—</span>
             </td>
-            <td v-if="has('actor')" class="px-4 py-3.5">
+            <td v-if="has('actor')" class="hidden xl:table-cell px-4 py-3.5">
               <AddressChip
                 v-if="activity.actor"
                 :value="activity.actor"
@@ -159,7 +161,7 @@ const has = (column: ActivityTableColumn) => props.columns.includes(column);
               </button>
             </td>
           </tr>
-          <tr v-if="expandedId === activity.id">
+          <tr v-if="expandAll || expandedId === activity.id">
             <td :colspan="columns.length + 1" class="bg-fg/[0.015] px-4 py-4">
               <ActivityDetailPanel
                 :activity="activity"

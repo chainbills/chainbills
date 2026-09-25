@@ -1,25 +1,30 @@
 <script setup lang="ts">
 /**
  * src/components/landing/CrossChainRoute.vue — a horizontal diagram of one
- * cross-chain payment's route: source chain → burn → Circle attestation →
- * Chainbills relayer → destination chain, with a light travelling the full
+ * cross-chain payment's route: source chain -> burn -> Circle attestation ->
+ * Chainbills relayer -> destination chain, with a light travelling the full
  * route on a loop.
  *
  * It is a landing-only illustration used by `CrossChainDeepDive.vue`.
  * Purely illustrative — it takes no live transaction data, only the two
  * chains to label.
  *
- * Usage: `<CrossChainRoute :source="arctestnet" :destination="sepolia" />`
+ * Usage: `<CrossChainRoute :source="baseNode" :destination="arcNode" />`
  */
-import { ChainBadge, IconChip } from '@/components/ui';
-import type { Chain } from '@/schemas';
+import { IconChip } from '@/components/ui';
+
+export interface RouteNode {
+  displayName: string;
+  logoSrc: string;
+  brandColor: string;
+}
 
 withDefaults(
   defineProps<{
     /** The chain the payer sends from (where the CCTP burn happens). */
-    source: Chain;
+    source: RouteNode;
     /** The chain the payable lives on (where the funds are credited). */
-    destination: Chain;
+    destination: RouteNode;
   }>(),
   {}
 );
@@ -38,7 +43,14 @@ const hops = [
 <template>
   <div class="flex flex-col gap-3">
     <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
-      <ChainBadge :chain="source" size="sm" />
+      <!-- Source chain badge -->
+      <span
+        class="inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-1 text-xs font-medium text-fg shrink-0"
+        :style="{ backgroundColor: `${source.brandColor}1f`, borderColor: `${source.brandColor}4d` }"
+      >
+        <img :src="source.logoSrc" :alt="`${source.displayName} logo`" class="w-4 h-4 rounded-full" />
+        {{ source.displayName }}
+      </span>
 
       <template v-for="(hop, i) in hops" :key="hop.label">
         <span class="relative h-px w-6 sm:w-8 bg-glass-border shrink-0" aria-hidden="true">
@@ -56,9 +68,17 @@ const hops = [
           :style="{ animationDelay: `${hops.length * 0.5}s` }"
         ></span>
       </span>
-      <ChainBadge :chain="destination" size="sm" />
+
+      <!-- Destination chain badge -->
+      <span
+        class="inline-flex items-center gap-1.5 rounded-full border pl-1 pr-2.5 py-1 text-xs font-medium text-fg shrink-0"
+        :style="{ backgroundColor: `${destination.brandColor}1f`, borderColor: `${destination.brandColor}4d` }"
+      >
+        <img :src="destination.logoSrc" :alt="`${destination.displayName} logo`" class="w-4 h-4 rounded-full" />
+        {{ destination.displayName }}
+      </span>
     </div>
-    <p class="text-xs text-muted">{{ hops.map((h) => h.label).join(' → ') }} — usually 1–3 minutes end to end.</p>
+    <p class="text-xs text-muted">{{ hops.map((h) => h.label).join(' -> ') }} — usually 1-3 minutes end to end.</p>
   </div>
 </template>
 

@@ -26,6 +26,7 @@ import {
   type ChainName,
 } from '@/schemas';
 import {
+  errorMsg,
   useAnalyticsStore,
   useAuthStore,
   useCacheStore,
@@ -241,7 +242,7 @@ export const usePayableStore = defineStore('payable', () => {
       return new Payable(id, chain, dbData?.description ?? '', raw);
     } catch (e) {
       console.error(e);
-      if (!ignoreErrors) toastError(`${e}`);
+      if (!ignoreErrors) toastError(errorMsg(e));
       return null;
     }
   };
@@ -278,7 +279,7 @@ export const usePayableStore = defineStore('payable', () => {
       return ids;
     } catch (e) {
       console.error(e);
-      toastError(`${e}`);
+      toastError(errorMsg(e));
       return null;
     }
   };

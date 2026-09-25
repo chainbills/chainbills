@@ -14,17 +14,21 @@ import IconDashboard from '@/icons/IconDashboard.vue';
 import IconGlobe from '@/icons/IconGlobe.vue';
 import IconReplay from '@/icons/IconReplay.vue';
 import { useAnalyticsStore, useSidebarStore, useThemeStore } from '@/stores';
+import { useRoute } from 'vue-router';
 import Drawer from 'primevue/drawer';
 import SignInButton from './SignInButton.vue';
 
 const analytics = useAnalyticsStore();
+const route = useRoute();
 const sidebar = useSidebarStore();
 const theme = useThemeStore();
 
+const isActive = (to: string) => route.path === to || route.path.startsWith(`${to}/`);
+
 const navLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: IconDashboard },
-  { to: '/activity', label: 'Activity', icon: IconReplay },
-  { to: '/scan', label: 'Scan', icon: IconGlobe },
+  { to: '/activity', label: 'My Activity', icon: IconReplay },
+  { to: '/scan', label: 'Chainbills Scan', icon: IconGlobe },
 ];
 </script>
 
@@ -38,16 +42,20 @@ const navLinks = [
     </template>
 
     <nav class="pt-2">
-      <ul class="flex flex-col gap-1">
+      <ul class="flex flex-col gap-0.5">
         <li v-for="link in navLinks" :key="link.to">
           <router-link
             :to="link.to"
             @click="sidebar.close"
-            class="flex items-center gap-3 w-full p-2.5 rounded-xl text-fg hover:bg-fg/5"
-            active-class="text-accent bg-accent/10"
+            :class="[
+              'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+              isActive(link.to)
+                ? 'text-accent bg-accent/10'
+                : 'text-fg/75 hover:text-fg hover:bg-fg/10',
+            ]"
             v-ripple
           >
-            <component :is="link.icon" class="w-5 h-5 stroke-current" />
+            <component :is="link.icon" class="w-5 h-5 shrink-0" />
             <span>{{ link.label }}</span>
           </router-link>
         </li>
@@ -56,19 +64,19 @@ const navLinks = [
             href="https://blog.chainbills.xyz"
             rel="noopener noreferrer"
             target="_blank"
-            class="flex items-center gap-3 w-full p-2.5 rounded-xl text-fg hover:bg-fg/5"
+            class="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-fg/75 hover:text-fg hover:bg-fg/10 transition-colors"
             v-ripple
             @click="analytics.recordNavigation('/blog', 'blog')"
           >
-            <IconBlog class="w-5 h-5" />
-            <span>Blog</span>
+            <IconBlog class="w-5 h-5 shrink-0" />
+            <span>Our Blog</span>
           </a>
         </li>
       </ul>
 
       <div class="h-px my-3 bg-fg/5"></div>
 
-      <div class="flex flex-col gap-2 p-2.5">
+      <div class="flex flex-col gap-5 p-2.5">
         <SignInButton />
         <ThemeMenu :full="true" />
       </div>

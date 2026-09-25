@@ -77,7 +77,7 @@ onUnmounted(() => {
 
     <!-- Chain list -->
     <ul v-else class="flex flex-col divide-y divide-fg/5">
-      <li v-for="entry in availability" :key="entry.chain.name" class="flex items-center justify-between py-2.5 gap-2">
+      <li v-for="entry in availability" :key="entry.chain.name" class="flex items-start justify-between py-2.5 gap-2">
         <ChainBadge :chain="entry.chain" size="sm" />
 
         <!-- Home chain -->

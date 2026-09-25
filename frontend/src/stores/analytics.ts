@@ -1,34 +1,31 @@
-import { firebaseApp, useAuthStore } from '@/stores';
-import { getAnalytics, logEvent, setAnalyticsCollectionEnabled, setUserId } from 'firebase/analytics';
+import { useAuthStore } from '@/stores';
 import { defineStore } from 'pinia';
+import { event, set } from 'vue-gtag';
 import { onMounted, watch } from 'vue';
 
 export const useAnalyticsStore = defineStore('analytics', () => {
   const auth = useAuthStore();
-  const analytics = getAnalytics(firebaseApp);
 
-  const recordEvent = (event: string, params?: any) => {
-    logEvent(analytics, event, params);
+  const recordEvent = (name: string, params?: Record<string, any>) => {
+    if (import.meta.env.DEV) return;
+    event(name, params);
   };
 
-  const recordNavigation = (path: string, name: string) => {
-    logEvent(analytics, 'screen_view', {
-      firebase_screen: path,
-      firebase_screen_class: name,
-    });
-  };
+  // Kept for backward compatibility — vue-gtag handles page_view automatically
+  // via the Vue Router integration registered in main.ts.
+  const recordNavigation = (_path: string, _name: string) => {};
 
   onMounted(() => {
-    if (import.meta.env.DEV) setAnalyticsCollectionEnabled(analytics, false);
-
     watch(
       () => auth.currentUser,
       (user) => {
-        setUserId(analytics, user?.walletAddress ?? null);
+        if (import.meta.env.DEV) return;
+        set({ user_id: user?.walletAddress ?? undefined });
         if (user) {
+          set({ user_properties: { connected_chain: user.chain.name } });
           recordEvent('user_signin', {
-            walletAddress: user?.walletAddress,
-            chain: user?.chain.name,
+            walletAddress: user.walletAddress,
+            chain: user.chain.name,
           });
         }
       }

@@ -2,13 +2,13 @@
 
 ## Overview
 
-Vue 3 SPA. Stack: Vue 3 + Pinia + Vue Router + Wagmi/viem (EVM) + Solana Wallets Vue + PrimeVue + TailwindCSS + Firebase. Talks to: EVM contracts (via wagmi/viem), Solana program (via Anchor), the Firebase server (descriptions + FCM tokens only). All lists, counts, statuses, balances, settings and statistics are read from the Chainbills contracts — see **Data rules** below.
+Vue 3 SPA. Stack: Vue 3 + Pinia + Vue Router + Wagmi/viem (EVM) + Solana Wallets Vue + PrimeVue + TailwindCSS + vue-gtag (GA4). Talks to: EVM contracts (via wagmi/viem), Solana program (via Anchor), the Firebase server (descriptions only). All lists, counts, statuses, balances, settings and statistics are read from the Chainbills contracts — see **Data rules** below.
 
 ## File Map
 
 ```
 src/
-  main.ts              App bootstrap: Wagmi config (incl. the "liquid glass" PrimeVue preset), Pinia, Firebase init
+  main.ts              App bootstrap: Wagmi config (incl. the "liquid glass" PrimeVue preset), Pinia, VueGtag (GA4)
   App.vue              Root: AmbientBackdrop, glass refraction filter, Header/Sidebar/Footer, router-view, Toast
   router/index.ts      Routes: /, /start, /dashboard, /activity, /payable/:id (public — no auth guard), /pay/:id, /receipt/:id, /scan, /scan/address/:address, (+ /_ui and /_data in dev only)
   directives/
@@ -41,12 +41,11 @@ src/
     scan.ts            useScanStore — Scan entity paginators (per-chain + network k-way merge), search, address-page lookups
     stats.ts           useStatsStore — chain/network statistics, 30s memoized
     tx-flow.ts         useTxFlowStore — the transaction-flow step engine
-    server.ts          useServerStore — calls Firebase server (descriptions, notifications)
+    server.ts          useServerStore — calls Firebase server (descriptions only)
     cache.ts           useCacheStore — IndexedDB-backed cache for immutable entities
     paginators.ts      usePaginatorsStore — shared rowsPerPage state
     abis.ts            mainAbi (Chainbills proxy) + gettersAbi (CbGetters) + erc20Abi
-    analytics.ts       useAnalyticsStore — Firebase Analytics event recording
-    notifications.ts   usePaginatorsStore — FCM notification token setup
+    analytics.ts       useAnalyticsStore — GA4 (vue-gtag) event recording, hardcoded to G-H8GS7VVSED
     encoding.ts        hex/b58/bignum/bytes encode/decode utilities
     idl.ts             Solana IDL (Anchor)
     sidebar.ts         Sidebar open/close state
@@ -212,7 +211,6 @@ Sends `chain-name`, `wallet-address`, `signature` headers on every call.
 
 - `POST /payable` — upserts a payable's off-chain **description** (host-verified on-chain by the server)
 - `GET /payable/:id` — description lookup only, with `ignoreErrors` — **not** used for chain discovery, which is on-chain (see **Data rules**)
-- `POST /notifications` — saves FCM token
 
 ### Cache (`stores/cache.ts`)
 
@@ -277,9 +275,8 @@ _current_ withdrawal-fee config and labelled as estimates.
 ## Environment Variables
 
 ```
-VITE_SERVER_URL=https://...      Firebase Cloud Function base URL
+VITE_SERVER_URL=https://...      Firebase Cloud Function base URL (descriptions endpoint)
 VITE_WC_PROJECT_ID=...           WalletConnect project ID (for Wagmi/Reown AppKit)
-VITE_FIREBASE_*                  Firebase config for Firestore + Analytics + FCM
 ```
 
 ## Dev Commands

@@ -45,9 +45,10 @@
  * ```
  */
 import { EmptyState, ErrorState, KeyValueList, Skeleton } from '@/components/ui';
-import { useAnalyticsStore } from '@/stores';
+import { useAnalyticsStore, usePaginatorsStore } from '@/stores';
 import { computed, ref } from 'vue';
 import Dialog from 'primevue/dialog';
+import Paginator from 'primevue/paginator';
 
 /** One column definition for the table header and cell mapping. */
 export interface ColumnDef {
@@ -100,19 +101,33 @@ const emit = defineEmits<{
 }>();
 
 const analytics = useAnalyticsStore();
+const paginators = usePaginatorsStore();
 
-/** Row index currently expanded (null = none). */
-const expandedRow = ref<number | null>(null);
+/** Rows currently expanded. */
+const expandedRows = ref<Set<number>>(new Set());
 /** Row opened in mobile bottom-sheet (null = none). */
 const mobileDetailRow = ref<any | null>(null);
 
-/** Total page count for numbered pagination. */
-const totalPages = computed(() => Math.ceil(props.total / props.pageSize));
+
+const allExpanded = computed(() => props.rows.length > 0 && expandedRows.value.size === props.rows.length);
+
+const toggleAll = () => {
+  if (allExpanded.value) {
+    expandedRows.value = new Set();
+  } else {
+    expandedRows.value = new Set(props.rows.map((_, i) => i));
+  }
+};
 
 const toggleRow = (index: number) => {
-  const opening = expandedRow.value !== index;
-  expandedRow.value = opening ? index : null;
-  if (opening) analytics.recordEvent('scan_entity_clicked', { entity_type: props.entityType });
+  const next = new Set(expandedRows.value);
+  if (next.has(index)) {
+    next.delete(index);
+  } else {
+    next.add(index);
+    analytics.recordEvent('scan_entity_clicked', { entity_type: props.entityType });
+  }
+  expandedRows.value = next;
 };
 
 const openMobileDetail = (row: any) => {
@@ -137,8 +152,19 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
 
 <template>
   <div class="space-y-3">
-    <!-- Loaded-window filter note (honest about what is being filtered) -->
-    <p v-if="filterNote" class="text-xs text-muted px-1">{{ filterNote }}</p>
+    <!-- Toolbar: filter note + expand/collapse all -->
+    <div class="flex items-center justify-between gap-4 min-h-5">
+      <p v-if="filterNote" class="text-xs text-muted">{{ filterNote }}</p>
+      <span v-else></span>
+      <button
+        v-if="rows.length > 0 && !loading"
+        type="button"
+        class="text-xs text-muted hover:text-fg transition-colors shrink-0 ml-auto"
+        @click="toggleAll"
+      >
+        {{ allExpanded ? 'Collapse all' : 'Expand all' }}
+      </button>
+    </div>
 
     <!-- Error state -->
     <ErrorState v-if="error && !loading" :message="error" @retry="emit('retry')" />
@@ -165,7 +191,7 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
         >
           {{ col.label }}
         </div>
-        <!-- Expand chevron column header (empty) -->
+        <!-- Chevron column header (empty) -->
         <div role="columnheader" aria-hidden="true" />
       </div>
 
@@ -192,7 +218,7 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
             class="grid border-b border-glass-border last:border-0 hover:bg-fg/[0.03] cursor-pointer transition-colors relative"
             :style="{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr)) 2rem` }"
             @click="toggleRow(i)"
-            :aria-expanded="expandedRow === i"
+            :aria-expanded="expandedRows.has(i)"
           >
             <div
               v-for="col in columns"
@@ -209,7 +235,7 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
             <div role="presentation" class="flex items-center justify-center text-muted">
               <svg
                 class="w-4 h-4 transition-transform duration-200"
-                :class="expandedRow === i ? 'rotate-180' : ''"
+                :class="expandedRows.has(i) ? 'rotate-180' : ''"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
                 aria-hidden="true"
               >
@@ -228,7 +254,7 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
             leave-to-class="max-h-0 opacity-0"
           >
             <div
-              v-if="expandedRow === i"
+              v-if="expandedRows.has(i)"
               role="row"
               class="bg-fg/[0.015] border-b border-glass-border last:border-0"
             >
@@ -294,32 +320,19 @@ const skeletonCount = computed(() => props.rows.length || props.pageSize);
     </Dialog>
 
     <!-- Pagination footer -->
-    <div v-if="!loading && !error && rows.length > 0" class="flex items-center justify-between gap-4 pt-2">
-      <!-- Numbered pagination (single-chain) -->
+    <div v-if="!loading && !error && rows.length > 0" class="pt-2">
+      <!-- Numbered pagination (single-chain) — PrimeVue Paginator -->
       <template v-if="!allChains">
-        <p class="text-xs text-muted">
-          Page {{ page + 1 }} of {{ totalPages }} &middot; {{ total.toLocaleString() }} total
-        </p>
-        <div class="flex gap-2">
-          <button
-            type="button"
-            :disabled="page === 0"
-            @click="handlePageChange(page - 1)"
-            class="rounded-full px-4 py-1.5 text-sm border border-glass-border text-muted hover:text-fg disabled:opacity-40 transition-colors"
-            aria-label="Previous page"
-          >
-            Prev
-          </button>
-          <button
-            type="button"
-            :disabled="page >= totalPages - 1"
-            @click="handlePageChange(page + 1)"
-            class="rounded-full px-4 py-1.5 text-sm border border-glass-border text-muted hover:text-fg disabled:opacity-40 transition-colors"
-            aria-label="Next page"
-          >
-            Next
-          </button>
-        </div>
+        <Paginator
+          :first="page * pageSize"
+          :rows="pageSize"
+          :total-records="total"
+          :rows-per-page-options="paginators.rowsPerPageOptions"
+          current-page-report-template="{first} to {last} of {totalRecords}"
+          template="FirstPageLink PrevPageLink JumpToPageDropdown CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
+          class="w-full"
+          @page="(e) => { paginators.setRowsPerPage(e.rows); handlePageChange(e.page); }"
+        />
       </template>
 
       <!-- "Load more" footer (all-chains merged view) -->

@@ -91,7 +91,7 @@ const filterNote = computed(() => {
 const columns: ColumnDef[] = [
   { label: 'Payable', key: 'id', slotName: 'id' },
   { label: 'Chain', key: 'chainName', slotName: 'chain' },
-  { label: 'Host', key: 'host', slotName: 'host' },
+  { label: 'Owner', key: 'host', slotName: 'host' },
   { label: 'Status', key: 'isClosed', slotName: 'status' },
   { label: 'Rules', key: 'allowedTokensAndAmountsCount', slotName: 'rules' },
   { label: 'Payments', key: 'paymentsCount' },
@@ -221,7 +221,7 @@ const formatDate = (ts: any): string => {
         <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
           <dt class="text-muted">Full ID</dt>
           <dd class="font-mono text-[11px] break-all">{{ row.id }}</dd>
-          <dt class="text-muted">Host</dt>
+          <dt class="text-muted">Owner</dt>
           <dd class="font-mono text-[11px] break-all">{{ row.host }}</dd>
           <dt class="text-muted">Chain</dt>
           <dd>{{ row.chainName ? chainNamesToChains[row.chainName as ChainName].displayName : '-' }}</dd>

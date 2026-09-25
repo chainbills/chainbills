@@ -26,6 +26,7 @@ import {
   type Payment,
 } from '@/schemas';
 import {
+  errorMsg,
   useAnalyticsStore,
   useAuthStore,
   useCacheStore,
@@ -381,7 +382,7 @@ export const usePaymentStore = defineStore('payment', () => {
       }
     } catch (e) {
       console.error(e);
-      toastError(`${e}`);
+      toastError(errorMsg(e));
     }
     return null;
   };
@@ -407,7 +408,7 @@ export const usePaymentStore = defineStore('payment', () => {
       }
     } catch (e) {
       console.error(e);
-      toastError(`${e}`);
+      toastError(errorMsg(e));
     }
     return null;
   };
@@ -478,7 +479,7 @@ export const usePaymentStore = defineStore('payment', () => {
       return payments;
     } catch (e) {
       console.error(e);
-      toastError(`${e}`);
+      toastError(errorMsg(e));
       return null;
     }
   };
@@ -542,7 +543,7 @@ export const usePaymentStore = defineStore('payment', () => {
       return payments;
     } catch (e) {
       console.error(e);
-      toastError(`${e}`);
+      toastError(errorMsg(e));
       return null;
     }
   };

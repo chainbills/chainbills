@@ -72,7 +72,7 @@ const formatVolume = (vol: TokenVolume): string => {
 </script>
 
 <template>
-  <section aria-label="Network statistics">
+  <section aria-label="Network statistics" class="space-y-4">
     <!-- Main count tiles -->
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <!-- Payables -->
@@ -86,12 +86,11 @@ const formatVolume = (vol: TokenVolume): string => {
         />
       </div>
 
-      <!-- Payments split hint for made vs received since cross-chain counts on both sides -->
+      <!-- Payments received (payable-side count) -->
       <div class="space-y-1">
         <StatTile
           label="Payments"
           :value="get('payablePaymentsCount').toLocaleString()"
-          :hint="`${get('userPaymentsCount').toLocaleString()} made`"
           :loading="loading"
         />
         <ChainBreakdownBar
@@ -137,7 +136,7 @@ const formatVolume = (vol: TokenVolume): string => {
     </div>
 
     <!-- Per-token volume tiles (never sum different tokens) -->
-    <div v-if="tokenVolumes && tokenVolumes.length > 0" class="mt-4 flex flex-wrap gap-3">
+    <div v-if="tokenVolumes && tokenVolumes.length > 0" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
       <div
         v-for="vol in tokenVolumes"
         :key="vol.token.name"
@@ -145,8 +144,7 @@ const formatVolume = (vol: TokenVolume): string => {
       >
         <span class="glass-sheen" aria-hidden="true"></span>
         <div class="relative">
-          <p class="text-xs uppercase tracking-[0.12em] text-muted mb-1">{{ vol.token.name }} received</p>
-          <!-- Display the formatted amount directly since TokenAmount requires a specific chain context. -->
+          <p class="text-xs uppercase tracking-[0.12em] text-muted mb-1">{{ vol.token.name }} volume</p>
           <p class="font-display text-display-md tabular-nums">
             {{ formatVolume(vol) }} <span class="text-muted text-sm">{{ vol.token.name }}</span>
           </p>

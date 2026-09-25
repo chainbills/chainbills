@@ -14,6 +14,7 @@
 export { default as AddressChip } from './AddressChip.vue';
 export { default as AmbientBackdrop } from './AmbientBackdrop.vue';
 export { default as ChainBadge } from './ChainBadge.vue';
+export { default as ChainSwitcher } from './ChainSwitcher.vue';
 export { default as EmptyState } from './EmptyState.vue';
 export { default as ErrorState } from './ErrorState.vue';
 export { default as FilterChips } from './FilterChips.vue';
@@ -26,6 +27,7 @@ export type { KeyValueItem } from './KeyValueList.vue';
 export { default as NetworkPill } from './NetworkPill.vue';
 export { default as PayableAvatar } from './PayableAvatar.vue';
 export { default as QrCode } from './QrCode.vue';
+export { default as ScrollToTop } from './ScrollToTop.vue';
 export { default as SearchInput } from './SearchInput.vue';
 export { default as SectionHeader } from './SectionHeader.vue';
 export { default as SegmentedTabs } from './SegmentedTabs.vue';

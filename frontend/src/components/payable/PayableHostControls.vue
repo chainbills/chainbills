@@ -267,7 +267,7 @@ const onDescriptionSaved = (refreshed: Payable) => {
         />
         <p
           v-else-if="payable.description"
-          class="text-sm text-fg whitespace-pre-line"
+          class="text-sm text-fg whitespace-pre-line break-words"
         >{{ payable.description }}</p>
         <p v-else class="text-sm text-muted italic">No description set.</p>
       </div>

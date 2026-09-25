@@ -32,7 +32,7 @@ import PayableBalancesCard from '@/components/payable/PayableBalancesCard.vue';
 import PayableHero from '@/components/payable/PayableHero.vue';
 import PayableHostControls from '@/components/payable/PayableHostControls.vue';
 import PayableSettingsCard from '@/components/payable/PayableSettingsCard.vue';
-import { EmptyState, GlassCard, SearchInput, StatTile } from '@/components/ui';
+import { EmptyState, GlassCard, ScrollToTop, SearchInput, StatTile } from '@/components/ui';
 import IconWallet from '@/icons/IconWallet.vue';
 import { Payable } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, usePayableStore } from '@/stores';
@@ -173,17 +173,18 @@ const handleNotFoundSearch = (q: string) => {
       />
     </div>
 
-    <!-- Two-column grid -->
-    <div class="grid lg:grid-cols-[1fr,minmax(0,360px)] gap-8 items-start">
+    <!-- Two-column grid. min-w-0 on each item prevents the ActivityTable's
+         min-content from forcing the grid wider than the viewport. -->
+    <div class="grid md:grid-cols-[1fr,minmax(0,280px)] lg:grid-cols-[1fr,minmax(0,360px)] gap-8 items-start">
       <!-- Main column -->
-      <div class="flex flex-col gap-6">
+      <div class="flex flex-col gap-6 min-w-0">
         <!-- Description card -->
         <GlassCard>
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-fg">Description</h3>
           </div>
 
-          <div v-if="payable.description" class="text-sm text-fg whitespace-pre-line">
+          <div v-if="payable.description" class="text-sm text-fg whitespace-pre-line break-words">
             <!-- Rendered with text node binding: line breaks preserved, no innerHTML risk -->
             {{ payable.description }}
           </div>
@@ -208,8 +209,8 @@ const handleNotFoundSearch = (q: string) => {
         />
       </div>
 
-      <!-- Side rail: sticky on desktop -->
-      <div class="flex flex-col gap-6 lg:sticky lg:top-28">
+      <!-- Side rail: sticky on md+ -->
+      <div class="flex flex-col gap-6 md:sticky md:top-28 min-w-0">
         <!-- Settings card -->
         <PayableSettingsCard :payable="payable" />
 
@@ -218,18 +219,9 @@ const handleNotFoundSearch = (q: string) => {
 
         <!-- Numbers card -->
         <div class="grid grid-cols-3 gap-3">
-          <StatTile
-            label="Payments"
-            :value="payable.paymentsCount"
-          />
-          <StatTile
-            label="Withdrawals"
-            :value="payable.withdrawalsCount"
-          />
-          <StatTile
-            label="Activities"
-            :value="payable.activitiesCount"
-          />
+          <StatTile label="Payments" :value="payable.paymentsCount" />
+          <StatTile label="Withdrawals" :value="payable.withdrawalsCount" />
+          <StatTile label="Activities" :value="payable.activitiesCount" />
         </div>
       </div>
     </div>
@@ -244,4 +236,6 @@ const handleNotFoundSearch = (q: string) => {
       <PayableHostControls :payable="payable" @updated="onPayableUpdated" />
     </div>
   </section>
+
+  <ScrollToTop />
 </template>

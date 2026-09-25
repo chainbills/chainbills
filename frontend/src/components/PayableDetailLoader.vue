@@ -18,7 +18,6 @@ import { GlassCard, Skeleton } from '@/components/ui';
     <!-- Hero band skeleton -->
     <GlassCard variant="refract" class="mb-6">
       <div class="flex items-start gap-4 mb-5">
-        <!-- Avatar placeholder -->
         <Skeleton w="w-14" h="h-14" rounded="rounded-2xl" class="shrink-0" />
         <div class="flex-1 flex flex-col gap-2">
           <Skeleton w="w-40" h="h-4" />
@@ -37,11 +36,9 @@ import { GlassCard, Skeleton } from '@/components/ui';
       </div>
     </GlassCard>
 
-    <!-- Two-column layout skeleton -->
-    <div class="grid lg:grid-cols-[1fr,minmax(0,360px)] gap-6 items-start">
-      <!-- Main column -->
-      <div class="flex flex-col gap-6">
-        <!-- Description card skeleton -->
+    <div class="grid md:grid-cols-[1fr,minmax(0,280px)] lg:grid-cols-[1fr,minmax(0,360px)] gap-6 items-start">
+      <!-- Main column skeleton -->
+      <div class="flex flex-col gap-6 min-w-0">
         <GlassCard>
           <Skeleton w="w-28" h="h-4" class="mb-4" />
           <Skeleton w="w-full" h="h-4" class="mb-2" />
@@ -49,7 +46,6 @@ import { GlassCard, Skeleton } from '@/components/ui';
           <Skeleton w="w-3/4" h="h-4" />
         </GlassCard>
 
-        <!-- Activity feed skeleton -->
         <GlassCard>
           <div class="flex gap-3 mb-5">
             <Skeleton w="w-12" h="h-8" rounded="rounded-full" />
@@ -69,9 +65,8 @@ import { GlassCard, Skeleton } from '@/components/ui';
         </GlassCard>
       </div>
 
-      <!-- Side rail -->
-      <div class="flex flex-col gap-6 lg:sticky lg:top-24">
-        <!-- Settings card skeleton -->
+      <!-- Side rail skeleton -->
+      <div class="flex flex-col gap-6 md:sticky md:top-24 min-w-0">
         <GlassCard>
           <Skeleton w="w-48" h="h-4" class="mb-4" />
           <Skeleton w="w-full" h="h-3" class="mb-2" />
@@ -84,7 +79,6 @@ import { GlassCard, Skeleton } from '@/components/ui';
           </div>
         </GlassCard>
 
-        <!-- Availability card skeleton -->
         <GlassCard>
           <Skeleton w="w-40" h="h-4" class="mb-4" />
           <div class="flex flex-col gap-3">
@@ -95,7 +89,6 @@ import { GlassCard, Skeleton } from '@/components/ui';
           </div>
         </GlassCard>
 
-        <!-- Numbers card skeleton -->
         <div class="grid grid-cols-3 gap-3">
           <div v-for="n in 3" :key="n" class="glass-surface glass-frost rounded-2xl p-4">
             <Skeleton w="w-full" h="h-3" class="mb-3" />

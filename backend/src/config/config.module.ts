@@ -12,6 +12,7 @@ import { ConfigModule as NestConfigModule } from '@nestjs/config';
 import { AppConfigService } from './app-config.service';
 import { validateEnv } from './env.schema';
 
+/** Global config module; runs env validation at boot and exports AppConfigService everywhere. */
 @Module({
   imports: [
     NestConfigModule.forRoot({

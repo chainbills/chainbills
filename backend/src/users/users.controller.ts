@@ -24,6 +24,7 @@ import { MeResponseDto, SetEmailDto, UpdatePreferencesDto, VerifyEmailDto } from
 /** Stricter throttle for email verification endpoints: 5 requests per 60 s per IP. */
 const EMAIL_THROTTLE = { default: { limit: 5, ttl: 60_000 } };
 
+/** Authenticated endpoints for the signed-in user: profile, preferences, and email management. */
 @ApiTags('users')
 @Controller()
 @ApiBearerAuth('access-token')

@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ChainsService } from '../chains/chains.service';
 import { HealthResponseDto, ChainHealthDto } from './health-response.dto';
 
+/** Exposes GET /health; returns 200 when Postgres is reachable and all enabled chains are fresh, 503 otherwise. */
 @ApiTags('health')
 @Controller('health')
 export class HealthController {

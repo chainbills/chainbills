@@ -10,6 +10,7 @@ import { ChainsModule } from '../../chains/chains.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { SolanaIndexer } from './solana.indexer';
 
+/** Provides SolanaIndexer to WorkerModule. */
 @Module({
   imports: [PrismaModule, ChainsModule, AppConfigModule],
   providers: [SolanaIndexer],

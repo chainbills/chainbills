@@ -55,6 +55,7 @@ function computeCodeHash(secret: string, verificationId: string, code: string): 
   return createHmac('sha256', secret).update(`${verificationId}:${code}`).digest();
 }
 
+/** Manages user profile, email verification, and notification preferences. */
 @Injectable()
 export class UsersService {
   constructor(

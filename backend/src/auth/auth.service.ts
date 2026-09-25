@@ -46,6 +46,7 @@ export interface JwtPayload {
   sid: string;
 }
 
+/** Orchestrates SIWE/SIWS sign-in, token issuance, session rotation, and logout. */
 @Injectable()
 export class AuthService {
   constructor(

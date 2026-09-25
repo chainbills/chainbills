@@ -54,6 +54,7 @@ const RELAYER_ONLY_ERRORS = new Set(['RelayerOnly']);
 /** Error names that mean the attestation is not yet final — retry later. */
 const RETRYABLE_ERRORS = new Set(['InsufficientFinality', SOLANA_NOT_IMPLEMENTED]);
 
+/** Claims pending relay jobs and submits cross-chain messages (Wormhole VAA / CCTP) to the destination diamond. */
 @Injectable()
 export class RelayProcessor {
   private readonly logger = new Logger(RelayProcessor.name);

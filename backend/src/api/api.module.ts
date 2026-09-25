@@ -21,6 +21,7 @@ import { UsersApiController } from './users-api.controller';
 import { WithdrawalsController } from './withdrawals.controller';
 import { StatsController } from './stats.controller';
 
+/** Aggregates all HTTP controllers and services active when ROLE is "api" or "all". */
 @Module({
   imports: [AuthModule, UsersModule, NotificationsModule, PrismaModule, ChainsModule],
   providers: [PublicApiService],

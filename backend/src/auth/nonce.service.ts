@@ -23,6 +23,7 @@ const CLEANUP_AGE_MS = 60 * 60 * 1_000;
 /** Number of random bytes to generate per nonce (≥16 per SPEC.md §9.1). */
 const NONCE_BYTES = 16;
 
+/** Generates and validates single-use sign-in nonces (SPEC.md §9.1). */
 @Injectable()
 export class NonceService {
   private readonly logger = new Logger(NonceService.name);

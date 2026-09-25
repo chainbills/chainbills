@@ -20,6 +20,7 @@ export interface ErrorResponseBody {
   message: string | string[];
 }
 
+/** Catches every exception, logs unhandled errors server-side, and returns a uniform error body to the client. */
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);

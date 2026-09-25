@@ -62,6 +62,7 @@ const ACTIVITY_TYPE_MAP: Record<string, string> = {
   updatedAutoWithdraw: 'UPDATED_PAYABLE_AUTO_WITHDRAW_STATUS',
 };
 
+/** Polls the Chainbills program's Stats PDA and upserts indexed entities into Postgres for one Solana chain per tick. */
 @Injectable()
 export class SolanaIndexer {
   private readonly logger = new Logger(SolanaIndexer.name);

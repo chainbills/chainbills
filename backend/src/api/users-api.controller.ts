@@ -17,6 +17,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { PaginationQueryDto } from '../common/pagination/pagination-query.dto';
 import { PublicApiService } from './public-api.service';
 
+/** Public endpoints for listing payments and payables by wallet key. */
 @ApiTags('users')
 @Controller('users')
 export class UsersApiController {

@@ -21,6 +21,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/jwt-auth.guard';
 import { PublicApiService } from './public-api.service';
 
+/** Request body for the PUT /payables/:id/description endpoint. */
 export class SetDescriptionDto {
   @ApiProperty({
     description: 'Plain-text or lightly formatted description (3–3000 chars). HTML tags are stripped before saving.',
@@ -34,6 +35,7 @@ export class SetDescriptionDto {
   description!: string;
 }
 
+/** Query parameters for listing payables, with optional host and chain filters. */
 export class ListPayablesQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({
     description: 'Filter by host address (EVM checksummed or Solana base58) or wallet key ("evm:0x…" / "solana:…").',
@@ -52,6 +54,7 @@ export class ListPayablesQueryDto extends PaginationQueryDto {
   chain?: string;
 }
 
+/** Optional chain hint used to locate the payable on-chain when it is not yet indexed. */
 export class DescriptionChainQueryDto {
   @ApiPropertyOptional({
     description:
@@ -66,6 +69,7 @@ export class DescriptionChainQueryDto {
 /** Rate limit for the description write endpoint: 5 per wallet per minute. */
 const DESCRIPTION_THROTTLE = { default: { limit: 5, ttl: 60_000 } };
 
+/** Public and authenticated endpoints for reading and annotating payables. */
 @ApiTags('payables')
 @Controller('payables')
 export class PayablesController {

@@ -13,6 +13,7 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { PublicApiService } from './public-api.service';
 
+/** Read-only endpoints for individual UserPayment and PayablePayment lookups. */
 @ApiTags('payments')
 @Controller('payments')
 export class PaymentsController {

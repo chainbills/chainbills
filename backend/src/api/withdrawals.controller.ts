@@ -10,6 +10,7 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { PublicApiService } from './public-api.service';
 
+/** Read-only endpoint for individual withdrawal lookups. */
 @ApiTags('withdrawals')
 @Controller('withdrawals')
 export class WithdrawalsController {

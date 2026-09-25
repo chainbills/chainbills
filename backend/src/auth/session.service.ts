@@ -31,6 +31,7 @@ export interface RefreshTokenPair {
   refreshTokenHash: string;
 }
 
+/** Creates, rotates, and revokes refresh-token sessions with theft detection (SPEC.md §9.1). */
 @Injectable()
 export class SessionService {
   private readonly logger = new Logger(SessionService.name);

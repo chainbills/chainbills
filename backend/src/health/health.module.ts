@@ -11,6 +11,7 @@ import { ChainsModule } from '../chains/chains.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { HealthController } from './health.controller';
 
+/** Registers HealthController for all roles; always imported by AppModule regardless of ROLE. */
 @Module({
   imports: [PrismaModule, AppConfigModule, ChainsModule],
   controllers: [HealthController],

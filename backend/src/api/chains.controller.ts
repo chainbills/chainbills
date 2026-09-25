@@ -11,6 +11,7 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../common/decorators/public.decorator';
 import { PublicApiService } from './public-api.service';
 
+/** Exposes the chain registry — supported chains, protocols, and tokens. */
 @ApiTags('chains')
 @Controller('chains')
 export class ChainsController {

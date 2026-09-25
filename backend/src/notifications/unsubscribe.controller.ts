@@ -61,6 +61,7 @@ function confirmPage(userId: string, type: string, sig: string): string {
 </html>`;
 }
 
+/** Serves the one-click unsubscribe endpoints required by RFC 8058 and mail clients. */
 @ApiTags('unsubscribe')
 @Controller('email')
 @Public()

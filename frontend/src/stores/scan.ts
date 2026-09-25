@@ -185,7 +185,7 @@ export const useScanStore = defineStore('scan', () => {
     const { offset, limit } = pageOffsetAndLimit(total, page, pageSize);
     if (limit <= 0) return { items: [], total };
 
-    const ids = await evm.readGetter(chainName, 'chainPayablePaymentIdsPaginated', [offset, limit], {
+    const ids = await evm.readGetter(chainName, 'getChainPayablePaymentIds', [offset, limit], {
       ignoreErrors: true,
     });
     if (!ids || ids.length === 0) return { items: [], total };
@@ -216,7 +216,7 @@ export const useScanStore = defineStore('scan', () => {
     const { offset, limit } = pageOffsetAndLimit(total, page, pageSize);
     if (limit <= 0) return { items: [], total };
 
-    const ids = await evm.readGetter(chainName, 'chainUserPaymentIdsPaginated', [offset, limit], {
+    const ids = await evm.readGetter(chainName, 'getChainUserPaymentIds', [offset, limit], {
       ignoreErrors: true,
     });
     if (!ids || ids.length === 0) return { items: [], total };
@@ -247,7 +247,7 @@ export const useScanStore = defineStore('scan', () => {
     const { offset, limit } = pageOffsetAndLimit(total, page, pageSize);
     if (limit <= 0) return { items: [], total };
 
-    const ids = await evm.readGetter(chainName, 'chainWithdrawalIdsPaginated', [offset, limit], {
+    const ids = await evm.readGetter(chainName, 'getChainWithdrawalIds', [offset, limit], {
       ignoreErrors: true,
     });
     if (!ids || ids.length === 0) return { items: [], total };
@@ -355,7 +355,7 @@ export const useScanStore = defineStore('scan', () => {
       cursor,
       pageSize,
       async (chainName, offset, limit) => {
-        const ids = await evm.readGetter(chainName, 'chainPayablePaymentIdsPaginated', [offset, limit], {
+        const ids = await evm.readGetter(chainName, 'getChainPayablePaymentIds', [offset, limit], {
           ignoreErrors: true,
         });
         if (!ids || ids.length === 0) return [];
@@ -395,7 +395,7 @@ export const useScanStore = defineStore('scan', () => {
       cursor,
       pageSize,
       async (chainName, offset, limit) => {
-        const ids = await evm.readGetter(chainName, 'chainWithdrawalIdsPaginated', [offset, limit], {
+        const ids = await evm.readGetter(chainName, 'getChainWithdrawalIds', [offset, limit], {
           ignoreErrors: true,
         });
         if (!ids || ids.length === 0) return [];
@@ -597,7 +597,7 @@ export const useScanStore = defineStore('scan', () => {
           ['getUserPayment', 'userPayment'],
           ['getPayablePayment', 'payablePayment'],
           ['getWithdrawal', 'withdrawal'],
-          ['getActivityRecord', 'activity'],
+          ['getActivity', 'activity'],
         ];
         const results = await Promise.all(
           getterFns.map(async ([fn, type]) => {

@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "abi:export": "node script/export-abi.mjs"
+    "abi:export": "node script/export-abi.mjs",
+    "abi:publish": "node script/export-abi.mjs && node script/publish-abi.mjs"
   }
 }

@@ -29,7 +29,7 @@ with one-click unsubscribe.
 5. `src/notifications/unsubscribe.controller.ts`: `GET` + `POST`
    `/email/unsubscribe` per SPEC §11.5 (public, signed, throttled, minimal
    HTML page for `GET`).
-6. Docs: `backend/CLAUDE.md` users + notifications sections; ENV docs for
+6. Docs: `backend/AGENTS.md` users + notifications sections; ENV docs for
    mail variables including step-by-step ZeptoMail setup (add domain, DKIM +
    bounce CNAME records, create Send Mail token, pick region URL) and a note
    to keep the sending subdomain separate from the Zoho Mail mailbox domain.

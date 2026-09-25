@@ -32,7 +32,7 @@ exists for Solana devnet (SPEC §8.3).
    relay jobs are created.
 4. Solana gas-balance check in the worker housekeeping loop.
 5. Solana wallet keys (`solana:<base58>`) for hosts and payers.
-6. Docs: `backend/CLAUDE.md` Solana section (PDAs, cursors, relay paths,
+6. Docs: `backend/AGENTS.md` Solana section (PDAs, cursors, relay paths,
    ALT requirement for CCTP-only), header comments.
 
 ## Tests

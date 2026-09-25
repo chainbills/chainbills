@@ -7,10 +7,12 @@ it. Read this file and [`SPEC.md`](./SPEC.md) fully before starting a phase.
 
 - Work only inside `backend/`. Do not modify `frontend/`, `relayer/`,
   `server/`, `evm/`, `solana/`, `solana_old/` or `cosmwasm/`. Read them freely:
-  For chain logic, `evm/` (the ERC-2535 diamond: `evm/CLAUDE.md`,
-  `evm/src/interfaces/`, `evm/src/types/CbTypes.sol`, `evm/abi/`) defines the
+  For chain logic, `evm/` (the ERC-2535 diamond: `evm/AGENTS.md`,
+  `evm/src/interfaces/`, `evm/src/types/CbTypes.sol`) defines the
   EVM contract interface, and `relayer/src/` is the reference for processing
   patterns (loops, cursors, job queue, VAA / attestation fetching, Solana).
+  Note: `evm/abi/` is gitignored; the backend keeps its own copy at
+  `backend/src/chains/abi/chainbills.ts`.
 - Implement exactly the phase you were given. Do not start work that belongs
   to another phase, even if it looks small.
 - Do not edit `docs/SPEC.md` or other phase files. If the spec is wrong,
@@ -72,7 +74,7 @@ Everything is merged **locally**; there are no GitHub pull requests.
 
 ## 4. Documentation (same branch as the code)
 
-- `backend/CLAUDE.md`: keep the module map, invariants and commands current
+- `backend/AGENTS.md`: keep the module map, invariants and commands current
   for everything your phase adds.
 - `backend/.env.example` and `backend/docs/ENV.md`: every env var you add or
   change, with description, default, format, which roles need it and where to

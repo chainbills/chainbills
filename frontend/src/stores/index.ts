@@ -1,4 +1,5 @@
 export * from './abis';
+export * from './chainbills-abi';
 export * from './activity';
 export * from './analytics';
 export * from './errors';

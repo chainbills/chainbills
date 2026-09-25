@@ -136,7 +136,7 @@ describe('UsersService.requestEmailVerification — rate limits', () => {
     expect(body.retryAfter).toBeLessThanOrEqual(60);
   });
 
-  it('throws 429 when user hit 5 sends in 24 h', async () => {
+  it('throws 429 when user hit 5 pending sends in 24 h', async () => {
     const prisma = makePrisma();
     (prisma.emailVerification.findFirst as any).mockResolvedValue(null);
     (prisma.emailVerification.count as any)
@@ -146,6 +146,9 @@ describe('UsersService.requestEmailVerification — rate limits', () => {
     const err = await service.requestEmailVerification('user-1', 'test@example.com').catch((e) => e);
     expect(err).toBeInstanceOf(HttpException);
     expect(err.getStatus()).toBe(429);
+    // Verify the count query filters out consumed rows.
+    const countCalls = (prisma.emailVerification.count as any).mock.calls;
+    expect(countCalls[0][0].where).toMatchObject({ consumedAt: null });
   });
 
   it('throws 429 when target email hit 5 sends in 24 h', async () => {

@@ -127,13 +127,13 @@ export class UsersService {
         orderBy: { createdAt: 'desc' },
         select: { createdAt: true },
       }),
-      // Count of sends by this user in the last 24 h.
+      // Count of pending (unconsumed) sends by this user in the last 24 h.
       this.prisma.emailVerification.count({
-        where: { userId, createdAt: { gte: oneDayAgo } },
+        where: { userId, createdAt: { gte: oneDayAgo }, consumedAt: null },
       }),
-      // Count of sends to this email address in the last 24 h.
+      // Count of pending (unconsumed) sends to this email address in the last 24 h.
       this.prisma.emailVerification.count({
-        where: { email, createdAt: { gte: oneDayAgo } },
+        where: { email, createdAt: { gte: oneDayAgo }, consumedAt: null },
       }),
     ]);
 
@@ -149,10 +149,10 @@ export class UsersService {
       }
     }
 
-    // Enforce <= 5 sends per user per 24 h.
+    // Enforce <= 5 pending sends per user per 24 h.
     if (last24hByUser >= 5) {
       const oldest = await this.prisma.emailVerification.findFirst({
-        where: { userId, createdAt: { gte: oneDayAgo } },
+        where: { userId, createdAt: { gte: oneDayAgo }, consumedAt: null },
         orderBy: { createdAt: 'asc' },
         select: { createdAt: true },
       });
@@ -162,10 +162,10 @@ export class UsersService {
       throw new HttpException({ message: 'daily send limit reached', retryAfter }, HttpStatus.TOO_MANY_REQUESTS);
     }
 
-    // Enforce <= 5 sends per target email per 24 h.
+    // Enforce <= 5 pending sends per target email per 24 h.
     if (last24hByEmail >= 5) {
       const oldest = await this.prisma.emailVerification.findFirst({
-        where: { email, createdAt: { gte: oneDayAgo } },
+        where: { email, createdAt: { gte: oneDayAgo }, consumedAt: null },
         orderBy: { createdAt: 'asc' },
         select: { createdAt: true },
       });

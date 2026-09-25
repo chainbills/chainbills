@@ -12,5 +12,9 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+    dedupe: ['vue', '@primeuix/styled', '@primeuix/utils'],
+  },
+  optimizeDeps: {
+    include: ['primevue', '@primevue/core', '@primeuix/styled'],
   },
 });

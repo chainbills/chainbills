@@ -1,6 +1,6 @@
 import '@fontsource-variable/space-grotesk';
-import { definePreset } from '@primevue/themes';
-import Aura from '@primevue/themes/aura';
+import { definePreset } from '@primeuix/themes';
+import Aura from '@primeuix/themes/aura';
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
 import { createConfig, http, injected } from '@wagmi/core';
 import { WagmiPlugin } from '@wagmi/vue';

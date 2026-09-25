@@ -1,0 +1,19 @@
+nodeLinker: hoisted
+
+allowBuilds:
+  bigint-buffer: true
+  bufferutil: true
+  esbuild: true
+  keccak: true
+  utf-8-validate: true
+  vue-demi: true
+onlyBuiltDependencies:
+  - bigint-buffer
+  - bufferutil
+  - esbuild
+  - keccak
+  - utf-8-validate
+  - vue-demi
+
+overrides:
+  '@wagmi/core': 2.17.0

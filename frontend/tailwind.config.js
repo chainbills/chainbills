@@ -1,3 +1,5 @@
+import tailwindcssPremeui from 'tailwindcss-primeui';
+
 /**
  * tailwind.config.js — Tailwind theme extension for the "liquid glass"
  * design system.
@@ -83,5 +85,5 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-primeui')],
+  plugins: [tailwindcssPremeui],
 };

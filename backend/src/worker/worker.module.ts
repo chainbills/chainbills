@@ -46,7 +46,15 @@ const RELAY_LOOP_INTERVAL_MS = 1_000; // 1 second between relay iterations
 const OUTBOX_LOOP_INTERVAL_MS = 5_000; // 5 seconds between outbox iterations
 
 @Module({
-  imports: [PrismaModule, ChainsModule, AppConfigModule, EvmIndexerModule, SolanaIndexerModule, RelayModule, NotificationsModule],
+  imports: [
+    PrismaModule,
+    ChainsModule,
+    AppConfigModule,
+    EvmIndexerModule,
+    SolanaIndexerModule,
+    RelayModule,
+    NotificationsModule,
+  ],
   providers: [OutboxProcessor],
 })
 export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdown {

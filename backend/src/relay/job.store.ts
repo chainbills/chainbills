@@ -167,6 +167,27 @@ export async function retryLater(prisma: PrismaService, job: RelayJob, error: st
   });
 }
 
+/**
+ * Finds the relay job whose `eventData` contains a `userPaymentId` field
+ * matching the given id. Used by the public API to expose relay status on
+ * GET /payments/user/:id. Returns null when no matching job exists (same-chain
+ * payments never produce a relay job).
+ */
+export async function findByPaymentId(prisma: PrismaService, userPaymentId: string): Promise<RelayJob | null> {
+  // eventData is a Json column; Prisma's path-filter syntax queries JSONB.
+  const rows = await prisma.relayJob.findMany({
+    where: {
+      eventData: {
+        path: ['userPaymentId'],
+        equals: userPaymentId,
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+  });
+  return rows[0] ?? null;
+}
+
 /** Counts jobs by status — used in the heartbeat log. */
 export async function countByStatus(prisma: PrismaService): Promise<Record<RelayJobStatus, number>> {
   const rows = await prisma.relayJob.groupBy({

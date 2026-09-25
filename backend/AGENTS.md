@@ -12,6 +12,17 @@ added.
 
 ## Status
 
+**Phase 3b (users, email verification, outbox, ZeptoMail) complete.** `/me`
+endpoints, HMAC-SHA256 OTP email verification with rate limits and
+`timingSafeEqual`, notification preferences per type. Outbox processor
+(`FOR UPDATE SKIP LOCKED` claim, re-resolve recipient, exponential backoff,
+stuck-SENDING recovery). ZeptoMail + console mail providers behind a
+`MailProvider` interface. Five email templates (verification-code + four
+notification types) with HTML escaping and snapshot tests. One-click
+unsubscribe controller (HMAC-signed, RFC 8058). `NotificationsModule` wired
+into `ApiModule`; `OutboxProcessor` wired into `WorkerModule`. All checks pass
+(437 unit tests, coverage thresholds met).
+
 **Phase 2b (auth) complete.** SIWE + SIWS sign-in, JWT access tokens, rotating
 httpOnly refresh-token cookies, global deny-by-default guard with `@Public()`
 opt-out. `AuthModule` imported by `ApiModule` for `ROLE=api|all`.
@@ -86,7 +97,32 @@ src/
     outbox.writer.ts          enqueueOutbox(): inserts Outbox row inside a Prisma transaction; skips
                              when event is older than EMAIL_MAX_EVENT_AGE or recipient has no verified
                              email; dedupes on "<TYPE>:<entityId>:<walletKey>"
-    index.ts                  Re-exports enqueueOutbox, PrismaTransactionClient
+    outbox.processor.ts       OutboxProcessor: claims up to 10 PENDING rows (FOR UPDATE SKIP LOCKED),
+                             re-resolves recipient at send time, renders template, sends via MailProvider;
+                             backoff = 1 min * 2^attempts capped at 1 h; FAILED after 8 attempts;
+                             stuck-SENDING recovery (> 10 min); registered only in WorkerModule
+    unsubscribe.utils.ts      computeUnsubscribeSig(), buildUnsubscribeUrl(), verifyUnsubscribeSig()
+                             (HMAC-SHA256 over "userId:type", constant-time compare)
+    unsubscribe.controller.ts GET/POST /email/unsubscribe — @Public(), HMAC-signed, RFC 8058;
+                             GET returns a minimal HTML confirmation page; POST sets preference off
+    notifications.module.ts   Provides MAIL_PROVIDER factory (zeptomail or console per env var);
+                             registers UnsubscribeController; exports MAIL_PROVIDER for UsersModule
+    index.ts                  Re-exports enqueueOutbox, buildUnsubscribeUrl, PrismaTransactionClient
+    mail/
+      mail.provider.ts        MailMessage interface, MailProvider interface, MailProviderError,
+                             MAIL_PROVIDER injection token
+      zeptomail.provider.ts   POST /v1.1/email with Zoho-enczapikey auth; mime_headers for
+                             List-Unsubscribe; 10 s timeout; typed MailProviderError on non-2xx
+      console.provider.ts     Logs the full message at debug level; forbidden in production
+      README.md               ZeptoMail setup guide (domain, DKIM, bounce CNAME, token, region URL);
+                             local console testing; why sending subdomain != mailbox domain
+    templates/
+      layout.ts               Shared email layout (inline-CSS, header, footer); escapeHtml() helper;
+                             ctaButton() and unsubscribeFooter() helpers
+      verification-code.template.ts  OTP email (no unsubscribe link)
+      notification.templates.ts      payableCreatedTemplate, paymentReceivedTemplate,
+                             paymentReceiptTemplate, withdrawalCompletedTemplate — each returns
+                             { subject, html, text }; amounts via formatAmount(); all values escaped
   indexer/
     evm/
       evm.indexer.ts          Activity-driven EVM indexer; one tick per enabled EVM chain; dispatches
@@ -125,9 +161,21 @@ src/
                              returns a stop() function that waits for the current iteration to finish
     worker.module.ts          WorkerModule: acquires advisory lock on bootstrap; checks RELAYER_ROLE on each
                              enabled EVM chain; starts per-chain indexer loops, relay processor loop,
-                             gas-balance check (every 5 min), and heartbeat (every 15 min); stops gracefully
+                             outbox processor loop (5 s between iterations), gas-balance check (every 5 min),
+                             and heartbeat (every 15 min); stops gracefully
   api/
-    api.module.ts             Imports AuthModule; placeholder for public API controllers (phases 3b/4)
+    api.module.ts             Imports AuthModule, UsersModule, NotificationsModule; public read
+                             controllers arrive in phase 4
+  users/
+    users.controller.ts       GET /me, PATCH /me/preferences, POST /me/email, POST /me/email/verify,
+                             DELETE /me/email — all authenticated, /me/email stricter throttle
+    users.service.ts          getMe, updatePreferences, requestEmailVerification (rate limits,
+                             HMAC OTP, invalidate older verifications, direct mail send),
+                             verifyEmail (timingSafeEqual), removeEmail
+    users.dto.ts              SetEmailDto, VerifyEmailDto, UpdatePreferencesDto, MeResponseDto,
+                             PreferenceEntryDto, PreferencesDto, MeWalletDto
+    users.module.ts           Imports PrismaModule, AppConfigModule, NotificationsModule;
+                             exports UsersService; imported by ApiModule
   auth/
     auth.module.ts            Registers JwtAuthGuard as APP_GUARD (global, deny-by-default)
     auth.controller.ts        POST /auth/nonce | /verify | /refresh | /logout | /logout-all
@@ -232,6 +280,20 @@ prisma/
 - **Prisma schema and migrations are phase-1-owned.** A later phase that
   needs a schema change adds a new migration and says so in its PR
   description, per SPEC.md §17 — it does not rewrite phase 1 or 1b migrations.
+- **OTP codes are HMAC-SHA256 bound to the verificationId.** The hash stored in
+  `EmailVerification.codeHash` is `HMAC-SHA256(OTP_HMAC_SECRET, verificationId + ':' + code)`.
+  The raw code is never stored. Verification uses `timingSafeEqual`; the id binding
+  means a code valid for one verification never works for another.
+- **MailProvider is injected via the `MAIL_PROVIDER` symbol token.** The factory
+  in `NotificationsModule` constructs either `ZeptoMailProvider` (production) or
+  `ConsoleMailProvider` (development) based on `MAIL_PROVIDER` env var. `console`
+  is rejected by config validation when `NODE_ENV=production`.
+- **Outbox recipient is re-resolved at send time.** The `walletKey` on an Outbox row
+  is looked up in the DB at send time, not at enqueue time. A user who removes their
+  email after a notification is queued will not receive it (SKIPPED with reason logged).
+- **Unsubscribe signatures bind userId and type.** `sig = base64url(HMAC-SHA256(UNSUBSCRIBE_SECRET,
+  userId + ':' + type))`. Verified with `timingSafeEqual`. Invalid signatures return 400
+  without leaking whether the userId or type exists.
 
 ## Commands
 

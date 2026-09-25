@@ -8,8 +8,9 @@
 //   2. Checks RELAYER_ROLE on each enabled EVM chain (SPEC §6.1).
 //   3. Starts per-chain indexer loops (one per enabled EVM chain).
 //   4. Starts the relay processor loop.
-//   5. Starts the gas-balance check loop (every 5 min).
-//   6. Starts the heartbeat loop (every 15 min).
+//   5. Starts the outbox processor loop (phase 3b).
+//   6. Starts the gas-balance check loop (every 5 min).
+//   7. Starts the heartbeat loop (every 15 min).
 //
 // All loops catch iteration errors and retry next tick; they never crash the
 // process (SPEC.md §2.3).
@@ -34,13 +35,17 @@ import type { Client as PgClient } from 'pg';
 import { acquireAdvisoryLock, releaseAdvisoryLock } from './advisory-lock';
 import { runLoop } from './loop-runner';
 import { countByStatus } from '../relay/job.store';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { OutboxProcessor } from '../notifications/outbox.processor';
 
 const GAS_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // 15 min
 const RELAY_LOOP_INTERVAL_MS = 1_000; // 1 second between relay iterations
+const OUTBOX_LOOP_INTERVAL_MS = 5_000; // 5 seconds between outbox iterations
 
 @Module({
-  imports: [PrismaModule, ChainsModule, AppConfigModule, EvmIndexerModule, RelayModule],
+  imports: [PrismaModule, ChainsModule, AppConfigModule, EvmIndexerModule, RelayModule, NotificationsModule],
+  providers: [OutboxProcessor],
 })
 export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(WorkerModule.name);
@@ -53,7 +58,8 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
     private readonly config: AppConfigService,
     private readonly prisma: PrismaService,
     private readonly evmIndexer: EvmIndexer,
-    private readonly relayProcessor: RelayProcessor
+    private readonly relayProcessor: RelayProcessor,
+    private readonly outboxProcessor: OutboxProcessor
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -92,6 +98,14 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
       fn: () => this.relayProcessor.processOne(relayerAccount).then(() => undefined),
     });
     this.stopFns.push(stopRelay);
+
+    // Outbox processor loop (5s between iterations).
+    const stopOutbox = runLoop({
+      name: 'outbox-processor',
+      intervalMs: OUTBOX_LOOP_INTERVAL_MS,
+      fn: () => this.outboxProcessor.tick(),
+    });
+    this.stopFns.push(stopOutbox);
 
     // Gas-balance check loop.
     const stopGas = runLoop({

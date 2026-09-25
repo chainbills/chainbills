@@ -127,6 +127,7 @@ export const rawEnvSchema = z.object({
   // Per-enabled-chain RPC URL. Only the slugs listed in ENABLED_CHAINS are checked.
   RPC_ARCMAINNET: z.url().optional(),
   RPC_ANVIL: z.url().optional(),
+  RPC_BASE: z.url().optional(),
   RPC_SOLANADEVNET: z.url().optional(),
 
   RELAYER_PRIVATE_KEY: evmPrivateKey.optional(),
@@ -207,6 +208,7 @@ export const envSchema = rawEnvSchema.superRefine((env, ctx) => {
     const rpcBySlug: Record<string, string | undefined> = {
       arcmainnet: env.RPC_ARCMAINNET,
       anvil: env.RPC_ANVIL,
+      base: env.RPC_BASE,
       solanadevnet: env.RPC_SOLANADEVNET,
     };
 

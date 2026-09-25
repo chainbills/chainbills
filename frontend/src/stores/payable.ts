@@ -204,7 +204,7 @@ export const usePayableStore = defineStore('payable', () => {
   ): Promise<string> => {
     const descStep = flow?.step('description');
     descStep?.activate();
-    const saved = await server.createPayable(result.created, description);
+    const saved = await server.saveDescription(result.created, description);
     if (saved) descStep?.done();
     else descStep?.fail('Description can be added later from the payable page');
 
@@ -508,7 +508,7 @@ export const usePayableStore = defineStore('payable', () => {
       { key: 'save', title: 'Save description', description: 'Saving…' },
     ]);
     flow.step('save').activate();
-    const saved = await server.createPayable(payable.id, description);
+    const saved = await server.saveDescription(payable.id, description);
     if (!saved) {
       flow.step('save').fail('Could not save the description.');
       return { ok: false, error: 'failed', message: 'Could not save the description.' };

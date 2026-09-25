@@ -15,7 +15,7 @@ import type { Chain as ViemChain } from 'viem';
  * Human slug for a chain — used only in logs, config keys and API output.
  * Never a cross-chain key: use `cbChainId` for that.
  */
-export type ChainSlug = 'arcmainnet' | 'anvil' | 'solanadevnet';
+export type ChainSlug = 'arcmainnet' | 'anvil' | 'base' | 'solanadevnet' | 'megaeth' | 'arctestnet' | 'sepolia';
 
 /** Network environment — selects the Wormhole and CCTP API tier. */
 export type Network = 'mainnet' | 'testnet' | 'local';

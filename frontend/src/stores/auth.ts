@@ -13,10 +13,9 @@ import { useAccount, useDisconnect } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
 import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
+import { createSiweMessage } from 'viem/siwe';
 import { onMounted, ref, watch } from 'vue';
 import * as encoding from './encoding';
-
-export const AUTH_MESSAGE = 'Authentication';
 
 export const denormalizeBytes = (bytes: Uint8Array, chain: Chain): string => {
   bytes = Uint8Array.from(bytes);
@@ -32,7 +31,8 @@ export const useAuthStore = defineStore('auth', () => {
   const evm = useEvmStore();
   const isLoading = ref(true);
   const loadingMessage = ref('');
-  const signature = ref<string | null>(null);
+  const accessToken = ref<string | null>(null);
+  const tokenExpiresAt = ref<number | null>(null);
   const solana = useSolanaStore();
   const solanaConnector = useSolanaConnector();
   const toast = useToast();
@@ -96,37 +96,123 @@ export const useAuthStore = defineStore('auth', () => {
 
   const getWithdrawalId = async (count: number): Promise<string | null> => getEntityId('withdrawal', count);
 
-  const storageKey = (user: User) =>
-    `chainbills::chainId=>${user.chain.name}` + `::signature::v2=>${user.walletAddress}`;
-
-  const getSavedSig = (user: User): string | null => localStorage.getItem(storageKey(user));
-
-  const ensureSigned = async (user: User): Promise<void> => {
-    let signed = getSavedSig(user);
-    if (signed) {
-      signature.value = signed;
-    } else {
-      try {
-        signed = await getChainStore(user.chain)['sign'](AUTH_MESSAGE);
-        if (signed) localStorage.setItem(storageKey(user), signed);
-        else await disconnect(user.chain);
-        signature.value = signed ?? null;
-      } catch (e) {
-        signature.value = null;
-        const detail = `${e}`.toLocaleLowerCase().includes('rejected')
-          ? 'Please Sign to Continue'
-          : `Couldn't sign: ${errorMsg(e)}`;
-        toastError(detail);
-      }
-    }
-  };
-
   const refreshUser = async () => {
     if (!currentUser.value) return (currentUser.value = null);
     currentUser.value = await getChainStore()['getCurrentUser']();
   };
 
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
+
+  const serverUrl = () => import.meta.env.VITE_SERVER_URL || 'https://api.chainbills.xyz';
+
+  const tokenIsValid = () =>
+    !!(accessToken.value && tokenExpiresAt.value && tokenExpiresAt.value - Date.now() > 60_000);
+
+  const tryRefresh = async (): Promise<boolean> => {
+    try {
+      const res = await fetch(`${serverUrl()}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      accessToken.value = data.accessToken;
+      tokenExpiresAt.value = Date.now() + data.expiresIn * 1_000;
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const buildSiweMessage = (user: User, nonce: string): string =>
+    createSiweMessage({
+      domain: window.location.host,
+      address: user.walletAddress as `0x${string}`,
+      statement: 'Sign in to Chainbills',
+      uri: window.location.origin,
+      version: '1',
+      chainId: evmAccount.chain.value!.id,
+      nonce,
+      issuedAt: new Date(),
+    });
+
+  const buildSiwsMessage = (user: User, nonce: string): string =>
+    [
+      `${window.location.host} wants you to sign in with your Solana account:`,
+      user.walletAddress,
+      '',
+      'Sign in to Chainbills',
+      '',
+      `URI: ${window.location.origin}`,
+      'Version: 1',
+      'Chain ID: devnet',
+      `Nonce: ${nonce}`,
+      `Issued At: ${new Date().toISOString()}`,
+    ].join('\n');
+
+  const ensureJwt = async (user: User): Promise<void> => {
+    if (tokenIsValid()) return;
+
+    // Try silent token rotation using the httpOnly refresh cookie before
+    // asking the wallet to sign again.
+    if (await tryRefresh()) return;
+
+    // Full sign-in: get nonce, build EIP-4361 / SIWS message, sign, verify.
+    loadingMessage.value = 'Kindly Sign Authentication Message in Wallet';
+    try {
+      const nonceRes = await fetch(`${serverUrl()}/auth/nonce`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!nonceRes.ok) throw new Error('Failed to get nonce from server');
+      const { nonce } = await nonceRes.json();
+
+      const message = user.chain.isEvm ? buildSiweMessage(user, nonce) : buildSiwsMessage(user, nonce);
+      const signed = await getChainStore(user.chain)['sign'](message);
+      if (!signed) {
+        await disconnect(user.chain);
+        return;
+      }
+
+      const verifyRes = await fetch(`${serverUrl()}/auth/verify`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          namespace: user.chain.isEvm ? 'evm' : 'solana',
+          message,
+          signature: signed,
+        }),
+      });
+      if (!verifyRes.ok) {
+        const err = await verifyRes.json().catch(() => ({}));
+        const msg = Array.isArray(err.message) ? err.message.join('; ') : err.message;
+        throw new Error(msg || 'Authentication failed');
+      }
+      const data = await verifyRes.json();
+      accessToken.value = data.accessToken;
+      tokenExpiresAt.value = Date.now() + data.expiresIn * 1_000;
+    } catch (e) {
+      accessToken.value = null;
+      tokenExpiresAt.value = null;
+      const detail = `${e}`.toLowerCase().includes('rejected')
+        ? 'Please Sign to Continue'
+        : `Couldn't authenticate: ${errorMsg(e)}`;
+      toastError(detail);
+    }
+  };
+
+  /**
+   * Attempts to silently rotate the access token using the httpOnly refresh
+   * cookie. Called by the server store on 401 responses.
+   */
+  const refreshToken = async (): Promise<boolean> => tryRefresh();
+
+  const clearJwt = () => {
+    accessToken.value = null;
+    tokenExpiresAt.value = null;
+  };
 
   const updateCurrentUser = async ([newSolanaConnected, newEvmAddress]: any[]) => {
     isLoading.value = true;
@@ -143,7 +229,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (!newChain) {
       currentUser.value = null;
-      signature.value = null;
+      clearJwt();
       isLoading.value = false;
       loadingMessage.value = '';
       return;
@@ -153,15 +239,14 @@ export const useAuthStore = defineStore('auth', () => {
     const newUser = await getChainStore(newChain)['getCurrentUser']();
     if (!newUser) {
       currentUser.value = null;
-      signature.value = null;
+      clearJwt();
       isLoading.value = false;
       loadingMessage.value = '';
       return;
     }
 
-    loadingMessage.value = 'Kindly Sign Authentication Message in Wallet';
-    await ensureSigned(newUser);
-    if (signature.value) {
+    await ensureJwt(newUser);
+    if (accessToken.value) {
       currentUser.value = newUser;
     } else {
       currentUser.value = null;
@@ -184,11 +269,12 @@ export const useAuthStore = defineStore('auth', () => {
     watch(
       [() => solanaConnector.isConnectedSolana.value, () => evmAccount.address.value, () => evmAccount.chain.value],
       updateCurrentUser,
-      { deep: true },
+      { deep: true }
     );
   });
 
   return {
+    accessToken,
     balance,
     currentUser,
     disconnect,
@@ -197,7 +283,7 @@ export const useAuthStore = defineStore('auth', () => {
     getPayableId,
     getPaymentId,
     getWithdrawalId,
+    refreshToken,
     refreshUser,
-    signature,
   };
 });

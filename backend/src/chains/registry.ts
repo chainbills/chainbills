@@ -22,7 +22,14 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { parseEther } from 'viem';
-import { arc as viemArc, anvil as viemAnvil } from 'viem/chains';
+import {
+  arc as viemArc,
+  arcTestnet as viemArcTestnet,
+  anvil as viemAnvil,
+  base as viemBase,
+  megaeth as viemMegaeth,
+  sepolia as viemSepolia,
+} from 'viem/chains';
 import type { ChainConfig, ChainSlug, EvmChainConfig, SolanaChainConfig } from './types';
 
 export const arcmainnet: EvmChainConfig = {
@@ -87,8 +94,82 @@ export const solanaDevnet: SolanaChainConfig = {
   wormholeShimProgramId: 'EtZMZM22ViKMo4r5y4Anovs3wKQ2owUmDpjygnMMcdEX',
 };
 
+export const megaeth: EvmChainConfig = {
+  slug: 'megaeth',
+  displayName: 'MegaETH',
+  caip2: 'eip155:4326',
+  // keccak256("eip155:4326")
+  cbChainId: '0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a',
+  network: 'mainnet',
+  viemChain: viemMegaeth,
+  diamondAddress: null,
+  deploymentBlock: null,
+  wormholeChainId: undefined,
+  circleDomain: undefined,
+  pollIntervalMs: 5000,
+  minGasBalance: parseEther('0.01'),
+  isEvm: true,
+  isSolana: false,
+};
+
+export const arctestnet: EvmChainConfig = {
+  slug: 'arctestnet',
+  displayName: 'Arc Testnet',
+  caip2: 'eip155:5042002',
+  // keccak256("eip155:5042002")
+  cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
+  network: 'testnet',
+  viemChain: viemArcTestnet,
+  diamondAddress: null,
+  deploymentBlock: null,
+  wormholeChainId: undefined,
+  circleDomain: 26,
+  pollIntervalMs: 5000,
+  minGasBalance: parseEther('0.01'),
+  isEvm: true,
+  isSolana: false,
+};
+
+export const sepolia: EvmChainConfig = {
+  slug: 'sepolia',
+  displayName: 'Sepolia',
+  caip2: 'eip155:11155111',
+  // keccak256("eip155:11155111")
+  cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
+  network: 'testnet',
+  viemChain: viemSepolia,
+  diamondAddress: null,
+  deploymentBlock: null,
+  wormholeChainId: 10002,
+  circleDomain: 0,
+  pollIntervalMs: 12000,
+  minGasBalance: parseEther('0.01'),
+  isEvm: true,
+  isSolana: false,
+};
+
+export const base: EvmChainConfig = {
+  slug: 'base',
+  displayName: 'Base',
+  caip2: 'eip155:8453',
+  // keccak256("eip155:8453")
+  cbChainId: '0x43b48883ef7be0f98fe7f98fafb2187e42caab4063697b32816f95e09d69b3ec',
+  network: 'mainnet',
+  viemChain: viemBase,
+  // TODO(owner): fill in from deploys/base.json after deploying
+  diamondAddress: null,
+  // TODO(owner): fill in from deploys/base.json after deploying
+  deploymentBlock: null,
+  wormholeChainId: 30,
+  circleDomain: 6,
+  pollIntervalMs: 2000,
+  minGasBalance: parseEther('0.01'),
+  isEvm: true,
+  isSolana: false,
+};
+
 /** Every chain this backend knows about. */
-export const CHAINS: readonly ChainConfig[] = [arcmainnet, anvil, solanaDevnet];
+export const CHAINS: readonly ChainConfig[] = [arcmainnet, anvil, base, megaeth, arctestnet, sepolia, solanaDevnet];
 
 /** Looks up a chain by its CAIP-2 cbChainId — the universal cross-chain key. */
 export const CHAIN_BY_CB_CHAIN_ID: ReadonlyMap<string, ChainConfig> = new Map(CHAINS.map((c) => [c.cbChainId, c]));

@@ -54,11 +54,16 @@ export class ChainsService {
   /** The configured RPC URL for `chain`, resolved once at construction. */
   getRpcUrl(chain: ChainConfig): string {
     const url = this.rpcUrlBySlug.get(chain.slug);
-    if (!url) {
-      // Unreachable given env.schema.ts requires every RPC_* var for every
-      // enabled chain, but fail loudly rather than silently returning an empty URL.
-      throw new Error(`no RPC URL configured for chain: ${chain.slug}`);
+    if (url) return url;
+
+    // Chains not in ENABLED_CHAINS have no configured RPC. Fall back to the
+    // viem chain's built-in default HTTP RPC so SIWE signature verification
+    // can still work for wallets connected to these chains.
+    if (chain.isEvm) {
+      const fallback = chain.viemChain.rpcUrls.default.http[0];
+      if (fallback) return fallback;
     }
-    return url;
+
+    throw new Error(`no RPC URL configured for chain: ${chain.slug}`);
   }
 }

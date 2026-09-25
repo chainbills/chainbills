@@ -1,178 +1,164 @@
 # Chainbills Backend
 
-NestJS + Prisma + PostgreSQL service for Chainbills: chain indexing, cross-chain relaying, wallet auth, email notifications, and the public read API. 
+## Overview
 
-## Table of Contents
+This service indexes Chainbills smart-contract activity across every enabled chain, relays cross-chain messages (Wormhole VAAs and Circle CCTP attestations), authenticates wallets via Sign-In With Ethereum (SIWE) and Sign-In With Solana (SIWS), delivers email notifications through a transactional outbox, and exposes a public JSON read API for cross-chain data that on-chain getters cannot answer. It is a NestJS application backed by Prisma and PostgreSQL, packaged as a single Docker image. It replaces the older `relayer/` (Node.js event indexer + relay service) and `server/` (Firebase Cloud Functions) for all chains that use the ERC-2535 diamond contracts in `evm/`.
 
-- [Module map](#module-map)
-- [Local quick start](#local-quick-start)
-- [Tests](#tests)
-- [Deploying](#deploying)
+## Architecture
 
-## Module map
+The same Docker image runs in one of three roles, chosen by the `ROLE` environment variable:
 
-```
-src/
-  main.ts                 Bootstrap: pino, cookies, CORS, body limit, helmet,
-                           validation pipe, Swagger (/docs, /docs-json), shutdown hooks
-  app.module.ts            Root module; imports WorkerModule only for ROLE=worker|all,
-                           ApiModule only for ROLE=api|all; HealthModule always
-  config/
-    env.schema.ts           zod schema for every env var (SPEC.md §5); validateEnv()
-                           prints all problems and exits 1; loadEnv() for the
-                           role gate in app.module.ts; rpcVarName() converts a
-                           slug to its RPC_<SLUG> env var name
-    app-config.service.ts   Typed AppConfigService, the only way the app reads config;
-                           exposes rpcUrl(slug) for per-chain RPC URL lookup
-    config.module.ts        Wraps ConfigModule.forRoot({ validate: validateEnv }), global
-  prisma/
-    prisma.service.ts       PrismaClient wrapper: connects on init, disconnects on shutdown
-    prisma.module.ts        Global PrismaModule
-  chains/
-    types.ts                ChainConfig / EvmChainConfig / SolanaChainConfig types;
-                           EvmChainConfig has diamondAddress, caip2, network;
-                           SolanaChainConfig has relayEnabled; Network union type
-    registry.ts              arcmainnet, anvil, solanadevnet; CHAINS, CHAIN_BY_CB_CHAIN_ID,
-                           CHAIN_BY_SLUG, EVM_CHAINS, SOLANA_CHAINS;
-                           enabledChains(slugs), sameNetwork(a, b),
-                           requireChainByCbChainId(id)
-    tokens.ts                Token registry (address/mint, symbol, decimals) per chain;
-                           resolveToken(), resolveTokenFromRegistry();
-                           injectable TokenResolverService with ERC-20 fallback + cache
-    abi/
-      chainbills.ts          chainbillsAbi — verbatim copy of evm/abi/chainbills.ts;
-                           the only ABI used by the backend (no legacy mainAbi/gettersAbi)
-      abi-sync.spec.ts       Fails when chainbills.ts diverges from evm/abi/chainbills.json;
-                           skipped when that file is absent (Docker build, CI without evm/)
-    idl/chainbills-idl.json  Solana program IDL, copied from relayer/src/solana/
-    clients.ts               viem public/wallet client + Solana Connection factories
-                           (take an RPC URL as an argument; never a mutated global)
-    chains.service.ts        Joins the registry with AppConfigService's ENABLED_CHAINS +
-                           RPC URLs; global; exposes enabled chains and getRpcUrl(chain)
-    chains.module.ts
-    wallet-key.ts             walletKey()/parseWalletKey() for "evm:0x..." | "solana:..."
-  common/
-    filters/                 GlobalExceptionFilter -> { statusCode, error, message }
-    pagination/               Cursor encode/decode + PaginationQueryDto
-    amount/                   formatAmount(): raw integer string + decimals -> decimal string
-    decorators/               @Public() route metadata; IS_PUBLIC_KEY read by JwtAuthGuard
-  health/                    GET /health -> { status, role, db, chains[{slug,lastTickAt,stale}] };
-                             503 when DB unreachable or any enabled chain's lastTickAt older than 5x
-                             its pollIntervalMs; registered for every role
-  notifications/
-    outbox.writer.ts          enqueueOutbox(): inserts Outbox row inside a Prisma transaction; skips
-                             when event is older than EMAIL_MAX_EVENT_AGE or recipient has no verified
-                             email; dedupes on "<TYPE>:<entityId>:<walletKey>"
-    index.ts                  Re-exports enqueueOutbox, PrismaTransactionClient
-  indexer/
-    evm/
-      evm.indexer.ts          Activity-driven EVM indexer; one tick per enabled EVM chain; dispatches
-                             each ActivityType to entity upserts + Activity row + Outbox rows +
-                             cursor increment inside one prisma.$transaction; stops on first failure;
-                             calls detectRelayTriggers after each activity page; updates lastTickAt every tick
-      payer-normalise.ts      normalisePayerBytes32(): bytes32 -> EVM hex address (last 20 bytes) or
-                             Solana base58 (all 32 bytes) based on the payer's chain
-      evm-indexer.module.ts   Provides EvmIndexer; imported by WorkerModule
-  relay/
-    job.store.ts              RelayJob CRUD: createJob (skipDuplicates), claimJob (FOR UPDATE SKIP LOCKED),
-                             patchArtefacts, markDone, markFailed, retryLater (backoff = 30s * 2^attempts
-                             capped at 10 min; after 8 attempts -> FAILED), countByStatus
-    trigger.detector.ts       detectRelayTriggers(): scans diamond logs in 9000-block chunks from
-                             cursor.relayScanBlock+1; creates PAYABLE_UPDATE_VIA_WORMHOLE,
-                             PAYABLE_UPDATE_VIA_CCTP, and PAYMENT_VIA_CCTP jobs; advances relayScanBlock
-                             after each chunk; dedupes via unique key (type,txHash,destChainId)
-    relay.processor.ts        RelayProcessor: claims one job, resolves artefacts (VAA/CCTP attestation),
-                             submits to dest diamond, classifies result; idempotent errors -> DONE;
-                             RelayerOnly -> FAILED; InsufficientFinality + pending -> retry; Solana
-                             job types left PENDING (Solana relay not yet implemented); processOne() returns bool
-    relay.module.ts           Provides RelayProcessor; imported by WorkerModule
-    resolvers/
-      wormhole.resolver.ts    fetchVaa(): fetches signed VAA from WormholeScan by (chainId, emitter, seq);
-                             returns null when not yet available; mainnet/sandbox URLs by network
-      cctp.resolver.ts        fetchCctpAttestation(): polls Circle Iris V2 API; picks message by
-                             destinationDomain; returns null when not yet complete; mainnet/sandbox by network
-    submitters/
-      evm.submitter.ts        submitReceivePayableUpdate{ViaWormhole,ViaCctp} and
-                             submitReceiveForeignPaymentViaCctp: simulate then writeContract on dest diamond;
-                             decodes custom ABI errors; strips abi from viem errors before logging
-  worker/
-    advisory-lock.ts          acquireAdvisoryLock(): pg_try_advisory_lock on a dedicated connection;
-                             retries every 30s; releaseAdvisoryLock(): pg_advisory_unlock + end connection
-    loop-runner.ts            runLoop(): starts a named async loop; catches iteration errors without crashing;
-                             returns a stop() function that waits for the current iteration to finish
-    worker.module.ts          WorkerModule: acquires advisory lock on bootstrap; checks RELAYER_ROLE on each
-                             enabled EVM chain; starts per-chain indexer loops, relay processor loop,
-                             gas-balance check (every 5 min), and heartbeat (every 15 min); stops gracefully
-  api/
-    api.module.ts             Imports AuthModule; placeholder for public API controllers
-  auth/
-    auth.module.ts            Registers JwtAuthGuard as APP_GUARD (global, deny-by-default)
-    auth.controller.ts        POST /auth/nonce | /verify | /refresh | /logout | /logout-all
-    auth.service.ts           Nonce issue, verify orchestration, refresh rotation, revoke
-    nonce.service.ts          Generate, find, mark-used, opportunistic cleanup of AuthNonce rows
-    session.service.ts        Create, rotate, revoke sessions; sha256 token hashing
-    siwe-verifier.ts          viem parseSiweMessage + publicClient.verifyMessage (EOA/ERC-1271/ERC-6492)
-    siws-verifier.ts          tweetnacl ed25519 verify; signature as base58 or base64
-    siws-parser.ts            SIWS text-format message parser (all fields, typed result)
-    jwt-auth.guard.ts         Global guard: reads Bearer token, verifies JWT, checks session in DB
-    current-user.decorator.ts @CurrentUser() param decorator; returns { userId, walletKey, sessionId }
-    auth.dto.ts               DTOs: NonceResponse, VerifyRequest/Response, RefreshResponse
-prisma/
-  schema.prisma              Full data model (SPEC.md §7)
-  migrations/
-    20260924165704_init/      Initial schema
-    20260924220000_diamond_alignment/  Adds requestedAmount, fee, relayScanBlock;
-                             aligns RelayJobType (PAYMENT_VIA_CCTP replaces two legacy
-                             types); adds cctpMessage/cctpAttestation to RelayJob
-```
+| ROLE     | HTTP API                   | Chain indexers, relay, outbox | Needs private keys |
+| -------- | -------------------------- | ----------------------------- | ------------------ |
+| `all`    | yes                        | yes                           | yes                |
+| `api`    | yes                        | no                            | no                 |
+| `worker` | `/health` only             | yes                           | yes                |
 
-## Local quick start
+Today the service runs as `ROLE=all` on a single Cloud Run instance. Splitting into an `api` role (scales freely, holds no keys) and a `worker` role (exactly one instance) is a deployment-config change only — no code change needed. See "Splitting into api + worker services" below.
 
-Requires Node.js 24 (see `.nvmrc`), pnpm (enable with `corepack enable`; the version is pinned in `package.json#packageManager`) and Docker.
+Worker-side providers are registered by `WorkerModule`, imported only when `ROLE` is `worker` or `all`. HTTP controllers other than `HealthController` are registered only when `ROLE` is `api` or `all`.
+
+## Quick start (local)
+
+**Prerequisites:** Node.js 24 (see `.nvmrc`), pnpm via Corepack, Docker.
 
 ```bash
+# 1. Enable pnpm (once per machine)
+corepack enable
+
+# 2. Install dependencies
 cd backend
-cp .env.example .env
-# Set ENABLED_CHAINS=anvil (once you fill in the diamond address after running
-# evm/script/DeployLocalStack.s.sol) or ENABLED_CHAINS=solanadevnet for Solana
-# devnet indexing. Set RPC_<SLUG> for each enabled chain (e.g. RPC_ANVIL=http://127.0.0.1:8545
-# or RPC_SOLANADEVNET=https://api.devnet.solana.com). Fill in either real
-# secrets or any 32+ character placeholder strings for JWT_ACCESS_SECRET /
-# OTP_HMAC_SECRET / UNSUBSCRIBE_SECRET — see docs/ENV.md for exactly what
-# each variable needs.
-
 pnpm install
+
+# 3. Create your local env file
+cp .env.example .env
+# Edit .env — at minimum set ENABLED_CHAINS, the matching RPC_ var,
+# and the three secret vars (JWT_ACCESS_SECRET, OTP_HMAC_SECRET,
+# UNSUBSCRIBE_SECRET). See docs/ENV.md for every variable.
+
+# 4. Start Postgres
 docker compose up -d postgres
-pnpm prisma:migrate        # applies prisma/migrations/ to your local DB
-pnpm start:dev             # nest start --watch
 
-# in another terminal
-curl http://localhost:8080/health
-open http://localhost:8080/docs   # Swagger UI
+# 5. Apply migrations
+pnpm prisma:deploy
+
+# 6. Start the app in watch mode
+pnpm start:dev
 ```
 
-## Tests
+Visit `http://localhost:8080/health` to confirm the service is running, or open `http://localhost:8080/docs` for the Swagger UI.
+
+### Local EVM indexing with Anvil
+
+To index the local Chainbills diamond:
+
+1. In a separate terminal, start Anvil and run `evm/script/DeployLocalStack.s.sol` (see `evm/README.md`).
+2. Set `ENABLED_CHAINS=anvil` and `RPC_ANVIL=http://127.0.0.1:8545` in your `.env`.
+3. Fill in the deployed diamond address in `src/chains/registry.ts` under the `anvil` entry.
+4. Restart `pnpm start:dev`.
+
+## Environment variables
+
+See `docs/ENV.md` for the full reference — type, default, which role needs it, and where to obtain each value.
+
+Three groups matter most:
+
+**Core** (`NODE_ENV`, `ROLE`, `PORT`, `LOG_LEVEL`, `APP_URL`, `PUBLIC_API_URL`, `CORS_ORIGINS`, `DATABASE_URL`, `DIRECT_URL`) — required for every role.
+
+**Chains** (`ENABLED_CHAINS`, `RPC_<SLUG>` per enabled chain) — required for every role; the api role needs them for on-chain signature and ownership verification.
+
+**Auth and notification secrets** (`JWT_ACCESS_SECRET`, `OTP_HMAC_SECRET`, `UNSUBSCRIBE_SECRET`, `RELAYER_PRIVATE_KEY`, `SOLANA_RELAYER_KEYPAIR`, ZeptoMail vars) — required for the roles that use them.
+
+## Testing
+
+Unit tests (no database or network required):
 
 ```bash
-pnpm lint
-pnpm build
-pnpm test:cov           # unit tests + enforced coverage thresholds — no DB or network required
-pnpm prisma validate
-pnpm test:e2e           # needs: docker compose up -d postgres
+pnpm test        # run unit tests once
+pnpm test:cov    # run unit tests with enforced coverage thresholds
 ```
 
-## Deploying
-
-### Cloud Run + Neon (current production setup)
-
-One Cloud Run service, `ROLE=all`, `min-instances=1`, `max-instances=1`, CPU always allocated (SPEC.md §15 / §2.2 — relaying must run on exactly one instance). Secrets come from Secret Manager as env vars; `DATABASE_URL` is Neon's pooled connection string, `DIRECT_URL` its direct one (both from the Neon console's **Connect** panel). Build and push the image from this directory's `Dockerfile`, then deploy it with those env vars set — see [`docs/ENV.md`](docs/ENV.md) for every variable Cloud Run needs.
-
-### VPS (docker compose)
+End-to-end tests (require a running Postgres):
 
 ```bash
-cp .env.example .env   # fill in real values; set COOKIE_SECURE=true, NODE_ENV=production, MAIL_PROVIDER=zeptomail
-docker compose up -d                   # Postgres + app only
-docker compose --profile proxy up -d   # + Caddy, terminating TLS for api.<domain> (edit Caddyfile first)
+docker compose up -d postgres
+pnpm prisma:deploy
+TEST_DATABASE_URL="postgresql://chainbills:chainbills@localhost:5432/chainbills" pnpm test:e2e
 ```
 
-The app container's `CMD` runs `prisma migrate deploy` automatically before starting, so a fresh VPS only needs `docker compose up -d` once Postgres is healthy.
+Coverage thresholds are enforced in `vitest.config.ts`: lines, functions, and statements >= 90%; branches >= 85%.
+
+## Cloud Run deployment
+
+Deploy one Cloud Run service with these settings:
+
+- `ROLE=all`
+- `min-instances=1`, `max-instances=1` (relaying must run on exactly one instance)
+- CPU always allocated (background loops must not be suspended)
+- All secrets from Google Secret Manager as environment variables (never bake them into the image)
+- `DATABASE_URL`: Neon pooled connection string (from the Neon console "Connect" panel)
+- `DIRECT_URL`: Neon direct (non-pooled) connection string (same panel, "Direct connection" tab)
+
+Build and push the image from this directory's `Dockerfile`, then deploy with the full set of env vars from `docs/ENV.md`.
+
+The `CMD` in the Dockerfile runs `prisma migrate deploy` before starting the server, so a new image version automatically applies any pending migrations on startup.
+
+## VPS deployment
+
+```bash
+cp .env.example .env
+# Fill in all values; set NODE_ENV=production, COOKIE_SECURE=true, MAIL_PROVIDER=zeptomail
+
+docker compose up -d                    # Postgres + app
+docker compose --profile proxy up -d   # + Caddy for TLS (edit Caddyfile first)
+```
+
+The app container's `CMD` runs `prisma migrate deploy` automatically, so a fresh VPS only needs the above commands once Postgres is healthy.
+
+## Splitting into api + worker services
+
+When traffic grows, you can split the single `ROLE=all` service into two separate deployments:
+
+- **api service** (`ROLE=api`): scales freely (multiple instances), holds no private keys, points at the same Postgres. Handles all HTTP traffic except health on the worker.
+- **worker service** (`ROLE=worker`): exactly one instance (set `min-instances=max-instances=1`), holds the relayer keys, owns indexing and relay processing.
+
+Both deployments use the same Docker image. The only change is the `ROLE` env var and the instance-count settings. The single-worker invariant is enforced by a Postgres advisory lock (`pg_try_advisory_lock`): a second process pointed at the same database will see the lock is taken, log a warning, and stay idle — relaying is never duplicated.
+
+## Operations
+
+### Inspect relay job queue
+
+```sql
+SELECT status, count(*) FROM relay_jobs GROUP BY status;
+```
+
+### Retry a stuck relay job
+
+```sql
+UPDATE relay_jobs
+SET status = 'PENDING', not_before = now(), attempts = 0
+WHERE id = '<job-id>';
+```
+
+### Inspect the email outbox
+
+```sql
+SELECT status, count(*) FROM outbox GROUP BY status;
+```
+
+### Inspect chain cursors
+
+```sql
+SELECT chain_id, activities_indexed, relay_scan_block, last_tick_at
+FROM chain_cursors;
+```
+
+### Force re-index from block N
+
+```sql
+UPDATE chain_cursors
+SET relay_scan_block = <N>
+WHERE chain_id = '<cbChainId>';
+```
+
+Replace `<N>` with the block number to resume from. The indexer will re-scan relay-trigger events from that block on the next tick.

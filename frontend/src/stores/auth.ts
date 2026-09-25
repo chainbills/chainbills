@@ -1,8 +1,8 @@
 import {
   type Chain,
   arctestnet,
+  basesepolia as basesepoliaInApp,
   megaeth as megaethInApp,
-  sepolia as sepoliaInApp,
   solanadevnet,
   type Token,
   User,
@@ -12,7 +12,7 @@ import { useSolanaConnector } from '@/composables/useSolanaConnector';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
+import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 import { createSiweMessage } from 'viem/siwe';
 import { onMounted, ref, watch } from 'vue';
 import * as encoding from './encoding';
@@ -43,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
     ({
       arctestnet: evm,
       megaeth: evm,
-      sepolia: evm,
+      basesepolia: evm,
       solanadevnet: solana,
     })[(chain ?? currentUser.value!.chain).name];
 
@@ -69,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
       return await {
         arctestnet: evmDisconnect,
         megaeth: evmDisconnect,
-        sepolia: evmDisconnect,
+        basesepolia: evmDisconnect,
         solanadevnet: solanaConnector.disconnect,
       }[(chain ?? currentUser.value!.chain).name]();
     }
@@ -214,6 +214,19 @@ export const useAuthStore = defineStore('auth', () => {
     tokenExpiresAt.value = null;
   };
 
+  const callLogout = async (): Promise<void> => {
+    if (!accessToken.value) return;
+    try {
+      await fetch(`${serverUrl()}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      });
+    } catch {
+      // Best-effort — refresh cookie will expire on its own if this fails.
+    }
+  };
+
   const updateCurrentUser = async ([newSolanaConnected, newEvmAddress]: any[]) => {
     isLoading.value = true;
     loadingMessage.value = 'Authenticating ...';
@@ -223,11 +236,12 @@ export const useAuthStore = defineStore('auth', () => {
       const evmChainId = evmAccount.chain.value?.id;
       if (evmChainId === megaethViem.id) newChain = megaethInApp;
       else if (evmChainId === arcTestnet.id) newChain = arctestnet;
-      else if (evmChainId === sepoliaViem.id) newChain = sepoliaInApp;
+      else if (evmChainId === baseSepoliaViem.id) newChain = basesepoliaInApp;
     }
     if (newSolanaConnected) newChain = solanadevnet;
 
     if (!newChain) {
+      await callLogout();
       currentUser.value = null;
       clearJwt();
       isLoading.value = false;

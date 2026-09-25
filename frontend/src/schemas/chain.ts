@@ -12,8 +12,8 @@
 // Used by: every schema and store that resolves "which chain is this
 // entity on" (`schemas/*`, `stores/evm.ts`, `stores/activity.ts`), and every
 // view that links out to a wallet or transaction on a block explorer.
-export type ChainName = 'arctestnet' | 'megaeth' | 'sepolia' | 'solanadevnet';
-export const chainNamesEvm: ChainName[] = ['megaeth', 'arctestnet', 'sepolia'];
+export type ChainName = 'arctestnet' | 'megaeth' | 'basesepolia' | 'solanadevnet';
+export const chainNamesEvm: ChainName[] = ['megaeth', 'arctestnet', 'basesepolia'];
 export const chainNames: ChainName[] = [...chainNamesEvm, 'solanadevnet'];
 
 export type ChainNetworkType = 'mainnet' | 'testnet';
@@ -48,7 +48,7 @@ export interface Chain {
 export const getTxUrl = (txHash: string, chain: Chain) => {
   if (chain.name === 'megaeth') return `https://megaeth.blockscout.com/tx/${txHash}`;
   if (chain.name === 'arctestnet') return `https://testnet.arcscan.app/tx/${txHash}`;
-  if (chain.name === 'sepolia') return `https://sepolia.etherscan.io/tx/${txHash}`;
+  if (chain.name === 'basesepolia') return `https://sepolia.basescan.org/tx/${txHash}`;
   if (chain.name === 'solanadevnet') return `https://explorer.solana.com/tx/${txHash}?cluster=devnet`;
   throw 'Unhandled Chain in GetTxUrl';
 };
@@ -57,7 +57,7 @@ export const getTxUrl = (txHash: string, chain: Chain) => {
 export const getWalletUrl = (wallet: string, chain: Chain) => {
   if (chain.name === 'megaeth') return `https://megaeth.blockscout.com/address/${wallet}`;
   if (chain.name === 'arctestnet') return `https://testnet.arcscan.app/address/${wallet}`;
-  if (chain.name === 'sepolia') return `https://sepolia.etherscan.io/address/${wallet}`;
+  if (chain.name === 'basesepolia') return `https://sepolia.basescan.org/address/${wallet}`;
   if (chain.name === 'solanadevnet') return `https://explorer.solana.com/address/${wallet}?cluster=devnet`;
   throw 'Unhandled Chain in GetWalletUrl';
 };
@@ -66,7 +66,7 @@ export const getWalletUrl = (wallet: string, chain: Chain) => {
 export const getChainLogo = (chain: Chain) => {
   if (chain.name === 'megaeth') return '/assets/tokens/MegaETH.png';
   if (chain.name === 'arctestnet') return '/assets/tokens/ARC.png';
-  if (chain.name === 'sepolia') return '/assets/tokens/ETH.png';
+  if (chain.name === 'basesepolia') return '/assets/tokens/Base.png';
   if (chain.name === 'solanadevnet') return '/assets/tokens/SOL.png';
   throw 'Unhandled Chain in GetChainLogo';
 };
@@ -93,15 +93,15 @@ export const arctestnet: Chain = {
   brandColor: '#00d2ff',
 };
 
-/** Ethereum Sepolia — testnet EVM chain, Wormhole- and CCTP-enabled (domain 0). */
-export const sepolia: Chain = {
-  name: 'sepolia',
-  displayName: 'Sepolia',
+/** Base Sepolia — testnet EVM chain, Wormhole- and CCTP-enabled (domain 6). */
+export const basesepolia: Chain = {
+  name: 'basesepolia',
+  displayName: 'Base Sepolia',
   isEvm: true,
   isSolana: false,
   networkType: 'testnet',
-  cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
-  brandColor: '#627eea',
+  cbChainId: '0x8a9a9c58b754a98f1ff302a7ead652cfd23eb36a5791767b5d185067dd9481c2',
+  brandColor: '#0052ff',
 };
 
 /** Solana Devnet — inactive this round; kept only so Solana code paths keep compiling. */
@@ -119,7 +119,7 @@ export const solanadevnet: Chain = {
 export const chainNamesToChains: Record<ChainName, Chain> = {
   arctestnet,
   megaeth,
-  sepolia,
+  basesepolia,
   solanadevnet,
 };
 

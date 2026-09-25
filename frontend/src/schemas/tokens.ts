@@ -29,7 +29,8 @@ export const getTokenLogo = (chain: Chain, token: Token) => {
 export const contracts: Record<ChainName, string> = {
   arctestnet: '0x0bA837eF7358981967FB2cFcB79bf649b7cACbf4',
   megaeth: '0xc38d1681d34DA821E46508C084D673477E455570',
-  sepolia: '0x48353Ab7662Bc8218811Fbbdf247cCc8602fba8A',
+  // TODO(owner): fill in from deploys/basesepolia.json after deploying
+  basesepolia: '',
   solanadevnet: 'DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk',
 };
 
@@ -155,8 +156,8 @@ export const tokens: Token[] = [
         address: '0x3600000000000000000000000000000000000000',
         decimals: 6,
       },
-      sepolia: {
-        address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+      basesepolia: {
+        address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
         decimals: 6,
       },
       solanadevnet: {
@@ -172,8 +173,8 @@ export const tokens: Token[] = [
         address: contracts.megaeth,
         decimals: 18,
       },
-      sepolia: {
-        address: contracts.sepolia,
+      basesepolia: {
+        address: contracts.basesepolia,
         decimals: 18,
       },
     },

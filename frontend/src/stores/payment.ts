@@ -32,6 +32,7 @@ import {
   useCacheStore,
   useEvmStore,
   usePayableStore,
+  useServerStore,
   useSolanaStore,
   useTxFlowStore,
 } from '@/stores';
@@ -46,6 +47,7 @@ export const usePaymentStore = defineStore('payment', () => {
   const cache = useCacheStore();
   const evm = useEvmStore();
   const payableStore = usePayableStore();
+  const server = useServerStore();
   const solana = useSolanaStore();
   const txFlow = useTxFlowStore();
   const toast = useToast();
@@ -263,6 +265,48 @@ export const usePaymentStore = defineStore('payment', () => {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
     return { arrived: poller.status.value === 'succeeded', payablePayment, poller };
+  };
+
+  /**
+   * Backend-based variant of `trackArrival`. Polls `GET /payments/user/:id`
+   * until the backend relay job reaches a terminal state (DONE or FAILED) or
+   * the poller times out. Returns whether the payment arrived, the destination
+   * PayablePayment id if it did, and the failure reason if the relay job failed.
+   * Callers should treat null payablePaymentId + arrived=true as "delivered but
+   * receipt not yet indexed" (rare, short-lived race).
+   */
+  const trackArrivalViaBackend = async (
+    userPaymentId: string
+  ): Promise<{ arrived: boolean; payablePaymentId: string | null; failureReason: string | null }> => {
+    let result: { arrived: boolean; payablePaymentId: string | null; failureReason: string | null } = {
+      arrived: false,
+      payablePaymentId: null,
+      failureReason: null,
+    };
+
+    const poller = usePoller(
+      async () => {
+        const data = await server.getPaymentRelayStatus(userPaymentId);
+        if (!data?.relayStatus) return false;
+        const { status, lastError } = data.relayStatus;
+        if (status === 'DONE') {
+          result = { arrived: true, payablePaymentId: data.payablePaymentId, failureReason: null };
+          return true;
+        }
+        if (status === 'FAILED') {
+          result = { arrived: false, payablePaymentId: null, failureReason: lastError };
+          return true;
+        }
+        return false;
+      },
+      { intervalMs: 6_000, backoffAfterMs: 3 * 60_000, maxIntervalMs: 20_000, timeoutMs: 10 * 60_000, immediate: false }
+    );
+
+    poller.start();
+    while (poller.status.value === 'polling') {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    return result;
   };
 
   /** Finds the destination-chain `PayablePayment` matching a cross-chain `UserPayment`, once it has arrived. */
@@ -556,5 +600,6 @@ export const usePaymentStore = defineStore('payment', () => {
     getManyForCurrentUser,
     getManyForPayable,
     trackArrival,
+    trackArrivalViaBackend,
   };
 });

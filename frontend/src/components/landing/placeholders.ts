@@ -136,7 +136,7 @@ export interface HeroReceipt {
 /** The three receipts the hero visual's central card cycles through,
  *  illustrating payments from different chains. */
 export const heroReceipts: HeroReceipt[] = [
-  { amount: '25 USDC', chainName: 'sepolia' },
+  { amount: '25 USDC', chainName: 'basesepolia' },
   { amount: '0.01 ETH', chainName: 'megaeth' },
   { amount: '40 USDC', chainName: 'arctestnet' },
 ];

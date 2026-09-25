@@ -11,8 +11,6 @@
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { z } from 'zod';
-import { CHAIN_BY_SLUG } from '../chains/registry';
-import type { EvmChainConfig } from '../chains/types';
 
 /** Deployment roles a running instance can take (SPEC.md §2.1). */
 export const ROLES = ['all', 'api', 'worker'] as const;
@@ -120,15 +118,8 @@ export const rawEnvSchema = z.object({
   COOKIE_SECURE: boolString(true),
   SIGN_IN_MESSAGE_TTL: durationMs('10m'),
 
-  // Comma-separated list of enabled chain slugs, e.g. "arcmainnet" or "anvil,solanadevnet".
-  // Validation in superRefine checks: valid slugs, non-null addresses, and required RPC vars.
-  ENABLED_CHAINS: z.string().optional(),
-
-  // Per-enabled-chain RPC URL. Only the slugs listed in ENABLED_CHAINS are checked.
-  RPC_ARCMAINNET: z.url().optional(),
-  RPC_ANVIL: z.url().optional(),
-  RPC_BASE: z.url().optional(),
-  RPC_SOLANADEVNET: z.url().optional(),
+  // Enabled chains and RPC URLs are hardcoded in src/chains/registry.ts (ENABLED_CHAIN_SLUGS and rpcUrl fields)
+  // rather than read from env vars. No ENABLED_CHAINS or RPC_* variables needed.
 
   RELAYER_PRIVATE_KEY: evmPrivateKey.optional(),
   SOLANA_RELAYER_KEYPAIR: solanaKeypairJson.optional(),
@@ -161,13 +152,6 @@ function requireWhen(ctx: z.RefinementCtx, value: unknown, field: string, condit
   }
 }
 
-/**
- * Maps a registry slug to its `RPC_<SLUG_UPPERCASE>` env var name.
- * E.g. "arcmainnet" -> "RPC_ARCMAINNET".
- */
-export function rpcVarName(slug: string): string {
-  return `RPC_${slug.toUpperCase()}`;
-}
 
 /**
  * Full env schema: raw parsing plus every role- and provider-conditional
@@ -192,63 +176,9 @@ export const envSchema = rawEnvSchema.superRefine((env, ctx) => {
   requireWhen(ctx, env.APP_URL, 'APP_URL', true, 'in every role');
   requireWhen(ctx, env.PUBLIC_API_URL, 'PUBLIC_API_URL', true, 'in every role');
   requireWhen(ctx, env.DATABASE_URL, 'DATABASE_URL', true, 'in every role');
-  requireWhen(ctx, env.ENABLED_CHAINS, 'ENABLED_CHAINS', true, 'in every role');
   requireWhen(ctx, env.UNSUBSCRIBE_SECRET, 'UNSUBSCRIBE_SECRET', true, 'in every role');
-
-  // Validate ENABLED_CHAINS: slugs, diamond addresses, and RPC vars — collect all errors.
-  if (env.ENABLED_CHAINS) {
-    const slugs = env.ENABLED_CHAINS.split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-
-    const unknownSlugs: string[] = [];
-    const nullAddressSlugs: string[] = [];
-    const missingRpcVars: string[] = [];
-
-    const rpcBySlug: Record<string, string | undefined> = {
-      arcmainnet: env.RPC_ARCMAINNET,
-      anvil: env.RPC_ANVIL,
-      base: env.RPC_BASE,
-      solanadevnet: env.RPC_SOLANADEVNET,
-    };
-
-    for (const slug of slugs) {
-      const chain = CHAIN_BY_SLUG.get(slug as never);
-      if (!chain) {
-        unknownSlugs.push(slug);
-        continue;
-      }
-      if (chain.isEvm && (chain as EvmChainConfig).diamondAddress === null) {
-        nullAddressSlugs.push(slug);
-      }
-      const rpcVar = rpcVarName(slug);
-      if (!rpcBySlug[slug]) {
-        missingRpcVars.push(rpcVar);
-      }
-    }
-
-    if (unknownSlugs.length > 0) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['ENABLED_CHAINS'],
-        message: `unknown chain slugs: ${unknownSlugs.join(', ')}`,
-      });
-    }
-    if (nullAddressSlugs.length > 0) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['ENABLED_CHAINS'],
-        message: `chains with no deployed diamond address (fill in diamondAddress before enabling): ${nullAddressSlugs.join(', ')}`,
-      });
-    }
-    for (const varName of missingRpcVars) {
-      ctx.addIssue({
-        code: 'custom',
-        path: [varName],
-        message: 'is required for every enabled chain',
-      });
-    }
-  }
+  // Enabled chains and RPC URLs are validated at module init by ChainsService (reading ENABLED_CHAIN_SLUGS
+  // from registry.ts), not here.
 
   if (isApiRole && env.CORS_ORIGINS.length === 0) {
     ctx.addIssue({ code: 'custom', path: ['CORS_ORIGINS'], message: 'is required when ROLE is api or all' });
@@ -303,10 +233,7 @@ export interface Env {
   cookieSecure: boolean;
   /** Max age of a SIWE/SIWS `issuedAt`, in milliseconds. */
   signInMessageTtlMs: number;
-  /** Comma-separated slugs from ENABLED_CHAINS, parsed at config time. */
-  enabledChainSlugs: string[];
-  /** RPC URLs keyed by chain slug, assembled from RPC_<SLUG> vars. */
-  rpcBySlug: Record<string, string>;
+  // Enabled chains and RPC URLs live in src/chains/registry.ts, not in Env.
   /** EVM relayer wallet private key. Required for worker/all. */
   relayerPrivateKey?: `0x${string}`;
   /** Solana relayer wallet secret key, as a 64-byte array. Required for worker/all. */
@@ -342,18 +269,6 @@ type ParsedEnv = z.infer<typeof envSchema>;
 
 /** Reshapes the flat, `SCREAMING_SNAKE_CASE` parsed env into the nested {@link Env} the app consumes. */
 function toEnv(parsed: ParsedEnv): Env {
-  const enabledChainSlugs = (parsed.ENABLED_CHAINS ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-
-  const rpcBySlug: Record<string, string> = {};
-  for (const slug of enabledChainSlugs) {
-    const varName = rpcVarName(slug);
-    const url = (parsed as Record<string, unknown>)[varName] as string | undefined;
-    if (url) rpcBySlug[slug] = url;
-  }
-
   return {
     nodeEnv: parsed.NODE_ENV,
     role: parsed.ROLE,
@@ -372,8 +287,6 @@ function toEnv(parsed: ParsedEnv): Env {
     cookieDomain: parsed.COOKIE_DOMAIN,
     cookieSecure: parsed.COOKIE_SECURE,
     signInMessageTtlMs: parsed.SIGN_IN_MESSAGE_TTL,
-    enabledChainSlugs,
-    rpcBySlug,
     relayerPrivateKey: parsed.RELAYER_PRIVATE_KEY as `0x${string}` | undefined,
     solanaRelayerKeypair: parsed.SOLANA_RELAYER_KEYPAIR,
     pollIntervalMsOverride: parsed.POLL_INTERVAL_MS,

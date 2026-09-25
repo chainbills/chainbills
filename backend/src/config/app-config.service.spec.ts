@@ -32,8 +32,6 @@ describe('AppConfigService', () => {
       refreshTokenTtlMs: 2_592_000_000,
       cookieSecure: false,
       signInMessageTtlMs: 600_000,
-      enabledChainSlugs: ['solanadevnet'],
-      rpcBySlug: { solanadevnet: 'https://solana-devnet.example.com' },
       mailProvider: 'console',
       zeptomail: { apiUrl: 'https://api.zeptomail.com', fromName: 'Chainbills' },
       unsubscribeSecret: 'b'.repeat(32),
@@ -43,20 +41,5 @@ describe('AppConfigService', () => {
     };
     const service = new AppConfigService(makeConfigService(partial));
     expect(service.env.role).toBe('api');
-    expect(service.env.enabledChainSlugs).toEqual(['solanadevnet']);
-  });
-
-  it('rpcUrl() returns the URL for a known chain slug', () => {
-    const partial: Partial<Env> = {
-      rpcBySlug: { solanadevnet: 'https://solana.example.com' },
-    } as Partial<Env>;
-    const service = new AppConfigService(makeConfigService(partial));
-    expect(service.rpcUrl('solanadevnet')).toBe('https://solana.example.com');
-  });
-
-  it('rpcUrl() throws when the chain has no configured URL', () => {
-    const partial: Partial<Env> = { rpcBySlug: {} } as Partial<Env>;
-    const service = new AppConfigService(makeConfigService(partial));
-    expect(() => service.rpcUrl('arcmainnet')).toThrow(/no RPC URL configured for chain: arcmainnet/);
   });
 });

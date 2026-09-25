@@ -14,4 +14,11 @@
 export const FEATURES = {
   emailNotifications: true,
   scan: true,
+  /**
+   * relayStatus: fetch cross-chain relay status from the backend
+   * (GET /payments/user/:id) instead of polling the destination chain
+   * on-chain. Shows richer status: attempts, failure reason, and the
+   * matched PayablePayment once the relay job completes.
+   */
+  relayStatus: true,
 } as const;

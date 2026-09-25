@@ -33,7 +33,7 @@ import { heroReceipts, heroReceiptsStartingCount } from './placeholders';
  *  whose rail is currently "lit" — see `activeIndex` below. */
 const nodes = [
   { chain: chainNamesToChains.megaeth, x: 50, y: 11, icon: IconMegaETH },
-  { chain: chainNamesToChains.sepolia, x: 83.9, y: 68.5, icon: IconEthereum },
+  { chain: chainNamesToChains.basesepolia, x: 83.9, y: 68.5, icon: IconEthereum },
   { chain: chainNamesToChains.arctestnet, x: 16.1, y: 68.5, icon: IconArc },
 ];
 

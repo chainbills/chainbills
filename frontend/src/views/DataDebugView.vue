@@ -17,7 +17,7 @@ import { ref } from 'vue';
 
 const payableId = ref('');
 const address = ref('');
-const chainName = ref<ChainName>('sepolia');
+const chainName = ref<ChainName>('basesepolia');
 
 const payableStore = usePayableStore();
 const activityStore = useActivityStore();
@@ -95,7 +95,7 @@ const runFakeFlow = async () => {
   await wait(800);
   flow.step('sign').done({ txHash: '0xfakehash', explorerUrl: '#' });
 
-  flow.step('confirm').activate('Confirming on Sepolia…');
+  flow.step('confirm').activate('Confirming on Base Sepolia ...');
   await wait(600);
   flow.step('confirm').progress({ description: 'Finalizing…' });
   await wait(400);
@@ -121,7 +121,7 @@ const runFakeFlow = async () => {
         <select v-model="chainName">
           <option value="megaeth">megaeth</option>
           <option value="arctestnet">arctestnet</option>
-          <option value="sepolia">sepolia</option>
+          <option value="basesepolia">basesepolia</option>
         </select>
       </label>
     </p>

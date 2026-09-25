@@ -34,7 +34,7 @@ import {
   TokenAmount,
 } from '@/components/ui';
 import IconWallet from '@/icons/IconWallet.vue';
-import { arctestnet, megaeth, Payable, sepolia, solanadevnet, TokenAndAmount, tokens } from '@/schemas';
+import { arctestnet, basesepolia, megaeth, Payable, solanadevnet, TokenAndAmount, tokens } from '@/schemas';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
@@ -73,17 +73,17 @@ const steppers = [
   {
     title: 'Send payment',
     status: 'active' as const,
-    hints: ['Waiting for your wallet…', 'Confirming on Sepolia…'],
+    hints: ['Waiting for your wallet…', 'Confirming on Base Sepolia…'],
   },
   { title: 'Relay to Arc Testnet', status: 'waiting' as const, description: 'Usually 1-3 minutes.' },
   { title: 'Funds arrive', status: 'upcoming' as const },
 ];
 
 const fireToast = (severity: 'success' | 'info' | 'warn' | 'error') =>
-  toast.add({ severity, summary: 'Payment received', detail: '25 USDC from Sepolia', life: 6000 });
+  toast.add({ severity, summary: 'Payment received', detail: '25 USDC from Base Sepolia', life: 6000 });
 
 /** A fixture `Payable` — never actually created on-chain — purely to exercise `ActivityFeed`'s `'payable'` source kind here. */
-const demoPayable = new Payable('0xdemo000000000000000000000000000000000000000000000000000000001', sepolia, '', {
+const demoPayable = new Payable('0xdemo000000000000000000000000000000000000000000000000000000001', basesepolia, '', {
   chainCount: 1,
   host: '0x1234567890abcdef1234567890abcdef12345678',
   hostCount: 1,
@@ -154,7 +154,7 @@ const demoPayable = new Payable('0xdemo00000000000000000000000000000000000000000
       <div class="flex flex-wrap gap-3">
         <ChainBadge :chain="megaeth" network />
         <ChainBadge :chain="arctestnet" size="sm" runtime />
-        <ChainBadge :chain="sepolia" network runtime />
+        <ChainBadge :chain="basesepolia" network runtime />
         <ChainBadge :chain="solanadevnet" network />
       </div>
       <div class="flex gap-2 mt-3">
@@ -167,9 +167,9 @@ const demoPayable = new Payable('0xdemo00000000000000000000000000000000000000000
     <GlassCard>
       <h3 class="font-display text-display-md mb-4">Amounts and identity</h3>
       <div class="flex flex-wrap gap-6 items-center">
-        <TokenAmount :token="usdc" :amount="1500000n" :chain="sepolia" />
-        <TokenAmount :amount="new TokenAndAmount(usdc, 2500000n)" :chain="sepolia" size="sm" />
-        <AddressChip value="0x1234567890abcdef1234567890abcdef12345678" :chain="sepolia" kind="address" />
+        <TokenAmount :token="usdc" :amount="1500000n" :chain="basesepolia" />
+        <TokenAmount :amount="new TokenAndAmount(usdc, 2500000n)" :chain="basesepolia" size="sm" />
+        <AddressChip value="0x1234567890abcdef1234567890abcdef12345678" :chain="basesepolia" kind="address" />
         <AddressChip value="a1b2c3d4e5f6" kind="id" to="/payable/a1b2c3d4e5f6" />
         <PayableAvatar id="payable-one" size="sm" />
         <PayableAvatar id="payable-two" />
@@ -255,7 +255,7 @@ const demoPayable = new Payable('0xdemo00000000000000000000000000000000000000000
         </div>
         <div>
           <p class="text-xs uppercase tracking-wider text-muted mb-3">Chain source</p>
-          <ActivityFeed :source="{ kind: 'chain', chain: sepolia }" :tabs="['all', 'payments']" />
+          <ActivityFeed :source="{ kind: 'chain', chain: basesepolia }" :tabs="['all', 'payments']" />
         </div>
         <div>
           <p class="text-xs uppercase tracking-wider text-muted mb-3">Network source (merged across chains)</p>
@@ -283,9 +283,9 @@ const demoPayable = new Payable('0xdemo00000000000000000000000000000000000000000
           ]"
         >
           <template #host
-            ><AddressChip value="0xabc123abc123abc123abc123abc123abc123abc1" :chain="sepolia" kind="address"
+            ><AddressChip value="0xabc123abc123abc123abc123abc123abc123abc1" :chain="basesepolia" kind="address"
           /></template>
-          <template #amount><TokenAmount :token="usdc" :amount="5000000n" :chain="sepolia" /></template>
+          <template #amount><TokenAmount :token="usdc" :amount="5000000n" :chain="basesepolia" /></template>
         </KeyValueList>
       </GlassCard>
       <GlassCard class="flex items-center justify-center">
@@ -297,7 +297,7 @@ const demoPayable = new Payable('0xdemo00000000000000000000000000000000000000000
     <GlassCard>
       <h3 class="font-display text-display-md mb-4">PrimeVue components</h3>
       <div class="grid sm:grid-cols-2 gap-4 mb-4">
-        <Select v-model="selectValue" :options="['Sepolia', 'Arc Testnet', 'MegaETH']" placeholder="Select a chain" />
+        <Select v-model="selectValue" :options="['Base Sepolia', 'Arc Testnet', 'MegaETH']" placeholder="Select a chain" />
         <InputNumber v-model="numberValue" mode="currency" currency="USD" />
         <div class="flex items-center gap-2">
           <ToggleSwitch v-model="toggleValue" /> <span class="text-sm">Auto-withdraw</span>

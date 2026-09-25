@@ -51,13 +51,13 @@ contract DeployChainbills is CbFacetDeployer {
 
     DeployConfig memory config;
     config.salt = vm.envBytes32('CB_SALT');
-    config.owner = vm.envAddress('OWNER');
+    config.owner = vm.envOr('OWNER', msg.sender);
     config.caip2 = caip2;
     config.chainName = chainName;
     config.params = ChainbillsDiamondInit.InitParams({
       cbChainId: keccak256(bytes(caip2)),
-      admin: vm.envAddress('ADMIN'),
-      feeCollector: vm.envAddress('FEE_COLLECTOR'),
+      admin: vm.envOr('ADMIN', msg.sender),
+      feeCollector: vm.envOr('FEE_COLLECTOR', msg.sender),
       withdrawalFeeBps: uint16(vm.envUint('WITHDRAWAL_FEE_BPS')),
       maxAllowedTokensAndAmounts: uint8(vm.envUint('MAX_ALLOWED_TOKENS_AND_AMOUNTS'))
     });
@@ -69,7 +69,9 @@ contract DeployChainbills is CbFacetDeployer {
     }
     config.allowedTokens = _readAllowedTokensFromJson(chainName);
     config.relayers = vm.envOr('RELAYERS', ',', new address[](0));
-    config.deployRecordPath = string.concat('deploys/', chainName, '.json');
+    config.deployRecordPath = vm.envOr('WRITE_DEPLOY_RECORD', false)
+      ? string.concat('deploys/', chainName, '.json')
+      : '';
 
     chainbills = deploy(config);
   }

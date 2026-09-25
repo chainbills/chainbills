@@ -33,7 +33,7 @@ import IconSolana from '@/icons/IconSolana.vue';
 import IconSpinnerBlack from '@/icons/IconSpinnerBlack.vue';
 import IconSpinnerWhite from '@/icons/IconSpinnerWhite.vue';
 import IconSync from '@/icons/IconSync.vue';
-import { arctestnet, megaeth as megaethInApp, sepolia as sepoliaInApp, type ChainName } from '@/schemas';
+import { arctestnet, basesepolia as basesepoliaInApp, megaeth as megaethInApp, type ChainName } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useSidebarStore, useThemeStore } from '@/stores';
 import type { Connector } from '@wagmi/core';
 import { useAccount, useConnect, useConnectors, useSwitchChain } from '@wagmi/vue';
@@ -41,7 +41,7 @@ import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Menu from 'primevue/menu';
 import { useToast } from 'primevue/usetoast';
-import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
+import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -104,7 +104,7 @@ const openSwitchChainModal = () => {
 const getViemChainId = (chainName: ChainName): number => {
   if (chainName === 'megaeth') return megaethViem.id;
   if (chainName === 'arctestnet') return arcTestnet.id;
-  if (chainName === 'sepolia') return sepoliaViem.id;
+  if (chainName === 'basesepolia') return baseSepoliaViem.id;
   throw new Error(`Unsupported EVM Chain: ${chainName}`);
 };
 
@@ -300,7 +300,7 @@ onMounted(() => {
         </p>
 
         <button
-          v-for="chain of [megaethInApp, arctestnet, sepoliaInApp]"
+          v-for="chain of [megaethInApp, arctestnet, basesepoliaInApp]"
           type="button"
           :class="[
             'w-full flex items-center gap-2.5 rounded-xl border px-3 py-2.5 mb-3 text-sm font-medium transition-colors',

@@ -24,11 +24,11 @@
 // writes for EVM chains funnel through here).
 import {
   arctestnet,
+  basesepolia as basesepoliaInApp,
   chainNamesEvm,
   contracts,
   megaeth as megaethInApp,
   OnChainSuccess,
-  sepolia as sepoliaInApp,
   TokenAndAmount,
   User,
   getTxUrl,
@@ -61,7 +61,7 @@ import {
   type TransactionReceipt,
   type Chain as ViemChain,
 } from 'viem';
-import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
+import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 
 interface WriteContractResponse {
   hash: string;
@@ -77,7 +77,7 @@ export interface WriteSteps {
 
 // Circle domain IDs per chain — used to fetch fast-transfer fee from Iris API and to build maxFee for CCTP burns.
 const CIRCLE_DOMAINS: Partial<Record<ChainName, number>> = {
-  sepolia: 0,
+  basesepolia: 6,
   arctestnet: 26,
 };
 
@@ -94,7 +94,7 @@ export const useEvmStore = defineStore('evm', () => {
   const getViemChain = (chainName: ChainName): ViemChain => {
     if (chainName == 'megaeth') return megaethViem;
     else if (chainName == 'arctestnet') return arcTestnet;
-    else if (chainName == 'sepolia') return sepoliaViem;
+    else if (chainName == 'basesepolia') return baseSepoliaViem;
     else throw new Error(`Unsupported EVM Chain: ${chainName}`);
   };
 
@@ -119,7 +119,7 @@ export const useEvmStore = defineStore('evm', () => {
     return {
       [arcTestnet.id]: arctestnet,
       [megaethViem.id]: megaethInApp,
-      [sepoliaViem.id]: sepoliaInApp,
+      [baseSepoliaViem.id]: basesepoliaInApp,
     }[account.chain.value.id]!;
   };
 

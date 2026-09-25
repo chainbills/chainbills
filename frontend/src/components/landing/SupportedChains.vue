@@ -19,7 +19,7 @@ import { chainNamesToChains, getChainLogo, solanadevnet } from '@/schemas';
  *  has both (`frontend/CLAUDE.md`'s chain table). */
 const chainCapabilities = [
   { chain: chainNamesToChains.megaeth, tags: ['Wormhole messaging'] },
-  { chain: chainNamesToChains.sepolia, tags: ['Wormhole messaging', 'Circle CCTP'] },
+  { chain: chainNamesToChains.basesepolia, tags: ['Wormhole messaging', 'Circle CCTP'] },
   { chain: chainNamesToChains.arctestnet, tags: ['Circle CCTP'] },
 ];
 </script>

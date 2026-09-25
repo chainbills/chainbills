@@ -24,7 +24,7 @@ const chainMeta: Record<LandingChainName, { name: string; logo: string; color: s
   arctestnet: { name: 'Arc', logo: '/assets/tokens/ARC.png', color: '#00d2ff' },
   base: { name: 'Base', logo: '/assets/tokens/BASE.png', color: '#0052FF' },
   megaeth: { name: 'MegaETH', logo: '/assets/tokens/MegaETH.png', color: '#c6f135' },
-  sepolia: { name: 'Sepolia', logo: '/assets/tokens/ETH.png', color: '#627eea' },
+  basesepolia: { name: 'Base Sepolia', logo: '/assets/tokens/Base.png', color: '#0052ff' },
   solanadevnet: { name: 'Solana', logo: '/assets/tokens/SOL.png', color: '#9945ff' },
 };
 

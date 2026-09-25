@@ -21,10 +21,10 @@
  * <ChainSwitcher v-model="scope" show-all-chains />
  * ```
  */
-import { arctestnet, getChainLogo, megaeth as megaethApp, sepolia as sepoliaApp } from '@/schemas';
+import { arctestnet, basesepolia as basesepoliaApp, getChainLogo, megaeth as megaethApp } from '@/schemas';
 import { useAuthStore } from '@/stores';
 import { useSwitchChain } from '@wagmi/vue';
-import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
+import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = withDefaults(
@@ -42,12 +42,12 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 const auth = useAuthStore();
 const { switchChain } = useSwitchChain();
 
-const availableChains = [megaethApp, arctestnet, sepoliaApp];
+const availableChains = [megaethApp, arctestnet, basesepoliaApp];
 
 const getViemChainId = (chainName: string): number => {
   if (chainName === 'megaeth') return megaethViem.id;
   if (chainName === 'arctestnet') return arcTestnet.id;
-  if (chainName === 'sepolia') return sepoliaViem.id;
+  if (chainName === 'basesepolia') return baseSepoliaViem.id;
   throw new Error(`Unsupported chain: ${chainName}`);
 };
 

@@ -27,8 +27,8 @@ import {
   arcTestnet as viemArcTestnet,
   anvil as viemAnvil,
   base as viemBase,
+  baseSepolia as viemBaseSepolia,
   megaeth as viemMegaeth,
-  sepolia as viemSepolia,
 } from 'viem/chains';
 import type { ChainConfig, ChainSlug, EvmChainConfig, SolanaChainConfig } from './types';
 
@@ -40,6 +40,7 @@ export const arcmainnet: EvmChainConfig = {
   cbChainId: '0xb8aed675f862d651b4a8c85f23a045faa0faaa1d162e6eb15d732231df3dc250',
   network: 'mainnet',
   viemChain: viemArc,
+  rpcUrl: 'https://rpc.mainnet.arc.io',
   // TODO(owner): fill in from deploys/arcmainnet.json after deploying
   diamondAddress: null,
   // TODO(owner): not confirmed live on Arc mainnet yet — fill in when Wormhole is deployed
@@ -59,6 +60,7 @@ export const anvil: EvmChainConfig = {
   cbChainId: '0x318e51c37247d03bad135571413b06a083591bcc680967d80bf587ac928cf369',
   network: 'local',
   viemChain: viemAnvil,
+  rpcUrl: 'http://127.0.0.1:8545',
   // TODO(owner): fill in after running evm/script/DeployLocalStack.s.sol
   diamondAddress: null,
   wormholeChainId: undefined,
@@ -71,6 +73,7 @@ export const anvil: EvmChainConfig = {
 
 export const solanaDevnet: SolanaChainConfig = {
   slug: 'solanadevnet',
+  rpcUrl: 'https://api.devnet.solana.com',
   displayName: 'Solana Devnet',
   caip2: 'solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
   // keccak256("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1")
@@ -99,6 +102,7 @@ export const megaeth: EvmChainConfig = {
   cbChainId: '0x78b4988135f242a792c3ba307a59ea12c5ec8c24390a1f41381eeb7c7c444d3a',
   network: 'mainnet',
   viemChain: viemMegaeth,
+  // falls back to viemMegaeth.rpcUrls.default.http[0] when rpcUrl is absent
   diamondAddress: null,
   wormholeChainId: undefined,
   circleDomain: undefined,
@@ -116,6 +120,7 @@ export const arctestnet: EvmChainConfig = {
   cbChainId: '0xfcfa255b5b1c8e2b9672ea5d7a51e54c78ecbf0f0e87607e8b86ec2cfd25d4fd',
   network: 'testnet',
   viemChain: viemArcTestnet,
+  rpcUrl: 'https://rpc.testnet.arc.io',
   diamondAddress: null,
   wormholeChainId: undefined,
   circleDomain: 26,
@@ -125,18 +130,20 @@ export const arctestnet: EvmChainConfig = {
   isSolana: false,
 };
 
-export const sepolia: EvmChainConfig = {
-  slug: 'sepolia',
-  displayName: 'Sepolia',
-  caip2: 'eip155:11155111',
-  // keccak256("eip155:11155111")
-  cbChainId: '0xafa90c317deacd3d68f330a30f96e4fa7736e35e8d1426b2e1b2c04bce1c2fb7',
+export const basesepolia: EvmChainConfig = {
+  slug: 'basesepolia',
+  displayName: 'Base Sepolia',
+  caip2: 'eip155:84532',
+  // keccak256("eip155:84532")
+  cbChainId: '0x8a9a9c58b754a98f1ff302a7ead652cfd23eb36a5791767b5d185067dd9481c2',
   network: 'testnet',
-  viemChain: viemSepolia,
+  viemChain: viemBaseSepolia,
+  rpcUrl: 'https://sepolia.base.org',
+  // TODO(owner): fill in from deploys/basesepolia.json after deploying
   diamondAddress: null,
-  wormholeChainId: 10002,
-  circleDomain: 0,
-  pollIntervalMs: 12000,
+  wormholeChainId: 10004,
+  circleDomain: 6,
+  pollIntervalMs: 2000,
   minGasBalance: parseEther('0.01'),
   isEvm: true,
   isSolana: false,
@@ -150,6 +157,7 @@ export const base: EvmChainConfig = {
   cbChainId: '0x43b48883ef7be0f98fe7f98fafb2187e42caab4063697b32816f95e09d69b3ec',
   network: 'mainnet',
   viemChain: viemBase,
+  rpcUrl: 'https://mainnet.base.org',
   // TODO(owner): fill in from deploys/base.json after deploying
   diamondAddress: null,
   wormholeChainId: 30,
@@ -161,7 +169,14 @@ export const base: EvmChainConfig = {
 };
 
 /** Every chain this backend knows about. */
-export const CHAINS: readonly ChainConfig[] = [arcmainnet, anvil, base, megaeth, arctestnet, sepolia, solanaDevnet];
+export const CHAINS: readonly ChainConfig[] = [arcmainnet, anvil, base, megaeth, arctestnet, basesepolia, solanaDevnet];
+
+/**
+ * Chains enabled for this backend instance — hardcoded here instead of an env var.
+ * Add a slug once its `diamondAddress` is filled in after deploying. Remove it to
+ * disable indexing without changing anything else.
+ */
+export const ENABLED_CHAIN_SLUGS: readonly ChainSlug[] = ['arctestnet', 'basesepolia'];
 
 /** Looks up a chain by its CAIP-2 cbChainId — the universal cross-chain key. */
 export const CHAIN_BY_CB_CHAIN_ID: ReadonlyMap<string, ChainConfig> = new Map(CHAINS.map((c) => [c.cbChainId, c]));

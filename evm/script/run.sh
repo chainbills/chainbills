@@ -72,19 +72,27 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+# Safe env file loader — exports KEY=VALUE lines, handling values that contain
+# parens, semicolons, or other shell metacharacters that break eval-based loading.
+_source_env() {
+  local file="$1" line key value
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    if [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+      export "${BASH_REMATCH[1]}"="${BASH_REMATCH[2]}"
+    fi
+  done < "$file"
+}
+
 # --- Load source chain env -----------------------------------------------
-set -o allexport
-# shellcheck disable=SC2046
-eval $(grep -v '^\s*#' "$ENV_FILE" | grep -v '^\s*$' | sed 's/\r//')
-set +o allexport
+_source_env "$ENV_FILE"
 
 # Load optional .env.local override (gitignored — put your PRIVATE_KEY here)
 LOCAL_ENV_FILE="${ENV_FILE%.env}.env.local"
 if [[ -f "$LOCAL_ENV_FILE" ]]; then
-  set -o allexport
-  # shellcheck disable=SC2046
-  eval $(grep -v '^\s*#' "$LOCAL_ENV_FILE" | grep -v '^\s*$' | sed 's/\r//')
-  set +o allexport
+  _source_env "$LOCAL_ENV_FILE"
   echo ">>> Loaded local overrides: $LOCAL_ENV_FILE"
 fi
 
@@ -158,10 +166,10 @@ if [[ "$SCRIPT_NAME" != "ComputeCbChainId" && "$SCRIPT_NAME" != "PredictAddresse
   exit 1
 fi
 
-# Compulsory for DeployChainbills
+# CB_SALT is required for DeployChainbills; OWNER, ADMIN, and FEE_COLLECTOR default to the deployer.
 if [[ "$SCRIPT_NAME" == "DeployChainbills" ]]; then
-  if [[ -z "${CB_SALT:-}" || -z "${OWNER:-}" || -z "${ADMIN:-}" || -z "${FEE_COLLECTOR:-}" ]]; then
-    echo "Error: CB_SALT, OWNER, ADMIN, and FEE_COLLECTOR must be set in env for deployment."
+  if [[ -z "${CB_SALT:-}" ]]; then
+    echo "Error: CB_SALT must be set in env for deployment."
     exit 1
   fi
 fi
@@ -173,6 +181,7 @@ if [[ "$DRY_RUN" == "--dry-run" || "$SCRIPT_NAME" == "ComputeCbChainId" || "$SCR
   echo ">>> Dry run (no broadcast): $SCRIPT_NAME on $CHAIN"
 else
   EXTRA_FLAGS="--broadcast"
+  export WRITE_DEPLOY_RECORD=true
   echo ">>> Broadcasting: $SCRIPT_NAME on $CHAIN"
 
   if [[ "${VERIFY:-}" == "true" ]]; then
@@ -218,10 +227,23 @@ if [[ -n "${SOLC_PATH:-}" ]]; then
   EXTRA_FLAGS="$EXTRA_FLAGS --use ${SOLC_PATH}"
 fi
 
-echo ">>> Env: $ENV_FILE"
-echo ">>> RPC: ${RPC_URL:-not set}"
-echo ">>> DIAMOND: ${DIAMOND:-not set}"
+# --- Balance display ---------------------------------------------------------
+_DEPLOYER=""
+if [[ -n "${PRIVATE_KEY:-}" ]]; then
+  _DEPLOYER=$(cast wallet address --private-key "$PRIVATE_KEY" 2>/dev/null || true)
+fi
+
+echo ">>> Env        : $ENV_FILE"
+echo ">>> RPC        : ${RPC_URL:-not set}"
+echo ">>> DIAMOND    : ${DIAMOND:-not set}"
 echo ">>> Extra Flags: $EXTRA_FLAGS"
+if [[ -n "$_DEPLOYER" ]]; then
+  echo ">>> Deployer   : $_DEPLOYER"
+  if [[ -n "${RPC_URL:-}" ]]; then
+    _BAL_BEFORE=$(cast balance --rpc-url "$RPC_URL" --ether "$_DEPLOYER" 2>/dev/null || echo "unknown")
+    echo ">>> Balance    : ${_BAL_BEFORE}"
+  fi
+fi
 echo ""
 
 cd "$EVM_DIR"
@@ -229,5 +251,13 @@ cd "$EVM_DIR"
 # shellcheck disable=SC2086
 forge script "$SCRIPT_FILE" \
   --rpc-url "${RPC_URL}" \
+  ${PRIVATE_KEY:+--private-key "${PRIVATE_KEY}"} \
   $EXTRA_FLAGS \
   -vvvv
+
+# --- Balance after -----------------------------------------------------------
+if [[ -n "$_DEPLOYER" && -n "${RPC_URL:-}" ]]; then
+  _BAL_AFTER=$(cast balance --rpc-url "$RPC_URL" --ether "$_DEPLOYER" 2>/dev/null || echo "unknown")
+  echo ""
+  echo ">>> Balance after: ${_BAL_AFTER}"
+fi

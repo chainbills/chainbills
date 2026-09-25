@@ -45,6 +45,7 @@ const SOLANA_DEST_CHAIN: SolanaChainConfig = {
   network: 'testnet',
   isEvm: false,
   isSolana: true,
+  rpcUrl: 'https://api.devnet.solana.com',
   wormholeChainId: 1,
   circleDomain: 5,
   pollIntervalMs: 5000,

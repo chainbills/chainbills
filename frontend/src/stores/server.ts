@@ -93,9 +93,34 @@ export const useServerStore = defineStore('server', () => {
   const getPayable = async (payableId: string, ignoreErrors?: boolean): Promise<{ description: string } | null> =>
     call('GET', `/payables/${payableId}`, undefined, ignoreErrors);
 
+  /**
+   * Fetches relay status for a cross-chain UserPayment from the backend.
+   * Returns null if the backend has not indexed the payment yet (404) or on
+   * network error. Callers should treat null as "not yet known" and retry.
+   * For same-chain payments the backend returns relayStatus: null.
+   */
+  const getPaymentRelayStatus = async (
+    userPaymentId: string
+  ): Promise<{
+    relayStatus: {
+      status: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED';
+      attempts: number;
+      lastError: string | null;
+    } | null;
+    payablePaymentId: string | null;
+  } | null> => {
+    const data = await call('GET', `/payments/user/${userPaymentId}`, undefined, true);
+    if (!data) return null;
+    return {
+      relayStatus: data.relayStatus ?? null,
+      payablePaymentId: data.payablePayment?.id ?? null,
+    };
+  };
+
   return {
     call,
     getPayable,
+    getPaymentRelayStatus,
     saveDescription,
   };
 });

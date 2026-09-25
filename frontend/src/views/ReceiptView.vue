@@ -16,6 +16,7 @@
  * A `Withdrawal` shows the on-chain amount received.
  */
 import CrossChainRoute from '@/components/tx/CrossChainRoute.vue';
+import { FEATURES } from '@/config/features';
 import {
   AddressChip,
   ChainBadge,
@@ -93,12 +94,26 @@ const trackDelivery = async (userPayment: UserPayment) => {
     },
   ];
 
-  const { arrived, payablePayment } = await paymentStore.trackArrival(userPayment);
+  let arrived = false;
+  let payablePaymentId: string | null = null;
+  let failureReason: string | null = null;
+
+  if (FEATURES.relayStatus) {
+    const result = await paymentStore.trackArrivalViaBackend(userPayment.id);
+    arrived = result.arrived;
+    payablePaymentId = result.payablePaymentId;
+    failureReason = result.failureReason;
+  } else {
+    const result = await paymentStore.trackArrival(userPayment);
+    arrived = result.arrived;
+    payablePaymentId = result.payablePayment?.id ?? null;
+  }
+
   const deliverStep = deliverySteps.value[1];
   if (arrived) {
     deliverySteps.value = [deliverySteps.value[0], { ...deliverStep, status: 'done', hints: undefined }];
     deliveryStatus.value = 'delivered';
-    destinationPayablePaymentId.value = payablePayment?.id ?? null;
+    destinationPayablePaymentId.value = payablePaymentId;
     analytics.recordEvent('cross_chain_delivery_resolved', {
       status: 'delivered',
       payment_id: userPayment.id,
@@ -106,13 +121,13 @@ const trackDelivery = async (userPayment: UserPayment) => {
       to_chain: userPayment.payableChain.name,
     });
   } else {
-    deliverySteps.value = [
-      deliverySteps.value[0],
-      { ...deliverStep, description: 'Still relaying — this is taking longer than usual. Check back soon.' },
-    ];
+    const description = failureReason
+      ? `Relay failed: ${failureReason}`
+      : 'Still relaying — this is taking longer than usual. Check back soon.';
+    deliverySteps.value = [deliverySteps.value[0], { ...deliverStep, description }];
     deliveryStatus.value = 'timeout';
     analytics.recordEvent('cross_chain_delivery_resolved', {
-      status: 'timeout',
+      status: failureReason ? 'failed' : 'timeout',
       payment_id: userPayment.id,
       from_chain: userPayment.chain.name,
       to_chain: userPayment.payableChain.name,

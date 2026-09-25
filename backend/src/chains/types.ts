@@ -15,7 +15,7 @@ import type { Chain as ViemChain } from 'viem';
  * Human slug for a chain — used only in logs, config keys and API output.
  * Never a cross-chain key: use `cbChainId` for that.
  */
-export type ChainSlug = 'arcmainnet' | 'anvil' | 'base' | 'solanadevnet' | 'megaeth' | 'arctestnet' | 'sepolia';
+export type ChainSlug = 'arcmainnet' | 'anvil' | 'base' | 'solanadevnet' | 'megaeth' | 'arctestnet' | 'basesepolia';
 
 /** Network environment — selects the Wormhole and CCTP API tier. */
 export type Network = 'mainnet' | 'testnet' | 'local';
@@ -66,12 +66,16 @@ export interface EvmChainConfig extends BaseChainConfig {
    * not yet deployed. Config validation rejects enabling a chain with null here.
    */
   diamondAddress: `0x${string}` | null;
+  /** Default RPC URL for this chain. Falls back to viemChain.rpcUrls.default.http[0] when absent. */
+  rpcUrl?: string;
 }
 
 /** Configuration for the Solana chain, watched and submitted to via @solana/web3.js + Anchor. */
 export interface SolanaChainConfig extends BaseChainConfig {
   isSolana: true;
   isEvm: false;
+  /** RPC URL for this Solana cluster. */
+  rpcUrl: string;
   /** Chainbills program id on Solana. */
   programId: string;
   /** Whether this chain participates in relaying (false for indexing-only chains). */

@@ -1,29 +1,23 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Chain registry service
 //
-// Joins the static chain registry with the RPC URLs from AppConfigService,
-// once, at module init — the "injected from config at module init, not
-// mutated globals" rule from SPEC.md §6. Later phases (indexer, relay) build
-// their per-chain clients from `getRpcUrl` instead of reading config again.
+// Wraps the static chain registry and resolves per-chain RPC URLs from each
+// chain's own `rpcUrl` field (or the viem chain default). Later phases
+// (indexer, relay) build their per-chain clients from `getRpcUrl`.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Injectable } from '@nestjs/common';
-import { AppConfigService } from '../config/app-config.service';
-import { CHAIN_BY_CB_CHAIN_ID, CHAIN_BY_SLUG, CHAINS, enabledChains, EVM_CHAINS, SOLANA_CHAINS } from './registry';
+import { CHAIN_BY_CB_CHAIN_ID, CHAIN_BY_SLUG, CHAINS, ENABLED_CHAIN_SLUGS, enabledChains, EVM_CHAINS, SOLANA_CHAINS } from './registry';
 import type { ChainConfig, ChainSlug } from './types';
 
-/** Joins the static chain registry with per-chain RPC URLs from config; the single source of resolved chain state. */
+/** Joins the static chain registry with per-chain RPC URLs from the registry; the single source of resolved chain state. */
 @Injectable()
 export class ChainsService {
-  /** The chains enabled for this instance, resolved from ENABLED_CHAINS at construction. */
+  /** The chains enabled for this instance, resolved from ENABLED_CHAIN_SLUGS at construction. */
   readonly enabled: readonly ChainConfig[];
 
-  /** slug -> RPC URL, assembled once from config at construction. */
-  private readonly rpcUrlBySlug: ReadonlyMap<string, string>;
-
-  constructor(config: AppConfigService) {
-    this.enabled = enabledChains(config.env.enabledChainSlugs);
-    this.rpcUrlBySlug = new Map(Object.entries(config.env.rpcBySlug));
+  constructor() {
+    this.enabled = enabledChains([...ENABLED_CHAIN_SLUGS]);
   }
 
   /** Every chain in the registry. */
@@ -51,14 +45,10 @@ export class ChainsService {
     return CHAIN_BY_SLUG.get(slug);
   }
 
-  /** The configured RPC URL for `chain`, resolved once at construction. */
+  /** The RPC URL for `chain`, read from the chain's own `rpcUrl` field or the viem chain's built-in default. */
   getRpcUrl(chain: ChainConfig): string {
-    const url = this.rpcUrlBySlug.get(chain.slug);
-    if (url) return url;
+    if (chain.rpcUrl) return chain.rpcUrl;
 
-    // Chains not in ENABLED_CHAINS have no configured RPC. Fall back to the
-    // viem chain's built-in default HTTP RPC so SIWE signature verification
-    // can still work for wallets connected to these chains.
     if (chain.isEvm) {
       const fallback = chain.viemChain.rpcUrls.default.http[0];
       if (fallback) return fallback;

@@ -8,7 +8,7 @@ import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Ripple from 'primevue/ripple';
 import ToastService from 'primevue/toastservice';
-import { arcTestnet, megaeth, sepolia } from 'viem/chains';
+import { arcTestnet, baseSepolia, megaeth } from 'viem/chains';
 import { createApp } from 'vue';
 import { createGtag } from 'vue-gtag';
 import App from './App.vue';
@@ -16,12 +16,12 @@ import './assets/main.css';
 import { vReveal } from './directives/reveal';
 import router from './router';
 const wagmiConfig = createConfig({
-  chains: [megaeth, arcTestnet, sepolia],
+  chains: [megaeth, arcTestnet, baseSepolia],
   connectors: [injected()],
   transports: {
     [megaeth.id]: http(),
     [arcTestnet.id]: http(),
-    [sepolia.id]: http(),
+    [baseSepolia.id]: http(),
   },
 });
 

@@ -42,8 +42,6 @@ export class AppConfigService {
       cookieDomain: config.get('cookieDomain', { infer: true }),
       cookieSecure: config.get('cookieSecure', { infer: true }),
       signInMessageTtlMs: config.get('signInMessageTtlMs', { infer: true }),
-      enabledChainSlugs: config.get('enabledChainSlugs', { infer: true }),
-      rpcBySlug: config.get('rpcBySlug', { infer: true }),
       relayerPrivateKey: config.get('relayerPrivateKey', { infer: true }),
       solanaRelayerKeypair: config.get('solanaRelayerKeypair', { infer: true }),
       pollIntervalMsOverride: config.get('pollIntervalMsOverride', { infer: true }),
@@ -57,16 +55,4 @@ export class AppConfigService {
     };
   }
 
-  /**
-   * Returns the configured RPC URL for the given chain slug.
-   * Throws if no URL was configured — this should never happen after
-   * successful config validation, but fails loudly rather than silently.
-   */
-  rpcUrl(slug: string): string {
-    const url = this.env.rpcBySlug[slug];
-    if (!url) {
-      throw new Error(`no RPC URL configured for chain: ${slug}`);
-    }
-    return url;
-  }
 }

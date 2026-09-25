@@ -51,7 +51,7 @@ import NotFoundView from '@/views/NotFoundView.vue';
 import { useSwitchChain } from '@wagmi/vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
-import { arcTestnet, megaeth as megaethViem, sepolia as sepoliaViem } from 'viem/chains';
+import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -228,8 +228,8 @@ onUnmounted(() => {
 });
 
 const switchToChain = (chainName: ChainName) => {
-  const viemChain = { megaeth: megaethViem, arctestnet: arcTestnet, sepolia: sepoliaViem }[
-    chainName as 'megaeth' | 'arctestnet' | 'sepolia'
+  const viemChain = { megaeth: megaethViem, arctestnet: arcTestnet, basesepolia: baseSepoliaViem }[
+    chainName as 'megaeth' | 'arctestnet' | 'basesepolia'
   ];
   if (!viemChain) return;
   switchChain({ chainId: viemChain.id });

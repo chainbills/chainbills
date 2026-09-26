@@ -10,6 +10,12 @@
  *
  * scan: the /scan and /scan/address/:address pages, every nav entry that
  * points at them, and every landing-page card or link that mentions Scan.
+ *
+ * autoWithdraw: the auto-withdraw toggle on the create-payable form, the
+ * auto-withdraw section in PayableHostControls, the auto-withdraw row in
+ * PayableSettingsCard, the auto-withdraw badge in PayableHero and
+ * PayableInfoCard, and every landing-page reference to auto-withdraw
+ * (FeaturesBento card, HowItWorks step text and mock, FaqSection item).
  */
 export const FEATURES = {
   emailNotifications: false,
@@ -21,4 +27,5 @@ export const FEATURES = {
    * matched PayablePayment once the relay job completes.
    */
   relayStatus: false,
+  autoWithdraw: false,
 } as const;

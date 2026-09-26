@@ -11,6 +11,7 @@
  * Usage: `<HowItWorks />` inside `HomeView.vue`.
  */
 import { GlassCard, IconChip, SectionHeader } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 
 /** The four steps, in order. `mock` is a short discriminator the template
  *  uses to pick which illustrative fragment to render inside the card. */
@@ -31,8 +32,10 @@ const steps = [
     mock: 'pay',
   },
   {
-    title: 'Withdraw, or auto-withdraw',
-    description: 'Pull funds out whenever you like, or let auto-withdraw sweep them out automatically.',
+    title: FEATURES.autoWithdraw ? 'Withdraw, or auto-withdraw' : 'Withdraw',
+    description: FEATURES.autoWithdraw
+      ? 'Pull funds out whenever you like, or let auto-withdraw sweep them out automatically.'
+      : 'Pull funds out whenever you like.',
     mock: 'withdraw',
   },
 ];
@@ -86,7 +89,7 @@ const steps = [
                 <span class="text-muted">Balance</span>
                 <span class="font-semibold text-fg tabular-nums">312.40 USDC</span>
               </div>
-              <div class="flex items-center justify-between">
+              <div v-if="FEATURES.autoWithdraw" class="flex items-center justify-between">
                 <span class="text-muted">Auto-withdraw</span>
                 <span class="text-success font-medium">On</span>
               </div>

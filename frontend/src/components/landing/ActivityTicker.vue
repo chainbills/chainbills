@@ -21,10 +21,11 @@ const scanOn = FEATURES.scan;
 
 /** Display info for each chain used in the ticker. */
 const chainMeta: Record<LandingChainName, { name: string; logo: string; color: string }> = {
-  arctestnet: { name: 'Arc', logo: '/assets/tokens/ARC.png', color: '#00d2ff' },
-  base: { name: 'Base', logo: '/assets/tokens/BASE.png', color: '#0052FF' },
+  arcmainnet: { name: 'Arc', logo: '/assets/tokens/ARC.png', color: '#00d2ff' },
+  arctestnet: { name: 'Arc Testnet', logo: '/assets/tokens/ARC.png', color: '#00d2ff' },
+  base: { name: 'Base', logo: '/assets/tokens/BASE.png', color: '#0052ff' },
+  basesepolia: { name: 'Base Sepolia', logo: '/assets/tokens/BASE.png', color: '#0052ff' },
   megaeth: { name: 'MegaETH', logo: '/assets/tokens/MegaETH.png', color: '#c6f135' },
-  basesepolia: { name: 'Base Sepolia', logo: '/assets/tokens/Base.png', color: '#0052ff' },
   solanadevnet: { name: 'Solana', logo: '/assets/tokens/SOL.png', color: '#9945ff' },
 };
 

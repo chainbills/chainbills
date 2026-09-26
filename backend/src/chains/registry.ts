@@ -41,12 +41,12 @@ export const arcmainnet: EvmChainConfig = {
   network: 'mainnet',
   viemChain: viemArc,
   rpcUrl: 'https://rpc.mainnet.arc.io',
-  // TODO(owner): fill in from deploys/arcmainnet.json after deploying
-  diamondAddress: null,
-  // TODO(owner): not confirmed live on Arc mainnet yet — fill in when Wormhole is deployed
+  diamondAddress: '0xa837c89d3550Eb0D18c3988c689509EB2c3A5695',
+  // Wormhole is not deployed on Arc mainnet; cross-chain sync to Arc uses CCTP only.
   wormholeChainId: undefined,
   circleDomain: 26,
-  pollIntervalMs: 5000,
+  pollIntervalMs: 60_000,
+  // Arc's native gas token is USDC (18 decimals). One USDC is a low warn line for the relayer.
   minGasBalance: parseEther('1'),
   isEvm: true,
   isSolana: false,
@@ -65,7 +65,7 @@ export const anvil: EvmChainConfig = {
   diamondAddress: null,
   wormholeChainId: undefined,
   circleDomain: undefined,
-  pollIntervalMs: 500,
+  pollIntervalMs: 60_000,
   minGasBalance: parseEther('0.1'),
   isEvm: true,
   isSolana: false,
@@ -81,7 +81,7 @@ export const solanaDevnet: SolanaChainConfig = {
   network: 'testnet',
   wormholeChainId: 1,
   circleDomain: 5,
-  pollIntervalMs: 5_000,
+  pollIntervalMs: 60_000,
   // 0.05 SOL — warn if the relayer wallet drops below this.
   minGasBalance: 50_000_000n, // lamports
   isSolana: true,
@@ -106,7 +106,7 @@ export const megaeth: EvmChainConfig = {
   diamondAddress: null,
   wormholeChainId: undefined,
   circleDomain: undefined,
-  pollIntervalMs: 5000,
+  pollIntervalMs: 60_000,
   minGasBalance: parseEther('0.01'),
   isEvm: true,
   isSolana: false,
@@ -124,7 +124,7 @@ export const arctestnet: EvmChainConfig = {
   diamondAddress: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7',
   wormholeChainId: undefined,
   circleDomain: 26,
-  pollIntervalMs: 5000,
+  pollIntervalMs: 60_000,
   minGasBalance: parseEther('0.01'),
   isEvm: true,
   isSolana: false,
@@ -142,7 +142,7 @@ export const basesepolia: EvmChainConfig = {
   diamondAddress: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7',
   wormholeChainId: 10004,
   circleDomain: 6,
-  pollIntervalMs: 2000,
+  pollIntervalMs: 60_000,
   minGasBalance: parseEther('0.01'),
   isEvm: true,
   isSolana: false,
@@ -157,11 +157,10 @@ export const base: EvmChainConfig = {
   network: 'mainnet',
   viemChain: viemBase,
   rpcUrl: 'https://mainnet.base.org',
-  // TODO(owner): fill in from deploys/base.json after deploying
-  diamondAddress: null,
+  diamondAddress: '0xa837c89d3550Eb0D18c3988c689509EB2c3A5695',
   wormholeChainId: 30,
   circleDomain: 6,
-  pollIntervalMs: 2000,
+  pollIntervalMs: 60_000,
   minGasBalance: parseEther('0.01'),
   isEvm: true,
   isSolana: false,
@@ -175,7 +174,7 @@ export const CHAINS: readonly ChainConfig[] = [arcmainnet, anvil, base, megaeth,
  * Add a slug once its `diamondAddress` is filled in after deploying. Remove it to
  * disable indexing without changing anything else.
  */
-export const ENABLED_CHAIN_SLUGS: readonly ChainSlug[] = ['arctestnet', 'basesepolia'];
+export const ENABLED_CHAIN_SLUGS: readonly ChainSlug[] = ['base', 'arcmainnet', 'arctestnet', 'basesepolia'];
 
 /** Looks up a chain by its CAIP-2 cbChainId — the universal cross-chain key. */
 export const CHAIN_BY_CB_CHAIN_ID: ReadonlyMap<string, ChainConfig> = new Map(CHAINS.map((c) => [c.cbChainId, c]));

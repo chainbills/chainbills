@@ -125,6 +125,7 @@ export const rawEnvSchema = z.object({
   SOLANA_RELAYER_KEYPAIR: solanaKeypairJson.optional(),
 
   POLL_INTERVAL_MS: z.coerce.number().int().positive().optional(),
+  INDEXER_BATCH_FLUSH_MS: z.coerce.number().int().positive().default(120_000),
 
   EMAILS_ENABLED: boolString(false),
   MAIL_PROVIDER: z.enum(['zeptomail', 'console']).default('console'),
@@ -240,6 +241,8 @@ export interface Env {
   solanaRelayerKeypair?: number[];
   /** Optional override of every chain's registry poll interval, in ms. */
   pollIntervalMsOverride?: number;
+  /** How long the indexer accumulates activity writes in memory before flushing. Default 2 min. */
+  indexerBatchFlushMs: number;
   /** When false, outbox rows are skipped rather than sent. Safe default for staging/deploy. */
   emailsEnabled: boolean;
   /** Which `MailProvider` implementation to use. */
@@ -292,6 +295,7 @@ function toEnv(parsed: ParsedEnv): Env {
     relayerPrivateKey: parsed.RELAYER_PRIVATE_KEY as `0x${string}` | undefined,
     solanaRelayerKeypair: parsed.SOLANA_RELAYER_KEYPAIR,
     pollIntervalMsOverride: parsed.POLL_INTERVAL_MS,
+    indexerBatchFlushMs: parsed.INDEXER_BATCH_FLUSH_MS,
     emailsEnabled: parsed.EMAILS_ENABLED,
     mailProvider: parsed.MAIL_PROVIDER,
     zeptomail: {

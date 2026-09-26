@@ -36,6 +36,7 @@ import SignInButton from '@/components/SignInButton.vue';
 import IconWallet from '@/icons/IconWallet.vue';
 import { usePoller } from '@/composables/usePoller';
 import {
+  chainNamesToChains,
   contracts,
   getTokenDetails,
   Payable,
@@ -51,7 +52,6 @@ import NotFoundView from '@/views/NotFoundView.vue';
 import { useSwitchChain } from '@wagmi/vue';
 import Button from 'primevue/button';
 import Select from 'primevue/select';
-import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -228,9 +228,7 @@ onUnmounted(() => {
 });
 
 const switchToChain = (chainName: ChainName) => {
-  const viemChain = { megaeth: megaethViem, arctestnet: arcTestnet, basesepolia: baseSepoliaViem }[
-    chainName as 'megaeth' | 'arctestnet' | 'basesepolia'
-  ];
+  const viemChain = chainNamesToChains[chainName]?.viemChain;
   if (!viemChain) return;
   switchChain({ chainId: viemChain.id });
   analytics.recordEvent('clicked_switch_chain', { to: chainName, from: 'pay_page' });

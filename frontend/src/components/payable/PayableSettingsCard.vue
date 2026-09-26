@@ -17,6 +17,7 @@
  * ```
  */
 import { GlassCard, Skeleton, TokenAmount } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import { tokens, type Payable } from '@/schemas';
 import { useStatsStore } from '@/stores';
 import { computed, onMounted, ref } from 'vue';
@@ -86,7 +87,7 @@ const feeLabel = computed(() => {
     </template>
 
     <!-- Auto-withdraw setting -->
-    <div class="border-t border-fg/5 pt-3 mb-3">
+    <div v-if="FEATURES.autoWithdraw" class="border-t border-fg/5 pt-3 mb-3">
       <div class="flex items-center justify-between text-xs">
         <span class="text-muted">Auto-withdraw</span>
         <span :class="payable.isAutoWithdraw ? 'text-success font-medium' : 'text-muted'">

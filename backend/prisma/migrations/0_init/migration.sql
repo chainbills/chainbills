@@ -362,3 +362,25 @@ ALTER TABLE "email_verifications" ADD CONSTRAINT "email_verifications_user_id_fk
 
 -- AddForeignKey
 ALTER TABLE "notification_preferences" ADD CONSTRAINT "notification_preferences_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- CreateTable
+CREATE TABLE "relay_tx_hints" (
+    "id" TEXT NOT NULL,
+    "chain_id" TEXT NOT NULL,
+    "dest_chain_id" TEXT NOT NULL,
+    "payable_id" TEXT,
+    "user_payment_id" TEXT,
+    "tx_hash" TEXT NOT NULL,
+    "received_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "relay_tx_hints_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "relay_tx_hints_payable_id_dest_chain_id_idx" ON "relay_tx_hints"("payable_id", "dest_chain_id");
+
+-- CreateIndex
+CREATE INDEX "relay_tx_hints_user_payment_id_dest_chain_id_idx" ON "relay_tx_hints"("user_payment_id", "dest_chain_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "relay_tx_hints_chain_id_dest_chain_id_payable_id_user_payme_key" ON "relay_tx_hints"("chain_id", "dest_chain_id", "payable_id", "user_payment_id");

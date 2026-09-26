@@ -35,6 +35,7 @@
 import { GlassCard, StatusPill } from '@/components/ui';
 import DescriptionEditor from './DescriptionEditor.vue';
 import PaymentRulesEditor from './PaymentRulesEditor.vue';
+import { FEATURES } from '@/config/features';
 import { type Payable, type TokenAndAmount } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, usePayableStore } from '@/stores';
 import Button from 'primevue/button';
@@ -226,7 +227,7 @@ const onDescriptionSaved = (refreshed: Payable) => {
       </div>
 
       <!-- Auto-withdraw -->
-      <div class="border-b border-fg/5 pb-6">
+      <div v-if="FEATURES.autoWithdraw" class="border-b border-fg/5 pb-6">
         <div class="flex items-start justify-between gap-4">
           <div>
             <p class="text-sm font-medium text-fg">Auto-withdraw</p>
@@ -319,6 +320,7 @@ const onDescriptionSaved = (refreshed: Payable) => {
 
   <!-- Auto-withdraw confirmation dialog -->
   <Dialog
+    v-if="FEATURES.autoWithdraw"
     v-model:visible="showAutoWithdrawConfirm"
     modal
     :header="pendingAutoWithdraw ? 'Enable auto-withdraw?' : 'Disable auto-withdraw?'"

@@ -46,7 +46,9 @@ library CbPayableSync {
     bytes memory encoded = CbPayloadCodec.encodePayablePayload(payload);
 
     // One Wormhole message reaches every Wormhole-connected chain.
-    if (LibRelayGuard.isWormholeActive()) wormholeSequence = CbWormholeMessaging.publish(encoded, wormholeFee);
+    if (LibRelayGuard.isWormholeActive()) {
+      wormholeSequence = CbWormholeMessaging.publish(encoded, wormholeFee, payload.payableId, payload.nonce);
+    }
 
     // One CCTP data message per chain that opted in and has a Circle domain.
     uint256 cctpMessagesCount;

@@ -15,6 +15,7 @@
  *    placeholder cards while the real ids are still in flight.
  */
 import { AddressChip, GlassCard, PayableAvatar, Skeleton, StatusPill, TokenAmount } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconForward from '@/icons/IconForward.vue';
 import { Payable } from '@/schemas';
@@ -91,7 +92,7 @@ onMounted(fetchPayable);
 
       <div class="flex flex-wrap items-center gap-1.5 mb-3">
         <span class="rounded-full bg-fg/5 text-fg text-xs px-2 py-0.5">{{ rulesSummary }}</span>
-        <span v-if="payable.isAutoWithdraw" class="rounded-full bg-accent/15 text-accent text-xs px-2 py-0.5"
+        <span v-if="FEATURES.autoWithdraw && payable.isAutoWithdraw" class="rounded-full bg-accent/15 text-accent text-xs px-2 py-0.5"
           >Auto-withdraw</span
         >
       </div>

@@ -1,10 +1,13 @@
 // Chainbills Backend — Trigger detector tests
 //
-// Covers: counter-based Wormhole job creation; cross-network destinations
-// skipped; Wormhole-less destinations skipped; wormholeRelayed cursor advances;
-// source chain with no wormholeChainId skips all work; no new messages is a no-op.
+// Covers the getter-based Wormhole path: emissions walked from
+// `getEmittedWormholeMessages`, cross-network destinations skipped,
+// Wormhole-less destinations skipped, cursor advances by page,
+// no-op when nothing new. CCTP paths are exercised via integration tests
+// against the real getter/mock chain.
 
-import { detectRelayTriggers } from './trigger.detector';
+import type { PublicClient } from 'viem';
+import { detectRelayTriggers, type CursorSnapshot, type MessagingStats } from './trigger.detector';
 import type { EvmChainConfig } from '../chains/types';
 import type { ChainsService } from '../chains/chains.service';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -65,33 +68,65 @@ function makeChains(enabled: EvmChainConfig[]): ChainsService {
   } as unknown as ChainsService;
 }
 
-function makePrisma(chainId: string, wormholeRelayed = 0n) {
+function makePrisma() {
   const updateMock = vi.fn().mockResolvedValue({});
   return {
-    chainCursor: {
-      findUnique: vi.fn().mockResolvedValue({ chainId, wormholeRelayed }),
-      update: updateMock,
-    },
-    relayJob: {
-      createMany: vi.fn().mockResolvedValue({ count: 1 }),
-    },
+    chainCursor: { update: updateMock },
+    relayJob: { createMany: vi.fn().mockResolvedValue({ count: 1 }) },
     _updateMock: updateMock,
   } as unknown as PrismaService & { _updateMock: any };
 }
 
-function makeStats(publishedWormholeMessagesCount: bigint) {
-  return { wormholeStats: { publishedWormholeMessagesCount } };
+function makeStats(publishedWormholeMessagesCount: bigint): MessagingStats {
+  return {
+    wormholeStats: { publishedWormholeMessagesCount },
+    cctpStats: { emittedCctpPaymentMessagesCount: 0n, emittedCctpPayableUpdateMessagesCount: 0n },
+  };
+}
+
+function makeCursor(wormholeRelayed = 0n): CursorSnapshot {
+  return { wormholeRelayed, cctpPayableUpdatesRelayed: 0n, cctpPaymentsRelayed: 0n };
+}
+
+/**
+ * Returns a mock viem PublicClient whose `readContract` responds to
+ * `getEmittedWormholeMessages(offset, limit)` with a slice of `emissions`.
+ * CCTP getters return `[]` (nothing to walk).
+ */
+function makeClient(emissions: Array<{ payableId: `0x${string}`; chainbillsNonce: bigint; wormholeSequence: bigint }>) {
+  return {
+    readContract: vi.fn().mockImplementation(async ({ functionName, args }: any) => {
+      if (functionName === 'getEmittedWormholeMessages') {
+        const [offset, limit] = args as [bigint, bigint];
+        return emissions.slice(Number(offset), Number(offset) + Number(limit));
+      }
+      if (functionName === 'getEmittedCctpPayableUpdateMessages' || functionName === 'getEmittedCctpPaymentMessages') {
+        return [];
+      }
+      return null;
+    }),
+  } as unknown as PublicClient;
+}
+
+/** Builds one wormhole emission tuple with a payableId + monotonic sequence. */
+function emission(sequence: bigint) {
+  return {
+    payableId: '0xpayable' as `0x${string}`,
+    chainbillsNonce: sequence + 1n,
+    wormholeSequence: sequence,
+  };
 }
 
 describe('detectRelayTriggers', () => {
   it('creates PAYABLE_UPDATE_VIA_WORMHOLE jobs for each new message', async () => {
-    const prisma = makePrisma(TESTNET_CHAIN_A.cbChainId, 0n);
+    const prisma = makePrisma();
     const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B]);
+    const client = makeClient([emission(0n), emission(1n)]);
 
-    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(2n));
+    const result = await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(2n), makeCursor(0n), client);
 
+    expect(result.wormholeAdvanced).toBe(true);
     const createMany = (prisma as any).relayJob.createMany;
-    // 2 new messages x 1 dest = 2 job creation calls
     expect(createMany).toHaveBeenCalledTimes(2);
     const firstCall = createMany.mock.calls[0][0].data[0];
     expect(firstCall.type).toBe('PAYABLE_UPDATE_VIA_WORMHOLE');
@@ -99,11 +134,14 @@ describe('detectRelayTriggers', () => {
     expect(firstCall.eventData.wormholeSequence).toBe('0');
   });
 
-  it('uses synthetic txHash keyed by sequence', async () => {
-    const prisma = makePrisma(TESTNET_CHAIN_A.cbChainId, 3n);
+  it('uses synthetic txHash keyed by wormholeSequence', async () => {
+    const prisma = makePrisma();
     const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B]);
+    // 4 total emissions in the on-chain array, cursor already at 3 — detector
+    // should consume only emission[3] and derive txHash from its wormholeSequence.
+    const client = makeClient([emission(0n), emission(1n), emission(2n), emission(3n)]);
 
-    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(4n));
+    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(4n), makeCursor(3n), client);
 
     const createMany = (prisma as any).relayJob.createMany;
     expect(createMany).toHaveBeenCalledOnce();
@@ -112,65 +150,74 @@ describe('detectRelayTriggers', () => {
     expect(data.eventData.wormholeSequence).toBe('3');
   });
 
-  it('advances wormholeRelayed cursor by the number of queued sequences', async () => {
-    const prisma = makePrisma(TESTNET_CHAIN_A.cbChainId, 0n);
+  it('advances wormholeRelayed cursor to publishedCount when all emissions processed', async () => {
+    const prisma = makePrisma();
     const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B]);
+    const client = makeClient([emission(0n), emission(1n), emission(2n)]);
 
-    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(3n));
+    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(3n), makeCursor(0n), client);
 
     const update = (prisma as any)._updateMock;
-    expect(update).toHaveBeenCalledOnce();
-    expect(update.mock.calls[0][0].data.wormholeRelayed).toBe(3n);
+    expect(update).toHaveBeenCalled();
+    // Final cursor write should reflect all 3 emissions consumed.
+    const lastCall = update.mock.calls[update.mock.calls.length - 1][0];
+    expect(lastCall.data.wormholeRelayed).toBe(3n);
   });
 
-  it('is a no-op when publishedCount equals wormholeRelayed', async () => {
-    const prisma = makePrisma(TESTNET_CHAIN_A.cbChainId, 5n);
+  it('is a no-op when publishedCount equals cursor', async () => {
+    const prisma = makePrisma();
     const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B]);
+    const client = makeClient([]);
 
-    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(5n));
+    const result = await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(5n), makeCursor(5n), client);
 
+    expect(result.wormholeAdvanced).toBe(false);
     expect((prisma as any).relayJob.createMany).not.toHaveBeenCalled();
     expect((prisma as any)._updateMock).not.toHaveBeenCalled();
   });
 
   it('skips destinations on a different network', async () => {
-    const prisma = makePrisma(TESTNET_CHAIN_A.cbChainId, 0n);
+    const prisma = makePrisma();
     const chains = makeChains([TESTNET_CHAIN_A, MAINNET_CHAIN]);
+    const client = makeClient([emission(0n)]);
 
-    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(1n));
+    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(1n), makeCursor(0n), client);
 
     expect((prisma as any).relayJob.createMany).not.toHaveBeenCalled();
   });
 
   it('skips destinations without a wormholeChainId', async () => {
     const noWormholeDest: EvmChainConfig = { ...TESTNET_CHAIN_B, wormholeChainId: undefined };
-    const prisma = makePrisma(TESTNET_CHAIN_A.cbChainId, 0n);
+    const prisma = makePrisma();
     const chains = makeChains([TESTNET_CHAIN_A, noWormholeDest]);
+    const client = makeClient([emission(0n)]);
 
-    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(1n));
+    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(1n), makeCursor(0n), client);
 
     expect((prisma as any).relayJob.createMany).not.toHaveBeenCalled();
   });
 
   it('returns immediately when source chain has no wormholeChainId', async () => {
     const chainNoWormhole: EvmChainConfig = { ...TESTNET_CHAIN_A, wormholeChainId: undefined };
-    const prisma = makePrisma(chainNoWormhole.cbChainId, 0n);
+    const prisma = makePrisma();
     const chains = makeChains([chainNoWormhole, TESTNET_CHAIN_B]);
+    const client = makeClient([emission(0n)]);
 
-    await detectRelayTriggers(chainNoWormhole, chains, prisma, makeStats(10n));
+    const result = await detectRelayTriggers(chainNoWormhole, chains, prisma, makeStats(10n), makeCursor(0n), client);
 
-    expect((prisma as any).chainCursor.findUnique).not.toHaveBeenCalled();
+    expect(result.wormholeAdvanced).toBe(false);
     expect((prisma as any).relayJob.createMany).not.toHaveBeenCalled();
   });
 
-  it('queues one job per destination for the same sequence', async () => {
+  it('queues one job per destination for the same emission', async () => {
     const CHAIN_C: EvmChainConfig = { ...TESTNET_CHAIN_B, cbChainId: '0xchainC' };
-    const prisma = makePrisma(TESTNET_CHAIN_A.cbChainId, 0n);
+    const prisma = makePrisma();
     const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B, CHAIN_C]);
+    const client = makeClient([emission(0n)]);
 
-    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(1n));
+    await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, makeStats(1n), makeCursor(0n), client);
 
-    // sequence 0 -> 2 destinations = 2 createMany calls
+    // one emission x 2 destinations = 2 createMany calls
     const createMany = (prisma as any).relayJob.createMany;
     expect(createMany).toHaveBeenCalledTimes(2);
     const destIds = createMany.mock.calls.map((c: any) => c[0].data[0].destChainId);

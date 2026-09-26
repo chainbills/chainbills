@@ -17,6 +17,7 @@ import { PublicApiService } from './public-api.service';
 import { ChainsController } from './chains.controller';
 import { PayablesController } from './payables.controller';
 import { PaymentsController } from './payments.controller';
+import { RelayNudgeController } from './relay-nudge.controller';
 import { UsersApiController } from './users-api.controller';
 import { WithdrawalsController } from './withdrawals.controller';
 import { StatsController } from './stats.controller';
@@ -29,6 +30,7 @@ import { StatsController } from './stats.controller';
     ChainsController,
     PayablesController,
     PaymentsController,
+    RelayNudgeController,
     UsersApiController,
     WithdrawalsController,
     StatsController,

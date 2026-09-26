@@ -138,7 +138,10 @@ function makeEnv() {
       getRpcUrl: () => 'http://localhost',
     } as unknown as ChainsService,
     config: {
-      env: { emailMaxEventAgeMs: 60 * 60 * 1000, pollIntervalMsOverride: undefined },
+      // indexerBatchFlushMs=0 -> flush every tick (test-only behaviour so
+      // assertions can inspect DB writes right after `await indexer.tick()`).
+      // Production uses the 2 min default.
+      env: { emailMaxEventAgeMs: 60 * 60 * 1000, pollIntervalMsOverride: undefined, indexerBatchFlushMs: 0 },
     } as unknown as AppConfigService,
   };
 }
@@ -379,7 +382,7 @@ describe('EvmIndexer', () => {
       const indexer = new EvmIndexer(prisma, chains, config);
 
       // Should not throw; errors in detectRelayTriggers are caught.
-      await expect(indexer.tick(CHAIN)).resolves.toBeUndefined();
+      await expect(indexer.tick(CHAIN)).resolves.toEqual({ didWork: false });
     });
   });
 
@@ -419,7 +422,11 @@ describe('EvmIndexer', () => {
 
       const { chains } = makeEnv();
       const config = {
-        env: { emailMaxEventAgeMs: 24 * 60 * 60 * 1000, pollIntervalMsOverride: undefined },
+        env: {
+          emailMaxEventAgeMs: 24 * 60 * 60 * 1000,
+          pollIntervalMsOverride: undefined,
+          indexerBatchFlushMs: 0,
+        },
       } as unknown as AppConfigService;
 
       const indexer = new EvmIndexer(prisma, chains, config);

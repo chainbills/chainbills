@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: Apache 2
 pragma solidity ^0.8.30;
 
-import {CctpPayableUpdateEmission, CctpStats, WormholeStats} from '../types/CbTypes.sol';
+import {
+  CctpPayableUpdateEmission,
+  CctpPaymentEmission,
+  CctpStats,
+  WormholePayableUpdateEmission,
+  WormholeStats
+} from '../types/CbTypes.sol';
 
 /// Replay protection, nonces, and message counters for cross-chain messaging.
 /// @dev Append new fields at the end only.
@@ -31,6 +37,16 @@ library LibMessagingStorage {
     /// `getEmittedCctpPayableUpdateMessages(offset, limit)` and fetch each attestation by
     /// `(destChainId, cctpNonce)` or `messageBodyHash`.
     CctpPayableUpdateEmission[] emittedCctpPayableUpdates;
+    /// One entry per emitted CCTP payment burn, in emission order. Length equals
+    /// `cctpStats.emittedCctpPaymentMessagesCount`; off-chain relayers walk it via
+    /// `getEmittedCctpPaymentMessages(offset, limit)` and fetch each attestation by scanning
+    /// Iris messages from this diamond and matching `keccak256(hookData)` against `hookDataHash`.
+    CctpPaymentEmission[] emittedCctpPayments;
+    /// One entry per outbound Wormhole payable-update message, in emission order. Length equals
+    /// `wormholeStats.publishedWormholeMessagesCount`; off-chain relayers walk it via
+    /// `getEmittedWormholeMessages(offset, limit)` and use the stored `wormholeSequence` to
+    /// fetch the VAA, decoupling backend cursor position from Wormhole's per-emitter sequence.
+    WormholePayableUpdateEmission[] emittedWormholeMessages;
   }
 
   /// keccak256(abi.encode(uint256(keccak256('chainbills.messaging')) - 1)) & ~bytes32(uint256(0xff))

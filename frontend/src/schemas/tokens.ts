@@ -15,7 +15,7 @@
 import { BN } from '@project-serum/anchor';
 import { PublicKey } from '@solana/web3.js';
 import { formatUnits, parseUnits } from 'viem';
-import { type Chain, type ChainName } from './chain';
+import { chainNamesToChains, type Chain, type ChainName } from './chain';
 
 /** Builds the local asset path for a token's logo, on a given chain. */
 export const getTokenLogo = (chain: Chain, token: Token) => {
@@ -25,13 +25,14 @@ export const getTokenLogo = (chain: Chain, token: Token) => {
   return `/assets/tokens/${logo}.png`;
 };
 
-/** The Chainbills proxy contract address on each chain. Native tokens use this as their "token address". */
-export const contracts: Record<ChainName, string> = {
-  arctestnet: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7',
-  megaeth: '0xc38d1681d34DA821E46508C084D673477E455570',
-  basesepolia: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7',
-  solanadevnet: 'DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk',
-};
+/**
+ * The Chainbills proxy contract address on each chain. Native tokens use this
+ * as their "token address". Derived from `schemas/chain.ts` so there is one
+ * source of truth per chain.
+ */
+export const contracts: Record<ChainName, string> = Object.fromEntries(
+  (Object.keys(chainNamesToChains) as ChainName[]).map((name) => [name, chainNamesToChains[name].contractAddress])
+) as Record<ChainName, string>;
 
 /** A token's address and decimal count on one specific chain. */
 export interface TokenChainDetails {
@@ -151,15 +152,23 @@ export const tokens: Token[] = [
   {
     name: 'USDC',
     details: {
-      arctestnet: {
+      arcmainnet: {
         // USDC is Arc's native gas token, so payments go through the msg.value
         // path (no approve step) — the diamond address is the "native token"
         // sentinel Chainbills uses on every EVM chain. Arc's native USDC uses
         // 18 decimals (its ERC-20 interface at 0x3600... reports 6, but that
         // path would need an approve; we deliberately trade decimal-uniformity
         // for the single-tx flow that makes Arc feel instant).
+        address: contracts.arcmainnet,
+        decimals: 18,
+      },
+      arctestnet: {
         address: contracts.arctestnet,
         decimals: 18,
+      },
+      base: {
+        address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        decimals: 6,
       },
       basesepolia: {
         address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
@@ -174,12 +183,21 @@ export const tokens: Token[] = [
   {
     name: 'ETH',
     details: {
+      base: {
+        // Native ETH on Base — token address is the diamond's own address
+        // (Chainbills' native-token sentinel). ETH is same-chain only; cross-
+        // chain payments always go through USDC via CCTP.
+        address: contracts.base,
+        decimals: 18,
+      },
+      basesepolia: {
+        address: contracts.basesepolia,
+        decimals: 18,
+      },
       megaeth: {
         address: contracts.megaeth,
         decimals: 18,
       },
-      // basesepolia native ETH not yet allowed on the contract — add NATIVE to
-      // evm/script/env/tokens.json and run AllowPaymentsForToken to enable it
     },
   },
   {

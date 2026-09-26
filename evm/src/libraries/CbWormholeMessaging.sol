@@ -5,19 +5,34 @@ import {IWormhole} from 'wormhole/interfaces/IWormhole.sol';
 import {ICbErrors} from '../interfaces/ICbErrors.sol';
 import {LibConfigStorage} from '../storage/LibConfigStorage.sol';
 import {LibMessagingStorage} from '../storage/LibMessagingStorage.sol';
-import {ForeignChain} from '../types/CbTypes.sol';
+import {ForeignChain, WormholePayableUpdateEmission} from '../types/CbTypes.sol';
 import {LibRelayGuard} from './LibRelayGuard.sol';
 
 /// Wormhole publishing and verified consumption. Linked library.
 library CbWormholeMessaging {
-  /// Publishes `payload` through Wormhole, paying `fee` from the diamond's balance.
+  /// Publishes `payload` through Wormhole, paying `fee` from the diamond's balance, and records the
+  /// emission so an off-chain relayer can walk `emittedWormholeMessages` by index (via
+  /// `getEmittedWormholeMessages(offset, limit)`) and fetch each VAA by its actual sequence.
   /// @param payload Message payload.
   /// @param fee Wormhole message fee.
+  /// @param payableId Payable being broadcast; recorded for relayer correlation.
+  /// @param chainbillsNonce Chainbills payload nonce (matches the Nonce header in `payload`).
   /// @return sequence Wormhole sequence of the message.
-  function publish(bytes memory payload, uint256 fee) public returns (uint64 sequence) {
+  function publish(bytes memory payload, uint256 fee, bytes32 payableId, uint64 chainbillsNonce)
+    public
+    returns (uint64 sequence)
+  {
     LibConfigStorage.Layout storage config = LibConfigStorage.layout();
     sequence = IWormhole(config.wormhole).publishMessage{value: fee}(0, payload, config.wormholeFinality);
-    LibMessagingStorage.layout().wormholeStats.publishedWormholeMessagesCount++;
+    LibMessagingStorage.Layout storage messaging = LibMessagingStorage.layout();
+    messaging.wormholeStats.publishedWormholeMessagesCount++;
+    messaging.emittedWormholeMessages.push(
+      WormholePayableUpdateEmission({
+        payableId: payableId,
+        chainbillsNonce: chainbillsNonce,
+        wormholeSequence: sequence
+      })
+    );
   }
 
   /// Verifies a VAA, checks its emitter against the registered foreign chain, and marks it consumed.

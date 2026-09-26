@@ -9,11 +9,15 @@
 import {
   anvil,
   arcmainnet,
+  arctestnet,
+  base,
+  basesepolia,
   CHAIN_BY_CB_CHAIN_ID,
   CHAIN_BY_SLUG,
   CHAINS,
   enabledChains,
   EVM_CHAINS,
+  megaeth,
   requireChainByCbChainId,
   sameNetwork,
   SOLANA_CHAINS,
@@ -21,8 +25,8 @@ import {
 } from './registry';
 
 describe('CHAINS', () => {
-  it('contains exactly the three registry chains', () => {
-    expect(CHAINS).toEqual([arcmainnet, anvil, solanaDevnet]);
+  it('contains every registered chain', () => {
+    expect(CHAINS).toEqual([arcmainnet, anvil, base, megaeth, arctestnet, basesepolia, solanaDevnet]);
   });
 });
 
@@ -48,7 +52,7 @@ describe('CHAIN_BY_SLUG', () => {
 
 describe('EVM_CHAINS', () => {
   it('contains only chains with isEvm true', () => {
-    expect(EVM_CHAINS).toEqual([arcmainnet, anvil]);
+    expect(EVM_CHAINS).toEqual([arcmainnet, anvil, base, megaeth, arctestnet, basesepolia]);
     expect(EVM_CHAINS.every((c) => c.isEvm)).toBe(true);
   });
 });
@@ -76,17 +80,19 @@ describe('enabledChains', () => {
   });
 
   it('throws for a chain with null diamondAddress', () => {
-    expect(() => enabledChains(['arcmainnet'])).toThrow(/no deployed diamond address/);
+    // anvil is the only chain in the registry whose diamondAddress remains null
+    // until DeployLocalStack runs.
+    expect(() => enabledChains(['anvil'])).toThrow(/no deployed diamond address/);
   });
 
   it('throws for a mix of unknown slugs and null-address chains', () => {
-    expect(() => enabledChains(['badslug', 'arcmainnet'])).toThrow();
+    expect(() => enabledChains(['badslug', 'anvil'])).toThrow();
   });
 
   it('reports all problems at once (does not stop at first failure)', () => {
     let error: Error | null = null;
     try {
-      enabledChains(['badslug1', 'badslug2', 'arcmainnet']);
+      enabledChains(['badslug1', 'badslug2', 'anvil']);
     } catch (e) {
       error = e as Error;
     }
@@ -118,11 +124,18 @@ describe('sameNetwork', () => {
 });
 
 describe('registry shape', () => {
-  it('arcmainnet has the correct cbChainId and caip2', () => {
+  it('arcmainnet has the correct cbChainId, caip2 and deployed diamond', () => {
     expect(arcmainnet.caip2).toBe('eip155:5042');
     expect(arcmainnet.cbChainId).toBe('0xb8aed675f862d651b4a8c85f23a045faa0faaa1d162e6eb15d732231df3dc250');
     expect(arcmainnet.network).toBe('mainnet');
-    expect(arcmainnet.diamondAddress).toBeNull();
+    expect(arcmainnet.diamondAddress).toBe('0xa837c89d3550Eb0D18c3988c689509EB2c3A5695');
+  });
+
+  it('base has the correct cbChainId, caip2 and deployed diamond', () => {
+    expect(base.caip2).toBe('eip155:8453');
+    expect(base.cbChainId).toBe('0x43b48883ef7be0f98fe7f98fafb2187e42caab4063697b32816f95e09d69b3ec');
+    expect(base.network).toBe('mainnet');
+    expect(base.diamondAddress).toBe('0xa837c89d3550Eb0D18c3988c689509EB2c3A5695');
   });
 
   it('anvil has the correct cbChainId, caip2 and null diamondAddress', () => {

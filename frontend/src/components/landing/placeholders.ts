@@ -30,9 +30,10 @@ export const landingStats: {
   volumeReceived: '$482K',
 };
 
-/** Chain identifier for landing ticker samples. Extends real `ChainName`
- *  with `'base'` which is illustration-only (not deployed). */
-export type LandingChainName = ChainName | 'base';
+/** Chain identifier for landing ticker samples. Currently identical to
+ *  `ChainName`; kept as a distinct alias so illustration-only chains can be
+ *  added here without touching the real chain registry. */
+export type LandingChainName = ChainName;
 
 /** One row of the illustrative activity ticker. Mirrors the shape of a real
  *  `Activity` (schemas/activity.ts) closely enough to reuse its display

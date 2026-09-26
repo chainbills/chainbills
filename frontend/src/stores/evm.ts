@@ -23,11 +23,10 @@
 // `stores/activity.ts`, `stores/stats.ts`, `stores/auth.ts` (all reads and
 // writes for EVM chains funnel through here).
 import {
-  arctestnet,
-  basesepolia as basesepoliaInApp,
   chainNamesEvm,
+  chainNamesToChains,
   contracts,
-  megaeth as megaethInApp,
+  evmChainIdToChain,
   OnChainSuccess,
   TokenAndAmount,
   User,
@@ -63,7 +62,6 @@ import {
   type TransactionReceipt,
   type Chain as ViemChain,
 } from 'viem';
-import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 
 interface WriteContractResponse {
   hash: string;
@@ -78,12 +76,23 @@ export interface WriteSteps {
 }
 
 // Circle domain IDs per chain — used to fetch fast-transfer fee from Iris API and to build maxFee for CCTP burns.
+// Kept as a small local table because it maps directly to Iris API domain ids
+// (a Circle-side concept), not the chain's viem id or cbChainId.
 const CIRCLE_DOMAINS: Partial<Record<ChainName, number>> = {
-  basesepolia: 6,
+  arcmainnet: 26,
+  base: 6,
   arctestnet: 26,
+  basesepolia: 6,
 };
 
-const CIRCLE_IRIS_API = 'https://iris-api-sandbox.circle.com';
+/**
+ * Circle Iris API host, picked per chain network so mainnet burns hit the
+ * production API and testnet burns hit the sandbox.
+ */
+const irisApiFor = (chainName: ChainName): string =>
+  chainNamesToChains[chainName].networkType === 'mainnet'
+    ? 'https://iris-api.circle.com'
+    : 'https://iris-api-sandbox.circle.com';
 
 export const useEvmStore = defineStore('evm', () => {
   const account = useAccount();
@@ -94,10 +103,9 @@ export const useEvmStore = defineStore('evm', () => {
   const publicClients = new Map<ChainName, PublicClient>();
 
   const getViemChain = (chainName: ChainName): ViemChain => {
-    if (chainName == 'megaeth') return megaethViem;
-    else if (chainName == 'arctestnet') return arcTestnet;
-    else if (chainName == 'basesepolia') return baseSepoliaViem;
-    else throw new Error(`Unsupported EVM Chain: ${chainName}`);
+    const viemChain = chainNamesToChains[chainName].viemChain;
+    if (!viemChain) throw new Error(`Unsupported EVM Chain: ${chainName}`);
+    return viemChain;
   };
 
   /** Returns the cached read-only `PublicClient` for `chainName`, creating it on first use. */
@@ -118,11 +126,7 @@ export const useEvmStore = defineStore('evm', () => {
 
   const getCurrentChain = (): Chain | null => {
     if (!account.chain.value) return null;
-    return {
-      [arcTestnet.id]: arctestnet,
-      [megaethViem.id]: megaethInApp,
-      [baseSepoliaViem.id]: basesepoliaInApp,
-    }[account.chain.value.id]!;
+    return evmChainIdToChain[account.chain.value.id] ?? null;
   };
 
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
@@ -844,7 +848,7 @@ export const useEvmStore = defineStore('evm', () => {
     const dstDomain = CIRCLE_DOMAINS[destChainName];
     if (srcDomain === undefined || dstDomain === undefined) return 0n;
     try {
-      const feeRes = await fetch(`${CIRCLE_IRIS_API}/v2/burn/USDC/fees/${srcDomain}/${dstDomain}`);
+      const feeRes = await fetch(`${irisApiFor(sourceChainName)}/v2/burn/USDC/fees/${srcDomain}/${dstDomain}`);
       if (!feeRes.ok) return 0n;
       const tiers: { finalityThreshold: number; minimumFee: number }[] = await feeRes.json();
       const fastTier = tiers.find((t) => t.finalityThreshold === 1000);

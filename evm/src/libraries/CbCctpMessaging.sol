@@ -10,7 +10,7 @@ import {ITokenMessengerV2} from '../interfaces/circle/ITokenMessengerV2.sol';
 import {ITokenMinterV2} from '../interfaces/circle/ITokenMinterV2.sol';
 import {LibConfigStorage} from '../storage/LibConfigStorage.sol';
 import {LibMessagingStorage} from '../storage/LibMessagingStorage.sol';
-import {CctpPayableUpdateEmission} from '../types/CbTypes.sol';
+import {CctpPayableUpdateEmission, CctpPaymentEmission} from '../types/CbTypes.sol';
 import {
   CCTP_BURN_AMOUNT_OFFSET,
   CCTP_BURN_TOKEN_OFFSET,
@@ -116,14 +116,17 @@ library CbCctpMessaging {
   }
 
   /// Burns `amount + maxFee` of `token` held by the diamond for minting on a registered foreign chain, carrying
-  /// `hookData` in the burn message.
+  /// the encoded `payload` in the burn message, and records the emission so an off-chain relayer can walk
+  /// `emittedCctpPayments` by index (via `getEmittedCctpPaymentMessages(offset, limit)`) instead of scanning
+  /// event logs.
   /// @param cbChainId CAIP-2 chain identifier of the destination chain.
   /// @param token Local CCTP token.
   /// @param amount Payment amount.
   /// @param maxFee Largest fee Circle may take.
-  /// @param hookData Encoded payment payload.
+  /// @param payload Payment payload. Encoded here into the hook data of the burn message and its keccak256 is
+  /// recorded in the emission so relayers can match Iris messages against it.
   /// @return minFinalityThreshold Finality requested for the burn.
-  function burnWithPayment(bytes32 cbChainId, address token, uint256 amount, uint256 maxFee, bytes memory hookData)
+  function burnWithPayment(bytes32 cbChainId, address token, uint256 amount, uint256 maxFee, PaymentPayload memory payload)
     public
     returns (uint32 minFinalityThreshold)
   {
@@ -132,6 +135,7 @@ library CbCctpMessaging {
     address tokenMessenger = LibConfigStorage.layout().cctpTokenMessenger;
     uint256 burnAmount = amount + maxFee;
     minFinalityThreshold = chain.config.finality.outboundPaymentFinality;
+    bytes memory hookData = CbPayloadCodec.encodePaymentPayload(payload);
 
     // Approve exactly the burn amount and burn with the payment payload as hook data.
     IERC20(token).forceApprove(tokenMessenger, burnAmount);
@@ -146,7 +150,17 @@ library CbCctpMessaging {
         minFinalityThreshold,
         hookData
       );
-    LibMessagingStorage.layout().cctpStats.emittedCctpPaymentMessagesCount++;
+    LibMessagingStorage.Layout storage messaging = LibMessagingStorage.layout();
+    messaging.cctpStats.emittedCctpPaymentMessagesCount++;
+    messaging.emittedCctpPayments.push(
+      CctpPaymentEmission({
+        payableId: payload.payableId,
+        destChainId: cbChainId,
+        userPaymentId: payload.payerPaymentId,
+        chainbillsNonce: payload.nonce,
+        hookDataHash: keccak256(hookData)
+      })
+    );
   }
 
   // ---------------------------------------------------------------------------

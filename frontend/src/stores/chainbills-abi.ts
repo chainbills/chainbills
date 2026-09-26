@@ -2896,6 +2896,98 @@ export const chainbillsAbi = [
   },
   {
     "type": "function",
+    "name": "getEmittedCctpPaymentMessages",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct CctpPaymentEmission[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "destChainId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "userPaymentId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "chainbillsNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "hookDataHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEmittedWormholeMessages",
+    "inputs": [
+      {
+        "name": "offset",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "limit",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple[]",
+        "internalType": "struct WormholePayableUpdateEmission[]",
+        "components": [
+          {
+            "name": "payableId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "chainbillsNonce",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "wormholeSequence",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getForeignChain",
     "inputs": [
       {

@@ -158,7 +158,7 @@ const share = async () => {
             :pulse="!payable.isClosed"
           />
           <span
-            v-if="payable.isAutoWithdraw"
+            v-if="FEATURES.autoWithdraw && payable.isAutoWithdraw"
             class="inline-flex items-center rounded-full bg-accent/15 text-accent text-[11px] font-medium px-2.5 py-1 ring-1 ring-accent/30"
           >
             Auto-withdraw

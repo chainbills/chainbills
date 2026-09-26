@@ -13,11 +13,13 @@ import {LibTokenRegistryStorage} from '../storage/LibTokenRegistryStorage.sol';
 import {
   CctpConfig,
   CctpPayableUpdateEmission,
+  CctpPaymentEmission,
   CctpStats,
   ChainStats,
   ProtocolConfig,
   ProtocolOverview,
   WormholeConfig,
+  WormholePayableUpdateEmission,
   WormholeStats
 } from '../types/CbTypes.sol';
 import {CbFacetBase} from './CbFacetBase.sol';
@@ -111,6 +113,36 @@ contract CbCoreViewsFacet is CbFacetBase, ICbCoreViews {
     if (end > all.length) end = all.length;
     uint256 pageSize = end - offset;
     page = new CctpPayableUpdateEmission[](pageSize);
+    for (uint256 i; i < pageSize; i++) page[i] = all[offset + i];
+  }
+
+  /// @inheritdoc ICbCoreViews
+  function getEmittedCctpPaymentMessages(uint256 offset, uint256 limit)
+    external
+    view
+    returns (CctpPaymentEmission[] memory page)
+  {
+    CctpPaymentEmission[] storage all = LibMessagingStorage.layout().emittedCctpPayments;
+    if (offset >= all.length || limit == 0) return new CctpPaymentEmission[](0);
+    uint256 end = offset + limit;
+    if (end > all.length) end = all.length;
+    uint256 pageSize = end - offset;
+    page = new CctpPaymentEmission[](pageSize);
+    for (uint256 i; i < pageSize; i++) page[i] = all[offset + i];
+  }
+
+  /// @inheritdoc ICbCoreViews
+  function getEmittedWormholeMessages(uint256 offset, uint256 limit)
+    external
+    view
+    returns (WormholePayableUpdateEmission[] memory page)
+  {
+    WormholePayableUpdateEmission[] storage all = LibMessagingStorage.layout().emittedWormholeMessages;
+    if (offset >= all.length || limit == 0) return new WormholePayableUpdateEmission[](0);
+    uint256 end = offset + limit;
+    if (end > all.length) end = all.length;
+    uint256 pageSize = end - offset;
+    page = new WormholePayableUpdateEmission[](pageSize);
     for (uint256 i; i < pageSize; i++) page[i] = all[offset + i];
   }
 

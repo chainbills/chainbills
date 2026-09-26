@@ -40,6 +40,7 @@ import {
 
 const BATCH_SIZE = 10;
 const STUCK_THRESHOLD_MS = 10 * 60 * 1_000; // 10 min
+const STUCK_CHECK_INTERVAL_MS = 10 * 60 * 1_000; // run recovery at most once per 10 min
 const MAX_ATTEMPTS = 8;
 const BACKOFF_CAP_MS = 60 * 60 * 1_000; // 1 h
 
@@ -60,6 +61,7 @@ function backoffMs(attempts: number): number {
 @Injectable()
 export class OutboxProcessor {
   private readonly logger = new Logger(OutboxProcessor.name);
+  private lastRecoveryAt = 0;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -69,14 +71,21 @@ export class OutboxProcessor {
 
   /**
    * One processing tick:
-   *   1. Recover stuck SENDING rows (> 10 min).
+   *   1. Recover stuck SENDING rows (at most once per STUCK_CHECK_INTERVAL_MS).
    *   2. Claim up to BATCH_SIZE PENDING rows.
    *   3. Process each row.
+   *
+   * Returns true when at least one row was claimed, false when the outbox was empty.
+   * The caller uses this to drive adaptive backoff.
    */
-  async tick(): Promise<void> {
-    await this.recoverStuck();
+  async tick(): Promise<boolean> {
+    if (Date.now() - this.lastRecoveryAt >= STUCK_CHECK_INTERVAL_MS) {
+      await this.recoverStuck();
+      this.lastRecoveryAt = Date.now();
+    }
+
     const rows = await this.claimPending();
-    if (rows.length === 0) return;
+    if (rows.length === 0) return false;
 
     if (!this.config.env.emailsEnabled) {
       const ids = rows.map((r) => r.id);
@@ -84,12 +93,13 @@ export class OutboxProcessor {
         where: { id: { in: ids } },
         data: { status: 'SKIPPED', lastError: 'emails disabled (EMAILS_ENABLED=false)' },
       });
-      return;
+      return true;
     }
 
     for (const row of rows) {
       await this.processRow(row);
     }
+    return true;
   }
 
   /**

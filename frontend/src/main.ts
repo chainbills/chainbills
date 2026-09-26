@@ -8,20 +8,24 @@ import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Ripple from 'primevue/ripple';
 import ToastService from 'primevue/toastservice';
-import { arcTestnet, baseSepolia, megaeth } from 'viem/chains';
 import { createApp } from 'vue';
 import { createGtag } from 'vue-gtag';
 import App from './App.vue';
 import './assets/main.css';
 import { vReveal } from './directives/reveal';
 import router from './router';
+import { wagmiEvmChains } from './schemas/chain';
+
+/**
+ * wagmi is fed the exact same visible-EVM-chain list that the connect dialog
+ * and chain switcher present, sourced from `schemas/chain.ts`. Flipping a
+ * chain's `visible` flag there propagates here on the next build.
+ */
+const visibleEvmViemChains = wagmiEvmChains();
 const wagmiConfig = createConfig({
-  chains: [arcTestnet, baseSepolia],
+  chains: visibleEvmViemChains,
   connectors: [injected()],
-  transports: {
-    [arcTestnet.id]: http(),
-    [baseSepolia.id]: http(),
-  },
+  transports: Object.fromEntries(visibleEvmViemChains.map((c) => [c.id, http()])),
 });
 
 /**

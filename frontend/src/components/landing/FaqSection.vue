@@ -12,6 +12,7 @@
  * Usage: `<FaqSection />` inside `HomeView.vue`.
  */
 import { SectionHeader } from '@/components/ui';
+import { FEATURES } from '@/config/features';
 import { useAnalyticsStore } from '@/stores';
 import Accordion from 'primevue/accordion';
 import AccordionContent from 'primevue/accordioncontent';
@@ -45,11 +46,15 @@ const faqs = [
     answer:
       "No. Funds sit in the Chainbills contract on the payable's own chain until the owner withdraws them — Chainbills never takes custody.",
   },
-  {
-    question: 'What is auto-withdraw?',
-    answer:
-      "A per-payable setting that sweeps every incoming payment straight to the host's wallet automatically, instead of waiting for a manual withdrawal.",
-  },
+  ...(FEATURES.autoWithdraw
+    ? [
+        {
+          question: 'What is auto-withdraw?',
+          answer:
+            "A per-payable setting that sweeps every incoming payment straight to the host's wallet automatically, instead of waiting for a manual withdrawal.",
+        },
+      ]
+    : []),
 ];
 
 const analytics = useAnalyticsStore();

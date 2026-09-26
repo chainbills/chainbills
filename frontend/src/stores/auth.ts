@@ -1,18 +1,9 @@
-import {
-  type Chain,
-  arctestnet,
-  basesepolia as basesepoliaInApp,
-  megaeth as megaethInApp,
-  solanadevnet,
-  type Token,
-  User,
-} from '@/schemas';
+import { type Chain, evmChainIdToChain, solanadevnet, type Token, User } from '@/schemas';
 import { errorMsg, useCacheStore, useEvmStore, useSolanaStore } from '@/stores';
 import { useSolanaConnector } from '@/composables/useSolanaConnector';
 import { useAccount, useDisconnect } from '@wagmi/vue';
 import { defineStore } from 'pinia';
 import { useToast } from 'primevue/usetoast';
-import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 import { createSiweMessage } from 'viem/siwe';
 import { onMounted, ref, watch } from 'vue';
 import * as encoding from './encoding';
@@ -39,13 +30,10 @@ export const useAuthStore = defineStore('auth', () => {
   const { disconnect: evmDisconnect } = useDisconnect();
   const evmAccount = useAccount();
 
-  const getChainStore: any = (chain?: Chain) =>
-    ({
-      arctestnet: evm,
-      megaeth: evm,
-      basesepolia: evm,
-      solanadevnet: solana,
-    })[(chain ?? currentUser.value!.chain).name];
+  const getChainStore: any = (chain?: Chain) => {
+    const target = chain ?? currentUser.value!.chain;
+    return target.isEvm ? evm : solana;
+  };
 
   /**
    * Fetches and returns the raw on-chain balance (smallest unit, as a
@@ -66,12 +54,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const disconnect = async (chain?: Chain): Promise<void> => {
     if (chain || currentUser.value) {
-      return await {
-        arctestnet: evmDisconnect,
-        megaeth: evmDisconnect,
-        basesepolia: evmDisconnect,
-        solanadevnet: solanaConnector.disconnect,
-      }[(chain ?? currentUser.value!.chain).name]();
+      const target = chain ?? currentUser.value!.chain;
+      return await (target.isEvm ? evmDisconnect : solanaConnector.disconnect)();
     }
   };
 
@@ -234,9 +218,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (newEvmAddress) {
       const evmChainId = evmAccount.chain.value?.id;
-      if (evmChainId === megaethViem.id) newChain = megaethInApp;
-      else if (evmChainId === arcTestnet.id) newChain = arctestnet;
-      else if (evmChainId === baseSepoliaViem.id) newChain = basesepoliaInApp;
+      // Central registry: viem chain id → app Chain. Adding a new EVM chain
+      // to schemas/chain.ts registers it here automatically.
+      if (evmChainId !== undefined) newChain = evmChainIdToChain[evmChainId] ?? null;
     }
     if (newSolanaConnected) newChain = solanadevnet;
 

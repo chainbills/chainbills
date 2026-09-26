@@ -222,6 +222,10 @@ describe('RelayProcessor — Solana destination jobs', () => {
 // Mock the submitters and resolvers so dispatch methods can be tested in isolation.
 vi.mock('./resolvers/wormhole.resolver', () => ({ fetchVaa: vi.fn() }));
 vi.mock('./resolvers/cctp.resolver', () => ({ fetchCctpAttestation: vi.fn() }));
+vi.mock('./resolvers/tx-hash.resolver', () => ({
+  resolveCctpPayableUpdateTxHash: vi.fn().mockResolvedValue('0xresolvedTx'),
+  resolveCctpPaymentTxHash: vi.fn().mockResolvedValue('0xresolvedTx'),
+}));
 vi.mock('./submitters/evm.submitter', () => ({
   submitReceivePayableUpdateViaWormhole: vi.fn(),
   submitReceivePayableUpdateViaCctp: vi.fn(),
@@ -565,7 +569,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     const job = makeJob(RelayJobType.PAYABLE_UPDATE_VIA_CCTP, {
       cctpMessage: null,
       cctpAttestation: null,
-      eventData: { originalTxHash: '0xtx' },
+      eventData: { payableId: '0xpayable' },
     });
     const prisma = makePrisma(job);
     const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
@@ -691,6 +695,8 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     const job = makeJob(RelayJobType.PAYMENT_VIA_CCTP, {
       cctpMessage: null,
       cctpAttestation: null,
+      userPaymentId: '0xpayment',
+      eventData: { userPaymentId: '0xpayment' },
     });
     const prisma = makePrisma(job);
     const processor = new RelayProcessor(prisma, makeChains(), makeConfig());

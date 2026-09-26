@@ -54,10 +54,43 @@ const ACTIVITY_TYPE_MAP: Record<number, string> = {
   8: 'UPDATED_PAYABLE_AUTO_WITHDRAW_STATUS',
 };
 
+/** Result of one tick; drives adaptive polling in the caller. */
+export interface TickResult {
+  /** True when any on-chain counter surfaced new work this tick. */
+  didWork: boolean;
+}
+
+/**
+ * Only bump `chain_cursors.last_tick_at` this often. Faster ticks (arc's 500 ms)
+ * would otherwise write once per tick; the health check only needs ~minute
+ * resolution, so 30 s is comfortably fresh with 60x fewer DB writes.
+ */
+const LAST_TICK_WRITE_INTERVAL_MS = 30_000;
+
+/**
+ * Force-flush the activity batch when it reaches this many items even if the
+ * flush interval hasn't elapsed — keeps memory bounded when a chain is very
+ * active. 500 items keeps the flush transaction under a few seconds.
+ */
+const MAX_BATCH_SIZE = 500;
+
+/** One activity queued for the next batch flush. */
+interface BatchedActivity {
+  actId: `0x${string}`;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rec: any;
+}
+
 /** Polls the Chainbills diamond's activity log and upserts indexed entities into Postgres for one EVM chain per tick. */
 @Injectable()
 export class EvmIndexer {
   private readonly logger = new Logger(EvmIndexer.name);
+  /** Per-chain in-memory `last_tick_at` — flushed to DB every LAST_TICK_WRITE_INTERVAL_MS. */
+  private readonly lastTickFlushedAt = new Map<string, number>();
+  /** Per-chain in-memory activity buffer; drained by `flushChain` every INDEXER_BATCH_FLUSH_MS. */
+  private readonly batches = new Map<string, BatchedActivity[]>();
+  /** Per-chain timestamp of the last successful batch flush. */
+  private readonly lastBatchFlushAt = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -66,16 +99,16 @@ export class EvmIndexer {
   ) {}
 
   /**
-   * Runs one indexing tick for the given EVM chain. Fetches new activities,
-   * dispatches each to the appropriate upsert, and updates the cursor.
+   * Runs one indexing tick for the given EVM chain: read counters + cursor
+   * once, dispatch any new activities, hand the messaging stats + cursor to
+   * the relay detector, then persist only the fields that changed. Returns
+   * `didWork = true` when any counter advanced so the caller can drive
+   * adaptive polling.
    */
-  async tick(chain: EvmChainConfig): Promise<void> {
+  async tick(chain: EvmChainConfig): Promise<TickResult> {
     const client = createEvmPublicClient(chain, this.chains.getRpcUrl(chain));
 
-    // 1. Get all counters in one call. `getAllStats` returns the tuple
-    // (ChainStats, WormholeStats, CctpStats) — the activity count drives
-    // the indexer, and the messaging counters are passed to the relay
-    // trigger detector at step 4.
+    // 1. Read all counters in one RPC.
     const [chainStats, wormholeStats, cctpStats] = await (client as PublicClient).readContract({
       address: chain.diamondAddress!,
       abi: chainbillsAbi,
@@ -83,19 +116,26 @@ export class EvmIndexer {
     });
     const onChainCount = BigInt(chainStats.activitiesCount);
 
-    // 2. Get or initialise cursor.
+    // 2. Read cursor once for the whole tick — hand it to the detector so
+    // it doesn't do its own findUnique per stream.
     const cursor = await this.prisma.chainCursor.upsert({
       where: { chainId: chain.cbChainId },
       create: { chainId: chain.cbChainId },
       update: {},
     });
-    const indexed = BigInt(cursor.activitiesIndexed);
+    const indexedBefore = BigInt(cursor.activitiesIndexed);
+    const buffer = this.batches.get(chain.cbChainId) ?? [];
+    // What we've already buffered (in memory) counts toward "already fetched"
+    // even though it hasn't been flushed to DB yet — otherwise we'd re-fetch
+    // the same activities on every tick until the next flush.
+    const fetchedSoFar = indexedBefore + BigInt(buffer.length);
+    let bufferedThisTick = 0;
 
-    if (onChainCount > indexed) {
-      const offset = indexed;
-      const limit = BigInt(Math.min(Number(onChainCount - indexed), PAGE_SIZE));
+    if (onChainCount > fetchedSoFar) {
+      const offset = fetchedSoFar;
+      const limit = BigInt(Math.min(Number(onChainCount - fetchedSoFar), PAGE_SIZE));
 
-      this.logger.debug({ chain: chain.slug, offset, limit }, 'fetching activities');
+      this.logger.debug({ chain: chain.slug, offset, limit }, 'fetching activities into batch');
 
       const [ids, records] = await (client as PublicClient).readContract({
         address: chain.diamondAddress!,
@@ -104,41 +144,123 @@ export class EvmIndexer {
         args: [offset, limit],
       });
 
-      // 3. Dispatch each activity. Stop on first failure.
       for (let i = 0; i < records.length; i++) {
-        const actId = ids[i];
-        const rec = records[i];
-
-        try {
-          await this.processActivity(chain, client, actId, rec);
-        } catch (err) {
-          this.logger.error({ chain: chain.slug, actId, err }, 'activity processing failed — stopping batch');
-          break;
-        }
+        buffer.push({ actId: ids[i], rec: records[i] });
+        bufferedThisTick++;
       }
+      this.batches.set(chain.cbChainId, buffer);
     }
 
-    // 4. Relay-trigger detection.
+    // Decide whether to flush now: interval elapsed OR buffer is at cap.
+    const nowMs = Date.now();
+    const lastFlush = this.lastBatchFlushAt.get(chain.cbChainId) ?? 0;
+    const batchFlushMs = this.config.env.indexerBatchFlushMs;
+    const shouldFlush =
+      buffer.length > 0 &&
+      (buffer.length >= MAX_BATCH_SIZE || nowMs - lastFlush >= batchFlushMs);
+
+    if (shouldFlush) {
+      await this.flushChain(chain, client);
+    }
+
+    // 3. Relay-trigger detection — pass the cursor we already loaded so the
+    // detector doesn't do its own findUnique per stream. It returns per-stream
+    // did-advance flags so we can drive adaptive polling without another read.
+    let detectorAdvanced = false;
     try {
-      await detectRelayTriggers(
+      const result = await detectRelayTriggers(
         chain,
         this.chains,
         this.prisma,
         { wormholeStats, cctpStats },
+        {
+          wormholeRelayed: BigInt(cursor.wormholeRelayed),
+          cctpPayableUpdatesRelayed: BigInt(cursor.cctpPayableUpdatesRelayed),
+          cctpPaymentsRelayed: BigInt(cursor.cctpPaymentsRelayed),
+        },
         client as PublicClient
       );
+      detectorAdvanced =
+        result.wormholeAdvanced || result.cctpPayableUpdateAdvanced || result.cctpPaymentAdvanced;
     } catch (err) {
       this.logger.error({ chain: chain.slug, err }, 'relay trigger scan failed');
     }
 
-    // 5. Update lastTickAt every tick.
-    await this.prisma.chainCursor.update({
-      where: { chainId: chain.cbChainId },
-      data: { lastTickAt: new Date() },
-    });
+    // "Did work" for adaptive polling means either we buffered fresh activities
+    // this tick or the detector queued relay jobs. A flush by itself isn't
+    // considered work — it's bookkeeping.
+    const activitiesAdvanced = bufferedThisTick > 0;
+
+    // 4. Only touch `last_tick_at` at most every LAST_TICK_WRITE_INTERVAL_MS
+    // (or whenever we already have to write for other reasons). Skips ~59
+    // out of every 60 seconds of writes on fast-poll chains.
+    const now = Date.now();
+    const lastFlushed = this.lastTickFlushedAt.get(chain.cbChainId) ?? 0;
+    if (now - lastFlushed >= LAST_TICK_WRITE_INTERVAL_MS) {
+      await this.prisma.chainCursor.update({
+        where: { chainId: chain.cbChainId },
+        data: { lastTickAt: new Date(now) },
+      });
+      this.lastTickFlushedAt.set(chain.cbChainId, now);
+    }
+
+    return { didWork: activitiesAdvanced || detectorAdvanced };
+  }
+
+  /**
+   * Drains the per-chain activity buffer into a single Prisma transaction:
+   * every buffered activity is processed sequentially inside the same
+   * transaction, and the cursor is advanced once at the end. On any per-item
+   * failure the transaction rolls back — nothing partial lands, and the
+   * failed items stay in the buffer so the next flush attempts them again
+   * with the on-chain state as source of truth.
+   */
+  private async flushChain(chain: EvmChainConfig, client: unknown): Promise<void> {
+    const buffer = this.batches.get(chain.cbChainId);
+    if (!buffer || buffer.length === 0) return;
+
+    const items = [...buffer];
+    this.logger.debug({ chain: chain.slug, count: items.length }, 'flushing activity batch');
+
+    try {
+      await this.prisma.$transaction(
+        async (tx) => {
+          for (const { actId, rec } of items) {
+            await this.processActivity(tx, chain, client, actId, rec);
+          }
+        },
+        { timeout: 60_000 }
+      );
+      // Success: clear buffer, mark flush time.
+      this.batches.set(chain.cbChainId, []);
+      this.lastBatchFlushAt.set(chain.cbChainId, Date.now());
+      this.logger.log({ chain: chain.slug, flushed: items.length }, 'activity batch flushed');
+    } catch (err) {
+      // Buffer intact — next flush retries. If this keeps failing, the
+      // on-chain cursor never advances so no data is lost.
+      this.logger.error({ chain: chain.slug, err, count: items.length }, 'activity batch flush failed');
+    }
+  }
+
+  /**
+   * Flushes every chain's pending buffer — called from WorkerModule's
+   * onApplicationShutdown so in-memory activities are persisted before exit.
+   * Best-effort: a chain whose flush fails is left in the buffer, the process
+   * exits anyway, and the next boot re-fetches from on-chain state.
+   */
+  async flushAll(): Promise<void> {
+    for (const [chainId, buffer] of this.batches.entries()) {
+      if (buffer.length === 0) continue;
+      const chain = this.chains.enabled.find((c) => c.cbChainId === chainId);
+      if (!chain || !chain.isEvm) continue;
+      const client = createEvmPublicClient(chain as EvmChainConfig, this.chains.getRpcUrl(chain));
+      await this.flushChain(chain as EvmChainConfig, client);
+    }
   }
 
   private async processActivity(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tx: any,
     chain: EvmChainConfig,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     client: any,
@@ -154,7 +276,7 @@ export class EvmIndexer {
     const timestamp = new Date(Number(rec.timestamp) * 1000);
     const maxEventAgeMs = this.config.env.emailMaxEventAgeMs;
 
-    await this.prisma.$transaction(async (tx) => {
+    {
       switch (rec.activityType) {
         case 0: // InitializedUser
           break; // Only Activity row below.
@@ -412,7 +534,7 @@ export class EvmIndexer {
         create: { chainId: chain.cbChainId, activitiesIndexed: BigInt(rec.chainCount) },
         update: { activitiesIndexed: BigInt(rec.chainCount) },
       });
-    });
+    }
   }
 
   /**

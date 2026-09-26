@@ -8,7 +8,7 @@ library CbCoreViewsFacetSelectors {
   /// Returns every selector served by `CbCoreViewsFacet`.
   /// @return sels Function selectors.
   function selectors() internal pure returns (bytes4[] memory sels) {
-    sels = new bytes4[](15);
+    sels = new bytes4[](17);
     sels[0] = ICbCoreViews.isInitialized.selector;
     sels[1] = ICbCoreViews.cbChainId.selector;
     sels[2] = ICbCoreViews.nativeToken.selector;
@@ -24,5 +24,7 @@ library CbCoreViewsFacetSelectors {
     sels[12] = ICbCoreViews.getAllStats.selector;
     sels[13] = ICbCoreViews.getProtocolOverview.selector;
     sels[14] = ICbCoreViews.getEmittedCctpPayableUpdateMessages.selector;
+    sels[15] = ICbCoreViews.getEmittedCctpPaymentMessages.selector;
+    sels[16] = ICbCoreViews.getEmittedWormholeMessages.selector;
   }
 }

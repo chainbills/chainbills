@@ -153,7 +153,7 @@ const previewTitle = computed(() => `Payable preview`);
             <p v-else class="mt-3 text-xs text-muted">Connect your wallet to configure payment rules.</p>
           </div>
 
-          <label class="flex items-start gap-3">
+          <label v-if="FEATURES.autoWithdraw" class="flex items-start gap-3">
             <ToggleSwitch v-model="isAutoWithdraw" class="shrink-0 mt-0.5" />
             <span class="min-w-0">
               <span class="block text-sm font-medium text-fg">Auto-withdraw</span>

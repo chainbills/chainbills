@@ -5,7 +5,6 @@ import {LibPause} from '../access/LibPause.sol';
 import {ICbPayments} from '../interfaces/ICbPayments.sol';
 import {CbCctpMessaging} from '../libraries/CbCctpMessaging.sol';
 import {CbLedger} from '../libraries/CbLedger.sol';
-import {CbPayloadCodec} from '../libraries/CbPayloadCodec.sol';
 import {LibAddressFormat} from '../libraries/LibAddressFormat.sol';
 import {LibRelayGuard} from '../libraries/LibRelayGuard.sol';
 import {LibTokenTransfer} from '../libraries/LibTokenTransfer.sol';
@@ -178,7 +177,7 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
         payerChainId: LibConfigStorage.layout().cbChainId,
         payerPaymentId: userPaymentId
       });
-      finality = CbCctpMessaging.burnWithPayment(chainId, token, amount, maxFee, CbPayloadCodec.encodePaymentPayload(payload));
+      finality = CbCctpMessaging.burnWithPayment(chainId, token, amount, maxFee, payload);
     }
 
     emit SentForeignPaymentViaCctp(payableId, chainId, userPaymentId, nonce, burnAmount, maxFee, finality);

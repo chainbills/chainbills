@@ -50,12 +50,16 @@ const features: {
     icon: IconWallet,
     iconClass: 'stroke-accent',
   },
-  {
-    title: 'Auto-withdraw',
-    description: 'Turn it on and every payment sweeps straight to your wallet — no manual withdrawal step.',
-    icon: IconSync,
-    iconClass: 'text-accent',
-  },
+  ...(FEATURES.autoWithdraw
+    ? [
+        {
+          title: 'Auto-withdraw',
+          description: 'Turn it on and every payment sweeps straight to your wallet — no manual withdrawal step.',
+          icon: IconSync,
+          iconClass: 'text-accent',
+        },
+      ]
+    : []),
   {
     title: 'Close and reopen anytime',
     description: 'Stop new payments instantly, and reopen the same payable whenever you want to resume.',

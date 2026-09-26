@@ -65,14 +65,19 @@ async function bootstrap(): Promise<void> {
 /** Prints every registered HTTP route once at boot so the operator can eyeball what's actually wired. */
 function logRegisteredRoutes(app: NestExpressApplication): void {
   const logger = new NestLogger('Routes');
-  const httpAdapter = app.getHttpAdapter().getInstance() as { router?: { stack?: RouterLayer[] }; _router?: { stack?: RouterLayer[] } };
+  const httpAdapter = app.getHttpAdapter().getInstance() as {
+    router?: { stack?: RouterLayer[] };
+    _router?: { stack?: RouterLayer[] };
+  };
   const stack = httpAdapter.router?.stack ?? httpAdapter._router?.stack ?? [];
   const routes = collectRoutes(stack);
   if (routes.length === 0) {
     logger.warn('no routes registered');
     return;
   }
-  for (const { method, path } of routes.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method))) {
+  for (const { method, path } of routes.sort(
+    (a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method)
+  )) {
     logger.log(`${method.padEnd(6)} ${path}`);
   }
   logger.log(`${routes.length} route(s) registered`);

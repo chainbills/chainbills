@@ -27,7 +27,8 @@ import type { EvmChainConfig } from '../chains/types';
 import { AppConfigService } from '../config/app-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { claimJob, markDone, markFailed, patchArtefacts, retryLater } from './job.store';
-import { fetchCctpAttestation, fetchCctpAttestationByMessageBody } from './resolvers/cctp.resolver';
+import { fetchCctpAttestation } from './resolvers/cctp.resolver';
+import { resolveCctpPayableUpdateTxHash, resolveCctpPaymentTxHash } from './resolvers/tx-hash.resolver';
 import { fetchVaa } from './resolvers/wormhole.resolver';
 import {
   submitReceiveForeignPaymentViaCctp,
@@ -201,15 +202,30 @@ export class RelayProcessor {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const eventData = (job.eventData ?? {}) as any;
-      const messageBodyHash: string = eventData.messageBodyHash;
-      const sourceDiamond: string = eventData.sourceDiamond ?? sourceChain.diamondAddress;
+      const payableId = eventData.payableId as `0x${string}` | undefined;
+      if (!payableId) {
+        await markFailed(this.prisma, job.id, 'PAYABLE_UPDATE_VIA_CCTP job is missing payableId in eventData');
+        return;
+      }
 
-      const fetched = await fetchCctpAttestationByMessageBody(
+      const sourcePublicClient = createEvmPublicClient(sourceChain, this.chains.getRpcUrl(sourceChain));
+      const txHash = await resolveCctpPayableUpdateTxHash(
+        sourceChain,
+        this.prisma,
+        sourcePublicClient as unknown as import('viem').PublicClient,
+        payableId,
+        job.destChainId as `0x${string}`
+      );
+      if (!txHash) {
+        await retryLater(this.prisma, job, 'source tx hash not yet resolvable (no nudge, no log in window)');
+        return;
+      }
+
+      const fetched = await fetchCctpAttestation(
         sourceChain.network,
         sourceChain.circleDomain,
-        destChain.circleDomain,
-        sourceDiamond,
-        messageBodyHash
+        txHash,
+        destChain.circleDomain
       );
 
       if (!fetched) {
@@ -254,10 +270,31 @@ export class RelayProcessor {
         return;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const eventData = (job.eventData ?? {}) as any;
+      const userPaymentId = (eventData.userPaymentId ?? job.userPaymentId) as `0x${string}` | undefined;
+      if (!userPaymentId) {
+        await markFailed(this.prisma, job.id, 'PAYMENT_VIA_CCTP job is missing userPaymentId');
+        return;
+      }
+
+      const sourcePublicClient = createEvmPublicClient(sourceChain, this.chains.getRpcUrl(sourceChain));
+      const txHash = await resolveCctpPaymentTxHash(
+        sourceChain,
+        this.prisma,
+        sourcePublicClient as unknown as import('viem').PublicClient,
+        userPaymentId,
+        job.destChainId as `0x${string}`
+      );
+      if (!txHash) {
+        await retryLater(this.prisma, job, 'source tx hash not yet resolvable (no nudge, no log in window)');
+        return;
+      }
+
       const fetched = await fetchCctpAttestation(
         sourceChain.network,
         sourceChain.circleDomain,
-        job.txHash,
+        txHash,
         destChain.circleDomain
       );
 

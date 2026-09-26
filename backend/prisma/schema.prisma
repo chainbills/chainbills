@@ -303,6 +303,28 @@ model RelayJob {
   @@map("relay_jobs")
 }
 
+/// Off-chain hint that maps an emission (identified by payableId + destChainId,
+/// or userPaymentId + destChainId for CCTP payments) to the source transaction
+/// hash Circle needs for attestation lookup. Written by the /relay/nudge
+/// endpoint when the frontend forwards a fresh tx hash, and read by the relay
+/// processor before it falls back to a targeted getLogs scan.
+model RelayTxHint {
+  id            String   @id @default(cuid())
+  chainId       String   @map("chain_id")
+  destChainId   String   @map("dest_chain_id")
+  /// Either payableId or userPaymentId is set — never both, never neither.
+  /// PAYABLE_UPDATE_VIA_CCTP hints key on payableId; PAYMENT_VIA_CCTP on userPaymentId.
+  payableId     String?  @map("payable_id")
+  userPaymentId String?  @map("user_payment_id")
+  txHash        String   @map("tx_hash")
+  receivedAt    DateTime @default(now()) @map("received_at")
+
+  @@unique([chainId, destChainId, payableId, userPaymentId])
+  @@index([payableId, destChainId])
+  @@index([userPaymentId, destChainId])
+  @@map("relay_tx_hints")
+}
+
 // ── Users and auth ────────────────────────────────────────────────────────────
 
 model User {

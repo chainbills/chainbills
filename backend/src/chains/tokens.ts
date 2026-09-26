@@ -46,11 +46,23 @@ export const TOKENS: readonly Token[] = [
   {
     name: 'USDC',
     details: {
-      // TODO(owner): fill in the Arc mainnet USDC address from evm/DEPLOYED.md once confirmed
-      arcmainnet: { address: '', symbol: 'USDC', decimals: 6 },
-      // TODO(owner): fill in the anvil mock USDC address after running evm/script/DeployLocalStack.s.sol
-      anvil: { address: '', symbol: 'USDC', decimals: 6 },
+      // Arc's native gas token IS USDC (18 decimals). The `0x3600...` address is Arc's ERC-20
+      // interface for the same native balance. Same address on both Arc mainnet and testnet.
+      arcmainnet: { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 18 },
+      arctestnet: { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 18 },
+      base: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', symbol: 'USDC', decimals: 6 },
+      basesepolia: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 },
       solanadevnet: { address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', symbol: 'USDC', decimals: 6 },
+    },
+  },
+  {
+    // Native ETH on Base — the "token address" for native tokens is always the diamond's
+    // own address on that chain (SPEC.md §6.3). Cross-chain payment of ETH is not supported
+    // — only USDC is bridgeable via CCTP — but same-chain ETH payments are.
+    name: 'ETH',
+    details: {
+      base: { address: '0xa837c89d3550Eb0D18c3988c689509EB2c3A5695', symbol: 'ETH', decimals: 18 },
+      basesepolia: { address: '0x3E473E5812542A865086Cb5Cb80D8f3DD3D692A7', symbol: 'ETH', decimals: 18 },
     },
   },
 ];

@@ -4,11 +4,13 @@ pragma solidity ^0.8.30;
 import {
   CctpConfig,
   CctpPayableUpdateEmission,
+  CctpPaymentEmission,
   CctpStats,
   ChainStats,
   ProtocolConfig,
   ProtocolOverview,
   WormholeConfig,
+  WormholePayableUpdateEmission,
   WormholeStats
 } from '../types/CbTypes.sol';
 
@@ -69,4 +71,32 @@ interface ICbCoreViews {
     external
     view
     returns (CctpPayableUpdateEmission[] memory);
+
+  /// Returns a page of the emitted CCTP payment-burn log, in emission order.
+  /// The relayer walks this by increasing offset until it catches up to
+  /// `cctpStats.emittedCctpPaymentMessagesCount`; there is no RPC log scan
+  /// involved. Each entry carries `destChainId` (where the mint should land)
+  /// and `hookDataHash`, which the relayer computes over every hook data
+  /// returned by Circle's Iris API for this diamond's messages to that
+  /// destination in order to identify the correct attestation.
+  /// @param offset First index to return (0-based).
+  /// @param limit  Maximum number of entries to return.
+  function getEmittedCctpPaymentMessages(uint256 offset, uint256 limit)
+    external
+    view
+    returns (CctpPaymentEmission[] memory);
+
+  /// Returns a page of the emitted Wormhole payable-update log, in emission
+  /// order. The relayer walks this by increasing offset until it catches up
+  /// to `wormholeStats.publishedWormholeMessagesCount`, using the returned
+  /// `wormholeSequence` to fetch each VAA. This decouples the backend cursor
+  /// from Wormhole's per-emitter sequence: the two align today but would
+  /// silently diverge if the diamond ever publishes non-payable-update
+  /// messages through the same emitter.
+  /// @param offset First index to return (0-based).
+  /// @param limit  Maximum number of entries to return.
+  function getEmittedWormholeMessages(uint256 offset, uint256 limit)
+    external
+    view
+    returns (WormholePayableUpdateEmission[] memory);
 }

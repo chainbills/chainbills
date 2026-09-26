@@ -280,6 +280,16 @@ struct CctpStats {
   uint256 receivedCctpPayableUpdateMessagesCount;
 }
 
+/// One outbound Wormhole payable-update message, indexed by emission order so an off-chain relayer
+/// can walk the log via `getEmittedWormholeMessages(offset, limit)` and fetch each VAA by its
+/// actual `wormholeSequence` instead of assuming the emission counter equals the Wormhole-assigned
+/// sequence (they diverge the moment the diamond publishes for any other purpose).
+struct WormholePayableUpdateEmission {
+  bytes32 payableId;
+  uint64 chainbillsNonce;
+  uint64 wormholeSequence;
+}
+
 /// One outbound CCTP payable-update message, indexed by emission order so an off-chain relayer
 /// can walk the log via `getEmittedCctpPayableUpdateMessages(offset, limit)` and fetch its Circle
 /// attestation by (sourceDomain, messageBodyHash) without any RPC log scan.
@@ -288,6 +298,18 @@ struct CctpPayableUpdateEmission {
   bytes32 destChainId;
   uint64 chainbillsNonce;
   bytes32 messageBodyHash;
+}
+
+/// One outbound CCTP payment burn, indexed by emission order so an off-chain relayer can walk
+/// the log via `getEmittedCctpPaymentMessages(offset, limit)` and fetch its Circle attestation
+/// by scanning Iris messages from this diamond to `destChainId`'s domain and matching the
+/// keccak256 of each message's hook data against `hookDataHash`.
+struct CctpPaymentEmission {
+  bytes32 payableId;
+  bytes32 destChainId;
+  bytes32 userPaymentId;
+  uint64 chainbillsNonce;
+  bytes32 hookDataHash;
 }
 
 // ===========================================================================

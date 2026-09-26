@@ -21,10 +21,9 @@
  * <ChainSwitcher v-model="scope" show-all-chains />
  * ```
  */
-import { arctestnet, basesepolia as basesepoliaApp, getChainLogo, megaeth as megaethApp } from '@/schemas';
+import { chainNamesToChains, getChainLogo, visibleEvmChains } from '@/schemas';
 import { useAuthStore } from '@/stores';
 import { useSwitchChain } from '@wagmi/vue';
-import { arcTestnet, baseSepolia as baseSepoliaViem, megaeth as megaethViem } from 'viem/chains';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = withDefaults(
@@ -42,13 +41,12 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 const auth = useAuthStore();
 const { switchChain } = useSwitchChain();
 
-const availableChains = [arctestnet, basesepoliaApp];
+const availableChains = computed(() => visibleEvmChains());
 
 const getViemChainId = (chainName: string): number => {
-  if (chainName === 'megaeth') return megaethViem.id;
-  if (chainName === 'arctestnet') return arcTestnet.id;
-  if (chainName === 'basesepolia') return baseSepoliaViem.id;
-  throw new Error(`Unsupported chain: ${chainName}`);
+  const chain = (chainNamesToChains as any)[chainName];
+  if (!chain?.viemChain) throw new Error(`Unsupported chain: ${chainName}`);
+  return chain.viemChain.id;
 };
 
 // Popover state

@@ -42,8 +42,46 @@ import { OutboxProcessor } from '../notifications/outbox.processor';
 
 const GAS_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 min
 const HEARTBEAT_INTERVAL_MS = 15 * 60 * 1000; // 15 min
-const RELAY_LOOP_INTERVAL_MS = 1_000; // 1 second between relay iterations
-const OUTBOX_LOOP_INTERVAL_MS = 5_000; // 5 seconds between outbox iterations
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Backoff schedule for the relay loop.
+ * Stays at 1 s while jobs keep arriving; slows to 30 s when the queue is
+ * empty for an extended stretch. Max 30 s so a freshly-indexed job is never
+ * delayed more than 30 s past when the indexer detects it.
+ */
+function relayBackoffMs(emptyStreak: number): number {
+  if (emptyStreak === 0) return 1_000;
+  if (emptyStreak < 5) return 5_000;
+  if (emptyStreak < 20) return 15_000;
+  return 30_000;
+}
+
+/**
+ * Backoff schedule for the outbox loop.
+ * Emails are not latency-critical; back off to 60 s when the outbox is idle.
+ */
+function outboxBackoffMs(emptyStreak: number): number {
+  if (emptyStreak < 3) return 5_000;
+  if (emptyStreak < 10) return 30_000;
+  return 60_000;
+}
+
+/**
+ * Backoff schedule for a per-chain indexer loop.
+ * Base interval is the chain's configured `pollIntervalMs` (500 ms - 5 s
+ * depending on chain). Idle chains slow to at most 30 s. Any activity —
+ * counter advance or nudge — resets to the base interval on the next tick.
+ */
+function indexerBackoffMs(baseIntervalMs: number, emptyStreak: number): number {
+  if (emptyStreak === 0) return baseIntervalMs;
+  if (emptyStreak < 3) return baseIntervalMs * 2;
+  if (emptyStreak < 10) return Math.min(baseIntervalMs * 6, 15_000);
+  return 30_000;
+}
 
 /**
  * Acquires the Postgres advisory lock, starts per-chain indexer loops, the relay processor,
@@ -92,18 +130,33 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
 
     const relayerAccount = evmAccountFromPrivateKey(relayerKey as `0x${string}`);
 
-    // Start one indexer loop per enabled EVM chain.
+    // Start one indexer loop per enabled EVM chain — adaptive backoff on
+    // idle. `tick()` returns { didWork } so we back off when there was no
+    // on-chain movement and snap back to the base interval on activity.
     for (const chain of this.chains.enabled) {
       if (!chain.isEvm) continue;
 
-      const intervalMs = this.config.env.pollIntervalMsOverride ?? chain.pollIntervalMs ?? 12_000;
-
-      const stop = runLoop({
-        name: `evm-indexer:${chain.slug}`,
-        intervalMs,
-        fn: () => this.evmIndexer.tick(chain),
+      const baseIntervalMs = this.config.env.pollIntervalMsOverride ?? chain.pollIntervalMs ?? 12_000;
+      const indexerLog = new Logger(`Loop:evm-indexer:${chain.slug}`);
+      let running = true;
+      let emptyStreak = 0;
+      const done = (async () => {
+        while (running) {
+          try {
+            const { didWork } = await this.evmIndexer.tick(chain);
+            emptyStreak = didWork ? 0 : emptyStreak + 1;
+          } catch (err) {
+            indexerLog.error({ err }, 'indexer iteration error — will retry');
+            emptyStreak++;
+          }
+          if (!running) break;
+          await sleep(indexerBackoffMs(baseIntervalMs, emptyStreak));
+        }
+      })();
+      this.stopFns.push(async () => {
+        running = false;
+        await done;
       });
-      this.stopFns.push(stop);
     }
 
     // Start one indexer loop per enabled Solana chain.
@@ -120,21 +173,45 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
       this.stopFns.push(stop);
     }
 
-    // Relay processor loop (sequential, 1s between iterations).
-    const stopRelay = runLoop({
-      name: 'relay-processor',
-      intervalMs: RELAY_LOOP_INTERVAL_MS,
-      fn: () => this.relayProcessor.processOne(relayerAccount).then(() => undefined),
-    });
-    this.stopFns.push(stopRelay);
+    // Relay processor loop — adaptive backoff: 1 s while jobs are flowing,
+    // up to 30 s when the queue has been empty for a while.
+    const relayLog = new Logger('Loop:relay-processor');
+    let relayRunning = true;
+    let relayEmptyStreak = 0;
+    const relayDone = (async () => {
+      while (relayRunning) {
+        try {
+          const found = await this.relayProcessor.processOne(relayerAccount);
+          relayEmptyStreak = found ? 0 : relayEmptyStreak + 1;
+        } catch (err) {
+          relayLog.error({ err }, 'relay iteration error — will retry');
+          relayEmptyStreak++;
+        }
+        if (!relayRunning) break;
+        await sleep(relayBackoffMs(relayEmptyStreak));
+      }
+    })();
+    this.stopFns.push(async () => { relayRunning = false; await relayDone; });
 
-    // Outbox processor loop (5s between iterations).
-    const stopOutbox = runLoop({
-      name: 'outbox-processor',
-      intervalMs: OUTBOX_LOOP_INTERVAL_MS,
-      fn: () => this.outboxProcessor.tick(),
-    });
-    this.stopFns.push(stopOutbox);
+    // Outbox processor loop — adaptive backoff: 5 s while emails are queued,
+    // up to 60 s when the outbox has been empty for a while.
+    const outboxLog = new Logger('Loop:outbox-processor');
+    let outboxRunning = true;
+    let outboxEmptyStreak = 0;
+    const outboxDone = (async () => {
+      while (outboxRunning) {
+        try {
+          const found = await this.outboxProcessor.tick();
+          outboxEmptyStreak = found ? 0 : outboxEmptyStreak + 1;
+        } catch (err) {
+          outboxLog.error({ err }, 'outbox iteration error — will retry');
+          outboxEmptyStreak++;
+        }
+        if (!outboxRunning) break;
+        await sleep(outboxBackoffMs(outboxEmptyStreak));
+      }
+    })();
+    this.stopFns.push(async () => { outboxRunning = false; await outboxDone; });
 
     // Gas-balance check loop.
     const stopGas = runLoop({
@@ -166,6 +243,15 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
 
     // Stop all loops, waiting for current iterations to finish.
     await Promise.all(this.stopFns.map((stop) => stop()));
+
+    // Flush any pending indexer batches so activities collected in memory but
+    // not yet written aren't lost. Best-effort — a chain whose flush fails is
+    // still safe because the on-chain cursor never advanced.
+    try {
+      await this.evmIndexer.flushAll();
+    } catch (err) {
+      this.logger.error({ err }, 'indexer flushAll on shutdown failed — activities will be re-fetched on next boot');
+    }
 
     if (this.lockClient) {
       await releaseAdvisoryLock(this.lockClient);

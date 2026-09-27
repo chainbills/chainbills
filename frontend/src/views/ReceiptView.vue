@@ -466,6 +466,9 @@ const detailItems = computed<KeyValueItem[]>(() => {
     }
     items.push({ key: 'deliveredAt', label: 'Delivered at' });
     items.push({ key: 'deliveryDuration', label: 'Delivery duration' });
+    if (destinationPayablePaymentId.value) {
+      items.push({ key: 'destinationReceipt', label: 'Destination receipt' });
+    }
   }
   return items;
 });
@@ -646,6 +649,14 @@ onMounted(async () => {
             {{ formatDuration(deliveryDurationSeconds) }}
           </span>
           <span v-else class="text-muted">-</span>
+        </template>
+        <template #destinationReceipt>
+          <AddressChip
+            v-if="destinationPayablePaymentId"
+            :value="destinationPayablePaymentId"
+            kind="id"
+            :to="`/receipt/${destinationPayablePaymentId}`"
+          />
         </template>
       </KeyValueList>
 

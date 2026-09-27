@@ -54,14 +54,15 @@ Visit `http://localhost:8080/health` to confirm the service is running, or open 
 
 ```bash
 # Kill whatever owns the dev port (default 8080).
-lsof -ti :8080 | xargs kill -9
+lsof -ti :8080 | xargs -r kill -9
 
-# Or kill the NestJS watcher and its node child by name.
-pkill -f "nest start"
-pkill -f "chainbills/backend.*node"
+# Kill the Nest watcher and its node child. The `node` binary comes first in the
+# cmdline, so match on the compiled entry-point path instead of the working dir.
+pkill -9 -f "nest start"
+pkill -9 -f "chainbills/backend/dist/main"
 ```
 
-See what's still running first with `lsof -i :8080` or `ps aux | grep -E 'nest start|node dist/main' | grep -v grep`.
+See what's still running first with `lsof -i :8080` or `ps aux | grep -E 'nest start|chainbills/backend/dist/main' | grep -v grep`. If either command returns rows, the advisory-lock warning on the next `pnpm dev` is that surviving worker.
 
 ### Local EVM indexing with Anvil
 

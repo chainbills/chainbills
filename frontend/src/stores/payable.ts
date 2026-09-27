@@ -27,6 +27,7 @@ import {
 } from '@/schemas';
 import {
   errorMsg,
+  isRpcError,
   isCctpChain,
   useAnalyticsStore,
   useAuthStore,
@@ -274,7 +275,7 @@ export const usePayableStore = defineStore('payable', () => {
       return new Payable(id, chain, description, raw);
     } catch (e) {
       console.error(e);
-      if (!ignoreErrors) toastError(errorMsg(e));
+      if (!ignoreErrors && !isRpcError(e)) toastError(errorMsg(e));
       return null;
     }
   };
@@ -311,7 +312,7 @@ export const usePayableStore = defineStore('payable', () => {
       return ids;
     } catch (e) {
       console.error(e);
-      toastError(errorMsg(e));
+      if (!isRpcError(e)) toastError(errorMsg(e));
       return null;
     }
   };

@@ -35,7 +35,7 @@ import {
   type ChainName,
   type Token,
 } from '@/schemas';
-import { errorMsg, chainbillsAbi, erc20Abi, useAnalyticsStore } from '@/stores';
+import { errorMsg, isRpcError, chainbillsAbi, erc20Abi, useAnalyticsStore } from '@/stores';
 import type { TxFlowHandle, TxStepHandle } from '@/stores/tx-flow';
 import {
   createConfig,
@@ -170,7 +170,7 @@ export const useEvmStore = defineStore('evm', () => {
       if (opts?.rethrowError) throw e;
       if (!opts?.ignoreErrors) {
         logError(e);
-        toastError(errorMsg(e));
+        if (!isRpcError(e)) toastError(errorMsg(e));
       }
       return null;
     }
@@ -211,7 +211,8 @@ export const useEvmStore = defineStore('evm', () => {
         args: [account.address.value],
       });
     } catch (e) {
-      toastError(`Couldn't fetch ${token.name} balance: ${errorMsg(e)}`);
+      logError(e);
+      if (!isRpcError(e)) toastError(`Couldn't fetch ${token.name} balance: ${errorMsg(e)}`);
       return null;
     }
   };
@@ -617,7 +618,7 @@ export const useEvmStore = defineStore('evm', () => {
         return new User(chain, addr, null);
       } else {
         logError(e);
-        toastError(errorMsg(e));
+        if (!isRpcError(e)) toastError(errorMsg(e));
       }
     }
     if (!raw) return null;

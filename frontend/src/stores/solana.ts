@@ -1,6 +1,6 @@
 import { OnChainSuccess, TokenAndAmount, User, contracts, solanadevnet, type Chain, type Token } from '@/schemas';
 import { useAnalyticsStore } from '@/stores/analytics';
-import { errorMsg } from '@/stores/errors';
+import { errorMsg, isRpcError } from '@/stores/errors';
 import { IDL } from '@/stores/idl';
 import { AnchorProvider, BN, Program } from '@coral-xyz/anchor';
 import {
@@ -502,7 +502,7 @@ export const useSolanaStore = defineStore('solana', () => {
     } catch (e) {
       if (!ignoreErrors) {
         console.error(e);
-        toastError(errorMsg(e));
+        if (!isRpcError(e)) toastError(errorMsg(e));
       }
       return null;
     }

@@ -22,9 +22,9 @@
 
 import { parseEther } from 'viem';
 import {
+  anvil as viemAnvil,
   arc as viemArc,
   arcTestnet as viemArcTestnet,
-  anvil as viemAnvil,
   base as viemBase,
   baseSepolia as viemBaseSepolia,
   megaeth as viemMegaeth,
@@ -173,7 +173,7 @@ export const CHAINS: readonly ChainConfig[] = [arcmainnet, anvil, base, megaeth,
  * Add a slug once its `diamondAddress` is filled in after deploying. Remove it to
  * disable indexing without changing anything else.
  */
-export const ENABLED_CHAIN_SLUGS: readonly ChainSlug[] = ['base', 'arcmainnet', 'arctestnet', 'basesepolia'];
+export const ENABLED_CHAIN_SLUGS: readonly ChainSlug[] = ['base', 'arcmainnet'];
 
 /** Looks up a chain by its CAIP-2 cbChainId — the universal cross-chain key. */
 export const CHAIN_BY_CB_CHAIN_ID: ReadonlyMap<string, ChainConfig> = new Map(CHAINS.map((c) => [c.cbChainId, c]));

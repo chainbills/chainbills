@@ -11,21 +11,14 @@
  * page; the flow's `sync` step stays visible in the collapsed TxFlowDialog
  * while it keeps broadcasting to the other chains.
  */
-import { useTxRetry } from '@/components/tx/retry';
 import EmailVerificationCard from '@/components/notifications/EmailVerificationCard.vue';
-import {
-  AddressChip,
-  ChainBadge,
-  GlassCard,
-  SectionHeader,
-  StatusPill,
-  TokenAmount,
-} from '@/components/ui';
+import PaymentRulesEditor from '@/components/payable/PaymentRulesEditor.vue';
+import SignInButton from '@/components/SignInButton.vue';
+import { useTxRetry } from '@/components/tx/retry';
+import { AddressChip, ChainBadge, GlassCard, SectionHeader, StatusPill, TokenAmount } from '@/components/ui';
 import { FEATURES } from '@/config/features';
 import IconEmail from '@/icons/IconEmail.vue';
 import IconWallet from '@/icons/IconWallet.vue';
-import PaymentRulesEditor from '@/components/payable/PaymentRulesEditor.vue';
-import SignInButton from '@/components/SignInButton.vue';
 import { chainNamesEvm, chainNamesToChains, TokenAndAmount } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, useNotificationsStore, usePayableStore } from '@/stores';
 import DomPurify from 'dompurify';
@@ -42,9 +35,7 @@ const router = useRouter();
 const { setRetry } = useTxRetry();
 
 const emailFeatureOn = FEATURES.emailNotifications;
-const hasVerifiedEmail = computed(
-  () => !!notifications.profile?.email && !!notifications.profile?.emailVerifiedAt
-);
+const hasVerifiedEmail = computed(() => !!notifications.profile?.email && !!notifications.profile?.emailVerifiedAt);
 const verifiedEmail = computed(() => notifications.profile?.email ?? '');
 
 const description = ref('');
@@ -69,7 +60,10 @@ const syncChains = computed(() => {
   if (!homeChain.value) return [];
   return chainNamesEvm
     .map((name) => chainNamesToChains[name])
-    .filter((chain) => chain.name !== homeChain.value!.name && chain.networkType === homeChain.value!.networkType);
+    .filter(
+      (chain) =>
+        chain.name !== homeChain.value!.name && chain.networkType === homeChain.value!.networkType && chain.visible
+    );
 });
 
 const isAutoWithdraw = ref(false);
@@ -266,7 +260,10 @@ const previewTitle = computed(() => `Payable preview`);
           </span>
         </div>
 
-        <div v-if="homeChain && auth.currentUser" class="flex items-center justify-between text-xs text-muted pt-3 border-t border-fg/5">
+        <div
+          v-if="homeChain && auth.currentUser"
+          class="flex items-center justify-between text-xs text-muted pt-3 border-t border-fg/5"
+        >
           <span class="inline-flex items-center gap-1.5">
             Owner
             <AddressChip

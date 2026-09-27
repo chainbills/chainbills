@@ -42,12 +42,17 @@ contract DiamondCutUpgrade is CbFacetDeployer {
   /// Executes the upgrade described by `config`. No env reads.
   function upgrade(UpgradeConfig memory config) public {
     IChainbills diamond = IChainbills(config.diamond);
+
+    // Broadcast must start BEFORE library deploys so their CREATE2 calls
+    // actually land on-chain; anything deployed before `vm.startBroadcast()`
+    // only lives in the simulation and never reaches the network.
+    if (!config.dryRun) vm.startBroadcast();
+
     LinkedLibrary[] memory libs = config.dryRun ? _predictLibraries(config.salt) : _deployLibraries(config.salt);
 
     IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](config.facetNames.length * 3);
     uint256 count;
 
-    if (!config.dryRun) vm.startBroadcast();
     for (uint256 i; i < config.facetNames.length; i++) {
       count = _appendFacetCuts(cuts, count, diamond, config.facetNames[i], config.salt, libs, config.dryRun);
     }

@@ -34,6 +34,7 @@ import { FEATURES } from '@/config/features';
 import IconCopy from '@/icons/IconCopy.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import IconQRCode from '@/icons/IconQRCode.vue';
+import IconRefresh from '@/icons/IconRefresh.vue';
 import IconWallet from '@/icons/IconWallet.vue';
 import { type Payable } from '@/schemas';
 import { useAnalyticsStore, useAuthStore } from '@/stores';
@@ -45,6 +46,13 @@ const props = defineProps<{
   payable: Payable;
   /** How many times the currently connected wallet has paid this payable. 0 when not connected or never paid. */
   payerPaymentCount: number;
+  /** True while the parent is refetching the payable — spins the header refresh icon. */
+  refreshing?: boolean;
+}>();
+
+const emit = defineEmits<{
+  /** Fires when the header refresh icon is clicked. */
+  (e: 'refresh'): void;
 }>();
 
 const analytics = useAnalyticsStore();
@@ -148,7 +156,19 @@ const share = async () => {
         </div>
 
         <div class="flex flex-col items-end gap-3 ml-auto">
-          <ChainBadge :chain="payable.chain" size="sm" />
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              class="rounded-full p-1 text-muted/60 hover:text-fg disabled:opacity-60"
+              :disabled="refreshing"
+              :aria-label="refreshing ? 'Refreshing payable' : 'Refresh payable'"
+              title="Refresh"
+              @click="emit('refresh')"
+            >
+              <IconRefresh class="w-3.5 h-3.5" :class="refreshing && 'animate-spin'" />
+            </button>
+            <ChainBadge :chain="payable.chain" size="sm" />
+          </div>
 
           <span class="flex flex-wrap items-center gap-3 text-[10px] text-muted mr-1" :title="relativeTimeStr"
             >Created {{ createdDateStr }}</span

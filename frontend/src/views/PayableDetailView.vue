@@ -121,6 +121,20 @@ const fetchPayable = async (ignoreErrors = false, showLoading = true) => {
 /** Silently refreshes the payable while the tab regains focus. Named for removal on unmount. */
 const onWindowFocus = () => fetchPayable(true, false);
 
+/** True while the hero refresh icon is spinning — a manual refetch driven by the user. */
+const isManualRefreshing = ref(false);
+const onManualRefresh = async () => {
+  if (isManualRefreshing.value) return;
+  isManualRefreshing.value = true;
+  try {
+    await fetchPayable(true, false);
+    feedKey.value++;
+  } finally {
+    isManualRefreshing.value = false;
+  }
+  analytics.recordEvent('refreshed_payable', { payable_id: route.params.id });
+};
+
 onMounted(async () => {
   await fetchPayable(false, true);
   window.addEventListener('focus', onWindowFocus);
@@ -191,7 +205,12 @@ const handleNotFoundSearch = (q: string) => {
 
     <!-- Full-width hero -->
     <div class="mb-8">
-      <PayableHero :payable="payable" :payer-payment-count="payerPaymentCount" />
+      <PayableHero
+        :payable="payable"
+        :payer-payment-count="payerPaymentCount"
+        :refreshing="isManualRefreshing"
+        @refresh="onManualRefresh"
+      />
     </div>
 
     <!-- Host controls (host only) -->

@@ -55,6 +55,19 @@ export const usePaymentStore = defineStore('payment', () => {
   const toast = useToast();
 
   const cacheKey = (chainName: ChainName, type: string, id: string) => `${chainName}::payment::${type}::${id}`;
+  /** IndexedDB key for the payer-side breadcrumbs we know at pay time (source chain, payable chain,
+   *  payable id, source tx hash). Cached so a returning visitor to `/receipt/:userPaymentId` can
+   *  skip the multi-chain probe, pre-hydrate the payable summary, and paint the source-side
+   *  block-explorer link without any network round-trip. */
+  const userPaymentBreadcrumbKey = (id: string) => `payment::user::${id}::breadcrumb`;
+  interface UserPaymentBreadcrumb {
+    sourceChain: ChainName;
+    payableChain: ChainName;
+    payableId: string;
+    /** Payer-side transaction hash from `evm.pay`/`evm.payForeignViaCctp`. Null on the
+     *  Solana path until that flow surfaces a signature. */
+    sourceTxHash: string | null;
+  }
 
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
@@ -113,6 +126,12 @@ export const usePaymentStore = defineStore('payment', () => {
         flow
       );
       if (!result) return null; // flow is already 'failed' or 'cancelled' — evm.writeContract recorded which.
+      await saveUserPaymentBreadcrumb(result.created, {
+        sourceChain: result.chain.name,
+        payableChain: payableChain.name,
+        payableId,
+        sourceTxHash: (result as { txHash?: string }).txHash ?? null,
+      });
       flow.finish({ paymentId: result.created });
       return await finishExec(result, true);
     }
@@ -152,6 +171,13 @@ export const usePaymentStore = defineStore('payment', () => {
       flow
     );
     if (!result) return null; // flow is already 'failed' or 'cancelled' — evm.writeContract recorded which.
+
+    await saveUserPaymentBreadcrumb(result.created, {
+      sourceChain: result.chain.name,
+      payableChain: payableChain.name,
+      payableId,
+      sourceTxHash: result.txHash ?? null,
+    });
 
     // Fire-and-forget hint so the backend relay processor can pick up this CCTP
     // burn immediately rather than waiting for its next getLogs scan window.
@@ -271,9 +297,15 @@ export const usePaymentStore = defineStore('payment', () => {
    * PayablePayment id if it did, and the failure reason if the relay job failed.
    * Callers should treat null payablePaymentId + arrived=true as "delivered but
    * receipt not yet indexed" (rare, short-lived race).
+   *
+   * Also surfaces every backend tick to `onTick`, giving callers the newest
+   * payer-side and payable-side tx hashes as the indexer discovers them so
+   * they can paint explorer links immediately (removing the need for a
+   * separate `hydrateArrival` poll on the receipt page).
    */
   const trackArrivalViaBackend = async (
-    userPaymentId: string
+    userPaymentId: string,
+    onTick?: (snap: { userPaymentTxHash: string | null; payablePaymentTxHash: string | null }) => void
   ): Promise<{ arrived: boolean; payablePaymentId: string | null; failureReason: string | null }> => {
     let result: { arrived: boolean; payablePaymentId: string | null; failureReason: string | null } = {
       arrived: false,
@@ -284,7 +316,12 @@ export const usePaymentStore = defineStore('payment', () => {
     const poller = usePoller(
       async () => {
         const data = await server.getPaymentRelayStatus(userPaymentId);
-        if (!data?.relayStatus) return false;
+        if (!data) return false;
+        onTick?.({
+          userPaymentTxHash: data.userPaymentTxHash,
+          payablePaymentTxHash: data.payablePaymentTxHash,
+        });
+        if (!data.relayStatus) return false;
         const { status, lastError } = data.relayStatus;
         if (status === 'DONE') {
           result = { arrived: true, payablePaymentId: data.payablePaymentId, failureReason: null };
@@ -304,6 +341,29 @@ export const usePaymentStore = defineStore('payment', () => {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
     return result;
+  };
+
+  /** Reads a payer-side breadcrumb written at pay time. Null when the caller
+   *  never came through `exec` on this device (e.g. a receipt link shared to
+   *  a different browser). */
+  const getUserPaymentBreadcrumb = async (id: string): Promise<UserPaymentBreadcrumb | null> => {
+    const cached = await cache.retrieve(userPaymentBreadcrumbKey(id));
+    if (!cached || typeof cached !== 'object') return null;
+    const c = cached as Partial<UserPaymentBreadcrumb>;
+    if (!c.sourceChain || !c.payableChain || !c.payableId) return null;
+    return {
+      sourceChain: c.sourceChain,
+      payableChain: c.payableChain,
+      payableId: c.payableId,
+      sourceTxHash: typeof c.sourceTxHash === 'string' ? c.sourceTxHash : null,
+    };
+  };
+
+  /** Saves the payer-side breadcrumb the receipt page uses to skip the multi-chain
+   *  probe and pre-hydrate the payable summary. Called by `exec` on every successful
+   *  same-chain or cross-chain payment. */
+  const saveUserPaymentBreadcrumb = async (id: string, crumb: UserPaymentBreadcrumb) => {
+    await cache.save(userPaymentBreadcrumbKey(id), crumb);
   };
 
   /** Finds the destination-chain `PayablePayment` matching a cross-chain `UserPayment`, once it has arrived. */
@@ -342,8 +402,22 @@ export const usePaymentStore = defineStore('payment', () => {
     }
   };
 
-  /** Called by in the onMounted of the ReceiptView page where the chain is not known */
-  const get = async (id: string): Promise<Payment | null> => {
+  /** Called by in the onMounted of the ReceiptView page where the chain is not known.
+   *  When the caller already knows the source chain (a fresh redirect from PayView,
+   *  or a saved breadcrumb from a prior visit) it can pass `chainHint` so the loader
+   *  goes straight to the right chain-specific fetch instead of fanning out probes
+   *  across every EVM chain. Falls back to the full probe when the hint misses. */
+  const get = async (id: string, chainHint?: Chain): Promise<Payment | null> => {
+    if (chainHint) {
+      for (const type of ['user', 'payable'] as const) {
+        const cached = await cache.retrieve(cacheKey(chainHint.name, type, id));
+        if (cached) return type === 'user' ? UserPayment.rehydrate(cached) : PayablePayment.rehydrate(cached);
+      }
+      const hinted =
+        (await getForUser(id, chainHint)) ?? (await getForPayable(id, chainHint));
+      if (hinted) return hinted;
+    }
+
     // Check if the payment is already in the cache and return if so.
     // Looping through known chain names as the chain is not known (straight from browser URL)
     for (const chainName of chainNames) {
@@ -584,6 +658,8 @@ export const usePaymentStore = defineStore('payment', () => {
     getForUser,
     getManyForCurrentUser,
     getManyForPayable,
+    getUserPaymentBreadcrumb,
+    saveUserPaymentBreadcrumb,
     trackArrival,
     trackArrivalViaBackend,
   };

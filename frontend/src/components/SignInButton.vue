@@ -111,6 +111,25 @@ const openSwitchChainModal = () => {
   isModalVisible.value = true;
 };
 
+/** Triggered by the visible Sign In button in either copy of this component.
+ *  Routes through the sidebar store so the sidebar copy (nested inside the
+ *  Drawer) doesn't fight overlays with its own Dialog on mobile — the header
+ *  copy, always mounted at the top level, owns the Dialog. */
+const requestSignInModal = () => sidebar.requestSignIn('connect');
+const requestSwitchChainModal = () => sidebar.requestSignIn('switch');
+
+/** Only the header copy renders the sign-in Dialog (see store comment).
+ *  Watches the shared trigger and opens locally when fired. */
+watch(
+  () => sidebar.signInRequest,
+  (req) => {
+    if (!req || id !== 'header') return;
+    if (req.mode === 'connect') openModal();
+    else openSwitchChainModal();
+    sidebar.clearSignInRequest();
+  }
+);
+
 const getViemChainId = (chainName: ChainName): number => {
   const viem = chainNamesToChains[chainName].viemChain;
   if (!viem) throw new Error(`Unsupported EVM Chain: ${chainName}`);
@@ -205,10 +224,7 @@ const walletItems = () => [
   {
     label: 'Switch Chain',
     customIcon: IconSync,
-    command: () => {
-      sidebar.close();
-      openSwitchChainModal();
-    },
+    command: () => requestSwitchChainModal(),
   },
   ...(FEATURES.emailNotifications
     ? [
@@ -255,7 +271,7 @@ onMounted(() => {
       <IconSpinnerWhite class="mx-4" v-else />
     </Button>
 
-    <Button @click="openModal" v-else-if="!auth.currentUser" class="px-3 py-1"> Sign In </Button>
+    <Button @click="requestSignInModal" v-else-if="!auth.currentUser" class="px-3 py-1"> Sign In </Button>
 
     <Button
       v-else

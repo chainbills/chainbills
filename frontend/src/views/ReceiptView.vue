@@ -31,7 +31,18 @@ import {
 } from '@/components/ui';
 import ReceiptLoader from '@/components/ReceiptLoader.vue';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
-import { getTxUrl, PayablePayment, UserPayment, Withdrawal, type Receipt } from '@/schemas';
+import IconRefresh from '@/icons/IconRefresh.vue';
+import {
+  chainNamesToChains,
+  getTxUrl,
+  PayablePayment,
+  UserPayment,
+  Withdrawal,
+  type Chain,
+  type ChainName,
+  type Receipt,
+} from '@/schemas';
+import { isCctpChain } from '@/stores/evm';
 import {
   useAnalyticsStore,
   useAuthStore,
@@ -144,53 +155,68 @@ const cameFromPay = computed(() => route.query.from === 'pay' && isUserPayment.v
 const payerTxUrl = ref<string | null>(null);
 const payableTxUrl = ref<string | null>(null);
 
+/** Applies the backend's `payments/user/:id` tx-hash pair to the receipt's explorer URLs.
+ *  A tick that carries no new hashes is a no-op — hashes are set-once, never cleared.
+ *  Shared between the one-shot backend probe run on mount and the per-tick callback
+ *  fed by `trackArrivalViaBackend` so the destination-tx row lights up the moment the
+ *  indexer sees it, without a separate `hydrateArrival` poll. */
+const applyUserPaymentTxHashes = (
+  r: UserPayment,
+  snap: { userPaymentTxHash: string | null; payablePaymentTxHash: string | null }
+) => {
+  if (snap.userPaymentTxHash && !payerTxUrl.value) {
+    payerTxUrl.value = getTxUrl(snap.userPaymentTxHash, r.chain);
+  }
+  if (snap.payablePaymentTxHash && r.isCrossChain && !payableTxUrl.value) {
+    payableTxUrl.value = getTxUrl(snap.payablePaymentTxHash, r.payableChain);
+  }
+};
+
 const loadExplorerLinks = async () => {
   if (!receipt.value) return;
   const r = receipt.value;
 
-  // URLs are only overwritten when the backend has a value for them — never cleared.
-  // The per-receipt reset lives in `loadReceipt` so the destination-tx row does not
-  // flicker while `hydrateArrival` polls the backend every 3s during arrival.
+  // Hashes are set-once, never cleared. The per-receipt reset lives in `loadReceipt`
+  // so a tick between arrival and the destination-hash being indexed does not clear
+  // an already-known payer-side URL.
   if (r instanceof UserPayment) {
     const details = await server.getPaymentRelayStatus(r.id);
-    if (details?.userPaymentTxHash) {
-      payerTxUrl.value = getTxUrl(details.userPaymentTxHash, r.chain);
-    }
-    if (details?.payablePaymentTxHash && r.isCrossChain) {
-      payableTxUrl.value = getTxUrl(details.payablePaymentTxHash, r.payableChain);
-    }
+    if (details) applyUserPaymentTxHashes(r, details);
   } else if (r instanceof PayablePayment) {
     // Backend carries both the payable-side hash (this receipt's own tx) and
     // the paired userPayment's source-side hash (for cross-chain). On-chain
     // reads don't include either — always go through the backend here.
     const details = await server.getPayablePaymentTxHashes(r.id);
-    if (details?.payablePaymentTxHash) {
+    if (details?.payablePaymentTxHash && !payableTxUrl.value) {
       payableTxUrl.value = getTxUrl(details.payablePaymentTxHash, r.chain);
     }
-    if (details?.userPaymentTxHash && r.isCrossChain) {
+    if (details?.userPaymentTxHash && r.isCrossChain && !payerTxUrl.value) {
       payerTxUrl.value = getTxUrl(details.userPaymentTxHash, r.payerChain);
     }
   } else if (r instanceof Withdrawal) {
     const txHash = (r as unknown as { txHash?: string }).txHash ?? null;
-    if (txHash) payableTxUrl.value = getTxUrl(txHash, r.chain);
+    if (txHash && !payableTxUrl.value) payableTxUrl.value = getTxUrl(txHash, r.chain);
   }
 
   await persistReceiptState();
 };
 
 /** Persists whatever of the receipt's resolvable state (tx URLs, destination id, delivered-at)
- * is currently known to IndexedDB. No-op when nothing has been resolved yet. Safe to call
- * repeatedly — the cached entry is a snapshot of the current state, not a merge. */
+ * is currently known to IndexedDB. Monotonic — merges with the existing cached entry, only
+ * filling in fields that have real values, so a mid-flight null (e.g. destination tx hash
+ * not yet indexed) never clears an already-known URL. Safe to call repeatedly. */
 const persistReceiptState = async () => {
   if (!receipt.value) return;
+  const key = receiptStateCacheKey(receipt.value.id);
+  const existing = ((await cache.retrieve(key)) as CachedReceiptState | null) ?? null;
   const state: CachedReceiptState = {
-    payerTxUrl: payerTxUrl.value,
-    payableTxUrl: payableTxUrl.value,
-    destinationPayablePaymentId: destinationPayablePaymentId.value,
-    deliveredAt: deliveredAt.value,
+    payerTxUrl: payerTxUrl.value ?? existing?.payerTxUrl ?? null,
+    payableTxUrl: payableTxUrl.value ?? existing?.payableTxUrl ?? null,
+    destinationPayablePaymentId: destinationPayablePaymentId.value ?? existing?.destinationPayablePaymentId ?? null,
+    deliveredAt: deliveredAt.value ?? existing?.deliveredAt ?? null,
   };
   if (!state.payerTxUrl && !state.payableTxUrl && !state.destinationPayablePaymentId && !state.deliveredAt) return;
-  await cache.save(receiptStateCacheKey(receipt.value.id), state);
+  await cache.save(key, state);
 };
 
 /** For same-chain UserPayment / PayablePayment the payer chain equals the
@@ -220,37 +246,6 @@ const formatDuration = (seconds: number): string => {
   return `${d}d ${h % 24}h`;
 };
 
-/**
- * Fills in the post-arrival details that may not be available at the exact
- * moment the trackDelivery poller flips to `arrived`:
- *  - The destination `PayablePayment.timestamp` (on-chain), needed to
- *    compute the real delivery duration from the two receipt timestamps.
- *  - The destination `tx_hash` from the backend, needed to render the
- *    "Destination tx" row's explorer link.
- *
- * The backend indexer polls the destination chain every ~12 s, so a
- * just-delivered payment may need a couple of ticks before both are
- * queryable. Poll until we have them or timeout — bounded so it never
- * hangs on a permanently-failed relay.
- */
-const HYDRATE_INTERVAL_MS = 3000;
-const HYDRATE_MAX_ATTEMPTS = 20; // ~60 s of retries.
-const hydrateArrival = async (userPayment: UserPayment, payablePaymentId: string) => {
-  for (let i = 0; i < HYDRATE_MAX_ATTEMPTS; i++) {
-    if (!deliveredAt.value) {
-      const pp = await paymentStore.getForPayable(payablePaymentId, userPayment.payableChain);
-      if (pp?.timestamp) deliveredAt.value = pp.timestamp;
-    }
-    // Explorer links are refreshed even after we have deliveredAt — the backend
-    // may still be catching up on either tx_hash column while the on-chain
-    // record is already queryable. Poll until BOTH the payer-side and the
-    // payable-side URLs are known so neither row stays hidden.
-    await loadExplorerLinks();
-    if (deliveredAt.value && payerTxUrl.value && payableTxUrl.value) return;
-    await new Promise((r) => setTimeout(r, HYDRATE_INTERVAL_MS));
-  }
-};
-
 const trackDelivery = async (userPayment: UserPayment) => {
   deliveryStatus.value = 'pending';
 
@@ -261,48 +256,61 @@ const trackDelivery = async (userPayment: UserPayment) => {
   let payablePayment: PayablePayment | null = null;
 
   if (FEATURES.relayStatus) {
-    // Race on-chain polling against backend polling. On-chain hits the destination chain
-    // directly, so it usually detects arrival before the backend's own indexer+poller chain
-    // does (that path adds up to ~12s of indexer lag on top of its own poller cadence — the
-    // gap the tx-flow dialog exposes). Backend polling keeps running to surface FAILED
-    // reasons the on-chain path can't see; whichever fires "arrived" first wins.
-    const onChainJob = paymentStore.trackArrival(userPayment);
-    const backendJob = paymentStore.trackArrivalViaBackend(userPayment.id);
+    // Fast-path: one backend probe first. On a hot relay the backend often already
+    // knows the answer within seconds, saving the on-chain RPC round-trip. If the
+    // backend still says PENDING/PROCESSING we fall through to the race.
+    const fastProbe = await server.getPaymentRelayStatus(userPayment.id);
+    if (fastProbe) applyUserPaymentTxHashes(userPayment, fastProbe);
+    if (fastProbe?.relayStatus?.status === 'DONE') {
+      arrived = true;
+      payablePaymentId = fastProbe.payablePaymentId;
+    } else if (fastProbe?.relayStatus?.status === 'FAILED') {
+      failureReason = fastProbe.relayStatus.lastError;
+    } else {
+      // Race on-chain polling against backend polling. On-chain hits the destination chain
+      // directly, so it usually detects arrival before the backend's own indexer+poller chain
+      // does. Backend polling keeps running to surface FAILED reasons the on-chain path can't
+      // see, and also emits per-tick tx hashes that keep the explorer URLs current.
+      const onChainJob = paymentStore.trackArrival(userPayment);
+      const backendJob = paymentStore.trackArrivalViaBackend(userPayment.id, (snap) =>
+        applyUserPaymentTxHashes(userPayment, snap)
+      );
 
-    await new Promise<void>((resolve) => {
-      let done = false;
-      let onChainRes: Awaited<typeof onChainJob> | null = null;
-      let backendRes: Awaited<typeof backendJob> | null = null;
+      await new Promise<void>((resolve) => {
+        let done = false;
+        let onChainRes: Awaited<typeof onChainJob> | null = null;
+        let backendRes: Awaited<typeof backendJob> | null = null;
 
-      const settle = () => {
-        if (done) return;
-        if (onChainRes?.arrived) {
-          arrived = true;
-          payablePayment = onChainRes.payablePayment ?? null;
-          payablePaymentId = payablePayment?.id ?? null;
-        } else if (backendRes?.arrived) {
-          arrived = true;
-          payablePaymentId = backendRes.payablePaymentId;
-        } else if (backendRes?.failureReason) {
-          failureReason = backendRes.failureReason;
-        } else if (onChainRes && backendRes) {
-          // Both finalized without success — timeout on both paths.
-        } else {
-          return;
-        }
-        done = true;
-        resolve();
-      };
+        const settle = () => {
+          if (done) return;
+          if (onChainRes?.arrived) {
+            arrived = true;
+            payablePayment = onChainRes.payablePayment ?? null;
+            payablePaymentId = payablePayment?.id ?? null;
+          } else if (backendRes?.arrived) {
+            arrived = true;
+            payablePaymentId = backendRes.payablePaymentId;
+          } else if (backendRes?.failureReason) {
+            failureReason = backendRes.failureReason;
+          } else if (onChainRes && backendRes) {
+            // Both finalized without success — timeout on both paths.
+          } else {
+            return;
+          }
+          done = true;
+          resolve();
+        };
 
-      onChainJob.then((r) => {
-        onChainRes = r;
-        settle();
+        onChainJob.then((r) => {
+          onChainRes = r;
+          settle();
+        });
+        backendJob.then((r) => {
+          backendRes = r;
+          settle();
+        });
       });
-      backendJob.then((r) => {
-        backendRes = r;
-        settle();
-      });
-    });
+    }
 
     // Backend "arrived" only carries the id — fetch the full record so we know its timestamp.
     if (arrived && !payablePayment && payablePaymentId) {
@@ -321,12 +329,11 @@ const trackDelivery = async (userPayment: UserPayment) => {
     // Delivered-at MUST be the on-chain PayablePayment.timestamp — never a
     // wall-clock fallback, otherwise the "delivery duration" row shows the
     // wrong number and doesn't reconcile with the two receipt timestamps.
-    // The hydrator runs on every delivery so the destination tx URL row lights
-    // up as soon as the backend has hashed it, even when the on-chain timestamp
-    // is already known — the two land at different times.
     if (payablePayment?.timestamp) deliveredAt.value = payablePayment.timestamp;
+    // One more backend probe so the destination-tx URL lands as soon as the indexer sees it —
+    // no separate poll loop, since the merged backend poller has already been feeding hashes.
+    await loadExplorerLinks();
     await persistReceiptState();
-    if (payablePaymentId) hydrateArrival(userPayment, payablePaymentId).catch(() => {});
     analytics.recordEvent('cross_chain_delivery_resolved', {
       status: 'delivered',
       payment_id: userPayment.id,
@@ -496,9 +503,6 @@ const detailItems = computed<KeyValueItem[]>(() => {
     }
     items.push({ key: 'deliveredAt', label: 'Delivered at' });
     items.push({ key: 'deliveryDuration', label: 'Delivery duration' });
-    if (destinationPayablePaymentId.value) {
-      items.push({ key: 'destinationReceipt', label: 'Destination receipt' });
-    }
   }
   return items;
 });
@@ -532,6 +536,24 @@ const share = async () => {
  *  intentional loading rather than a glitch. */
 const MIN_LOADER_MS = 500;
 
+/** Best-effort source-chain hint for `paymentStore.get`. Reads (1) `history.state` from the
+ *  PayView redirect (immediate, no I/O), (2) the `?chain=` query, and (3) the payer-side
+ *  breadcrumb saved at pay time. Returns null when none is known — the store then falls back
+ *  to its multi-chain probe. */
+const resolveChainHint = async (id: string): Promise<Chain | null> => {
+  const state = (window.history.state ?? {}) as { sourceChain?: ChainName };
+  const stateChain = state.sourceChain && chainNamesToChains[state.sourceChain];
+  if (stateChain) return stateChain;
+
+  const q = route.query.chain;
+  const queryChain = typeof q === 'string' && chainNamesToChains[q as ChainName];
+  if (queryChain) return queryChain;
+
+  const crumb = await paymentStore.getUserPaymentBreadcrumb(id);
+  if (crumb) return chainNamesToChains[crumb.sourceChain];
+  return null;
+};
+
 /**
  * Loads a receipt by id. Resets everything that belongs to a specific receipt (URLs,
  * delivery state, ticker), then fetches the receipt itself, hydrates the resolvable
@@ -553,7 +575,8 @@ const loadReceipt = async (id: string) => {
   stopTicker();
 
   const startedAt = Date.now();
-  receipt.value = (await paymentStore.get(id)) as Receipt | null;
+  const chainHint = await resolveChainHint(id);
+  receipt.value = (await paymentStore.get(id, chainHint ?? undefined)) as Receipt | null;
   if (!receipt.value) receipt.value = await withdrawalStore.get(id, undefined, true);
 
   // Hydrate the resolvable state (tx URLs, destination id, delivered-at) from cache
@@ -572,6 +595,16 @@ const loadReceipt = async (id: string) => {
   if (elapsed < MIN_LOADER_MS) await new Promise((r) => setTimeout(r, MIN_LOADER_MS - elapsed));
   isLoading.value = false;
 
+  // When the payer just landed here from PayView on a CCTP chain, nudge the relayer so
+  // it indexes the source-side hash before the poller's first tick. Fire-and-forget; the
+  // backend re-verifies every log before recording anything, so a redundant nudge is harmless.
+  if (cameFromPay.value && receipt.value instanceof UserPayment && receipt.value.isCrossChain) {
+    const crumb = await paymentStore.getUserPaymentBreadcrumb(id);
+    if (crumb?.sourceTxHash && isCctpChain(crumb.sourceChain)) {
+      server.nudgeRelay(crumb.sourceChain, crumb.sourceTxHash);
+    }
+  }
+
   if (receipt.value instanceof UserPayment && receipt.value.isCrossChain) {
     if (deliveredAt.value) deliveryStatus.value = 'delivered';
     else trackDelivery(receipt.value);
@@ -579,6 +612,23 @@ const loadReceipt = async (id: string) => {
   // Backend refresh: overwrites cached URLs with any newer values (a rehashed backfill
   // being the only realistic case) and persists whatever the answer is.
   loadExplorerLinks().catch(() => {});
+};
+
+/** True while a manual refresh is in flight — spins the header icon and re-shows the loader shimmer. */
+const isManualRefreshing = ref(false);
+const manualRefresh = async () => {
+  if (isManualRefreshing.value || !receipt.value) return;
+  isManualRefreshing.value = true;
+  const id = receipt.value.id;
+  // Do NOT clear the receipt-state cache: tx hashes and deliveredAt are set-once
+  // by nature, and the fetchers below already top-up any missing values. Clearing
+  // would wipe known-good URLs and leave them null if the backend is briefly slow.
+  analytics.recordEvent('refreshed_receipt', { id });
+  try {
+    await loadReceipt(id);
+  } finally {
+    isManualRefreshing.value = false;
+  }
 };
 
 onMounted(() => loadReceipt(route.params.id as string));
@@ -594,7 +644,7 @@ watch(
   <ReceiptLoader v-if="isLoading" />
   <NotFoundView v-else-if="!receipt" />
 
-  <section v-else class="pt-6 pb-20 max-w-screen-md mx-auto">
+  <section v-else class="pt-6 pb-20 max-w-screen-sm mx-auto">
     <SectionHeader eyebrow="Receipt" :title="receiptType" />
 
     <GlassCard class="mb-6">
@@ -606,7 +656,19 @@ watch(
           :chain="receipt.chain"
           size="lg"
         />
-        <StatusPill :tone="statusTone" :label="statusLabel" :pulse="statusLabel === 'Relaying…'" />
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="rounded-full p-1 text-muted/60 hover:text-fg disabled:opacity-60"
+            :disabled="isManualRefreshing"
+            :aria-label="isManualRefreshing ? 'Refreshing receipt' : 'Refresh receipt'"
+            title="Refresh"
+            @click="manualRefresh"
+          >
+            <IconRefresh class="w-3.5 h-3.5" :class="isManualRefreshing && 'animate-spin'" />
+          </button>
+          <StatusPill :tone="statusTone" :label="statusLabel" :pulse="statusLabel === 'Relaying…'" />
+        </div>
       </div>
 
       <KeyValueList :items="detailItems">
@@ -721,14 +783,6 @@ watch(
             {{ formatDuration(deliveryDurationSeconds) }}
           </span>
           <span v-else class="text-muted">-</span>
-        </template>
-        <template #destinationReceipt>
-          <AddressChip
-            v-if="destinationPayablePaymentId"
-            :value="destinationPayablePaymentId"
-            kind="id"
-            :to="`/receipt/${destinationPayablePaymentId}`"
-          />
         </template>
       </KeyValueList>
 

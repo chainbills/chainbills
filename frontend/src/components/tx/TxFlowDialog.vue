@@ -279,7 +279,7 @@ const runAction = (action: FlowAction) => {
         <div class="flex items-start justify-between gap-3 px-4 py-3 border-b border-glass-border shrink-0">
           <div class="min-w-0">
             <h2 class="font-display text-sm font-semibold text-fg leading-snug">{{ flow.title }}</h2>
-            <p v-if="collapsed && countdownSeconds !== null" class="text-xs text-muted mt-0.5">Closing in {{ countdownSeconds }}s</p>
+            <p v-if="collapsed && countdownSeconds !== null" class="text-xs text-muted mt-0.5">Closing Panel in {{ countdownSeconds }}s</p>
             <p v-else-if="flow.subtitle && !collapsed" class="text-xs text-muted mt-0.5">{{ flow.subtitle }}</p>
             <p v-else-if="collapsed && activeStep" class="text-xs text-muted mt-0.5 truncate">{{ activeStep.description }}</p>
           </div>

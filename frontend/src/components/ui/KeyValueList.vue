@@ -44,10 +44,10 @@ defineProps<{
       </div>
       <div
         v-else
-        class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+        class="flex flex-col gap-1 py-3 min-[414px]:flex-row min-[414px]:items-center min-[414px]:justify-between min-[414px]:gap-4"
       >
         <dt class="text-sm text-muted shrink-0">{{ item.label }}</dt>
-        <dd :class="['text-sm text-fg sm:text-right', item.mono && 'font-mono text-xs']">
+        <dd :class="['text-sm text-fg text-right', item.mono && 'font-mono text-xs']">
           <slot :name="item.key" :item="item">{{ item.value }}</slot>
         </dd>
       </div>

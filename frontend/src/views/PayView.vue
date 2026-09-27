@@ -34,11 +34,13 @@ import {
 } from '@/components/ui';
 import { usePoller } from '@/composables/usePoller';
 import IconOpenInNew from '@/icons/IconOpenInNew.vue';
+import IconRefresh from '@/icons/IconRefresh.vue';
 import IconWallet from '@/icons/IconWallet.vue';
 import {
   chainNamesToChains,
   contracts,
   getTokenDetails,
+  getTxUrl,
   parseTokenAmount,
   Payable,
   TokenAndAmount,
@@ -46,7 +48,7 @@ import {
   type ChainName,
   type Token,
 } from '@/schemas';
-import { useAnalyticsStore, useAuthStore, useEvmStore, usePayableStore, usePaymentStore } from '@/stores';
+import { useAnalyticsStore, useAuthStore, useCacheStore, useEvmStore, usePayableStore, usePaymentStore } from '@/stores';
 import type { PayableAvailability } from '@/stores/payable';
 import NotFoundView from '@/views/NotFoundView.vue';
 import { useSwitchChain } from '@wagmi/vue';
@@ -60,6 +62,7 @@ const SYNC_POLL_INTERVAL_MS = 6_000;
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
+const cache = useCacheStore();
 const evm = useEvmStore();
 const payableStore = usePayableStore();
 const paymentStore = usePaymentStore();
@@ -337,7 +340,48 @@ const pay = async () => {
   isPaying.value = true;
   const id = await paymentStore.exec(payable.value.id, selectedConfig.value, payable.value.chain);
   isPaying.value = false;
-  if (id) router.push({ path: `/receipt/${id}`, query: { from: 'pay' } });
+  if (!id) return;
+
+  // Warm the receipt-state cache and pack every context bit the receipt page needs
+  // into the router push so it can paint the KV list on first frame and skip the
+  // multi-chain probe. `exec` already saved the breadcrumb; re-read it so PayView
+  // does not need to know the raw source tx hash itself.
+  const crumb = await paymentStore.getUserPaymentBreadcrumb(id);
+  if (crumb) {
+    const source = chainNamesToChains[crumb.sourceChain];
+    const payerTxUrl = crumb.sourceTxHash ? getTxUrl(crumb.sourceTxHash, source) : null;
+    await cache.save(`receipt::${id}::state`, {
+      payerTxUrl,
+      payableTxUrl: null,
+      destinationPayablePaymentId: null,
+      deliveredAt: null,
+    });
+    router.push({
+      path: `/receipt/${id}`,
+      query: { from: 'pay' },
+      state: {
+        sourceChain: crumb.sourceChain,
+        payableChain: crumb.payableChain,
+        payableId: crumb.payableId,
+      },
+    });
+  } else {
+    router.push({ path: `/receipt/${id}`, query: { from: 'pay' } });
+  }
+};
+
+/** True while the wallet-balance refresh icon should spin. Set by `refreshBalance` around a `updateBalances` cycle. */
+const isRefreshingBalance = ref(false);
+const refreshBalance = async () => {
+  if (isRefreshingBalance.value) return;
+  isRefreshingBalance.value = true;
+  try {
+    await updateBalances();
+    if (selectedConfig.value) await validateBalance();
+  } finally {
+    isRefreshingBalance.value = false;
+  }
+  analytics.recordEvent('refreshed_wallet_balance', { from: 'pay_page' });
 };
 
 watch([() => amount.value], validateAmount);
@@ -515,6 +559,16 @@ onMounted(async () => {
               <IconWallet class="w-3 h-3" />
               {{ userChain && new TokenAndAmount(selectedToken, displayBalance(selectedToken)!).display(userChain) }}
               available
+              <button
+                type="button"
+                class="ml-0.5 rounded-full p-0.5 text-muted/60 hover:text-fg disabled:opacity-60"
+                :disabled="isRefreshingBalance"
+                :aria-label="isRefreshingBalance ? 'Refreshing balance' : 'Refresh balance'"
+                title="Refresh balance"
+                @click="refreshBalance"
+              >
+                <IconRefresh class="w-3 h-3" :class="isRefreshingBalance && 'animate-spin'" />
+              </button>
             </p>
             <p v-if="amountError" class="mt-1 text-xs text-danger">{{ amountError }}</p>
 
@@ -534,6 +588,16 @@ onMounted(async () => {
                     )
                   }}
                   available
+                  <button
+                    type="button"
+                    class="ml-0.5 rounded-full p-0.5 text-muted/60 hover:text-fg disabled:opacity-60"
+                    :disabled="isRefreshingBalance"
+                    :aria-label="isRefreshingBalance ? 'Refreshing balance' : 'Refresh balance'"
+                    title="Refresh balance"
+                    @click="refreshBalance"
+                  >
+                    <IconRefresh class="w-3 h-3" :class="isRefreshingBalance && 'animate-spin'" />
+                  </button>
                 </p>
               </div>
               <div v-else class="mt-2 flex flex-wrap gap-2">
@@ -563,6 +627,16 @@ onMounted(async () => {
                   )
                 }}
                 available
+                <button
+                  type="button"
+                  class="ml-0.5 rounded-full p-0.5 text-muted/60 hover:text-fg disabled:opacity-60"
+                  :disabled="isRefreshingBalance"
+                  :aria-label="isRefreshingBalance ? 'Refreshing balance' : 'Refresh balance'"
+                  title="Refresh balance"
+                  @click="refreshBalance"
+                >
+                  <IconRefresh class="w-3 h-3" :class="isRefreshingBalance && 'animate-spin'" />
+                </button>
               </p>
               <p v-if="!isSameChain && compatibleATAAs.length === 0" class="mt-2 text-xs text-danger">
                 This payable only accepts tokens that don't support cross-chain payment from your connected chain.

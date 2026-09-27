@@ -35,6 +35,7 @@ import { getTxUrl, PayablePayment, UserPayment, Withdrawal, type Receipt } from 
 import {
   useAnalyticsStore,
   useAuthStore,
+  useCacheStore,
   usePaymentStore,
   useServerStore,
   useTimeStore,
@@ -48,12 +49,24 @@ import { useRoute } from 'vue-router';
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
+const cache = useCacheStore();
 const paymentStore = usePaymentStore();
 const server = useServerStore();
 const time = useTimeStore();
 const toast = useToast();
 const withdrawalStore = useWithdrawalStore();
 const route = useRoute();
+
+/** Cache key for a receipt's resolvable state (tx URLs + delivery info). Once the backend
+ * or on-chain reads produce these, they're immutable, so a returning visitor gets an instant
+ * fully-rendered receipt without re-racing the pollers. */
+const receiptStateCacheKey = (id: string) => `receipt::${id}::state`;
+interface CachedReceiptState {
+  payerTxUrl?: string | null;
+  payableTxUrl?: string | null;
+  destinationPayablePaymentId?: string | null;
+  deliveredAt?: number | null;
+}
 
 const isLoading = ref(true);
 const receipt = ref<Receipt | null>(null);
@@ -132,14 +145,13 @@ const payerTxUrl = ref<string | null>(null);
 const payableTxUrl = ref<string | null>(null);
 
 const loadExplorerLinks = async () => {
-  payerTxUrl.value = null;
-  payableTxUrl.value = null;
   if (!receipt.value) return;
   const r = receipt.value;
 
+  // URLs are only overwritten when the backend has a value for them — never cleared.
+  // The per-receipt reset lives in `loadReceipt` so the destination-tx row does not
+  // flicker while `hydrateArrival` polls the backend every 3s during arrival.
   if (r instanceof UserPayment) {
-    // The backend's UserPayment DTO carries both the payer-side hash and, once
-    // the relay lands, the paired payablePayment's hash.
     const details = await server.getPaymentRelayStatus(r.id);
     if (details?.userPaymentTxHash) {
       payerTxUrl.value = getTxUrl(details.userPaymentTxHash, r.chain);
@@ -162,6 +174,23 @@ const loadExplorerLinks = async () => {
     const txHash = (r as unknown as { txHash?: string }).txHash ?? null;
     if (txHash) payableTxUrl.value = getTxUrl(txHash, r.chain);
   }
+
+  await persistReceiptState();
+};
+
+/** Persists whatever of the receipt's resolvable state (tx URLs, destination id, delivered-at)
+ * is currently known to IndexedDB. No-op when nothing has been resolved yet. Safe to call
+ * repeatedly — the cached entry is a snapshot of the current state, not a merge. */
+const persistReceiptState = async () => {
+  if (!receipt.value) return;
+  const state: CachedReceiptState = {
+    payerTxUrl: payerTxUrl.value,
+    payableTxUrl: payableTxUrl.value,
+    destinationPayablePaymentId: destinationPayablePaymentId.value,
+    deliveredAt: deliveredAt.value,
+  };
+  if (!state.payerTxUrl && !state.payableTxUrl && !state.destinationPayablePaymentId && !state.deliveredAt) return;
+  await cache.save(receiptStateCacheKey(receipt.value.id), state);
 };
 
 /** For same-chain UserPayment / PayablePayment the payer chain equals the
@@ -296,6 +325,7 @@ const trackDelivery = async (userPayment: UserPayment) => {
     // up as soon as the backend has hashed it, even when the on-chain timestamp
     // is already known — the two land at different times.
     if (payablePayment?.timestamp) deliveredAt.value = payablePayment.timestamp;
+    await persistReceiptState();
     if (payablePaymentId) hydrateArrival(userPayment, payablePaymentId).catch(() => {});
     analytics.recordEvent('cross_chain_delivery_resolved', {
       status: 'delivered',
@@ -502,20 +532,62 @@ const share = async () => {
  *  intentional loading rather than a glitch. */
 const MIN_LOADER_MS = 500;
 
-onMounted(async () => {
+/**
+ * Loads a receipt by id. Resets everything that belongs to a specific receipt (URLs,
+ * delivery state, ticker), then fetches the receipt itself, hydrates the resolvable
+ * bits from IndexedDB while the loader shimmer is still on screen, and finally
+ * kicks off any live pollers this receipt still needs.
+ *
+ * A cross-chain UserPayment whose cached snapshot already carries `deliveredAt` skips
+ * `trackDelivery` entirely — arrival is a terminal on-chain state, so a re-visit
+ * paints as delivered immediately with no visible "Relaying…" flash.
+ */
+const loadReceipt = async (id: string) => {
+  isLoading.value = true;
+  receipt.value = null;
+  payerTxUrl.value = null;
+  payableTxUrl.value = null;
+  deliveryStatus.value = 'idle';
+  destinationPayablePaymentId.value = null;
+  deliveredAt.value = null;
+  stopTicker();
+
   const startedAt = Date.now();
-  const id = route.params.id as string;
   receipt.value = (await paymentStore.get(id)) as Receipt | null;
   if (!receipt.value) receipt.value = await withdrawalStore.get(id, undefined, true);
+
+  // Hydrate the resolvable state (tx URLs, destination id, delivered-at) from cache
+  // while the shimmer is still up so the KV list paints already-filled on first frame.
+  const cached = (await cache.retrieve(receiptStateCacheKey(id))) as CachedReceiptState | null;
+  if (cached && typeof cached === 'object') {
+    if (typeof cached.payerTxUrl === 'string') payerTxUrl.value = cached.payerTxUrl;
+    if (typeof cached.payableTxUrl === 'string') payableTxUrl.value = cached.payableTxUrl;
+    if (typeof cached.destinationPayablePaymentId === 'string') {
+      destinationPayablePaymentId.value = cached.destinationPayablePaymentId;
+    }
+    if (typeof cached.deliveredAt === 'number') deliveredAt.value = cached.deliveredAt;
+  }
 
   const elapsed = Date.now() - startedAt;
   if (elapsed < MIN_LOADER_MS) await new Promise((r) => setTimeout(r, MIN_LOADER_MS - elapsed));
   isLoading.value = false;
 
-  if (receipt.value instanceof UserPayment && receipt.value.isCrossChain) trackDelivery(receipt.value);
-  // Fire-and-forget: fetch backend-tracked tx hashes and render as explorer chips.
+  if (receipt.value instanceof UserPayment && receipt.value.isCrossChain) {
+    if (deliveredAt.value) deliveryStatus.value = 'delivered';
+    else trackDelivery(receipt.value);
+  }
+  // Backend refresh: overwrites cached URLs with any newer values (a rehashed backfill
+  // being the only realistic case) and persists whatever the answer is.
   loadExplorerLinks().catch(() => {});
-});
+};
+
+onMounted(() => loadReceipt(route.params.id as string));
+watch(
+  () => route.params.id,
+  (id) => {
+    if (typeof id === 'string' && id) loadReceipt(id);
+  }
+);
 </script>
 
 <template>

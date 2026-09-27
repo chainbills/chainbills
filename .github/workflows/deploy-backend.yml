@@ -1,0 +1,41 @@
+# Backend auto-deploy: any push to main that touches backend rebuilds the
+# Cloud Run image (Cloud Build detects the Dockerfile) and rolls out a new
+# revision. Env vars and secrets are NOT set here; `gcloud run deploy`
+# without --set-env-vars / --set-secrets preserves whatever the existing
+# revision had, so runtime config lives in Cloud Run, not in git.
+#
+# Every first-time setup and manual command is documented in backend/DEPLOY.md.
+
+name: Deploy backend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_DEPLOY_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy chainbills-backend \
+            --source . \
+            --region us-east1 \
+            --project cal1-1610628692221 \
+            --quiet

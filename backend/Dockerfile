@@ -41,17 +41,14 @@ RUN groupadd --system --gid 1001 chainbills \
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
-COPY package.json ./package.json
+COPY package.json prisma.config.ts ./
 
 USER chainbills
 
 # Cloud Run and docker-compose both set PORT; the app reads it via AppConfigService.
 EXPOSE 8080
 
-# DIRECT_URL falls back to DATABASE_URL here because schema.prisma reads it
-# through Prisma's own env() — the app's config default (SPEC.md §5.2) does
-# not reach the Prisma CLI, so an unset DIRECT_URL would fail migrations.
 # `exec` replaces the shell with `node` as PID 1, so SIGTERM from `docker stop`
 # reaches Nest's shutdown hooks directly instead of being swallowed by a
-# wrapping shell (SPEC.md §15: "Handles SIGTERM").
-CMD ["sh", "-c", "export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\" && ./node_modules/.bin/prisma migrate deploy && exec node dist/main.js"]
+# wrapping shell.
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && exec node dist/main.js"]

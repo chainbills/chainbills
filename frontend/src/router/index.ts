@@ -155,7 +155,7 @@ const router = createRouter({
       path: '/demovid',
       name: 'demovid',
       redirect: (to) => {
-        window.location.replace('https://youtu.be/2CbhDWkaAYg');
+        window.location.replace('https://www.youtube.com/watch?v=5XSNYAIKiyg');
         return to;
       },
     },

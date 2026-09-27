@@ -22,7 +22,7 @@
  * ```
  */
 import { chainNamesToChains, getChainLogo, visibleEvmChains } from '@/schemas';
-import { useAuthStore } from '@/stores';
+import { useAnalyticsStore, useAuthStore } from '@/stores';
 import { useSwitchChain } from '@wagmi/vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
@@ -38,6 +38,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
+const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const { switchChain } = useSwitchChain();
 
@@ -77,7 +78,15 @@ onBeforeUnmount(() => document.removeEventListener('click', closeOnOutside));
 
 const select = (value: string) => {
   if (value !== 'network' && auth.currentUser?.chain.name !== value) {
-    switchChain({ chainId: getViemChainId(value) });
+    analytics.recordEvent('clicked_switch_chain', { to: value, from: 'chain_switcher' });
+    switchChain(
+      { chainId: getViemChainId(value) },
+      {
+        onSuccess: () => analytics.recordEvent('chain_switched', { to: value, from: 'chain_switcher' }),
+        onError: (err) =>
+          analytics.recordEvent('chain_switch_failed', { to: value, from: 'chain_switcher', reason: err.message }),
+      }
+    );
   }
   emit('update:modelValue', value);
   open.value = false;

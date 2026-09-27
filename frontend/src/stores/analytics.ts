@@ -18,14 +18,16 @@ export const useAnalyticsStore = defineStore('analytics', () => {
   onMounted(() => {
     watch(
       () => auth.currentUser,
-      (user) => {
+      (user, prev) => {
         if (import.meta.env.DEV) return;
         set({ user_id: user?.walletAddress ?? undefined });
-        if (user) {
+        if (user && !prev) {
           set({ user_properties: { connected_chain: user.chain.name } });
-          recordEvent('user_signin', {
+          const eventName = auth.lastSigninFlow === 'restore' ? 'user_session_restored' : 'user_signin';
+          recordEvent(eventName, {
             walletAddress: user.walletAddress,
             chain: user.chain.name,
+            namespace: user.chain.isEvm ? 'evm' : 'solana',
           });
         }
       }

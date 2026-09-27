@@ -63,8 +63,16 @@ const isOnPayableChain = computed(() => walletChain.value?.name === props.payabl
 const switchToPayableChain = () => {
   const viemChain = chainNamesToChains[props.payable.chain.name]?.viemChain;
   if (!viemChain) return;
-  switchChain({ chainId: viemChain.id });
-  analytics.recordEvent('clicked_switch_chain', { to: props.payable.chain.name, from: 'withdraw_dialog' });
+  const to = props.payable.chain.name;
+  analytics.recordEvent('clicked_switch_chain', { to, from: 'withdraw_dialog' });
+  switchChain(
+    { chainId: viemChain.id },
+    {
+      onSuccess: () => analytics.recordEvent('chain_switched', { to, from: 'withdraw_dialog' }),
+      onError: (err) =>
+        analytics.recordEvent('chain_switch_failed', { to, from: 'withdraw_dialog', reason: err.message }),
+    }
+  );
 };
 
 const amountInput = ref('');

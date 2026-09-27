@@ -1,4 +1,5 @@
 import { FEATURES } from '@/config/features';
+import { useAnalyticsStore } from '@/stores/analytics';
 import { useAuthStore } from '@/stores/auth';
 import { useServerStore } from '@/stores/server';
 import { defineStore } from 'pinia';
@@ -46,6 +47,7 @@ export interface UserProfile {
 }
 
 export const useNotificationsStore = defineStore('notifications', () => {
+  const analytics = useAnalyticsStore();
   const auth = useAuthStore();
   const server = useServerStore();
   const toast = useToast();
@@ -98,8 +100,10 @@ export const useNotificationsStore = defineStore('notifications', () => {
         detail: `A 6-digit code was sent to ${trimmed}.`,
         life: 8000,
       });
+      analytics.recordEvent('email_verification_requested');
       return true;
     }
+    analytics.recordEvent('email_verification_request_failed');
     return false;
   };
 
@@ -118,8 +122,10 @@ export const useNotificationsStore = defineStore('notifications', () => {
         detail: `You'll now receive notifications at ${(res as UserProfile).email}.`,
         life: 8000,
       });
+      analytics.recordEvent('email_verified');
       return true;
     }
+    analytics.recordEvent('email_verification_failed');
     return false;
   };
 
@@ -137,8 +143,10 @@ export const useNotificationsStore = defineStore('notifications', () => {
         detail: 'Notifications by email are now off.',
         life: 6000,
       });
+      analytics.recordEvent('email_removed');
       return true;
     }
+    analytics.recordEvent('email_remove_failed');
     return false;
   };
 
@@ -151,8 +159,14 @@ export const useNotificationsStore = defineStore('notifications', () => {
     const res = await server.call('PATCH', '/me/preferences', patch);
     if (res && typeof res === 'object') {
       profile.value = res as UserProfile;
+      analytics.recordEvent('email_preferences_updated', {
+        types: Object.keys(patch).join(','),
+      });
       return true;
     }
+    analytics.recordEvent('email_preferences_update_failed', {
+      types: Object.keys(patch).join(','),
+    });
     return false;
   };
 

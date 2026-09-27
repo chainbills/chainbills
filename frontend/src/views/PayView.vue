@@ -238,8 +238,15 @@ onUnmounted(() => {
 const switchToChain = (chainName: ChainName) => {
   const viemChain = chainNamesToChains[chainName]?.viemChain;
   if (!viemChain) return;
-  switchChain({ chainId: viemChain.id });
   analytics.recordEvent('clicked_switch_chain', { to: chainName, from: 'pay_page' });
+  switchChain(
+    { chainId: viemChain.id },
+    {
+      onSuccess: () => analytics.recordEvent('chain_switched', { to: chainName, from: 'pay_page' }),
+      onError: (err) =>
+        analytics.recordEvent('chain_switch_failed', { to: chainName, from: 'pay_page', reason: err.message }),
+    }
+  );
 };
 
 // --- Cross-chain fee estimate (CCTP max fee + Wormhole message fee), refreshed whenever the amount or route changes. ---

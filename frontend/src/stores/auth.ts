@@ -24,6 +24,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadingMessage = ref('');
   const accessToken = ref<string | null>(null);
   const tokenExpiresAt = ref<number | null>(null);
+  const lastSigninFlow = ref<'connect' | 'restore'>('connect');
   const solana = useSolanaStore();
   const solanaConnector = useSolanaConnector();
   const toast = useToast();
@@ -139,7 +140,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Try silent token rotation using the httpOnly refresh cookie before
     // asking the wallet to sign again.
-    if (await tryRefresh()) return;
+    if (await tryRefresh()) {
+      lastSigninFlow.value = 'restore';
+      return;
+    }
+    lastSigninFlow.value = 'connect';
 
     // Full sign-in: get nonce, build EIP-4361 / SIWS message, sign, verify.
     loadingMessage.value = 'Kindly Sign Authentication Message in Wallet';
@@ -277,6 +282,7 @@ export const useAuthStore = defineStore('auth', () => {
     currentUser,
     disconnect,
     isLoading,
+    lastSigninFlow,
     loadingMessage,
     getPayableId,
     getPaymentId,

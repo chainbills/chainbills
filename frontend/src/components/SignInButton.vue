@@ -145,7 +145,20 @@ const onChainConfirmed = () => {
   sidebar.close();
 
   if (dialogMode.value === 'switch') {
-    switchChain({ chainId: getViemChainId(selectedChainName.value) });
+    const targetChain = selectedChainName.value;
+    switchChain(
+      { chainId: getViemChainId(targetChain) },
+      {
+        onSuccess: () =>
+          analytics.recordEvent('chain_switched', { to: targetChain, from: 'switch_chain_modal' }),
+        onError: (err) =>
+          analytics.recordEvent('chain_switch_failed', {
+            to: targetChain,
+            from: 'switch_chain_modal',
+            reason: err.message,
+          }),
+      }
+    );
     isModalVisible.value = false;
     selectedChainName.value = null;
     return;
@@ -156,11 +169,26 @@ const onChainConfirmed = () => {
 
 const onClickConnector = (connector: Connector) => {
   if (!selectedChainName.value) return;
+  const chainName = selectedChainName.value;
+  analytics.recordEvent('clicked_evm_connector', { chain: chainName, connector: connector.name });
   connect(
-    { connector, chainId: getViemChainId(selectedChainName.value) },
+    { connector, chainId: getViemChainId(chainName) },
     {
-      onError: (err) =>
-        toast.add({ severity: 'error', summary: 'Connection Failed', detail: err.message, life: 12000 }),
+      onSuccess: () =>
+        analytics.recordEvent('wallet_connected', {
+          chain: chainName,
+          connector: connector.name,
+          namespace: 'evm',
+        }),
+      onError: (err) => {
+        analytics.recordEvent('wallet_connect_failed', {
+          chain: chainName,
+          connector: connector.name,
+          namespace: 'evm',
+          reason: err.message,
+        });
+        toast.add({ severity: 'error', summary: 'Connection Failed', detail: err.message, life: 12000 });
+      },
     }
   );
   isModalVisible.value = false;

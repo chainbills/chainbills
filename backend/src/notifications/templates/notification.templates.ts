@@ -1,8 +1,8 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Notification email templates
 //
-// One function per NotificationType (SPEC.md §11.4). Each function returns
-// { subject, html, text } ready to pass to MailProvider.send().
+// One function per NotificationType. Each function returns { subject, html,
+// text } ready to pass to MailProvider.send().
 //
 // Shared invariants:
 //   - All interpolated values are HTML-escaped via escapeHtml().

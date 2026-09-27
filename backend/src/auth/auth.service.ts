@@ -25,7 +25,7 @@
 //     a partial failure never leaves an inconsistent state.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { getAddress } from 'viem';
 import { AppConfigService } from '../config/app-config.service';
@@ -49,6 +49,8 @@ export interface JwtPayload {
 /** Orchestrates SIWE/SIWS sign-in, token issuance, session rotation, and logout. */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: AppConfigService,
@@ -172,6 +174,8 @@ export class AuthService {
       return { session, user };
     });
 
+    this.logger.log({ userId: user.id, walletKey, namespace, sessionId: session.id }, 'user signed in');
+
     const accessToken = this.issueAccessToken(user.id, walletKey, session.id);
 
     const response: VerifyResponseDto = {
@@ -209,6 +213,7 @@ export class AuthService {
 
     // Rotate: issue a new token, update the DB.
     const newRefreshToken = await this.sessions.rotateRefreshToken(session.id);
+    this.logger.debug({ userId: session.userId, sessionId: session.id }, 'token refreshed');
     const accessToken = this.issueAccessToken(session.userId, session.walletKey, session.id);
 
     return {

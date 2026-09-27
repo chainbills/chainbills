@@ -3,8 +3,8 @@
 //
 // Ported from relayer/src/utils/clients.ts + relayer/src/solana/client.ts,
 // reshaped so every factory takes its RPC URL as an explicit argument rather
-// than reading it off a mutated registry object (see types.ts's header
-// comment and SPEC.md §6). Callers source the URL from `AppConfigService`.
+// than reading it off a mutated registry object. Callers source the URL from
+// `AppConfigService`.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { createPublicClient, createWalletClient, http, type PublicClient, type WalletClient } from 'viem';
@@ -19,8 +19,7 @@ export function createEvmPublicClient(chain: EvmChainConfig, rpcUrl: string): Pu
 
 /**
  * A viem account derived from an EVM private key. Callers hold the raw key
- * only long enough to build this account (worker-role config, never logged —
- * see env.schema.ts / WORKER_RULES.md §3).
+ * only long enough to build this account (worker-role config, never logged).
  */
 export function evmAccountFromPrivateKey(privateKey: `0x${string}`): PrivateKeyAccount {
   return privateKeyToAccount(privateKey);

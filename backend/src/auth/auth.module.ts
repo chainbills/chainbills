@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Auth module
 //
-// Imported by ApiModule only when ROLE=api|all (SPEC.md §2.1).
+// Imported by ApiModule only when ROLE=api|all.
 // Registers JwtAuthGuard as APP_GUARD so it is globally active for all routes
 // in the HTTP layer — routes opt out with @Public().
 //

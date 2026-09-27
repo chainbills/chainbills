@@ -20,6 +20,7 @@ import type { PrismaService } from '../prisma/prisma.service';
 import type { ChainsService } from '../chains/chains.service';
 import { PublicApiService, stripHtml } from './public-api.service';
 import { CHAINS } from '../chains/registry';
+import { encodeCursor } from '../common/pagination/cursor';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -332,7 +333,7 @@ describe('PublicApiService', () => {
 
     it('throws when payable not found and no enabled chains', async () => {
       prisma.payable.findUnique = vi.fn().mockResolvedValue(null);
-      chains.enabled = [];
+      (chains as any).enabled = [];
       await expect(
         service.setDescription('0xunknown', 'evm:0xd8da6bf26964af9d7eed9e03e53415d37aa96045', 'Valid description here')
       ).rejects.toThrow(NotFoundException);
@@ -351,7 +352,7 @@ describe('PublicApiService', () => {
         diamondAddress: '0x1234567890123456789012345678901234567890',
         viemChain: { id: 31337 },
       };
-      chains.enabled = [mockChain] as unknown as typeof chains.enabled;
+      (chains as any).enabled = [mockChain];
       chains.getRpcUrl = vi.fn().mockReturnValue('http://localhost:8545');
 
       // Mock viem readContract to return true (caller is host)
@@ -803,6 +804,25 @@ describe('PublicApiService', () => {
       const page2 = await service.listUserActivity('evm:0xabc', { limit: 20, cursor: page1.nextCursor! });
       expect(page2.items).toHaveLength(0);
     });
+
+    it('listPayableWithdrawals passes cursor OR clause to findMany', async () => {
+      prisma.payable.findUnique = vi.fn().mockResolvedValue({ id: '0xabc' });
+      const cursor = encodeCursor({ timestamp: new Date('2026-01-10T00:00:00Z').toISOString(), id: '0xw5' });
+      prisma.withdrawal.findMany = vi.fn().mockResolvedValue([makeWithdrawal()]);
+      const result = await service.listPayableWithdrawals('0xabc', { limit: 20, cursor });
+      expect(result.items).toHaveLength(1);
+      const call = (prisma.withdrawal.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.where.OR).toBeDefined();
+    });
+
+    it('listUserPayables passes cursor OR clause to findMany', async () => {
+      const cursor = encodeCursor({ createdAt: new Date('2026-01-10T00:00:00Z').toISOString(), id: '0xp5' });
+      prisma.payable.findMany = vi.fn().mockResolvedValue([makePayable()]);
+      const result = await service.listUserPayables('evm:0xabc', { limit: 20, cursor });
+      expect(result.items).toHaveLength(1);
+      const call = (prisma.payable.findMany as ReturnType<typeof vi.fn>).mock.calls[0][0];
+      expect(call.where.OR).toBeDefined();
+    });
   });
 
   // ── stats empty database ──────────────────────────────────────────────────
@@ -839,7 +859,7 @@ describe('PublicApiService', () => {
   describe('setDescription Solana wallet', () => {
     it('throws 404 when payable not found and no Solana chains enabled', async () => {
       prisma.payable.findUnique = vi.fn().mockResolvedValue(null);
-      chains.enabled = [];
+      (chains as any).enabled = [];
       await expect(
         service.setDescription('0xunknown', 'solana:DWhfdyzTiD2Jpkh3FhS2PreTSraqh3jWGfiTAoFG5wNk', 'Valid text here')
       ).rejects.toThrow(NotFoundException);
@@ -863,7 +883,7 @@ describe('PublicApiService', () => {
         diamondAddress: null, // no diamond address
         viemChain: { id: 31337 },
       };
-      chains.enabled = [mockChain] as unknown as typeof chains.enabled;
+      (chains as any).enabled = [mockChain];
       await expect(
         service.setDescription('0xunknown', 'evm:0xd8da6bf26964af9d7eed9e03e53415d37aa96045', 'Valid text here')
       ).rejects.toThrow(NotFoundException);

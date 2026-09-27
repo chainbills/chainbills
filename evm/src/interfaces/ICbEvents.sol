@@ -187,4 +187,14 @@ interface ICbEvents {
     uint256 mintedAmount,
     uint32 finalityThresholdExecuted
   );
+
+  /// Circle delivered more than the invoiced amount because the caller's `maxFee`
+  /// buffer was larger than Circle's actual fee. The surplus is routed to the fee
+  /// collector so the payable is credited with exactly the invoiced amount.
+  event CctpFeeSurplusRouted(
+    bytes32 indexed payableId,
+    bytes32 indexed payerChainId,
+    address indexed token,
+    uint256 surplus
+  );
 }

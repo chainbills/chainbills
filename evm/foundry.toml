@@ -60,3 +60,64 @@ tab_width = 2
 [lint]
 exclude_lints = ["asm-keccak256"]
 ignore = ["test/mocks/*.sol"]
+
+[profile.libs_only]
+src = "src/libraries"
+out = "out_libs"
+libs = ["lib"]
+solc_version = "0.8.30"
+optimizer = false
+evm_version = "cancun"
+
+[profile.ledger_only]
+src = "src"
+out = "out_ledger"
+libs = ["lib"]
+solc_version = "0.8.30"
+optimizer = false
+evm_version = "cancun"
+skip = ["src/libraries/CbLedger.sol"]
+
+[profile.no_ledger]
+src = "src"
+out = "out_test"
+libs = ["lib"]
+solc_version = "0.8.30"
+optimizer = false
+evm_version = "cancun"
+skip = ["src/libraries/CbLedger.sol", "src/facets/CbPaymentsFacet.sol", "src/facets/CbWithdrawalsFacet.sol", "src/facets/CbPayablesFacet.sol"]
+
+[profile.no_cctp]
+src = "src"
+out = "out_test2"
+libs = ["lib"]
+solc_version = "0.8.30"
+optimizer = false
+evm_version = "cancun"
+skip = ["src/libraries/CbCctpMessaging.sol"]
+
+[profile.diamond_only]
+src = "src/diamond"
+out = "out_diamond"
+libs = ["lib"]
+solc_version = "0.8.30"
+optimizer = false
+evm_version = "cancun"
+
+[profile.diamond_sol_only]
+src = "src/diamond"
+out = "out_diamond2"
+libs = ["lib"]
+solc_version = "0.8.30"
+optimizer = false
+evm_version = "cancun"
+skip = ["src/diamond/LibDiamond.sol"]
+
+[profile.no_tests]
+src = "src"
+test = "src"
+out = "out_no_tests"
+libs = ["lib"]
+solc_version = "0.8.30"
+optimizer = false
+evm_version = "cancun"

@@ -52,6 +52,7 @@ export async function fetchCctpAttestation(
 ): Promise<CctpAttestation | null> {
   const url = `${baseUrl(network)}/v2/messages/${sourceDomain}?transactionHash=${txHash}`;
 
+  logger.log({ sourceDomain, txHash, destinationDomain, network }, 'fetching CCTP attestation');
   try {
     const res = await fetch(url);
 
@@ -65,19 +66,27 @@ export async function fetchCctpAttestation(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = body?.messages ?? [];
 
-    // Find the message destined for our target chain.
+    // Iris v2 nests `destinationDomain` under `decodedMessage` and encodes it
+    // as a string, not the top-level number we naively compared to before.
+    // Match on both fields (string + numeric) so a future response shape
+    // change on Circle's side doesn't silently break the resolver again.
+    const wantDomain = String(destinationDomain);
     const match = messages.find(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (m: any) => m?.destinationDomain === destinationDomain && m?.status === 'complete' && m.message && m.attestation
+      (m: any) =>
+        (m?.decodedMessage?.destinationDomain === wantDomain ||
+          Number(m?.decodedMessage?.destinationDomain) === destinationDomain) &&
+        m?.status === 'complete' &&
+        m.message &&
+        m.attestation
     );
 
     if (!match) {
-      // Not complete yet or no message for this destination domain.
-      logger.debug({ sourceDomain, txHash, destinationDomain }, 'CCTP attestation not ready yet');
+      logger.log({ sourceDomain, txHash, destinationDomain }, 'CCTP attestation not ready yet');
       return null;
     }
 
-    logger.debug({ sourceDomain, txHash, destinationDomain }, 'CCTP attestation ready');
+    logger.log({ sourceDomain, txHash, destinationDomain }, 'CCTP attestation ready');
     return { message: match.message as string, attestation: match.attestation as string };
   } catch (err) {
     logger.warn({ sourceDomain, txHash, err }, 'Iris API request failed');

@@ -181,19 +181,22 @@ library CbLedger {
     });
 
     // Record the payment activity on the chain and the payer.
-    bytes32 activityId = LibCbIds.createId(payer.toBytes32(), EntityType.Activity, user.activitiesCount);
-    _storeActivity(
-      activityId,
-      ActivityRecord({
+    // layout() is called before activityId is computed so there are only 10 simultaneous stack
+    // slots at the call site (7 outer + stats + users + user), keeping the peak within limits.
+    {
+      LibActivityStorage.Layout storage activities = LibActivityStorage.layout();
+      bytes32 activityId = LibCbIds.createId(payer.toBytes32(), EntityType.Activity, user.activitiesCount);
+      activities.activityIds.push(activityId);
+      activities.activities[activityId] = ActivityRecord({
         chainCount: stats.activitiesCount,
         userCount: user.activitiesCount,
         payableCount: 0,
         timestamp: block.timestamp,
         entity: userPaymentId,
         activityType: ActivityType.UserPaid
-      })
-    );
-    users.userActivityIds[payer].push(activityId);
+      });
+      users.userActivityIds[payer].push(activityId);
+    }
 
     emit ICbEvents.UserPaid(
       payableId,
@@ -268,22 +271,22 @@ library CbLedger {
     }
 
     // Phase 3: activity record + emit.
-    // 8 outer + payables, activityId = 10 total; emit re-reads via the just-written PayablePayment struct.
+    // layout() is called before activityId so only 8 outer + payables = 9 slots are live at the
+    // call site (matching the safe threshold for a direct layout() call).
     {
       LibPayableStorage.Layout storage payables = LibPayableStorage.layout();
+      LibActivityStorage.Layout storage activities = LibActivityStorage.layout();
       bytes32 activityId =
         LibCbIds.createId(payableId, EntityType.Activity, payables.payables[payableId].activitiesCount);
-      _storeActivity(
-        activityId,
-        ActivityRecord({
-          chainCount: LibStatsStorage.layout().chainStats.activitiesCount,
-          userCount: 0,
-          payableCount: payables.payables[payableId].activitiesCount,
-          timestamp: block.timestamp,
-          entity: payablePaymentId,
-          activityType: ActivityType.PayableReceived
-        })
-      );
+      activities.activityIds.push(activityId);
+      activities.activities[activityId] = ActivityRecord({
+        chainCount: LibStatsStorage.layout().chainStats.activitiesCount,
+        userCount: 0,
+        payableCount: payables.payables[payableId].activitiesCount,
+        timestamp: block.timestamp,
+        entity: payablePaymentId,
+        activityType: ActivityType.PayableReceived
+      });
       payables.payableActivityIds[payableId].push(activityId);
     }
 
@@ -370,21 +373,24 @@ library CbLedger {
         });
       }
 
-      // Activity record. withdrawals freed; 11 outer+phase2 + activityId = 12 total.
-      bytes32 activityId = LibCbIds.createId(host.toBytes32(), EntityType.Activity, user.activitiesCount);
-      _storeActivity(
-        activityId,
-        ActivityRecord({
+      // Activity record. withdrawals freed; layout() called before activityId so only 11
+      // slots (6 outer+phase2 + payables + payable_ + stats + users + user) are live at the
+      // call site, keeping the peak inside the 16-item limit without --via-ir.
+      {
+        LibActivityStorage.Layout storage activities = LibActivityStorage.layout();
+        bytes32 activityId = LibCbIds.createId(host.toBytes32(), EntityType.Activity, user.activitiesCount);
+        activities.activityIds.push(activityId);
+        activities.activities[activityId] = ActivityRecord({
           chainCount: stats.activitiesCount,
           userCount: user.activitiesCount,
           payableCount: payable_.activitiesCount,
           timestamp: block.timestamp,
           entity: withdrawalId,
           activityType: ActivityType.Withdrew
-        })
-      );
-      users.userActivityIds[host].push(activityId);
-      payables.payableActivityIds[payableId].push(activityId);
+        });
+        users.userActivityIds[host].push(activityId);
+        payables.payableActivityIds[payableId].push(activityId);
+      }
     }
 
     // Phase 3: emit. Re-read the just-written withdrawal via one storage ref.

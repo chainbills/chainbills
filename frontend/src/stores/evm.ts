@@ -85,6 +85,9 @@ const CIRCLE_DOMAINS: Partial<Record<ChainName, number>> = {
   basesepolia: 6,
 };
 
+/** True when `chainName` participates in Circle CCTP — the only chains that can emit `SentPayableUpdateViaCctp` / `SentForeignPaymentViaCctp` and therefore the only chains worth nudging the backend relay processor about. */
+export const isCctpChain = (chainName: ChainName): boolean => CIRCLE_DOMAINS[chainName] !== undefined;
+
 /**
  * Circle Iris API host, picked per chain network so mainnet burns hit the
  * production API and testnet burns hit the sandbox.
@@ -292,7 +295,7 @@ export const useEvmStore = defineStore('evm', () => {
 
     try {
       analytics.recordEvent('initiated_evm_transaction');
-      steps?.sign?.activate('Checking the transaction will succeed…');
+      steps?.sign?.activate('Verifying transaction details…');
       const config = wagmiWriteConfig();
       const { result, request } = await simulateContract(config, {
         address,
@@ -733,9 +736,17 @@ export const useEvmStore = defineStore('evm', () => {
   const getChainStatsOnChain = async (chainName: ChainName): Promise<any | null> =>
     readGetter(chainName, 'getChainStats', []);
 
-  /** `getConfig()` — Wormhole/CCTP wiring and the withdrawal fee, used by `stores/stats.ts`. */
+  /** `getProtocolConfig()` — chain-wide protocol settings (fee bps, feeCollector, etc.), used by `stores/stats.ts`. */
   const fetchChainConfig = async (chainName: ChainName): Promise<any | null> =>
     readGetter(chainName, 'getProtocolConfig', []);
+
+  /** `hasWormhole()` — true when this chain has a Wormhole core contract wired up. */
+  const hasWormholeOnChain = async (chainName: ChainName): Promise<boolean> =>
+    !!(await readGetter(chainName, 'hasWormhole', [], { ignoreErrors: true }));
+
+  /** `hasCctp()` — true when this chain has Circle CCTP wired up. */
+  const hasCctpOnChain = async (chainName: ChainName): Promise<boolean> =>
+    !!(await readGetter(chainName, 'hasCctp', [], { ignoreErrors: true }));
 
   /** `getTokenDetails(token)` — per-token on-chain volume counters, used by `stores/stats.ts`. Reverts (returns null) for a token this chain has no details for. */
   const getTokenDetailsOnChain = async (tokenAddress: string, chainName: ChainName): Promise<any | null> =>
@@ -823,7 +834,7 @@ export const useEvmStore = defineStore('evm', () => {
     );
     if (!response) return null;
     return new OnChainSuccess({
-      created: extractNewId(response.receipt.logs, 'UserPaid', 'paymentId'),
+      created: extractNewId(response.receipt.logs, 'UserPaid', 'userPaymentId'),
       txHash: response.hash,
       chain,
     });
@@ -852,9 +863,13 @@ export const useEvmStore = defineStore('evm', () => {
       if (!feeRes.ok) return 0n;
       const tiers: { finalityThreshold: number; minimumFee: number }[] = await feeRes.json();
       const fastTier = tiers.find((t) => t.finalityThreshold === 1000);
-      const bps = fastTier?.minimumFee ?? 0;
-      // fee = amount * bps / 10_000, add 20% buffer. Integer math on BigInt.
-      return (amount * BigInt(bps) * 120n) / 1_000_000n;
+      // Iris returns minimumFee in bps and may be fractional (e.g. 1.3).
+      // Scale to hundredths of a bps so BigInt math survives, and round up
+      // so the 20% buffer never rounds down to below Iris's threshold.
+      const centibps = Math.ceil((fastTier?.minimumFee ?? 0) * 100);
+      // fee = amount * bps / 10_000 = amount * centibps / 1_000_000;
+      // apply 20% buffer via * 120 / 100.
+      return (amount * BigInt(centibps) * 120n) / 100_000_000n;
     } catch {
       // Non-fatal: falls back to standard finality with maxFee=0.
       return 0n;
@@ -924,7 +939,7 @@ export const useEvmStore = defineStore('evm', () => {
     );
     if (!response) return null;
     return new OnChainSuccess({
-      created: extractNewId(response.receipt.logs, 'UserPaid', 'paymentId'),
+      created: extractNewId(response.receipt.logs, 'UserPaid', 'userPaymentId'),
       txHash: response.hash,
       chain,
     });
@@ -951,11 +966,21 @@ export const useEvmStore = defineStore('evm', () => {
     payableId: string,
     { amount, details }: TokenAndAmount,
     steps?: WriteSteps,
-    flow?: TxFlowHandle
+    flow?: TxFlowHandle,
+    expectedChain?: Chain
   ): Promise<OnChainSuccess | null> => {
     const chain = getCurrentChain();
     if (!chain) {
       toastError('Connect EVM Wallet First!');
+      return null;
+    }
+
+    // A withdraw only exists on the payable's home chain — the balance lives
+    // there, and the payable id is unknown on any other chain (foreign call
+    // would revert with `InvalidPayableId`). Callers pass the expected chain
+    // so we can bail before signing when the wallet is on the wrong network.
+    if (expectedChain && expectedChain.name !== chain.name) {
+      toastError(`Switch to ${expectedChain.displayName} to withdraw from this payable.`);
       return null;
     }
 
@@ -1010,6 +1035,8 @@ export const useEvmStore = defineStore('evm', () => {
     getPayableWithdrawalIdsPaginated,
     getPayablesBulk,
     getTokenDetailsOnChain,
+    hasWormholeOnChain,
+    hasCctpOnChain,
     getUserActivityIdsPaginated,
     getUserPayableIdsPaginated,
     getUserPaymentIdsPaginated,

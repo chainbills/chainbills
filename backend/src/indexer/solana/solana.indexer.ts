@@ -308,31 +308,42 @@ export class SolanaIndexer {
       },
     });
 
-    // Replace allowed tokens and amounts in full.
+    // Replace allowed tokens and amounts in full. The on-chain array may repeat
+    // a token mint, so fold duplicates into a single row keyed by (payableId, token).
     await tx.payableAllowedToken.deleteMany({ where: { payableId } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ataas: any[] = payable.allowed_tokens_and_amounts ?? [];
+    const allowedByToken = new Map<string, bigint>();
     for (const ta of ataas) {
+      const token = (ta.token_mint as PublicKey).toBase58();
+      allowedByToken.set(
+        token,
+        (allowedByToken.get(token) ?? 0n) +
+          BigInt(ta.amount?.toString() ?? '0'),
+      );
+    }
+    for (const [token, amount] of allowedByToken) {
       await tx.payableAllowedToken.create({
-        data: {
-          payableId,
-          token: (ta.token_mint as PublicKey).toBase58(),
-          amount: BigInt(ta.amount?.toString() ?? '0').toString(),
-        },
+        data: { payableId, token, amount: amount.toString() },
       });
     }
 
-    // Replace balances in full.
+    // Replace balances in full. Same de-dup treatment as allowed tokens.
     await tx.payableBalance.deleteMany({ where: { payableId } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const balances: any[] = payable.balances ?? [];
+    const balanceByToken = new Map<string, bigint>();
     for (const bal of balances) {
+      const token = (bal.token_mint as PublicKey).toBase58();
+      balanceByToken.set(
+        token,
+        (balanceByToken.get(token) ?? 0n) +
+          BigInt(bal.amount?.toString() ?? '0'),
+      );
+    }
+    for (const [token, amount] of balanceByToken) {
       await tx.payableBalance.create({
-        data: {
-          payableId,
-          token: (bal.token_mint as PublicKey).toBase58(),
-          amount: BigInt(bal.amount?.toString() ?? '0').toString(),
-        },
+        data: { payableId, token, amount: amount.toString() },
       });
     }
   }

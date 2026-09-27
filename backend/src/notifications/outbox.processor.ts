@@ -2,7 +2,7 @@
 // Chainbills Backend — Outbox processor
 //
 // Worker loop that claims pending Outbox rows and delivers them via
-// MailProvider (SPEC.md §11.2). Registered only in WorkerModule.
+// MailProvider. Registered only in WorkerModule.
 //
 // Claim strategy: SELECT ... FOR UPDATE SKIP LOCKED to avoid row contention
 // between multiple instances (only one instance holds the advisory lock, but
@@ -22,7 +22,7 @@
 // Re-resolution at send time: the wallet key -> user -> email lookup is always
 // done at send time from the live DB, not from the snapshot in the Outbox row.
 // This means a user who removes their email after a notification is queued will
-// not receive it. This is the correct behaviour per SPEC §11.2.
+// not receive it. This is the correct behaviour.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -194,7 +194,7 @@ export class OutboxProcessor {
       return;
     }
 
-    // Check NotificationPreference (absent row = enabled per SPEC §7).
+    // Check NotificationPreference.
     const preference = await this.prisma.notificationPreference.findUnique({
       where: { userId_type: { userId: wallet.userId, type: row.type } },
       select: { email: true },
@@ -251,6 +251,7 @@ export class OutboxProcessor {
           sentAt: new Date(),
         },
       });
+      this.logger.log({ outboxId: row.id, type: row.type }, 'notification sent');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn({ outboxId: row.id, type: row.type }, `mail send failed: ${message}`);
@@ -264,6 +265,7 @@ export class OutboxProcessor {
       where: { id },
       data: { status: 'SKIPPED', lastError: reason },
     });
+    this.logger.debug({ outboxId: id, reason }, 'notification skipped');
   }
 
   /**

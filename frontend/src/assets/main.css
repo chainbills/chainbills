@@ -258,6 +258,44 @@ html {
   .p-toast-close-button {
     margin: 0;
   }
+
+  /* PrimeVue Paginator restyle: the component sits inside a
+     `.glass-surface .glass-frost` wrapper on every page that uses it
+     (ActivityFeed, ScanEntityTable), so its own surface must be transparent
+     to let that glass fill through. The Aura preset paints an opaque
+     surface-100/200 background that reads as a washed-out grey against
+     `--bg` in dark mode; overriding at the CSS layer is more reliable than
+     the token system for this component. */
+  .p-paginator {
+    background: transparent;
+    color: var(--fg);
+    border: 0;
+  }
+  .p-paginator .p-paginator-first,
+  .p-paginator .p-paginator-prev,
+  .p-paginator .p-paginator-next,
+  .p-paginator .p-paginator-last,
+  .p-paginator .p-paginator-page {
+    background: transparent;
+    color: var(--muted);
+    border: 0;
+  }
+  .p-paginator .p-paginator-first:not(:disabled):hover,
+  .p-paginator .p-paginator-prev:not(:disabled):hover,
+  .p-paginator .p-paginator-next:not(:disabled):hover,
+  .p-paginator .p-paginator-last:not(:disabled):hover,
+  .p-paginator .p-paginator-page:not(.p-paginator-page-selected):hover {
+    background: rgb(var(--fg-rgb) / 0.08);
+    color: var(--fg);
+  }
+  .p-paginator .p-paginator-page-selected {
+    background: var(--fg);
+    color: var(--bg);
+  }
+  .p-paginator .p-paginator-current {
+    color: var(--muted);
+    background: transparent;
+  }
 }
 
 /**
@@ -272,4 +310,18 @@ html {
 
 textarea[description] {
   field-sizing: content;
+}
+
+/**
+  * Remove the up/down arrows from number inputs.
+  */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type='number'] {
+  -mox-appearance: textfield;
+  appearance: textfield;
 }

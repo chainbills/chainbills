@@ -12,7 +12,7 @@
 
 import { z } from 'zod';
 
-/** Deployment roles a running instance can take (SPEC.md §2.1). */
+/** Deployment roles a running instance can take. */
 export const ROLES = ['all', 'api', 'worker'] as const;
 export type Role = (typeof ROLES)[number];
 
@@ -77,7 +77,10 @@ const csvList = z
   );
 
 /** `0x` + 64 hex chars — an EVM private key. */
-const evmPrivateKey = z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'must be "0x" followed by 64 hex characters');
+const evmTestnetsPrivateKey = z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'must be "0x" followed by 64 hex characters');
+
+/** `0x` + 64 hex chars — an EVM private key. */
+const evmMainnetsPrivateKey = z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'must be "0x" followed by 64 hex characters');
 
 /**
  * A JSON array of 64 integers (0-255) — the `solana/web3.js` `Keypair`
@@ -121,7 +124,8 @@ export const rawEnvSchema = z.object({
   // Enabled chains and RPC URLs are hardcoded in src/chains/registry.ts (ENABLED_CHAIN_SLUGS and rpcUrl fields)
   // rather than read from env vars. No ENABLED_CHAINS or RPC_* variables needed.
 
-  RELAYER_PRIVATE_KEY: evmPrivateKey.optional(),
+  EVM_TESTNETS_RELAYER_PRIVATE_KEY: evmTestnetsPrivateKey.optional(),
+  EVM_MAINNETS_RELAYER_PRIVATE_KEY: evmMainnetsPrivateKey.optional(),
   SOLANA_RELAYER_KEYPAIR: solanaKeypairJson.optional(),
 
   POLL_INTERVAL_MS: z.coerce.number().int().positive().optional(),
@@ -144,9 +148,8 @@ export const rawEnvSchema = z.object({
 
 /**
  * Adds a "required" issue for `field` when `condition` holds and the value
- * is still undefined after defaults were applied. Centralises the
- * role-conditional requirements from SPEC.md §5.2 so each rule reads as one
- * line below.
+ * is still undefined after defaults were applied. Centralises role-conditional
+ * requirements so each rule reads as one line below.
  */
 function requireWhen(ctx: z.RefinementCtx, value: unknown, field: string, condition: boolean, reason: string): void {
   if (condition && (value === undefined || value === null || value === '')) {
@@ -156,14 +159,13 @@ function requireWhen(ctx: z.RefinementCtx, value: unknown, field: string, condit
 
 /**
  * Full env schema: raw parsing plus every role- and provider-conditional
- * "required" rule from SPEC.md §5.2. `superRefine` runs after per-field
- * parsing/defaulting, so it only ever sees already-typed values.
+ * "required" rule. `superRefine` runs after per-field parsing/defaulting,
+ * so it only ever sees already-typed values.
  *
- * Reading the table in SPEC.md §5.2: a bare "all" in the "roles requiring
- * it" column means the variable is required unconditionally (every role
- * needs it to run, e.g. DATABASE_URL, ENABLED_CHAINS); "api, all" /
- * "worker, all" mean required only when ROLE is one of those values;
- * "if zeptomail" means required only when MAIL_PROVIDER=zeptomail.
+ * A bare "all" in the "roles requiring it" column means the variable is
+ * required unconditionally (every role needs it to run, e.g. DATABASE_URL);
+ * "api, all" / "worker, all" mean required only when ROLE is one of those
+ * values; "if zeptomail" means required only when MAIL_PROVIDER=zeptomail.
  *
  * ENABLED_CHAINS validation: every problem (unknown slug, null address,
  * missing RPC var) is collected and reported together — the process never
@@ -187,7 +189,8 @@ export const envSchema = rawEnvSchema.superRefine((env, ctx) => {
   requireWhen(ctx, env.JWT_ACCESS_SECRET, 'JWT_ACCESS_SECRET', isApiRole, 'when ROLE is api or all');
   requireWhen(ctx, env.OTP_HMAC_SECRET, 'OTP_HMAC_SECRET', isApiRole, 'when ROLE is api or all');
 
-  requireWhen(ctx, env.RELAYER_PRIVATE_KEY, 'RELAYER_PRIVATE_KEY', isWorkerRole, 'when ROLE is worker or all');
+  requireWhen(ctx, env.EVM_TESTNETS_RELAYER_PRIVATE_KEY, 'EVM_TESTNETS_RELAYER_PRIVATE_KEY', isWorkerRole, 'when ROLE is worker or all');
+  requireWhen(ctx, env.EVM_MAINNETS_RELAYER_PRIVATE_KEY, 'EVM_MAINNETS_RELAYER_PRIVATE_KEY', isWorkerRole, 'when ROLE is worker or all');
   requireWhen(ctx, env.SOLANA_RELAYER_KEYPAIR, 'SOLANA_RELAYER_KEYPAIR', isWorkerRole, 'when ROLE is worker or all');
 
   requireWhen(ctx, env.ZEPTOMAIL_API_KEY, 'ZEPTOMAIL_API_KEY', isZeptomail, 'when MAIL_PROVIDER=zeptomail');
@@ -206,7 +209,7 @@ export const envSchema = rawEnvSchema.superRefine((env, ctx) => {
 export interface Env {
   /** Node runtime mode; gates dev-only conveniences (pretty logs, console mail). */
   nodeEnv: 'development' | 'test' | 'production';
-  /** Which subsystems this process runs — see SPEC.md §2.1. */
+  /** Which subsystems this process runs. */
   role: Role;
   /** HTTP port the API listens on. */
   port: number;
@@ -236,7 +239,9 @@ export interface Env {
   signInMessageTtlMs: number;
   // Enabled chains and RPC URLs live in src/chains/registry.ts, not in Env.
   /** EVM relayer wallet private key. Required for worker/all. */
-  relayerPrivateKey?: `0x${string}`;
+  evmTestnetsRelayerPrivateKey?: `0x${string}`;
+  /** EVM relayer wallet private key. Required for worker/all. */
+  evmMainnetsRelayerPrivateKey?: `0x${string}`;
   /** Solana relayer wallet secret key, as a 64-byte array. Required for worker/all. */
   solanaRelayerKeypair?: number[];
   /** Optional override of every chain's registry poll interval, in ms. */
@@ -292,7 +297,8 @@ function toEnv(parsed: ParsedEnv): Env {
     cookieDomain: parsed.COOKIE_DOMAIN,
     cookieSecure: parsed.COOKIE_SECURE,
     signInMessageTtlMs: parsed.SIGN_IN_MESSAGE_TTL,
-    relayerPrivateKey: parsed.RELAYER_PRIVATE_KEY as `0x${string}` | undefined,
+    evmTestnetsRelayerPrivateKey: parsed.EVM_TESTNETS_RELAYER_PRIVATE_KEY as `0x${string}` | undefined,
+    evmMainnetsRelayerPrivateKey: parsed.EVM_MAINNETS_RELAYER_PRIVATE_KEY as `0x${string}` | undefined,
     solanaRelayerKeypair: parsed.SOLANA_RELAYER_KEYPAIR,
     pollIntervalMsOverride: parsed.POLL_INTERVAL_MS,
     indexerBatchFlushMs: parsed.INDEXER_BATCH_FLUSH_MS,
@@ -324,10 +330,10 @@ export function formatEnvIssues(error: z.ZodError): string[] {
  * Validates `raw` (normally `process.env`) against {@link envSchema}.
  *
  * On failure this prints every problem to stderr — name and reason only,
- * never the offending value — and exits the process with code 1, matching
- * SPEC.md §5.1: config errors must be loud and total, and must never leak a
- * secret into logs. `ConfigModule.forRoot({ validate: validateEnv })` calls
- * this synchronously before any other module initialises.
+ * never the offending value — and exits the process with code 1. Config errors
+ * are loud and total, and must never leak a secret into logs.
+ * `ConfigModule.forRoot({ validate: validateEnv })` calls this synchronously
+ * before any other module initialises.
  */
 export function validateEnv(raw: Record<string, string | undefined>): Env {
   const result = envSchema.safeParse(raw);
@@ -347,8 +353,8 @@ export function validateEnv(raw: Record<string, string | undefined>): Env {
  * read `process.env` directly (it still only ever does so from inside
  * `src/config/`): `app.module.ts` needs `Env.role` synchronously, before Nest
  * builds the DI graph, to decide whether to include `WorkerModule` /
- * `ApiModule` at all (SPEC.md §2.1) — a decision Nest's module system can
- * only make at class-decoration time, not through injected providers.
+ * `ApiModule` at all — a decision Nest's module system can only make at
+ * class-decoration time, not through injected providers.
  */
 export function loadEnv(): Env {
   return validateEnv(process.env);

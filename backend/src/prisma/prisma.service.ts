@@ -2,9 +2,9 @@
 // Chainbills Backend — Prisma service
 //
 // Thin lifecycle wrapper around PrismaClient: connects during Nest's module
-// init and disconnects on shutdown, so a graceful SIGTERM (SPEC.md §2.3)
-// never leaves a dangling connection. Every module that touches the database
-// injects this instead of constructing its own PrismaClient.
+// init and disconnects on shutdown, so a graceful SIGTERM never leaves a
+// dangling connection. Every module that touches the database injects this
+// instead of constructing its own PrismaClient.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';

@@ -2,11 +2,11 @@
 // Chainbills Backend — Chain registry types
 //
 // The one deliberate difference from the relayer: nothing here carries an
-// `rpcUrl` field. SPEC.md §6 requires RPC URLs to be "injected from config at
-// module init, not mutated globals" — the relayer's pattern of a shared
-// `rpcUrl: ''` placeholder mutated in place at startup is exactly what that
-// forbids. Instead, `src/chains/clients.ts` factories take the RPC URL as an
-// explicit argument, sourced from `AppConfigService`.
+// `rpcUrl` field. RPC URLs must be injected from config at module init, not
+// mutated globals — the relayer's pattern of a shared `rpcUrl: ''` placeholder
+// mutated in place at startup is exactly what that forbids. Instead,
+// `src/chains/clients.ts` factories take the RPC URL as an explicit argument,
+// sourced from `AppConfigService`.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import type { Chain as ViemChain } from 'viem';

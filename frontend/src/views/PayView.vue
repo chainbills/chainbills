@@ -19,6 +19,8 @@
  * keeps watching the `'pay-cross-chain'` flow's background `relay` step
  * independently of whether the payer stayed on this page.
  */
+import MakePaymentLoader from '@/components/MakePaymentLoader.vue';
+import SignInButton from '@/components/SignInButton.vue';
 import ApprovalGate from '@/components/tx/ApprovalGate.vue';
 import CrossChainRoute from '@/components/tx/CrossChainRoute.vue';
 import { useTxRetry } from '@/components/tx/retry';
@@ -26,21 +28,19 @@ import {
   AddressChip,
   ChainBadge,
   GlassCard,
-  PayableAvatar,
   SectionHeader,
   StatusPill,
   TokenAmount,
 } from '@/components/ui';
-import MakePaymentLoader from '@/components/MakePaymentLoader.vue';
-import SignInButton from '@/components/SignInButton.vue';
-import IconWallet from '@/icons/IconWallet.vue';
 import { usePoller } from '@/composables/usePoller';
+import IconOpenInNew from '@/icons/IconOpenInNew.vue';
+import IconWallet from '@/icons/IconWallet.vue';
 import {
   chainNamesToChains,
   contracts,
   getTokenDetails,
-  Payable,
   parseTokenAmount,
+  Payable,
   TokenAndAmount,
   tokens,
   type ChainName,
@@ -165,8 +165,13 @@ const validateAmount = () => {
 const validateBalance = async () => {
   balanceError.value = '';
   if (!auth.currentUser || !selectedConfig.value) return;
-  const bal = await auth.balance(selectedConfig.value.token());
-  balanceError.value = bal !== null && bal < selectedConfig.value.amount ? 'Insufficient balance for this amount.' : '';
+  const config = selectedConfig.value;
+  const bal = await auth.balance(config.token());
+  if (!selectedConfig.value) return;
+  // The CCTP path debits amount + maxFee from the payer, so the wallet must cover both.
+  const required =
+    routeKind.value === 'cross' ? config.amount + (cctpFeeEstimate.value ?? 0n) : config.amount;
+  balanceError.value = bal !== null && bal < required ? 'Insufficient balance for this amount.' : '';
 };
 
 // --- Cross-chain availability: is the payable synced to the payer's chain yet? ---
@@ -267,12 +272,20 @@ const wormholeFeeAsTokenAndAmount = computed(() => {
   }
 });
 
-/** What the payable is estimated to receive: the paid amount minus the CCTP fee (Circle deducts its fee from the bridged amount) for a cross-chain payment, or the full amount same-chain. */
-const payableReceivesEstimate = computed(() => {
+/**
+ * What the payer's wallet is debited: `amount + CCTP maxFee` on a cross-chain route
+ * (the contract burns both on the source chain), or just `amount` same-chain.
+ * The payable itself is guaranteed to receive at least `amount` on either route — the
+ * destination reverts unless Circle minted at least the requested amount — so the fee
+ * is *added on top* rather than deducted from what the payable gets.
+ */
+const totalPayerCost = computed(() => {
   if (!selectedConfig.value) return null;
   if (routeKind.value !== 'cross') return selectedConfig.value;
-  const net = selectedConfig.value.amount - (cctpFeeEstimate.value ?? 0n);
-  return new TokenAndAmount(selectedConfig.value.token(), net > 0n ? net : 0n);
+  return new TokenAndAmount(
+    selectedConfig.value.token(),
+    selectedConfig.value.amount + (cctpFeeEstimate.value ?? 0n)
+  );
 });
 
 const primaryLabel = computed(() => {
@@ -296,6 +309,18 @@ const canPay = computed(() => {
   return true;
 });
 
+const setupNumberInput = (el: unknown) => {
+  if (!(el instanceof HTMLInputElement)) return;
+  el.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+    },
+    { passive: false }
+  );
+  el.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+};
+
 const pay = async () => {
   analytics.recordEvent('clicked_pay', {
     route_kind: routeKind.value,
@@ -312,13 +337,19 @@ const pay = async () => {
   isPaying.value = true;
   const id = await paymentStore.exec(payable.value.id, selectedConfig.value, payable.value.chain);
   isPaying.value = false;
-  if (id) router.push(`/receipt/${id}`);
+  if (id) router.push({ path: `/receipt/${id}`, query: { from: 'pay' } });
 };
 
 watch([() => amount.value], validateAmount);
 watch([selectedConfig, () => auth.currentUser], async () => {
   await validateBalance();
   await loadCrossChainFees();
+});
+
+// Re-run the balance check when the CCTP fee estimate lands, since the wallet must
+// cover amount + maxFee on a cross-chain route.
+watch(cctpFeeEstimate, () => {
+  void validateBalance();
 });
 
 watch(needsApproval, (required) => {
@@ -386,49 +417,53 @@ onMounted(async () => {
   <section v-else class="pt-6 pb-20 max-w-screen-xl mx-auto">
     <SectionHeader eyebrow="Pay" :title="`Pay this payable`" />
 
-    <div class="grid lg:grid-cols-[0.9fr,1.1fr] gap-6 items-start">
+    <div class="lg:flex gap-6 items-start">
       <!-- Left: payable summary -->
-      <GlassCard>
-        <div class="flex items-center gap-3 mb-4">
-          <PayableAvatar :id="payable.id" />
-          <div class="min-w-0">
-            <AddressChip :value="payable.id" kind="id" />
+      <GlassCard class="max-w-[512px] w-full max-lg:mb-6 max-lg:mx-auto">
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+          <div
+            class="shrink-0 w-10 h-8 rounded-lg bg-fg/5 ring-1 ring-glass-border flex items-center justify-center text-muted"
+            aria-hidden="true"
+          >
+            <IconWallet class="w-5 h-5" />
           </div>
-        </div>
 
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-          <ChainBadge :chain="payable.chain" />
-          <StatusPill :tone="payable.isClosed ? 'danger' : 'success'" :label="payable.isClosed ? 'Closed' : 'Open'" />
+          <div class="flex-1 min-w-0 flex flex-wrap gap-2">
+            <div class="min-w-0">
+              <AddressChip :value="payable.id" kind="id" />
+            </div>
+            <div class="ml-auto shrink-0">
+              <ChainBadge :chain="payable.chain" size="sm" />
+            </div>
+          </div>
         </div>
 
         <p v-if="payable.description" class="text-sm text-fg whitespace-pre-wrap break-words mb-4">
           {{ payable.description }}
         </p>
 
-        <div class="mb-4">
-          <p class="text-xs uppercase tracking-wider text-muted mb-1.5">Accepts</p>
-          <p v-if="aTAAs.length === 0" class="text-sm text-fg">Any supported token, any amount</p>
-          <div v-else class="flex flex-wrap gap-2">
-            <span
-              v-for="(taa, i) in aTAAs"
-              :key="i"
-              class="rounded-full border border-glass-border bg-bg/30 px-2.5 py-1"
-            >
-              <TokenAmount :amount="taa" :chain="payable.chain" size="sm" />
-            </span>
-          </div>
+        <div v-if="aTAAs.length === 0" class="mb-4">
+          <p class="text-[10px] uppercase tracking-wider text-muted mb-1.5">Accepts</p>
+          <p class="text-xs text-muted">Any supported token, any amount</p>
         </div>
 
         <div class="flex items-center justify-between text-xs text-muted pt-3 border-t border-fg/5">
-          <span class="inline-flex items-center gap-1.5"
-            >Host <AddressChip :value="payable.host" :chain="payable.chain" kind="address"
+          <span class="inline-flex items-center gap-1.5 text-xs text-muted"
+            >Owner <AddressChip :value="payable.host" :chain="payable.chain" kind="address" class="[&_.text-fg]:!text-muted"
           /></span>
-          <router-link :to="`/payable/${payable.id}`" class="text-accent hover:underline">View payable</router-link>
+          <a
+            :href="`/payable/${payable.id}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 text-accent hover:underline"
+          >
+            View payable <IconOpenInNew class="w-3 h-3" />
+          </a>
         </div>
       </GlassCard>
 
       <!-- Right: the pay widget -->
-      <GlassCard variant="refract" class="relative">
+      <GlassCard variant="refract" class="max-w-[512px] w-full max-lg:mx-auto">
         <div
           v-if="!auth.currentUser"
           class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-2xl bg-bg/70 backdrop-blur-sm text-center px-6"
@@ -439,7 +474,7 @@ onMounted(async () => {
 
         <div v-if="payable.isClosed" class="text-center py-10 px-4">
           <StatusPill tone="danger" label="Closed" class="mb-3" />
-          <p class="text-sm text-muted max-w-xs mx-auto">This payable is closed and is no longer accepting payments.</p>
+          <p class="text-sm text-muted max-w-xs mx-auto">This payable is closed and is not currently accepting payments.</p>
         </div>
 
         <form
@@ -460,6 +495,7 @@ onMounted(async () => {
                 min="0"
                 step="any"
                 aria-label="Amount"
+                :ref="setupNumberInput"
                 class="w-full rounded-xl border border-glass-border bg-glass-tint px-3 py-2 text-sm text-fg outline-none focus:border-accent"
               />
               <Select
@@ -487,6 +523,18 @@ onMounted(async () => {
                 <p class="font-display text-display-md text-fg">
                   {{ compatibleATAAs[0].display(userChain ?? payable.chain) }}
                 </p>
+                <p
+                  v-if="displayBalance(compatibleATAAs[0].token()) != null"
+                  class="mt-1 text-xs text-muted inline-flex items-center gap-1"
+                >
+                  <IconWallet class="w-3 h-3" />
+                  {{
+                    new TokenAndAmount(compatibleATAAs[0].token(), displayBalance(compatibleATAAs[0].token())!).display(
+                      userChain ?? payable.chain
+                    )
+                  }}
+                  available
+                </p>
               </div>
               <div v-else class="mt-2 flex flex-wrap gap-2">
                 <button
@@ -494,7 +542,7 @@ onMounted(async () => {
                   :key="i"
                   type="button"
                   :class="[
-                    'rounded-xl border px-3.5 py-2.5 text-left transition-colors',
+                    'rounded-xl border px-3.5 pt-2.5 pb-1 text-left transition-colors',
                     selectedConfig?.name === taa.name && selectedConfig?.amount === taa.amount
                       ? 'border-accent bg-accent/10'
                       : 'border-glass-border bg-glass-tint hover:bg-fg/5',
@@ -504,6 +552,18 @@ onMounted(async () => {
                   <TokenAmount :amount="taa" :chain="userChain ?? payable.chain" />
                 </button>
               </div>
+              <p
+                v-if="compatibleATAAs.length > 1 && selectedConfig && displayBalance(selectedConfig.token()) != null"
+                class="mt-2 text-xs text-muted inline-flex items-center gap-1"
+              >
+                <IconWallet class="w-3 h-3" />
+                {{
+                  new TokenAndAmount(selectedConfig.token(), displayBalance(selectedConfig.token())!).display(
+                    userChain ?? payable.chain
+                  )
+                }}
+                available
+              </p>
               <p v-if="!isSameChain && compatibleATAAs.length === 0" class="mt-2 text-xs text-danger">
                 This payable only accepts tokens that don't support cross-chain payment from your connected chain.
               </p>
@@ -519,6 +579,7 @@ onMounted(async () => {
                 :cctp-fee="cctpFeeAsTokenAndAmount"
                 :wormhole-fee="wormholeFeeAsTokenAndAmount"
                 tracked
+                :animated="false"
               />
             </template>
             <template v-else>
@@ -612,23 +673,23 @@ onMounted(async () => {
           <!-- Summary -->
           <dl v-if="selectedConfig && userChain" class="divide-y divide-fg/5">
             <div class="flex items-center justify-between py-2 text-sm">
-              <dt class="text-muted">You pay</dt>
-              <dd class="tabular-nums text-fg font-medium">{{ selectedConfig.display(userChain) }}</dd>
+              <dt class="text-muted">Payable receives</dt>
+              <dd class="tabular-nums text-fg">{{ selectedConfig.display(userChain) }}</dd>
             </div>
             <div
               v-if="routeKind === 'cross' && cctpFeeAsTokenAndAmount"
               class="flex items-center justify-between py-2 text-sm"
             >
               <dt class="text-muted">Bridge fee (max)</dt>
-              <dd class="tabular-nums text-fg">− {{ cctpFeeAsTokenAndAmount.display(userChain) }}</dd>
+              <dd class="tabular-nums text-fg">+ {{ cctpFeeAsTokenAndAmount.display(userChain) }}</dd>
             </div>
-            <div v-if="payableReceivesEstimate" class="flex items-center justify-between py-2 text-sm">
-              <dt class="text-muted">Payable receives{{ routeKind === 'cross' ? ' (est.)' : '' }}</dt>
-              <dd class="tabular-nums text-fg">{{ payableReceivesEstimate.display(userChain) }}</dd>
+            <div v-if="totalPayerCost" class="flex items-center justify-between py-2 text-sm">
+              <dt class="text-muted">You pay</dt>
+              <dd class="tabular-nums text-fg font-medium">{{ totalPayerCost.display(userChain) }}</dd>
             </div>
             <div v-if="routeKind === 'cross'" class="flex items-center justify-between py-2 text-sm">
               <dt class="text-muted">Estimated arrival</dt>
-              <dd class="text-fg">usually 1–3 min</dd>
+              <dd class="text-fg">usually 1-3 min</dd>
             </div>
           </dl>
 

@@ -7,7 +7,7 @@ use crate::{constants::*, errors::ChainbillsError};
 
 /// All fields of a PaymentPayload (type = 0x02).
 /// Wire format: exactly 251 bytes, big-endian integers.
-/// See DESIGN.md §12.1 for byte-offset layout.
+/// Wire format: exactly 251 bytes, big-endian integers.
 pub struct PaymentPayload {
   /// actionType byte — always ACTION_PAYMENT (0x05).
   pub action_type: u8,
@@ -36,7 +36,7 @@ pub struct PaymentPayload {
 
 /// All fields of a PayablePayload (type = 0x01).
 /// Wire format: variable length, header is 51 bytes, tail depends on
-/// action_type. See DESIGN.md §12.2 for byte-offset layout.
+/// action_type.
 pub struct PayablePayload {
   /// action_type: 1=Create, 2=Close, 3=Reopen, 4=UpdateATAA.
   pub action_type: u8,

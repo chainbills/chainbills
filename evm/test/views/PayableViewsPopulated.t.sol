@@ -42,8 +42,8 @@ contract PayableViewsPopulatedTest is PopulatedViewsBase {
     assertFalse(v.info.isClosed);
     // Create, two local receipts, close, reopen, withdrawal, cross-chain receipt.
     assertEq(v.info.activitiesCount, 7);
-    // 50 local + 51 minted from chain B - 20 withdrawn.
-    assertEq(v.balances[1].amount, 81e6);
+    // 50 local + 50 invoiced from chain B (1 USDC surplus routed to fee collector) - 20 withdrawn.
+    assertEq(v.balances[1].amount, 80e6);
   }
 
   function test_GetPayableView_P3AutoWithdrawLeavesZeroBalances() public view {

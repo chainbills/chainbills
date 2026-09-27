@@ -10430,6 +10430,37 @@ export const chainbillsAbi = [
   },
   {
     "type": "event",
+    "name": "CctpFeeSurplusRouted",
+    "inputs": [
+      {
+        "name": "payableId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "payerChainId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "surplus",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "ClosedPayable",
     "inputs": [
       {

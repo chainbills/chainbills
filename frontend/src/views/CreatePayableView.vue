@@ -7,9 +7,9 @@
  * payable page will look like. Submitting drives the `'create-payable'`
  * tx-flow (`stores/payable.ts`, `create`); `TxFlowDialog` (mounted in
  * `App.vue`) shows its progress and, on success, offers "Open payable" and
- * "Copy payment link". This view does not navigate away on its own, so the
- * form stays available to create another payable while the flow's `sync`
- * step keeps broadcasting to the other chains in the background.
+ * "Copy payment link". On success the view navigates to the new payable's
+ * page; the flow's `sync` step stays visible in the collapsed TxFlowDialog
+ * while it keeps broadcasting to the other chains.
  */
 import { useTxRetry } from '@/components/tx/retry';
 import EmailVerificationCard from '@/components/notifications/EmailVerificationCard.vue';
@@ -17,13 +17,13 @@ import {
   AddressChip,
   ChainBadge,
   GlassCard,
-  PayableAvatar,
   SectionHeader,
   StatusPill,
   TokenAmount,
 } from '@/components/ui';
 import { FEATURES } from '@/config/features';
 import IconEmail from '@/icons/IconEmail.vue';
+import IconWallet from '@/icons/IconWallet.vue';
 import PaymentRulesEditor from '@/components/payable/PaymentRulesEditor.vue';
 import SignInButton from '@/components/SignInButton.vue';
 import { chainNamesEvm, chainNamesToChains, TokenAndAmount } from '@/schemas';
@@ -32,11 +32,13 @@ import DomPurify from 'dompurify';
 import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 const notifications = useNotificationsStore();
 const payableStore = usePayableStore();
+const router = useRouter();
 const { setRetry } = useTxRetry();
 
 const emailFeatureOn = FEATURES.emailNotifications;
@@ -93,10 +95,13 @@ const submit = async () => {
   const id = await payableStore.create(
     DomPurify.sanitize(description.value.trim()),
     tokensAndAmounts.value,
-    isAutoWithdraw.value
+    FEATURES.autoWithdraw && isAutoWithdraw.value
   );
   isSubmitting.value = false;
-  if (id) resetForm();
+  if (id) {
+    resetForm();
+    router.push(`/payable/${id}`);
+  }
 };
 
 const previewTitle = computed(() => `Payable preview`);
@@ -220,10 +225,17 @@ const previewTitle = computed(() => `Payable preview`);
 
       <GlassCard variant="refract" :aria-label="previewTitle">
         <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent mb-4">Live preview</p>
-        <div class="flex items-center gap-3 mb-4">
-          <PayableAvatar :id="auth.currentUser?.walletAddress ?? 'preview'" />
-          <div>
-            <StatusPill tone="success" label="Open" />
+
+        <!-- Identity row: wallet tile + chain badge pushed right -->
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+          <div
+            class="shrink-0 w-10 h-8 rounded-lg bg-fg/5 ring-1 ring-glass-border flex items-center justify-center text-muted"
+            aria-hidden="true"
+          >
+            <IconWallet class="w-5 h-5" />
+          </div>
+          <div class="ml-auto shrink-0" v-if="homeChain">
+            <ChainBadge :chain="homeChain" size="sm" />
           </div>
         </div>
 
@@ -232,18 +244,18 @@ const previewTitle = computed(() => `Payable preview`);
         </p>
 
         <div class="mb-4">
-          <p class="text-xs uppercase tracking-wider text-muted mb-1.5">Accepts</p>
-          <p v-if="tokensAndAmounts.length === 0" class="text-sm text-fg">Any supported token, any amount</p>
-          <div v-else-if="tokensAndAmounts.length && homeChain" class="flex flex-wrap gap-2">
+          <p class="text-[10px] uppercase tracking-wider text-muted mb-1.5">Accepts</p>
+          <p v-if="tokensAndAmounts.length === 0" class="text-xs text-muted">Any supported token, any amount</p>
+          <div v-else-if="tokensAndAmounts.length && homeChain" class="flex flex-wrap gap-1.5">
             <span
               v-for="(ta, i) in tokensAndAmounts"
               :key="i"
-              class="rounded-full border border-glass-border bg-bg/30 px-2.5 py-1"
+              class="rounded-full border border-glass-border bg-bg/30 px-2 pt-1"
             >
               <TokenAmount :amount="ta" :chain="homeChain" size="sm" />
             </span>
           </div>
-          <p v-else class="text-sm text-muted">Add a token and amount to preview it here.</p>
+          <p v-else class="text-xs text-muted">Add a token and amount to preview it here.</p>
         </div>
 
         <div v-if="isAutoWithdraw" class="mb-4">
@@ -254,14 +266,16 @@ const previewTitle = computed(() => `Payable preview`);
           </span>
         </div>
 
-        <div v-if="homeChain" class="flex items-center justify-between text-xs text-muted pt-3 border-t border-fg/5">
-          <ChainBadge :chain="homeChain" size="sm" />
-          <AddressChip
-            v-if="auth.currentUser"
-            :value="auth.currentUser.walletAddress"
-            :chain="homeChain"
-            kind="address"
-          />
+        <div v-if="homeChain && auth.currentUser" class="flex items-center justify-between text-xs text-muted pt-3 border-t border-fg/5">
+          <span class="inline-flex items-center gap-1.5">
+            Owner
+            <AddressChip
+              :value="auth.currentUser.walletAddress"
+              :chain="homeChain"
+              kind="address"
+              class="[&_.text-fg]:!text-muted"
+            />
+          </span>
         </div>
       </GlassCard>
     </div>

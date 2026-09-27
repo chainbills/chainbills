@@ -24,8 +24,19 @@ import type { EvmChainConfig } from '../../chains/types';
 
 const logger = new Logger('EvmSubmitter');
 
+function txUrl(chain: EvmChainConfig, hash: string): string | undefined {
+  const base = chain.viemChain?.blockExplorers?.default?.url;
+  return base ? `${base}/tx/${hash}` : undefined;
+}
+
 /** Custom error name decoded from the diamond ABI, or null when no error was decoded. */
 export type DecodedErrorName = string | null;
+
+/** Result of a submit call: the destination tx hash (when the tx was actually sent — null on simulate-time reverts) plus the decoded custom error name (null on success / non-revert failures). */
+export interface SubmitResult {
+  txHash: Hash | null;
+  errorName: DecodedErrorName;
+}
 
 function stripAbiFromError(err: unknown): unknown {
   if (!err || typeof err !== 'object') return err;
@@ -77,33 +88,36 @@ export async function submitReceivePayableUpdateViaWormhole(
   publicClient: PublicClient,
   walletClient: WalletClient,
   vaaBytes: Uint8Array
-): Promise<DecodedErrorName> {
+): Promise<SubmitResult> {
   const address = chain.diamondAddress!;
 
+  const fn = 'receivePayableUpdateViaWormhole';
   try {
+    logger.log({ chain: chain.slug, fn, address }, 'simulating on-chain call');
     await publicClient.simulateContract({
       address,
       abi: chainbillsAbi,
-      functionName: 'receivePayableUpdateViaWormhole',
+      functionName: fn,
       args: [`0x${Buffer.from(vaaBytes).toString('hex')}`],
     });
 
     const hash: Hash = await walletClient.writeContract({
       address,
       abi: chainbillsAbi,
-      functionName: 'receivePayableUpdateViaWormhole',
+      functionName: fn,
       args: [`0x${Buffer.from(vaaBytes).toString('hex')}`],
       chain: chain.viemChain,
       account: walletClient.account!,
     });
+    logger.log({ chain: chain.slug, fn, hash, url: txUrl(chain, hash) }, 'tx submitted');
 
     await publicClient.waitForTransactionReceipt({ hash });
-    logger.debug({ chain: chain.slug, hash }, 'receivePayableUpdateViaWormhole confirmed');
-    return null;
+    logger.log({ chain: chain.slug, fn, hash, url: txUrl(chain, hash) }, 'tx confirmed');
+    return { txHash: hash, errorName: null };
   } catch (err) {
     const decoded = decodeCustomError(err);
-    if (decoded) return decoded;
-    logger.error({ chain: chain.slug, err: stripAbiFromError(err) }, 'receivePayableUpdateViaWormhole failed');
+    if (decoded) return { txHash: null, errorName: decoded };
+    logger.error({ chain: chain.slug, fn, err: stripAbiFromError(err) }, 'on-chain call failed');
     throw err;
   }
 }
@@ -120,33 +134,36 @@ export async function submitReceivePayableUpdateViaCctp(
   walletClient: WalletClient,
   message: string,
   attestation: string
-): Promise<DecodedErrorName> {
+): Promise<SubmitResult> {
   const address = chain.diamondAddress!;
 
+  const fn = 'receivePayableUpdateViaCctp';
   try {
+    logger.log({ chain: chain.slug, fn, address }, 'simulating on-chain call');
     await publicClient.simulateContract({
       address,
       abi: chainbillsAbi,
-      functionName: 'receivePayableUpdateViaCctp',
+      functionName: fn,
       args: [message as `0x${string}`, attestation as `0x${string}`],
     });
 
     const hash: Hash = await walletClient.writeContract({
       address,
       abi: chainbillsAbi,
-      functionName: 'receivePayableUpdateViaCctp',
+      functionName: fn,
       args: [message as `0x${string}`, attestation as `0x${string}`],
       chain: chain.viemChain,
       account: walletClient.account!,
     });
+    logger.log({ chain: chain.slug, fn, hash, url: txUrl(chain, hash) }, 'tx submitted');
 
     await publicClient.waitForTransactionReceipt({ hash });
-    logger.debug({ chain: chain.slug, hash }, 'receivePayableUpdateViaCctp confirmed');
-    return null;
+    logger.log({ chain: chain.slug, fn, hash, url: txUrl(chain, hash) }, 'tx confirmed');
+    return { txHash: hash, errorName: null };
   } catch (err) {
     const decoded = decodeCustomError(err);
-    if (decoded) return decoded;
-    logger.error({ chain: chain.slug, err: stripAbiFromError(err) }, 'receivePayableUpdateViaCctp failed');
+    if (decoded) return { txHash: null, errorName: decoded };
+    logger.error({ chain: chain.slug, fn, err: stripAbiFromError(err) }, 'on-chain call failed');
     throw err;
   }
 }
@@ -163,33 +180,36 @@ export async function submitReceiveForeignPaymentViaCctp(
   walletClient: WalletClient,
   burnMessage: string,
   attestation: string
-): Promise<DecodedErrorName> {
+): Promise<SubmitResult> {
   const address = chain.diamondAddress!;
 
+  const fn = 'receiveForeignPaymentViaCctp';
   try {
+    logger.log({ chain: chain.slug, fn, address }, 'simulating on-chain call');
     await publicClient.simulateContract({
       address,
       abi: chainbillsAbi,
-      functionName: 'receiveForeignPaymentViaCctp',
+      functionName: fn,
       args: [burnMessage as `0x${string}`, attestation as `0x${string}`],
     });
 
     const hash: Hash = await walletClient.writeContract({
       address,
       abi: chainbillsAbi,
-      functionName: 'receiveForeignPaymentViaCctp',
+      functionName: fn,
       args: [burnMessage as `0x${string}`, attestation as `0x${string}`],
       chain: chain.viemChain,
       account: walletClient.account!,
     });
+    logger.log({ chain: chain.slug, fn, hash, url: txUrl(chain, hash) }, 'tx submitted');
 
     await publicClient.waitForTransactionReceipt({ hash });
-    logger.debug({ chain: chain.slug, hash }, 'receiveForeignPaymentViaCctp confirmed');
-    return null;
+    logger.log({ chain: chain.slug, fn, hash, url: txUrl(chain, hash) }, 'tx confirmed');
+    return { txHash: hash, errorName: null };
   } catch (err) {
     const decoded = decodeCustomError(err);
-    if (decoded) return decoded;
-    logger.error({ chain: chain.slug, err: stripAbiFromError(err) }, 'receiveForeignPaymentViaCctp failed');
+    if (decoded) return { txHash: null, errorName: decoded };
+    logger.error({ chain: chain.slug, fn, err: stripAbiFromError(err) }, 'on-chain call failed');
     throw err;
   }
 }

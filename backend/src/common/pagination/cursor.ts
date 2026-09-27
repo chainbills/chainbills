@@ -1,11 +1,11 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Cursor pagination helpers
 //
-// SPEC.md §12.1: list endpoints take `?limit=` and `?cursor=` and respond
-// `{ items, nextCursor }`. The cursor is opaque to clients — base64url JSON
-// of whatever sort key the query used (e.g. `{ createdAt, id }`) — so a
-// caller can never guess or forge a page boundary, and each endpoint is free
-// to choose its own sort key shape without changing this encoding.
+// List endpoints take `?limit=` and `?cursor=` and respond `{ items,
+// nextCursor }`. The cursor is opaque to clients — base64url JSON of whatever
+// sort key the query used (e.g. `{ createdAt, id }`) — so a caller can never
+// guess or forge a page boundary, and each endpoint is free to choose its own
+// sort key shape without changing this encoding.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { BadRequestException } from '@nestjs/common';

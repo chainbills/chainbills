@@ -1,19 +1,19 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Worker module
 //
-// Imported by AppModule only when ROLE is "worker" or "all" (SPEC.md §2.1).
+// Imported by AppModule only when ROLE is "worker" or "all".
 // On application bootstrap:
-//   1. Acquires the Postgres advisory lock (SPEC.md §2.2). Loops start only
-//      while the lock is held. A second instance with the same DB stays idle.
-//   2. Checks RELAYER_ROLE on each enabled EVM chain (SPEC §6.1).
+//   1. Acquires the Postgres advisory lock. Loops start only while the lock
+//      is held. A second instance with the same DB stays idle.
+//   2. Checks RELAYER_ROLE on each enabled EVM chain.
 //   3. Starts per-chain indexer loops (one per enabled EVM chain).
 //   4. Starts the relay processor loop.
-//   5. Starts the outbox processor loop (phase 3b).
+//   5. Starts the outbox processor loop.
 //   6. Starts the gas-balance check loop (every 5 min).
 //   7. Starts the heartbeat loop (every 15 min).
 //
 // All loops catch iteration errors and retry next tick; they never crash the
-// process (SPEC.md §2.3).
+// process.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module, OnApplicationBootstrap, OnApplicationShutdown, Logger } from '@nestjs/common';
@@ -122,13 +122,16 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
     // Startup RELAYER_ROLE check.
     await this.checkRelayerRoles();
 
-    const relayerKey = this.config.env.relayerPrivateKey;
-    if (!relayerKey) {
-      this.logger.error('RELAYER_PRIVATE_KEY is not set — relay loop will not start');
+    const testnetsKey = this.config.env.evmTestnetsRelayerPrivateKey;
+    const mainnetsKey = this.config.env.evmMainnetsRelayerPrivateKey;
+
+    if (!testnetsKey && !mainnetsKey) {
+      this.logger.error('neither EVM_TESTNETS_RELAYER_PRIVATE_KEY nor EVM_MAINNETS_RELAYER_PRIVATE_KEY is set — relay loop will not start');
       return;
     }
 
-    const relayerAccount = evmAccountFromPrivateKey(relayerKey as `0x${string}`);
+    const testnetsAccount = testnetsKey ? evmAccountFromPrivateKey(testnetsKey) : undefined;
+    const mainnetsAccount = mainnetsKey ? evmAccountFromPrivateKey(mainnetsKey) : undefined;
 
     // Start one indexer loop per enabled EVM chain — adaptive backoff on
     // idle. `tick()` returns { didWork } so we back off when there was no
@@ -181,7 +184,7 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
     const relayDone = (async () => {
       while (relayRunning) {
         try {
-          const found = await this.relayProcessor.processOne(relayerAccount);
+          const found = await this.relayProcessor.processOne(testnetsAccount, mainnetsAccount);
           relayEmptyStreak = found ? 0 : relayEmptyStreak + 1;
         } catch (err) {
           relayLog.error({ err }, 'relay iteration error — will retry');
@@ -217,7 +220,7 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
     const stopGas = runLoop({
       name: 'gas-balance',
       intervalMs: GAS_CHECK_INTERVAL_MS,
-      fn: () => this.gasBalanceCheck(relayerAccount.address),
+      fn: () => this.gasBalanceCheck(testnetsAccount?.address, mainnetsAccount?.address),
     });
     this.stopFns.push(stopGas);
 
@@ -232,7 +235,8 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
     this.logger.log(
       {
         enabledChains: this.chains.enabled.map((c) => c.slug),
-        relayerAddress: relayerAccount.address,
+        testnetsRelayerAddress: testnetsAccount?.address,
+        mainnetsRelayerAddress: mainnetsAccount?.address,
       },
       'worker started'
     );
@@ -261,16 +265,23 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
 
   /**
    * Checks RELAYER_ROLE on each enabled EVM chain and warns when the relayer
-   * wallet lacks it while relaying is restricted (SPEC §6.1).
+   * wallet lacks it while relaying is restricted.
+   *
+   * Selects the testnets key for testnet/local chains and the mainnets key for
+   * mainnet chains. Skips chains whose key tier is not configured.
    */
   private async checkRelayerRoles(): Promise<void> {
-    const relayerKey = this.config.env.relayerPrivateKey;
-    if (!relayerKey) return;
-
-    const relayerAccount = evmAccountFromPrivateKey(relayerKey as `0x${string}`);
+    const testnetsKey = this.config.env.evmTestnetsRelayerPrivateKey;
+    const mainnetsKey = this.config.env.evmMainnetsRelayerPrivateKey;
+    if (!testnetsKey && !mainnetsKey) return;
 
     for (const chain of this.chains.enabled) {
       if (!chain.isEvm || !chain.diamondAddress) continue;
+
+      const key = chain.network === 'mainnet' ? mainnetsKey : testnetsKey;
+      if (!key) continue;
+
+      const relayerAccount = evmAccountFromPrivateKey(key);
 
       try {
         const client = createEvmPublicClient(chain, this.chains.getRpcUrl(chain)) as PublicClient;
@@ -283,7 +294,6 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
 
         if (!protocolConfig.isRelayerRestricted) continue;
 
-        // Fetch RELAYER_ROLE bytes32 constant.
         const relayerRole = await readContract(client, {
           address: chain.diamondAddress,
           abi: chainbillsAbi,
@@ -311,10 +321,20 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
     }
   }
 
-  /** Checks the relayer wallet's native balance on each enabled chain and warns if low. */
-  private async gasBalanceCheck(relayerAddress: `0x${string}`): Promise<void> {
+  /**
+   * Checks relayer wallet native balances on each enabled chain.
+   * Selects the testnets address for testnet/local chains and the mainnets
+   * address for mainnet chains. Skips chains whose key tier is not configured.
+   */
+  private async gasBalanceCheck(
+    testnetsAddress: `0x${string}` | undefined,
+    mainnetsAddress: `0x${string}` | undefined,
+  ): Promise<void> {
     for (const chain of this.chains.enabled) {
       if (chain.isEvm) {
+        const relayerAddress = chain.network === 'mainnet' ? mainnetsAddress : testnetsAddress;
+        if (!relayerAddress) continue;
+
         try {
           const client = createEvmPublicClient(chain, this.chains.getRpcUrl(chain)) as PublicClient;
           const balance = await client.getBalance({ address: relayerAddress });
@@ -325,7 +345,7 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
               'low relayer gas balance — please fund the relayer wallet'
             );
           } else {
-            this.logger.debug({ chain: chain.slug, balance: formatEther(balance) }, 'gas balance ok');
+            this.logger.log({ chain: chain.slug, balance: formatEther(balance), relayerAddress }, 'gas balance ok');
           }
         } catch (err) {
           this.logger.error({ chain: chain.slug, err }, 'gas balance check failed');
@@ -360,7 +380,10 @@ export class WorkerModule implements OnApplicationBootstrap, OnApplicationShutdo
           'low Solana relayer SOL balance — please fund the relayer wallet'
         );
       } else {
-        this.logger.debug({ chain: chain.slug, balanceLamports }, 'Solana gas balance ok');
+        this.logger.log(
+          { chain: chain.slug, balanceLamports, relayerAddress: relayerKeypair.publicKey.toBase58() },
+          'Solana gas balance ok'
+        );
       }
     } catch (err) {
       this.logger.error({ chain: chain.slug, err }, 'Solana gas balance check failed');

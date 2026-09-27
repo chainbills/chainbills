@@ -77,7 +77,8 @@ funds and admin privileges.
 
 | Name                      | Roles requiring it | Default | Format / notes                                                           |
 | -------------------------- | ------------------- | ------- | --------------------------------------------------------------------------- |
-| `RELAYER_PRIVATE_KEY`      | worker, all          | -       | `0x` + 64 hex characters.                                                   |
+| `EVM_TESTNETS_RELAYER_PRIVATE_KEY`      | worker, all          | -       | `0x` + 64 hex characters.                                                   |
+| `EVM_MAINNETS_RELAYER_PRIVATE_KEY`      | worker, all          | -       | `0x` + 64 hex characters.                                                   |
 | `SOLANA_RELAYER_KEYPAIR`   | worker, all          | -       | JSON array of 64 integers (0-255) — a Solana CLI/wallet secret key export.  |
 
 ## Worker tuning

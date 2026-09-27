@@ -2,8 +2,8 @@
 // Chainbills Backend — Users endpoint DTOs
 //
 // Request and response shapes for /me, /me/email, /me/email/verify,
-// /me/preferences (SPEC.md §10). Every field has @ApiProperty so Swagger /docs
-// shows complete schemas for each endpoint.
+// /me/preferences. Every field has @ApiProperty so Swagger /docs shows
+// complete schemas for each endpoint.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { ApiProperty } from '@nestjs/swagger';

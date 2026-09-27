@@ -13,8 +13,8 @@
 //      @CurrentUser() can retrieve it in the controller.
 //
 // A stolen access token is rejected as soon as the session is revoked in DB
-// (step 4), even before the token's own expiry — this is the intent of the
-// single indexed session lookup per request (SPEC.md §9.2).
+// (step 4), even before the token's own expiry — the single indexed session
+// lookup per request enforces this.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';

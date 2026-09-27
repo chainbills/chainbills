@@ -21,6 +21,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { RelayJob } from '@prisma/client';
 import type { PrivateKeyAccount } from 'viem/accounts';
+import type { Network } from '../chains/types';
 import { createEvmPublicClient, createEvmWalletClient } from '../chains/clients';
 import { ChainsService } from '../chains/chains.service';
 import type { EvmChainConfig } from '../chains/types';
@@ -70,16 +71,24 @@ export class RelayProcessor {
   /**
    * Claims and processes one pending job. Returns true when a job was claimed
    * (whether it succeeded or not), false when no jobs were ready.
+   *
+   * `testnetsAccount` is used for testnet/local destination chains;
+   * `mainnetsAccount` is used for mainnet destination chains. Either may be
+   * undefined if that tier's key is not configured — jobs targeting that tier
+   * are marked FAILED immediately.
    */
-  async processOne(relayerAccount: PrivateKeyAccount): Promise<boolean> {
+  async processOne(
+    testnetsAccount: PrivateKeyAccount | undefined,
+    mainnetsAccount: PrivateKeyAccount | undefined,
+  ): Promise<boolean> {
     const job = await claimJob(this.prisma);
     if (!job) return false;
 
     const log = this.logger.log.bind(this.logger);
-    log({ jobId: job.id, type: job.type }, 'processing relay job');
+    log({ jobId: job.id, type: job.type, src: job.sourceChainId, dest: job.destChainId }, 'processing relay job');
 
     try {
-      await this.dispatch(job, relayerAccount);
+      await this.dispatch(job, testnetsAccount, mainnetsAccount);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn({ jobId: job.id, err: msg }, 'relay job failed — scheduling retry');
@@ -89,7 +98,19 @@ export class RelayProcessor {
     return true;
   }
 
-  private async dispatch(job: RelayJob, relayerAccount: PrivateKeyAccount): Promise<void> {
+  private relayerAccountFor(
+    network: Network,
+    testnetsAccount: PrivateKeyAccount | undefined,
+    mainnetsAccount: PrivateKeyAccount | undefined,
+  ): PrivateKeyAccount | undefined {
+    return network === 'mainnet' ? mainnetsAccount : testnetsAccount;
+  }
+
+  private async dispatch(
+    job: RelayJob,
+    testnetsAccount: PrivateKeyAccount | undefined,
+    mainnetsAccount: PrivateKeyAccount | undefined,
+  ): Promise<void> {
     // Route Solana-destination jobs to the Solana submitter.
     if (job.type === 'SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE' || job.type === 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE') {
       await this.handleSolanaJob(job);
@@ -104,6 +125,16 @@ export class RelayProcessor {
         this.prisma,
         job.id,
         `unknown or non-EVM chain: source=${job.sourceChainId} dest=${job.destChainId}`
+      );
+      return;
+    }
+
+    const relayerAccount = this.relayerAccountFor(destChain.network, testnetsAccount, mainnetsAccount);
+    if (!relayerAccount) {
+      await markFailed(
+        this.prisma,
+        job.id,
+        `no relayer key configured for ${destChain.network} chains (dest=${destChain.slug})`
       );
       return;
     }
@@ -169,14 +200,14 @@ export class RelayProcessor {
       await patchArtefacts(this.prisma, job.id, { vaa: Buffer.from(vaaBytes).toString('hex') });
     }
 
-    const errorName = await submitReceivePayableUpdateViaWormhole(
+    const { txHash: destTxHash, errorName } = await submitReceivePayableUpdateViaWormhole(
       destChain,
       destPublicClient,
       destWalletClient,
       vaaBytes
     );
 
-    await this.classifyResult(job, errorName);
+    await this.classifyResult(job, errorName, destTxHash);
   }
 
   private async handleCctpUpdate(
@@ -238,7 +269,7 @@ export class RelayProcessor {
       await patchArtefacts(this.prisma, job.id, { cctpMessage: message, cctpAttestation: attestation });
     }
 
-    const errorName = await submitReceivePayableUpdateViaCctp(
+    const { txHash: destTxHash, errorName } = await submitReceivePayableUpdateViaCctp(
       destChain,
       destPublicClient,
       destWalletClient,
@@ -246,7 +277,7 @@ export class RelayProcessor {
       attestation
     );
 
-    await this.classifyResult(job, errorName);
+    await this.classifyResult(job, errorName, destTxHash);
   }
 
   private async handleCctpPayment(
@@ -308,7 +339,7 @@ export class RelayProcessor {
       await patchArtefacts(this.prisma, job.id, { cctpMessage: message, cctpAttestation: attestation });
     }
 
-    const errorName = await submitReceiveForeignPaymentViaCctp(
+    const { txHash: destTxHash, errorName } = await submitReceiveForeignPaymentViaCctp(
       destChain,
       destPublicClient,
       destWalletClient,
@@ -316,7 +347,7 @@ export class RelayProcessor {
       attestation
     );
 
-    await this.classifyResult(job, errorName);
+    await this.classifyResult(job, errorName, destTxHash);
   }
 
   /**
@@ -442,10 +473,14 @@ export class RelayProcessor {
 
   /**
    * Maps a decoded error name (or null for success) to the appropriate job outcome.
+   * `destTxHash` is the tx hash of the submitted receive tx, when the tx was
+   * actually sent. Persisted alongside the DONE state for observability and
+   * so the indexer can later hydrate `PayablePayment.tx_hash` from it.
    */
-  private async classifyResult(job: RelayJob, errorName: string | null): Promise<void> {
+  private async classifyResult(job: RelayJob, errorName: string | null, destTxHash?: string | null): Promise<void> {
     if (errorName === null) {
-      await markDone(this.prisma, job.id);
+      this.logger.log({ jobId: job.id, type: job.type, destTxHash }, 'relay job done');
+      await markDone(this.prisma, job.id, destTxHash);
       return;
     }
 

@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Unsubscribe controller
 //
-// Handles one-click email unsubscribe (RFC 8058) (SPEC.md §11.5).
+// Handles one-click email unsubscribe (RFC 8058).
 //
 // GET  /email/unsubscribe?u=<userId>&t=<type>&s=<sig>
 //   Validates the HMAC signature; on success returns a minimal HTML page with a

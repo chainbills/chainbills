@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Auth endpoint DTOs
 //
-// Request and response shapes for all /auth/* endpoints (SPEC.md §9.1).
+// Request and response shapes for all /auth/* endpoints.
 // Every field has @ApiProperty so Swagger /docs shows complete examples for
 // both EVM and Solana flows.
 // ──────────────────────────────────────────────────────────────────────────────

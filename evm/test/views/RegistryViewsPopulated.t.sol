@@ -18,9 +18,10 @@ contract RegistryViewsPopulatedTest is PopulatedViewsBase {
 
   function test_GetTokenStats_Usdc() public view {
     // Debited from payers: 300 + 50 + 200 same-chain, 78 + 75 burned toward F1.
-    // Credited: 300 + 50 + 200 same-chain, 51 minted from chain B.
+    // Credited: 300 + 50 + 200 same-chain, 50 invoiced from chain B (1 USDC surplus
+    // routed to fee collector, not credited).
     // Withdrawn: 200 (fee capped 1.5) + 300 (capped 1.5) + 20 (0.2).
-    _assertStats(cb.getTokenStats(address(usdc)), _stats(703e6, 601e6, 520e6, 3.2e6, 81e6));
+    _assertStats(cb.getTokenStats(address(usdc)), _stats(703e6, 600e6, 520e6, 3.2e6, 80e6));
   }
 
   function test_GetTokenStats_TransferTaxToken() public view {
@@ -81,7 +82,7 @@ contract RegistryViewsPopulatedTest is PopulatedViewsBase {
 
   function test_TokenStats_DiamondHoldsExactlyTrackedBalances() public view {
     assertEq(address(cb).balance, 2.5 ether);
-    assertEq(usdc.balanceOf(address(cb)), 81e6);
+    assertEq(usdc.balanceOf(address(cb)), 80e6);
     assertEq(tax.balanceOf(address(cb)), 5.098e18);
     assertEq(chainB.usdc.balanceOf(address(chainB.cb)), 75e6);
   }
@@ -127,7 +128,7 @@ contract RegistryViewsPopulatedTest is PopulatedViewsBase {
     assertTrue(usdc.transfer(address(cb), 7e6));
     assertEq(cb.getUntrackedBalance(address(usdc)), 7e6);
     // Tracking is unaffected.
-    assertEq(cb.getTokenStats(address(usdc)).totalPayableBalance, 81e6);
+    assertEq(cb.getTokenStats(address(usdc)).totalPayableBalance, 80e6);
     assertEq(cb.getUntrackedBalance(native), 0);
   }
 
@@ -176,8 +177,8 @@ contract RegistryViewsPopulatedTest is PopulatedViewsBase {
 
     assertEq(cb.getUntrackedBalance(address(usdc)), 7e6);
     assertEq(cb.getUntrackedBalance(native), 0.3 ether);
-    assertEq(cb.getTokenStats(address(usdc)).totalPayableBalance, 81e6 + 50e6 - 60e6);
-    assertEq(usdc.balanceOf(address(cb)), 81e6 + 50e6 - 60e6 + 7e6);
+    assertEq(cb.getTokenStats(address(usdc)).totalPayableBalance, 80e6 + 50e6 - 60e6);
+    assertEq(usdc.balanceOf(address(cb)), 80e6 + 50e6 - 60e6 + 7e6);
     assertEq(cb.getTokenStats(native).totalPayableBalance, 2.5 ether);
   }
 
@@ -190,7 +191,7 @@ contract RegistryViewsPopulatedTest is PopulatedViewsBase {
     assertEq(cb.getUntrackedBalance(address(usdc)), 0);
 
     // Every payable balance is still fully backed.
-    assertEq(cb.getTokenStats(address(usdc)).totalPayableBalance, 81e6);
+    assertEq(cb.getTokenStats(address(usdc)).totalPayableBalance, 80e6);
     vm.prank(host);
     cb.withdrawAll(p2, address(usdc));
     assertEq(usdc.balanceOf(address(cb)), 0);
@@ -285,7 +286,7 @@ contract RegistryViewsPopulatedTest is PopulatedViewsBase {
     assertEq(supported[1], address(tax));
     assertFalse(cb.isTokenSupported(address(usdc)));
     assertEq(cb.getRegisteredTokenCount(), 3);
-    assertEq(cb.getTokenStats(address(usdc)).totalPayableBalance, 81e6);
+    assertEq(cb.getTokenStats(address(usdc)).totalPayableBalance, 80e6);
     assertEq(cb.getTokenStats(address(usdc)).totalUserPaid, 703e6);
   }
 

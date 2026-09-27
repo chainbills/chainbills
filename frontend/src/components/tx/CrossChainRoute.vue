@@ -37,12 +37,16 @@ const props = withDefaults(
     cctpFee?: TokenAndAmount;
     /** The Wormhole message fee, in the source chain's native token. */
     wormholeFee?: TokenAndAmount;
-    /** Plain-language arrival estimate shown next to the bridge name. */
+    /** Plain-language arrival estimate shown next to the bridge name when no actual duration is known yet. */
     estimatedTime?: string;
+    /** Actual delivery duration (e.g. "1m 42s"). When set, replaces the estimated-time slot with "Delivered in: <this>". */
+    actualTime?: string;
     /** When true, fires a cross_chain_route_shown analytics event on mount. Set on the pay and receipt pages; omit on the landing page demo. */
     tracked?: boolean;
+    /** When true, the packet travels along the rail; when false, sits still at the midpoint. The pay page passes false (no bridge action yet), the receipt page passes true only while the payment is still relaying. */
+    animated?: boolean;
   }>(),
-  { estimatedTime: 'usually 1-3 min', tracked: false }
+  { estimatedTime: 'usually 1-3 min', tracked: false, animated: true }
 );
 
 onMounted(() => {
@@ -66,7 +70,8 @@ onMounted(() => {
            midpoint and frozen under `prefers-reduced-motion: reduce`. -->
       <div class="relative flex-1 h-px bg-gradient-to-r from-transparent via-fg/20 to-transparent" aria-hidden="true">
         <span
-          class="route-packet absolute top-1/2 -mt-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_2px_rgb(var(--accent-rgb)/0.5)] motion-reduce:left-1/2 motion-reduce:animate-none"
+          class="absolute top-1/2 -mt-1 w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_2px_rgb(var(--accent-rgb)/0.5)]"
+          :class="animated ? 'route-packet motion-reduce:left-1/2 motion-reduce:animate-none' : 'left-1/2 -translate-x-1/2'"
         ></span>
       </div>
 
@@ -75,8 +80,11 @@ onMounted(() => {
 
     <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
       <span>Bridge: <span class="text-fg font-medium">Circle CCTP</span></span>
-      <span class="opacity-50" aria-hidden="true">·</span>
-      <span
+      <span class="opacity-50" aria-hidden="true">.</span>
+      <span v-if="actualTime"
+        >Delivered in: <span class="text-fg font-medium tabular-nums">{{ actualTime }}</span></span
+      >
+      <span v-else
         >Estimated time: <span class="text-fg font-medium">{{ estimatedTime }}</span></span
       >
     </div>

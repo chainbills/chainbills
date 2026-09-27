@@ -27,9 +27,9 @@ defineProps<{
   <div class="rounded-2xl border border-glass-border bg-fg/[0.03] p-3.5 text-sm text-fg">
     <p class="font-medium mb-1">Your wallet will ask you twice</p>
     <p class="text-xs text-muted">
-      First to unlock <span class="text-fg font-medium">{{ amount.display(chain) }}</span
-      ><span v-if="crossChain"> (a touch more to cover the bridge fee)</span>, then to send the payment. Nothing moves
-      until you confirm the second prompt.
+      The first one to approve the
+      <span v-if="amount.amount > 0" class="text-fg font-medium">{{ amount.display(chain) }}</span
+      ><span v-else>amount</span>, the second is to send the payment. Nothing moves until you confirm the second prompt.
     </p>
   </div>
 </template>

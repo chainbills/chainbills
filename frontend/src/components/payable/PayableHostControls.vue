@@ -33,15 +33,15 @@
  * ```
  */
 import { GlassCard, StatusPill } from '@/components/ui';
-import DescriptionEditor from './DescriptionEditor.vue';
-import PaymentRulesEditor from './PaymentRulesEditor.vue';
 import { FEATURES } from '@/config/features';
 import { type Payable, type TokenAndAmount } from '@/schemas';
 import { useAnalyticsStore, useAuthStore, usePayableStore } from '@/stores';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import ToggleSwitch from 'primevue/toggleswitch';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import DescriptionEditor from './DescriptionEditor.vue';
+import PaymentRulesEditor from './PaymentRulesEditor.vue';
 
 const props = defineProps<{
   /** The payable being managed. */
@@ -94,12 +94,31 @@ const confirmReopen = async () => {
 
 // --- Payment rules ---
 const showRulesDialog = ref(false);
+const rulesDialogKey = ref(0);
 const editedRules = ref<TokenAndAmount[]>([...props.payable.allowedTokensAndAmounts]);
 const rulesError = ref('');
 const isUpdatingRules = ref(false);
 
+const openRulesDialog = () => {
+  editedRules.value = [...props.payable.allowedTokensAndAmounts];
+  rulesError.value = '';
+  rulesDialogKey.value++;
+  showRulesDialog.value = true;
+};
+
+/** True when the pending rules differ from the payable's current rules. */
+const hasRuleChanges = computed(() => {
+  const current = props.payable.allowedTokensAndAmounts;
+  const edited = editedRules.value;
+  if (current.length !== edited.length) return true;
+  return current.some((c, i) => {
+    const e = edited[i];
+    return c.name !== e.name || c.amount !== e.amount;
+  });
+});
+
 const saveRules = async () => {
-  if (rulesError.value) return;
+  if (rulesError.value || !hasRuleChanges.value) return;
   showRulesDialog.value = false;
   analytics.recordEvent('clicked_update_payment_rules', { payable_id: props.payable.id });
   isUpdatingRules.value = true;
@@ -110,8 +129,10 @@ const saveRules = async () => {
 
 // --- Auto-withdraw ---
 const showAutoWithdrawConfirm = ref(false);
-/** Shadow toggle value shown in the UI. Follows the payable's value until the host changes it. */
-const autoWithdrawLocal = computed(() => props.payable.isAutoWithdraw);
+const autoWithdrawLocal = ref(props.payable.isAutoWithdraw);
+watch(() => props.payable.isAutoWithdraw, (val) => { autoWithdrawLocal.value = val; });
+/** Incremented on cancel to force the ToggleSwitch to remount and pick up the reverted value. */
+const autoWithdrawKey = ref(0);
 const pendingAutoWithdraw = ref<boolean | null>(null);
 const isUpdatingAutoWithdraw = ref(false);
 
@@ -137,6 +158,8 @@ const confirmAutoWithdraw = async () => {
 const cancelAutoWithdraw = () => {
   pendingAutoWithdraw.value = null;
   showAutoWithdrawConfirm.value = false;
+  autoWithdrawLocal.value = props.payable.isAutoWithdraw;
+  autoWithdrawKey.value++;
 };
 
 // --- Description ---
@@ -163,9 +186,83 @@ const onDescriptionSaved = (refreshed: Payable) => {
     </div>
 
     <div class="flex flex-col gap-6">
+      <!-- Description -->
+      <div class="border-b border-fg/5 pb-6">
+        <div class="flex items-start justify-between gap-4 mb-3">
+          <p class="text-sm font-medium text-fg">Description</p>
+          <Button
+            v-if="!showDescriptionEditor"
+            :disabled="wrongChain"
+            :title="wrongChain ? wrongChainMsg : ''"
+            class="shrink-0 text-sm px-4"
+            @click="showDescriptionEditor = true"
+          >
+            Edit
+          </Button>
+        </div>
+
+        <DescriptionEditor
+          v-if="showDescriptionEditor"
+          :payable="payable"
+          @saved="onDescriptionSaved"
+          @cancel="showDescriptionEditor = false"
+        />
+        <p v-else-if="payable.description" class="text-sm text-fg whitespace-pre-line break-words">
+          {{ payable.description }}
+        </p>
+        <p v-else class="text-sm text-muted italic">No description set.</p>
+      </div>
+
+      <!-- Payment rules -->
+      <div class="border-b border-fg/5 pb-6">
+        <div class="flex items-start justify-between gap-4">
+          <p class="text-sm font-medium text-fg">Accepted tokens &amp; amounts</p>
+          <Button
+            :disabled="wrongChain || isUpdatingRules"
+            :title="wrongChain ? wrongChainMsg : ''"
+            class="shrink-0 text-sm px-4"
+            @click="openRulesDialog"
+          >
+            Edit
+          </Button>
+        </div>
+        <p v-if="payable.allowedTokensAndAmounts.length === 0" class="text-xs text-muted mt-1.5">
+          Any token, any amount.
+        </p>
+        <div v-else class="flex flex-wrap gap-1.5 mt-2">
+          <span
+            v-for="ta in payable.allowedTokensAndAmounts"
+            :key="ta.display(payable.chain)"
+            class="inline-flex items-center rounded-lg bg-glass-tint border border-glass-border px-2.5 py-1 text-xs text-fg"
+          >
+            {{ ta.display(payable.chain) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Auto-withdraw -->
+      <div v-if="FEATURES.autoWithdraw" class="border-b border-fg/5 pb-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-sm font-medium text-fg">Auto-withdraw</p>
+            <p class="text-xs text-muted mt-0.5">
+              When on, payments go directly to your wallet. This setting stays on the home chain only.
+            </p>
+          </div>
+          <ToggleSwitch
+            :key="autoWithdrawKey"
+            :model-value="autoWithdrawLocal"
+            :disabled="wrongChain || isUpdatingAutoWithdraw"
+            :title="wrongChain ? wrongChainMsg : ''"
+            aria-label="Toggle auto-withdraw"
+            class="shrink-0"
+            @update:model-value="requestAutoWithdrawChange"
+          />
+        </div>
+      </div>
 
       <!-- Close / Reopen -->
-      <div class="border-b border-fg/5 pb-6">
+      <div>
         <div class="flex items-start justify-between gap-4">
           <div>
             <p class="text-sm font-medium text-fg">
@@ -191,7 +288,8 @@ const onDescriptionSaved = (refreshed: Payable) => {
           </Button>
           <Button
             v-else
-            severity="danger"
+            severity="secondary"
+            outlined
             :disabled="wrongChain || isClosing"
             :title="wrongChain ? wrongChainMsg : ''"
             class="shrink-0 text-sm px-4"
@@ -200,77 +298,6 @@ const onDescriptionSaved = (refreshed: Payable) => {
             {{ isClosing ? 'Closing...' : 'Close' }}
           </Button>
         </div>
-      </div>
-
-      <!-- Payment rules -->
-      <div class="border-b border-fg/5 pb-6">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <p class="text-sm font-medium text-fg">Accepted tokens &amp; amounts</p>
-            <p class="text-xs text-muted mt-0.5">
-              <template v-if="payable.allowedTokensAndAmounts.length === 0">Any token, any amount.</template>
-              <template v-else>
-                {{ payable.allowedTokensAndAmounts.length }} specific
-                option{{ payable.allowedTokensAndAmounts.length !== 1 ? 's' : '' }}.
-              </template>
-            </p>
-          </div>
-          <Button
-            :disabled="wrongChain || isUpdatingRules"
-            :title="wrongChain ? wrongChainMsg : ''"
-            class="shrink-0 text-sm px-4"
-            @click="showRulesDialog = true"
-          >
-            Edit payment rules
-          </Button>
-        </div>
-      </div>
-
-      <!-- Auto-withdraw -->
-      <div v-if="FEATURES.autoWithdraw" class="border-b border-fg/5 pb-6">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <p class="text-sm font-medium text-fg">Auto-withdraw</p>
-            <p class="text-xs text-muted mt-0.5">
-              When on, payments go directly to your wallet. This setting stays on the home chain only.
-            </p>
-          </div>
-          <ToggleSwitch
-            :model-value="autoWithdrawLocal"
-            :disabled="wrongChain || isUpdatingAutoWithdraw"
-            :title="wrongChain ? wrongChainMsg : ''"
-            aria-label="Toggle auto-withdraw"
-            @update:model-value="requestAutoWithdrawChange"
-          />
-        </div>
-      </div>
-
-      <!-- Description -->
-      <div>
-        <div class="flex items-start justify-between gap-4 mb-3">
-          <p class="text-sm font-medium text-fg">Description</p>
-          <Button
-            v-if="!showDescriptionEditor"
-            :disabled="wrongChain"
-            :title="wrongChain ? wrongChainMsg : ''"
-            class="shrink-0 text-sm px-4"
-            @click="showDescriptionEditor = true"
-          >
-            Edit
-          </Button>
-        </div>
-
-        <DescriptionEditor
-          v-if="showDescriptionEditor"
-          :payable="payable"
-          @saved="onDescriptionSaved"
-          @cancel="showDescriptionEditor = false"
-        />
-        <p
-          v-else-if="payable.description"
-          class="text-sm text-fg whitespace-pre-line break-words"
-        >{{ payable.description }}</p>
-        <p v-else class="text-sm text-muted italic">No description set.</p>
       </div>
     </div>
   </GlassCard>
@@ -300,21 +327,12 @@ const onDescriptionSaved = (refreshed: Payable) => {
   </Dialog>
 
   <!-- Payment rules dialog -->
-  <Dialog
-    v-model:visible="showRulesDialog"
-    modal
-    header="Edit payment rules"
-    class="w-full max-w-md max-sm:m-4"
-  >
+  <Dialog v-model:visible="showRulesDialog" modal header="Edit payment rules" class="w-full max-w-md max-sm:m-4">
     <p class="text-sm text-muted mb-4">Update the accepted tokens and amounts for this payable.</p>
-    <PaymentRulesEditor
-      :home-chain="payable.chain"
-      v-model="editedRules"
-      @update:error="rulesError = $event"
-    />
+    <PaymentRulesEditor :key="rulesDialogKey" :home-chain="payable.chain" v-model="editedRules" @update:error="rulesError = $event" />
     <template #footer>
       <Button severity="secondary" @click="showRulesDialog = false">Cancel</Button>
-      <Button :disabled="!!rulesError" @click="saveRules">Save rules</Button>
+      <Button :disabled="!!rulesError || !hasRuleChanges" @click="saveRules">Save rules</Button>
     </template>
   </Dialog>
 

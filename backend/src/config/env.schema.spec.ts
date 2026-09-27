@@ -31,7 +31,8 @@ const API_ONLY_ENV: Record<string, string> = {
 };
 
 const WORKER_ONLY_ENV: Record<string, string> = {
-  RELAYER_PRIVATE_KEY: `0x${'1'.repeat(64)}`,
+  EVM_TESTNETS_RELAYER_PRIVATE_KEY: `0x${'1'.repeat(64)}`,
+  EVM_MAINNETS_RELAYER_PRIVATE_KEY: `0x${'2'.repeat(64)}`,
   SOLANA_RELAYER_KEYPAIR: JSON.stringify(Array.from({ length: 64 }, () => 1)),
 };
 
@@ -99,7 +100,8 @@ describe('envSchema', () => {
       ...BASE_ENV,
       ...API_ONLY_ENV,
       ...WORKER_ONLY_ENV,
-      RELAYER_PRIVATE_KEY: '0x1234',
+      EVM_TESTNETS_RELAYER_PRIVATE_KEY: '0x1234',
+      EVM_MAINNETS_RELAYER_PRIVATE_KEY: '0x5678',
     });
     expect(result.success).toBe(false);
   });
@@ -109,7 +111,8 @@ describe('envSchema', () => {
       ...BASE_ENV,
       ...API_ONLY_ENV,
       ...WORKER_ONLY_ENV,
-      RELAYER_PRIVATE_KEY: '1'.repeat(64),
+      EVM_TESTNETS_RELAYER_PRIVATE_KEY: '1'.repeat(64),
+      EVM_MAINNETS_RELAYER_PRIVATE_KEY: '2'.repeat(64),
     });
     expect(result.success).toBe(false);
   });

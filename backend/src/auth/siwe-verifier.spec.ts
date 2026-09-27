@@ -8,7 +8,7 @@
 
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { privateKeyToAccount } from 'viem/accounts';
-import { createSiweMessage } from 'viem/siwe';
+import { createSiweMessage, parseSiweMessage } from 'viem/siwe';
 import { anvil as viemAnvil } from 'viem/chains';
 import { SiweVerifier } from './siwe-verifier';
 
@@ -19,6 +19,11 @@ const mockVerifyMessage = vi.fn();
 vi.mock('../chains/clients', () => ({
   createEvmPublicClient: () => ({ verifyMessage: mockVerifyMessage }),
 }));
+
+vi.mock('viem/siwe', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('viem/siwe')>();
+  return { ...actual, parseSiweMessage: vi.fn(actual.parseSiweMessage) };
+});
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -70,6 +75,30 @@ describe('SiweVerifier', () => {
   it('rejects a malformed message string', async () => {
     const { verifier } = makeVerifier();
     await expect(verifier.verify('not a siwe message', '0xabc')).rejects.toThrow(BadRequestException);
+  });
+
+  it('throws with invalid SIWE message format message when parseSiweMessage throws', async () => {
+    vi.mocked(parseSiweMessage).mockImplementationOnce(() => {
+      throw new Error('viem parse error');
+    });
+    const { verifier } = makeVerifier();
+    await expect(verifier.verify('any string', '0xabc')).rejects.toThrow('invalid SIWE message format');
+  });
+
+  it('throws missing chainId when parsed message has no chainId', async () => {
+    // Build a raw EIP-4361-ish message that viem can parse (has address) but lacks Chain ID.
+    // parseSiweMessage does not throw on a missing chain ID — it just leaves chainId undefined.
+    const rawMessage = [
+      'localhost wants you to sign in with your Ethereum account:',
+      '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+      '',
+      'URI: http://localhost:3000',
+      'Version: 1',
+      'Nonce: abc123',
+      'Issued At: 2026-01-01T00:00:00.000Z',
+    ].join('\n');
+    const { verifier } = makeVerifier();
+    await expect(verifier.verify(rawMessage, '0xabc')).rejects.toThrow('SIWE message missing chainId');
   });
 
   it('rejects an unknown chainId', async () => {

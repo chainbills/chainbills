@@ -50,10 +50,10 @@ contract WithdrawalViewsPopulatedTest is PopulatedViewsBase {
   }
 
   function test_QuoteWithdrawal_ChecksPopulatedBalances() public view {
-    WithdrawalQuote memory quote = cb.quoteWithdrawal(p2, address(usdc), 81e6);
-    assertEq(quote.amount, 81e6);
-    assertEq(quote.fee, 0.81e6);
-    assertEq(quote.net, 80.19e6);
+    WithdrawalQuote memory quote = cb.quoteWithdrawal(p2, address(usdc), 80e6);
+    assertEq(quote.amount, 80e6);
+    assertEq(quote.fee, 0.8e6);
+    assertEq(quote.net, 79.2e6);
     quote = cb.quoteWithdrawal(p1, native, 1.5 ether);
     assertEq(quote.fee, 0.03 ether);
   }
@@ -72,7 +72,10 @@ contract WithdrawalViewsPopulatedTest is PopulatedViewsBase {
     assertEq(usdcFees, 3.2e6);
     assertEq(taxFees, 0.1e18);
     assertEq(feeCollector.balance, nativeFees);
-    assertEq(usdc.balanceOf(feeCollector), usdcFees);
+    // The fee collector also receives any CCTP fee surplus (Circle took less than the
+    // caller's maxFee); the P2 cross-chain payment routed 1 USDC to the collector.
+    uint256 cctpSurplus = 1e6;
+    assertEq(usdc.balanceOf(feeCollector), usdcFees + cctpSurplus);
     // The TAX fee transfer itself is taxed on the way out.
     assertEq(tax.balanceOf(feeCollector), taxFees - (taxFees * TAX_BPS) / 10_000);
   }

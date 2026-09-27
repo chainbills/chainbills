@@ -182,4 +182,18 @@ export class Activity {
   get isCrossChain(): boolean {
     return !!this.counterpartChain && this.counterpartChain.name !== this.chain.name;
   }
+
+  /** The originating chain for a payment: always the payer's chain regardless of which feed this appears in. */
+  get sourceChain(): Chain {
+    const e = this.entity;
+    if (e instanceof PayablePayment) return e.payerChain;
+    return this.chain;
+  }
+
+  /** The receiving chain for a payment: always the payable's chain regardless of which feed this appears in. */
+  get destinationChain(): Chain {
+    const e = this.entity;
+    if (e instanceof UserPayment) return e.payableChain;
+    return this.chain;
+  }
 }

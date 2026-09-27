@@ -1,11 +1,11 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Wallet key helper
 //
-// The "wallet key" (SPEC.md §7) is the universal identifier for a signer
-// across every module: `"evm:0x<lowercase>"` or `"solana:<base58>"`. One EVM
-// address is the same wallet on every EVM chain, so EVM wallet keys are
-// chain-agnostic; Solana addresses are namespaced separately since the two
-// address spaces can collide in theory (both are just byte strings).
+// The "wallet key" is the universal identifier for a signer across every
+// module: `"evm:0x<lowercase>"` or `"solana:<base58>"`. One EVM address is the
+// same wallet on every EVM chain, so EVM wallet keys are chain-agnostic;
+// Solana addresses are namespaced separately since the two address spaces can
+// collide in theory (both are just byte strings).
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { isAddress } from 'viem';

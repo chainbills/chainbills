@@ -89,6 +89,7 @@ CREATE TABLE "user_payments" (
     "token" TEXT NOT NULL,
     "requested_amount" DECIMAL(78,0) NOT NULL,
     "amount" DECIMAL(78,0) NOT NULL,
+    "tx_hash" TEXT,
     "timestamp" TIMESTAMP(3) NOT NULL,
     "indexed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -110,6 +111,7 @@ CREATE TABLE "payable_payments" (
     "token" TEXT NOT NULL,
     "requested_amount" DECIMAL(78,0) NOT NULL,
     "amount" DECIMAL(78,0) NOT NULL,
+    "tx_hash" TEXT,
     "timestamp" TIMESTAMP(3) NOT NULL,
     "indexed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -129,6 +131,7 @@ CREATE TABLE "withdrawals" (
     "token" TEXT NOT NULL,
     "amount" DECIMAL(78,0) NOT NULL,
     "fee" DECIMAL(78,0) NOT NULL,
+    "tx_hash" TEXT,
     "timestamp" TIMESTAMP(3) NOT NULL,
     "indexed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -144,6 +147,7 @@ CREATE TABLE "activities" (
     "payable_count" BIGINT NOT NULL,
     "entity" TEXT NOT NULL,
     "type" "activity_type" NOT NULL,
+    "tx_hash" TEXT,
     "timestamp" TIMESTAMP(3) NOT NULL,
     "indexed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -167,6 +171,7 @@ CREATE TABLE "relay_jobs" (
     "vaa" TEXT,
     "cctp_message" TEXT,
     "cctp_attestation" TEXT,
+    "dest_tx_hash" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "last_attempt_at" TIMESTAMP(3),
     "completed_at" TIMESTAMP(3),

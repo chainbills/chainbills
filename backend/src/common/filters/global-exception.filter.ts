@@ -1,10 +1,10 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Global exception filter
 //
-// Every error response has the same shape: { statusCode, error, message }
-// (SPEC.md §12.1). Anything that is not a Nest HttpException is logged with
-// full detail server-side and reported to the client as a bare 500 — never
-// leaking a stack trace, a secret or an internal message (WORKER_RULES.md §3).
+// Every error response has the same shape: { statusCode, error, message }.
+// Anything that is not a Nest HttpException is logged with full detail
+// server-side and reported to the client as a bare 500 — never leaking a
+// stack trace, a secret or an internal message.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, Logger } from '@nestjs/common';

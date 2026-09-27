@@ -48,18 +48,24 @@ contract CbQuoteViewsFacet is CbFacetBase, ICbQuoteViews {
 
   /// @inheritdoc ICbQuoteViews
   function canPay(bytes32 payableId, address token, uint256 amount) external view returns (bool, bytes4) {
-    bytes4 pauseFailure = _pauseFailure(FEATURE_PAY);
-    if (pauseFailure != bytes4(0)) return (false, pauseFailure);
+    // pauseFailure and config scoped to free them before the allowed[] keccak computation,
+    // keeping simultaneous locals at 8 or fewer at the layout() call site.
+    {
+      bytes4 pauseFailure = _pauseFailure(FEATURE_PAY);
+      if (pauseFailure != bytes4(0)) return (false, pauseFailure);
+    }
 
     if (token == address(0)) return (false, InvalidTokenAddress.selector);
-    TokenConfig storage config = LibTokenRegistryStorage.layout().configs[token];
-    if (!config.isSupported) return (false, UnsupportedToken.selector);
-    if (amount == 0) return (false, ZeroAmountSpecified.selector);
-    if (config.limits.hasMinPaymentAmount && amount < config.limits.minPaymentAmount) {
-      return (false, PaymentBelowMinimum.selector);
-    }
-    if (config.limits.hasMaxPaymentAmount && amount > config.limits.maxPaymentAmount) {
-      return (false, PaymentAboveMaximum.selector);
+    {
+      TokenConfig storage config = LibTokenRegistryStorage.layout().configs[token];
+      if (!config.isSupported) return (false, UnsupportedToken.selector);
+      if (amount == 0) return (false, ZeroAmountSpecified.selector);
+      if (config.limits.hasMinPaymentAmount && amount < config.limits.minPaymentAmount) {
+        return (false, PaymentBelowMinimum.selector);
+      }
+      if (config.limits.hasMaxPaymentAmount && amount > config.limits.maxPaymentAmount) {
+        return (false, PaymentAboveMaximum.selector);
+      }
     }
 
     Payable storage payable_ = LibPayableStorage.layout().payables[payableId];
@@ -80,21 +86,29 @@ contract CbQuoteViewsFacet is CbFacetBase, ICbQuoteViews {
     view
     returns (bool, bytes4)
   {
-    bytes4 pauseFailure = _pauseFailure(FEATURE_PAY_FOREIGN);
-    if (pauseFailure != bytes4(0)) return (false, pauseFailure);
+    // Outer: payableId, token, amount, maxFee, (bool ret), (bytes4 ret), tokens, foreignPayable = 8.
+    // Every other local (pauseFailure, config, chain, foreignToken) is scoped so it is freed before
+    // the LibForeignPayableStorage.layout().allowedTokensAndAmounts[payableId] keccak computation,
+    // keeping the peak stack depth within the 16-item limit when the optimizer is disabled.
+    {
+      bytes4 pauseFailure = _pauseFailure(FEATURE_PAY_FOREIGN);
+      if (pauseFailure != bytes4(0)) return (false, pauseFailure);
+    }
     if (!LibRelayGuard.isCctpActive()) return (false, CctpNotEnabled.selector);
     if (token == address(this)) return (false, NativeTokenNotBridgeable.selector);
     if (token == address(0)) return (false, InvalidTokenAddress.selector);
 
     LibTokenRegistryStorage.Layout storage tokens = LibTokenRegistryStorage.layout();
-    TokenConfig storage config = tokens.configs[token];
-    if (!config.isSupported) return (false, UnsupportedToken.selector);
-    if (amount == 0) return (false, ZeroAmountSpecified.selector);
-    if (config.limits.hasMinPaymentAmount && amount < config.limits.minPaymentAmount) {
-      return (false, PaymentBelowMinimum.selector);
-    }
-    if (config.limits.hasMaxPaymentAmount && amount > config.limits.maxPaymentAmount) {
-      return (false, PaymentAboveMaximum.selector);
+    {
+      TokenConfig storage config = tokens.configs[token];
+      if (!config.isSupported) return (false, UnsupportedToken.selector);
+      if (amount == 0) return (false, ZeroAmountSpecified.selector);
+      if (config.limits.hasMinPaymentAmount && amount < config.limits.minPaymentAmount) {
+        return (false, PaymentBelowMinimum.selector);
+      }
+      if (config.limits.hasMaxPaymentAmount && amount > config.limits.maxPaymentAmount) {
+        return (false, PaymentAboveMaximum.selector);
+      }
     }
     if (amount > type(uint64).max) return (false, AmountExceedsCrossChainLimit.selector);
 
@@ -102,18 +116,21 @@ contract CbQuoteViewsFacet is CbFacetBase, ICbQuoteViews {
     if (foreignPayable.chainId == bytes32(0)) return (false, InvalidPayableId.selector);
     if (foreignPayable.isClosed) return (false, PayableIsClosed.selector);
 
-    ForeignChain storage chain = LibChainRegistryStorage.layout().chains[foreignPayable.chainId];
-    if (!chain.isRegistered) return (false, ForeignChainNotRegistered.selector);
-    if (!chain.config.switches.isOutboundPaymentEnabled) return (false, OutboundPaymentsDisabled.selector);
-    if (!chain.config.protocolIds.hasCircleDomain) return (false, ForeignChainHasNoCircleDomain.selector);
-
-    if (chain.config.limits.hasMaxOutboundCctpFeeBps) {
-      uint256 limit = (amount * chain.config.limits.maxOutboundCctpFeeBps) / MAX_BPS;
-      if (maxFee > limit) return (false, CctpMaxFeeTooHigh.selector);
+    {
+      ForeignChain storage chain = LibChainRegistryStorage.layout().chains[foreignPayable.chainId];
+      if (!chain.isRegistered) return (false, ForeignChainNotRegistered.selector);
+      if (!chain.config.switches.isOutboundPaymentEnabled) return (false, OutboundPaymentsDisabled.selector);
+      if (!chain.config.protocolIds.hasCircleDomain) return (false, ForeignChainHasNoCircleDomain.selector);
+      if (chain.config.limits.hasMaxOutboundCctpFeeBps) {
+        uint256 limit = (amount * chain.config.limits.maxOutboundCctpFeeBps) / MAX_BPS;
+        if (maxFee > limit) return (false, CctpMaxFeeTooHigh.selector);
+      }
     }
 
-    bytes32 foreignToken = tokens.foreignTokenByLocalToken[token][foreignPayable.chainId];
-    if (foreignToken == bytes32(0)) return (false, MatchingTokenNotFound.selector);
+    {
+      bytes32 foreignToken = tokens.foreignTokenByLocalToken[token][foreignPayable.chainId];
+      if (foreignToken == bytes32(0)) return (false, MatchingTokenNotFound.selector);
+    }
 
     if (foreignPayable.allowedTokensAndAmountsCount != 0) {
       TokenAndAmountForeign[] storage allowed = LibForeignPayableStorage.layout().allowedTokensAndAmounts[payableId];

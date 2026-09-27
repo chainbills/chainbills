@@ -27,6 +27,7 @@ import {
 } from '@/schemas';
 import {
   errorMsg,
+  isCctpChain,
   useAnalyticsStore,
   useAuthStore,
   useCacheStore,
@@ -80,6 +81,8 @@ export const usePayableStore = defineStore('payable', () => {
   const cacheKey = (chainName: string, id: string, entity: string, count: number) =>
     `${chainName}::payable::${id}::${entity}::${count}`;
   const chainCacheKey = (id: string) => `payable::${id}::chain`;
+  /** Client-side stash for a payable's description so the payable page can show it right after `create()` — the backend GET returns 404 until its on-chain event indexer catches up, which trails the tx by a few seconds. */
+  const descriptionCacheKey = (id: string) => `payable::${id}::description`;
 
   const toastError = (detail: string) => toast.add({ severity: 'error', summary: 'Error', detail, life: 12000 });
 
@@ -193,6 +196,7 @@ export const usePayableStore = defineStore('payable', () => {
       return null;
     }
     flow.step('prepare').done();
+    if (isCctpChain(result.chain.name)) server.nudgeRelay(result.chain.name, result.txHash);
     return await finishCreate(result, description, flow, chain);
   };
 
@@ -204,9 +208,11 @@ export const usePayableStore = defineStore('payable', () => {
   ): Promise<string> => {
     const descStep = flow?.step('description');
     descStep?.activate();
-    const saved = await server.saveDescription(result.created, description);
-    if (saved) descStep?.done();
-    else descStep?.fail('Description can be added later from the payable page');
+    const saved = await server.saveDescription(result.created, description, result.chain.name);
+    if (saved) {
+      await cache.save(descriptionCacheKey(result.created), description);
+      descStep?.done();
+    } else descStep?.fail('Description can be added later from the payable page');
 
     await auth.refreshUser();
     toast.add({
@@ -255,8 +261,17 @@ export const usePayableStore = defineStore('payable', () => {
       }
 
       // The description is off-chain decoration only — a failed/empty fetch never blocks the rest of the page.
+      // The backend returns 404 until its indexer picks up the on-chain create event; fall back to the client-side
+      // stash `create()`/`updateDescription()` wrote, and refresh it once the backend catches up.
       const dbData = await server.getPayable(id, true);
-      return new Payable(id, chain, dbData?.description ?? '', raw);
+      let description = dbData?.description ?? '';
+      if (description) {
+        await cache.save(descriptionCacheKey(id), description);
+      } else {
+        const cached = await cache.retrieve(descriptionCacheKey(id));
+        if (typeof cached === 'string') description = cached;
+      }
+      return new Payable(id, chain, description, raw);
     } catch (e) {
       console.error(e);
       if (!ignoreErrors) toastError(errorMsg(e));
@@ -341,7 +356,6 @@ export const usePayableStore = defineStore('payable', () => {
     }
 
     syncStep.activate(`Broadcasting to ${targets.length} other chain${targets.length > 1 ? 's' : ''}…`);
-    flow.moveToBackground();
     const pending = new Set(targets);
 
     usePoller(
@@ -399,6 +413,7 @@ export const usePayableStore = defineStore('payable', () => {
       return outcomeFor(flow);
     }
     flow.step('prepare').done();
+    if (isCctpChain(result.chain.name)) server.nudgeRelay(result.chain.name, result.txHash);
 
     scheduleSync(flow, payable.chain, payable.id, result.broadcastNonce);
     const refreshed = await get(payable.id, true);
@@ -434,6 +449,7 @@ export const usePayableStore = defineStore('payable', () => {
       return outcomeFor(flow);
     }
     flow.step('prepare').done();
+    if (isCctpChain(result.chain.name)) server.nudgeRelay(result.chain.name, result.txHash);
 
     scheduleSync(flow, payable.chain, payable.id, result.broadcastNonce);
     const refreshed = await get(payable.id, true);
@@ -470,6 +486,7 @@ export const usePayableStore = defineStore('payable', () => {
       return outcomeFor(flow);
     }
     flow.step('prepare').done();
+    if (isCctpChain(result.chain.name)) server.nudgeRelay(result.chain.name, result.txHash);
 
     scheduleSync(flow, payable.chain, payable.id, result.broadcastNonce);
     const refreshed = await get(payable.id, true);
@@ -521,11 +538,12 @@ export const usePayableStore = defineStore('payable', () => {
       { key: 'save', title: 'Save description', description: 'Saving…' },
     ]);
     flow.step('save').activate();
-    const saved = await server.saveDescription(payable.id, description);
+    const saved = await server.saveDescription(payable.id, description, payable.chain.name);
     if (!saved) {
       flow.step('save').fail('Could not save the description.');
       return { ok: false, error: 'failed', message: 'Could not save the description.' };
     }
+    await cache.save(descriptionCacheKey(payable.id), description);
     flow.step('save').done();
     flow.finish({ payableId: payable.id });
     analytics.recordEvent('updated_payable_description', { payable_id: payable.id });

@@ -289,4 +289,167 @@ describe('detectSolanaRelayTriggers', () => {
       expect(createMany).not.toHaveBeenCalled();
     });
   });
+
+  describe('missing chain capabilities', () => {
+    it('skips Wormhole processing when chain has no wormholeChainId', async () => {
+      const chainNoWormhole: typeof SOLANA_CHAIN = { ...SOLANA_CHAIN, wormholeChainId: undefined as any };
+      const prisma = makePrisma({ wormholeRelayed: 0n });
+      const chains = makeChains([chainNoWormhole, EVM_TESTNET]);
+      const connection = makeConnection();
+      const stats = makeStats({ published_wormhole_messages: 3n });
+
+      await detectSolanaRelayTriggers(chainNoWormhole, chains, prisma as any, connection as any, {} as any, stats);
+
+      const createMany = (prisma as any).relayJob.createMany;
+      expect(createMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ data: [expect.objectContaining({ type: 'SOLANA_PAYABLE_UPDATE_VIA_WORMHOLE' })] })
+      );
+    });
+
+    it('skips CCTP processing when chain has no circleDomain', async () => {
+      const chainNoCctp: typeof SOLANA_CHAIN = { ...SOLANA_CHAIN, circleDomain: undefined as any };
+      const prisma = makePrisma({ cctpPaymentsRelayed: 0n, cctpPayableUpdatesRelayed: 0n });
+      const chains = makeChains([chainNoCctp, EVM_TESTNET]);
+      const connection = makeConnection([{ signature: 'sig1', logMessages: ['Program log: UserPaid'] }]);
+      const stats = makeStats({ emitted_cctp_payment_messages: 1n, emitted_cctp_update_messages: 1n });
+
+      await detectSolanaRelayTriggers(chainNoCctp, chains, prisma as any, connection as any, {} as any, stats);
+
+      const createMany = (prisma as any).relayJob.createMany;
+      expect(createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cursor row missing from DB', () => {
+    it('defaults all cursors to 0n when findUnique returns null', async () => {
+      const prisma = {
+        chainCursor: {
+          findUnique: vi.fn().mockResolvedValue(null),
+          update: vi.fn().mockResolvedValue({}),
+        },
+        relayJob: {
+          createMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+      } as unknown as PrismaService;
+      const chains = makeChains([SOLANA_CHAIN, EVM_TESTNET]);
+      const connection = makeConnection();
+      const stats = makeStats({ published_wormhole_messages: 1n });
+
+      await detectSolanaRelayTriggers(SOLANA_CHAIN, chains, prisma as any, connection as any, {} as any, stats);
+
+      const createMany = (prisma as any).relayJob.createMany;
+      expect(createMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('getParsedTransaction returns null', () => {
+    it('skips signatures where getParsedTransaction returns null', async () => {
+      const prisma = makePrisma({ cctpPaymentsRelayed: 0n });
+      const chains = makeChains([SOLANA_CHAIN, EVM_TESTNET]);
+      // Provide a sig but no logMessages — makeConnection returns null for those
+      const connection = makeConnection([{ signature: 'sig-null' }]);
+      const stats = makeStats({ emitted_cctp_payment_messages: 1n });
+
+      await detectSolanaRelayTriggers(SOLANA_CHAIN, chains, prisma as any, connection as any, {} as any, stats);
+
+      const createMany = (prisma as any).relayJob.createMany;
+      expect(createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('CCTP keyword variants', () => {
+    it('creates payment job when log contains pay_foreign_via_cctp keyword', async () => {
+      const prisma = makePrisma({ cctpPaymentsRelayed: 0n });
+      const chains = makeChains([SOLANA_CHAIN, EVM_TESTNET]);
+      const connection = makeConnection([
+        { signature: 'sig-pay-cctp', logMessages: ['Program log: Instruction: pay_foreign_via_cctp'] },
+      ]);
+      const stats = makeStats({ emitted_cctp_payment_messages: 1n });
+
+      await detectSolanaRelayTriggers(SOLANA_CHAIN, chains, prisma as any, connection as any, {} as any, stats);
+
+      const createMany = (prisma as any).relayJob.createMany;
+      const jobs = createMany.mock.calls.filter((c: any) => c[0].data[0]?.type === 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE');
+      expect(jobs.length).toBeGreaterThan(0);
+    });
+
+    it('creates update job when log contains broadcast_payable_update keyword', async () => {
+      const prisma = makePrisma({ cctpPayableUpdatesRelayed: 0n });
+      const chains = makeChains([SOLANA_CHAIN, EVM_TESTNET]);
+      const connection = makeConnection([
+        { signature: 'sig-broadcast', logMessages: ['Program log: Instruction: broadcast_payable_update'] },
+      ]);
+      const stats = makeStats({ emitted_cctp_update_messages: 1n });
+
+      await detectSolanaRelayTriggers(SOLANA_CHAIN, chains, prisma as any, connection as any, {} as any, stats);
+
+      const createMany = (prisma as any).relayJob.createMany;
+      expect(createMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('CCTP cursor advance when found >= emitted', () => {
+    it('advances cctpPaymentsRelayed cursor when found count meets emitted count', async () => {
+      const prisma = makePrisma({ cctpPaymentsRelayed: 0n });
+      const chains = makeChains([SOLANA_CHAIN, EVM_TESTNET]);
+      // 1 matching tx = found=1 >= emitted=1
+      const connection = makeConnection([
+        { signature: 'sig-pay', logMessages: ['Program log: UserPaid'] },
+      ]);
+      const stats = makeStats({ emitted_cctp_payment_messages: 1n });
+
+      await detectSolanaRelayTriggers(SOLANA_CHAIN, chains, prisma as any, connection as any, {} as any, stats);
+
+      expect((prisma as any).chainCursor.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ cctpPaymentsRelayed: 1n }) })
+      );
+    });
+
+    it('advances cctpPayableUpdatesRelayed cursor when found count meets emitted count', async () => {
+      const prisma = makePrisma({ cctpPayableUpdatesRelayed: 0n });
+      const chains = makeChains([SOLANA_CHAIN, EVM_TESTNET]);
+      const connection = makeConnection([
+        { signature: 'sig-upd', logMessages: ['Program log: PayableUpdateBroadcasted'] },
+      ]);
+      const stats = makeStats({ emitted_cctp_update_messages: 1n });
+
+      await detectSolanaRelayTriggers(SOLANA_CHAIN, chains, prisma as any, connection as any, {} as any, stats);
+
+      expect((prisma as any).chainCursor.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ cctpPayableUpdatesRelayed: 1n }) })
+      );
+    });
+  });
+
+  describe('dest chain capability filters', () => {
+    it('skips Wormhole dest chain that has no wormholeChainId', async () => {
+      const destNoWormhole: typeof EVM_TESTNET = { ...EVM_TESTNET, wormholeChainId: undefined as any };
+      const prisma = makePrisma({ wormholeRelayed: 0n });
+      const chains = makeChains([SOLANA_CHAIN, destNoWormhole]);
+      const connection = makeConnection();
+      const stats = makeStats({ published_wormhole_messages: 1n });
+
+      await detectSolanaRelayTriggers(SOLANA_CHAIN, chains, prisma as any, connection as any, {} as any, stats);
+
+      const createMany = (prisma as any).relayJob.createMany;
+      expect(createMany).not.toHaveBeenCalled();
+    });
+
+    it('skips CCTP payment dest chain that has no circleDomain', async () => {
+      const destNoCctp: typeof EVM_TESTNET = { ...EVM_TESTNET, circleDomain: undefined as any };
+      const prisma = makePrisma({ cctpPaymentsRelayed: 0n });
+      const chains = makeChains([SOLANA_CHAIN, destNoCctp]);
+      const connection = makeConnection([
+        { signature: 'sig-nodest', logMessages: ['Program log: UserPaid'] },
+      ]);
+      const stats = makeStats({ emitted_cctp_payment_messages: 1n });
+
+      await detectSolanaRelayTriggers(SOLANA_CHAIN, chains, prisma as any, connection as any, {} as any, stats);
+
+      const createMany = (prisma as any).relayJob.createMany;
+      expect(createMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ data: [expect.objectContaining({ type: 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE' })] })
+      );
+    });
+  });
 });

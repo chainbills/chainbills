@@ -374,6 +374,8 @@ abstract contract PopulatedViewsBase is CbTestBase {
     unrelayedBurnNonceA = _cctpNonce(chainA.transmitter.sent(9));
 
     // foreignPayer pays P2 50 USDC from B offering 2; Circle keeps 1 so 51 USDC are minted to A.
+    // The facet credits P2 with the invoiced 50 USDC and routes the 1 USDC surplus to
+    // the fee collector.
     _tick();
     vm.prank(foreignPayer);
     bUserPaymentId = chainB.cb.payForeignViaCctp(p2, address(chainB.usdc), 50e6, 2e6);
@@ -384,7 +386,7 @@ abstract contract PopulatedViewsBase is CbTestBase {
     vm.prank(relayer);
     id = cb.receiveForeignPaymentViaCctp(message, attestation);
     _logPayablePayment(
-      id, p2, _toBytes32(foreignPayer), address(usdc), 8, chainB.cbChainId, 1, 3, 50e6, 51e6, bUserPaymentId
+      id, p2, _toBytes32(foreignPayer), address(usdc), 8, chainB.cbChainId, 1, 3, 50e6, 50e6, bUserPaymentId
     );
     _logActivity(ActivityType.PayableReceived, id, address(0), 0, p2, 7); // activity 38
   }
@@ -599,7 +601,7 @@ abstract contract PopulatedViewsBase is CbTestBase {
       v.allowedTokensAndAmounts = _p2Allowed();
       v.balances = new TokenAndAmount[](2);
       v.balances[0] = _tokenAmount(native, 1 ether);
-      v.balances[1] = _tokenAmount(address(usdc), 81e6);
+      v.balances[1] = _tokenAmount(address(usdc), 80e6);
     } else if (id == p3) {
       v.info = _payableInfo(host2, 3, 1, createdAt[p3], 2, 2, 5, 0, 2, false, true);
       v.allowedTokensAndAmounts = new TokenAndAmount[](0);

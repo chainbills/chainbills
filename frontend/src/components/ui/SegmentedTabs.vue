@@ -14,7 +14,7 @@
  * <SegmentedTabs v-model="view" :options="[{ label: 'Payments', value: 'payments', count: 4 }, ...]" />
  * ```
  */
-import { ref } from 'vue';
+import { nextTick, onMounted, ref, watch } from 'vue';
 
 export interface SegmentedTabOption {
   /** Visible label. */
@@ -65,14 +65,49 @@ const onKeydown = (event: KeyboardEvent) => {
   } else return;
   event.preventDefault();
 };
+
+// --- Sliding pill indicator ---
+const pillLeft = ref(0);
+const pillWidth = ref(0);
+const pillReady = ref(false);
+
+const updatePill = () => {
+  const idx = props.options.findIndex((o) => o.value === props.modelValue);
+  const el = tabRefs.value[idx];
+  if (!el) return;
+  pillLeft.value = el.offsetLeft;
+  pillWidth.value = el.offsetWidth;
+  pillReady.value = true;
+};
+
+onMounted(updatePill);
+watch(
+  () => props.modelValue,
+  async () => {
+    await nextTick();
+    updatePill();
+  }
+);
 </script>
 
 <template>
   <div
     role="tablist"
-    class="inline-flex rounded-full border border-glass-border bg-bg/30 p-1 gap-0.5"
+    class="relative inline-flex rounded-full border border-glass-border bg-bg/30 p-1 gap-0.5"
     @keydown="onKeydown"
   >
+    <!-- Sliding background pill -->
+    <span
+      v-if="pillReady"
+      aria-hidden="true"
+      class="absolute top-1 bottom-1 rounded-full bg-fg pointer-events-none"
+      :style="{
+        left: `${pillLeft}px`,
+        width: `${pillWidth}px`,
+        transition: 'left 0.18s cubic-bezier(0.4,0,0.2,1), width 0.18s cubic-bezier(0.4,0,0.2,1)',
+      }"
+    />
+
     <button
       v-for="(option, index) in options"
       :key="option.value"
@@ -83,8 +118,8 @@ const onKeydown = (event: KeyboardEvent) => {
       :tabindex="modelValue === option.value ? 0 : -1"
       @click="select(option.value)"
       :class="[
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium transition-colors',
-        modelValue === option.value ? 'bg-fg text-bg' : 'text-muted hover:text-fg',
+        'relative inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium transition-colors duration-200',
+        modelValue === option.value ? 'text-bg' : 'text-muted hover:text-fg',
       ]"
     >
       {{ option.label }}

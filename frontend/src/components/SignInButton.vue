@@ -245,12 +245,6 @@ onMounted(() => {
     }
   );
 
-  watch(
-    () => account.chain?.value,
-    (v) => {
-      if (v && route.name == 'payable') router.push('/dashboard');
-    }
-  );
 });
 </script>
 

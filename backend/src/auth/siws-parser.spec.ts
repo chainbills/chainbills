@@ -204,6 +204,27 @@ Issued At: 2024-01-01T00:00:00.000Z`;
     });
   });
 
+  describe('resources section edge cases', () => {
+    it('stops collecting resources when a non-blank non-URI line appears, treating it as a tagged field', () => {
+      const raw = `localhost wants you to sign in with your Solana account:
+11111111111111111111111111111111
+
+URI: https://localhost
+Version: 1
+Chain ID: devnet
+Nonce: abc12345
+Issued At: 2024-01-01T00:00:00.000Z
+Resources:
+- https://localhost/resource1
+not-a-resource-line
+Issued At: 2024-01-01T00:00:00.000Z`;
+      const msg = parseSiwsMessage(raw);
+      expect(msg.resources).toEqual(['https://localhost/resource1']);
+      // The non-URI line causes inResources to flip back; the parser should not throw.
+      expect(msg.issuedAt).toBe('2024-01-01T00:00:00.000Z');
+    });
+  });
+
   describe('edge cases', () => {
     it('handles CRLF line endings', () => {
       const crlf = MINIMAL_MESSAGE.replace(/\n/g, '\r\n');

@@ -23,12 +23,12 @@ withDefaults(
 );
 
 const toneClasses: Record<string, string> = {
-  success: 'text-success bg-success/15 ring-success/30',
-  warning: 'text-warning bg-warning/15 ring-warning/30',
-  danger: 'text-danger bg-danger/15 ring-danger/30',
-  info: 'text-info bg-info/15 ring-info/30',
-  neutral: 'text-muted bg-fg/5 ring-fg/10',
-  accent: 'text-accent bg-accent/15 ring-accent/30',
+  success: 'text-success bg-success/15 ring-success',
+  warning: 'text-warning bg-warning/15 ring-warning',
+  danger: 'text-danger bg-danger/15 ring-danger',
+  info: 'text-info bg-info/15 ring-info',
+  neutral: 'text-muted bg-fg/5 ring-muted',
+  accent: 'text-accent bg-accent/15 ring-accent',
 };
 
 const dotClasses: Record<string, string> = {

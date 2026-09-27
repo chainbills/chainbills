@@ -1,8 +1,8 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Health module
 //
-// Registered for every role (SPEC.md §2.1) — imported unconditionally by
-// AppModule, unlike WorkerModule/ApiModule.
+// Registered for every role — imported unconditionally by AppModule, unlike
+// WorkerModule/ApiModule.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module } from '@nestjs/common';

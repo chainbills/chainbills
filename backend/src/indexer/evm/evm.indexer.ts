@@ -19,7 +19,7 @@
 //   - One prisma.$transaction per activity: entity upserts + Activity row +
 //     optional Outbox rows + cursor increment.
 //   - Stop on first failure — cursor does not advance past a failed activity.
-//   - Page size is capped at 50 (SPEC §8.2).
+//   - Page size is capped at 50.
 //   - getPayableViewsBulk / getUserPaymentsBulk / getPayablePaymentsBulk /
 //     getWithdrawalsBulk are used when a page has several entities of one kind.
 //   - lastTickAt is updated at the end of every tick regardless of whether
@@ -276,6 +276,15 @@ export class EvmIndexer {
     const timestamp = new Date(Number(rec.timestamp) * 1000);
     const maxEventAgeMs = this.config.env.emailMaxEventAgeMs;
 
+    // Resolve a tx hash for this activity, if we already know it from the
+    // frontend nudge (RelayTxHint, source-chain side of a cross-chain relay)
+    // or from the relay processor's own submission (RelayJob.destTxHash,
+    // destination-chain side). Falls back to null when neither applies (e.g.
+    // same-chain payments — the frontend doesn't nudge those yet). May be
+    // overridden inside `case 3` (PayableReceived) with a destination-side
+    // hash that needs `payerPaymentId` from the on-chain read to look up.
+    let txHash = await this.resolveActivityTxHash(tx, chain, rec);
+
     {
       switch (rec.activityType) {
         case 0: // InitializedUser
@@ -329,11 +338,15 @@ export class EvmIndexer {
               token: payment.token.toString().toLowerCase(),
               requestedAmount: payment.requestedAmount.toString(),
               amount: payment.amount.toString(),
+              txHash,
               timestamp,
             },
+            // On update, only fill txHash when it's now known and wasn't set
+            // before — never overwrite a value the indexer already recorded.
             update: {
               requestedAmount: payment.requestedAmount.toString(),
               amount: payment.amount.toString(),
+              ...(txHash ? { txHash } : {}),
             },
           });
 
@@ -368,6 +381,25 @@ export class EvmIndexer {
           const payerAddr = normalisePayerBytes32(pp.payer as string, payerChainEntry);
           const payerKey = payerWalletKey(payerAddr, payerChainEntry);
 
+          // Destination-chain tx hash: for cross-chain arrivals the relayer's
+          // RelayJob has this stored as destTxHash. Match by the payer-side
+          // payment id (payerPaymentId is unique across relays) — the job
+          // targets this chain and was completed just before this event fired.
+          const destJob = await tx.relayJob.findFirst({
+            where: {
+              type: { in: ['PAYMENT_VIA_CCTP', 'SOLANA_PAYMENT_VIA_CCTP_WORMHOLE'] },
+              userPaymentId: pp.payerPaymentId as string,
+              destChainId: chain.cbChainId,
+              destTxHash: { not: null },
+            },
+            orderBy: { completedAt: 'desc' },
+            select: { destTxHash: true },
+          });
+          const pptxHash = destJob?.destTxHash ?? txHash;
+          // Propagate the resolved destination-side hash so the Activity row
+          // written below carries the same value as the payable-payment row.
+          if (pptxHash) txHash = pptxHash;
+
           await tx.payablePayment.upsert({
             where: { id: rec.entity as string },
             create: {
@@ -384,11 +416,13 @@ export class EvmIndexer {
               token: pp.token.toString().toLowerCase(),
               requestedAmount: pp.requestedAmount.toString(),
               amount: pp.amount.toString(),
+              txHash: pptxHash,
               timestamp,
             },
             update: {
               requestedAmount: pp.requestedAmount.toString(),
               amount: pp.amount.toString(),
+              ...(pptxHash ? { txHash: pptxHash } : {}),
             },
           });
 
@@ -447,11 +481,13 @@ export class EvmIndexer {
               token: wd.token.toString().toLowerCase(),
               amount: wd.amount.toString(),
               fee: wd.fee.toString(),
+              txHash,
               timestamp,
             },
             update: {
               amount: wd.amount.toString(),
               fee: wd.fee.toString(),
+              ...(txHash ? { txHash } : {}),
             },
           });
 
@@ -523,9 +559,11 @@ export class EvmIndexer {
           payableCount: BigInt(rec.payableCount),
           entity: rec.entity as string,
           type: actType,
+          txHash,
           timestamp,
         },
-        update: {},
+        // Fill txHash on update only if we finally know it — never overwrite.
+        update: txHash ? { txHash } : {},
       });
 
       // Advance cursor.
@@ -534,6 +572,68 @@ export class EvmIndexer {
         create: { chainId: chain.cbChainId, activitiesIndexed: BigInt(rec.chainCount) },
         update: { activitiesIndexed: BigInt(rec.chainCount) },
       });
+    }
+  }
+
+  /**
+   * Resolves the on-chain tx hash that emitted this activity, using data
+   * already persisted by earlier stages of the pipeline:
+   *
+   *  - Source-chain activities (UserPaid, CreatedPayable, ClosedPayable,
+   *    ReopenedPayable, UpdatedPayableAllowedTokensAndAmounts) — look up
+   *    the frontend nudge's `RelayTxHint` keyed on chain + entity id.
+   *  - Destination-chain activities (PayableReceived, and any Received*
+   *    counterparts) — look up the relay processor's own `RelayJob` for
+   *    the destination and read `destTxHash` set at submit time.
+   *  - Every other activity (InitializedUser, Withdrew,
+   *    UpdatedPayableAutoWithdrawStatus, same-chain payments without a
+   *    nudge) — no source yet; returns null. `tx_hash` stays null and the
+   *    frontend hides the explorer link. Extending the nudge to
+   *    universal-hint would populate these.
+   */
+  private async resolveActivityTxHash(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tx: any,
+    chain: EvmChainConfig,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec: any
+  ): Promise<string | null> {
+    const entityId = rec.entity as string;
+    try {
+      switch (rec.activityType) {
+        case 2: {
+          // UserPaid — source-chain receipt. Nudge stores `userPaymentId` on the hint.
+          const hint = await tx.relayTxHint.findFirst({
+            where: { chainId: chain.cbChainId, userPaymentId: entityId },
+            orderBy: { receivedAt: 'desc' },
+            select: { txHash: true },
+          });
+          return hint?.txHash ?? null;
+        }
+        case 3:
+          // PayableReceived — handled inline inside case 3 of the caller (needs
+          // `payerPaymentId` from the on-chain read, which the caller has and
+          // this generic helper doesn't).
+          return null;
+        case 1:
+        case 5:
+        case 6:
+        case 7: {
+          // CreatedPayable / ClosedPayable / ReopenedPayable / UpdatedPayableAllowedTokensAndAmounts —
+          // the nudge stores `payableId` on the hint for the broadcasting side of a payable update.
+          const hint = await tx.relayTxHint.findFirst({
+            where: { chainId: chain.cbChainId, payableId: entityId },
+            orderBy: { receivedAt: 'desc' },
+            select: { txHash: true },
+          });
+          return hint?.txHash ?? null;
+        }
+        default:
+          return null;
+      }
+    } catch (err) {
+      this.logger.warn({ err, entityId, activityType: rec.activityType }, 'txHash lookup failed');
+      return null;
     }
   }
 
@@ -577,29 +677,38 @@ export class EvmIndexer {
       },
     });
 
-    // Replace allowed tokens in full.
+    // Replace allowed tokens in full. The on-chain array may repeat a token,
+    // so fold duplicates into a single row keyed by (payableId, token).
     await tx.payableAllowedToken.deleteMany({ where: { payableId } });
+    const allowedByToken = new Map<string, bigint>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const ta of view.allowedTokensAndAmounts as any[]) {
+      const token = ta.token.toString().toLowerCase();
+      allowedByToken.set(
+        token,
+        (allowedByToken.get(token) ?? 0n) + BigInt(ta.amount.toString()),
+      );
+    }
+    for (const [token, amount] of allowedByToken) {
       await tx.payableAllowedToken.create({
-        data: {
-          payableId,
-          token: ta.token.toString().toLowerCase(),
-          amount: ta.amount.toString(),
-        },
+        data: { payableId, token, amount: amount.toString() },
       });
     }
 
-    // Replace balances in full.
+    // Replace balances in full. Same de-dup treatment as allowed tokens.
     await tx.payableBalance.deleteMany({ where: { payableId } });
+    const balanceByToken = new Map<string, bigint>();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const bal of view.balances as any[]) {
+      const token = bal.token.toString().toLowerCase();
+      balanceByToken.set(
+        token,
+        (balanceByToken.get(token) ?? 0n) + BigInt(bal.amount.toString()),
+      );
+    }
+    for (const [token, amount] of balanceByToken) {
       await tx.payableBalance.create({
-        data: {
-          payableId,
-          token: bal.token.toString().toLowerCase(),
-          amount: bal.amount.toString(),
-        },
+        data: { payableId, token, amount: amount.toString() },
       });
     }
   }

@@ -34,6 +34,7 @@ import type { EvmChainConfig } from '../chains/types';
 import type { ChainsService } from '../chains/chains.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { sameNetwork } from '../chains/registry';
+import { cctpPayableUpdateJobKey, cctpPaymentJobKey } from './cctp-job-key';
 import { createJob } from './job.store';
 
 const logger = new Logger('TriggerDetector');
@@ -292,7 +293,10 @@ async function queueCctpPayableUpdateJob(
     return;
   }
 
-  const syntheticKey = `cctp-msg-${emission.messageBodyHash}`;
+  // Key format is shared with the /relay/nudge endpoint via `cctp-job-key.ts`
+  // so a nudge-triggered job and the detector's own job dedupe on the unique
+  // constraint no matter which lands first.
+  const syntheticKey = cctpPayableUpdateJobKey(chain.cbChainId, emission.payableId, emission.chainbillsNonce);
 
   const created = await createJob(prisma, {
     type: 'PAYABLE_UPDATE_VIA_CCTP',
@@ -407,7 +411,10 @@ async function queueCctpPaymentJob(
     return;
   }
 
-  const syntheticKey = `cctp-pay-${emission.hookDataHash}`;
+  // Key format is shared with the /relay/nudge endpoint via `cctp-job-key.ts`
+  // so a nudge-triggered job and the detector's own job dedupe on the unique
+  // constraint no matter which lands first.
+  const syntheticKey = cctpPaymentJobKey(chain.cbChainId, emission.userPaymentId);
 
   // `userPaymentId` is auto-extracted from eventData into the RelayJob column by createJob.
   const created = await createJob(prisma, {

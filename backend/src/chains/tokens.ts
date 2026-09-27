@@ -2,10 +2,10 @@
 // Chainbills Backend — Token registry and resolver
 //
 // Static registry of known tokens per chain. The native token is represented
-// by the chain's diamond address (SPEC.md §6.3). A token missing from the
-// static registry is resolved on demand via ERC-20 symbol()/decimals() and
-// cached in memory; failure logs an error and returns { symbol: 'UNKNOWN',
-// decimals: 0 } so unknown tokens never break indexing.
+// by the chain's diamond address. A token missing from the static registry is
+// resolved on demand via ERC-20 symbol()/decimals() and cached in memory;
+// failure logs an error and returns { symbol: 'UNKNOWN', decimals: 0 } so
+// unknown tokens never break indexing.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -46,10 +46,11 @@ export const TOKENS: readonly Token[] = [
   {
     name: 'USDC',
     details: {
-      // Arc's native gas token IS USDC (18 decimals). The `0x3600...` address is Arc's ERC-20
-      // interface for the same native balance. Same address on both Arc mainnet and testnet.
-      arcmainnet: { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 18 },
-      arctestnet: { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 18 },
+      // Arc's native gas token is USDC, exposed as a 6-decimal ERC-20 at 0x3600...
+      // Chainbills treats it the same as any other chain's USDC (same address on
+      // both Arc mainnet and testnet).
+      arcmainnet: { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 6 },
+      arctestnet: { address: '0x3600000000000000000000000000000000000000', symbol: 'USDC', decimals: 6 },
       base: { address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', symbol: 'USDC', decimals: 6 },
       basesepolia: { address: '0x036CbD53842c5426634e7929541eC2318f3dCF7e', symbol: 'USDC', decimals: 6 },
       solanadevnet: { address: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU', symbol: 'USDC', decimals: 6 },
@@ -57,7 +58,7 @@ export const TOKENS: readonly Token[] = [
   },
   {
     // Native ETH on Base — the "token address" for native tokens is always the diamond's
-    // own address on that chain (SPEC.md §6.3). Cross-chain payment of ETH is not supported
+    // own address on that chain. Cross-chain payment of ETH is not supported
     // — only USDC is bridgeable via CCTP — but same-chain ETH payments are.
     name: 'ETH',
     details: {

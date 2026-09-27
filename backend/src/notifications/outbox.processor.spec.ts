@@ -177,7 +177,7 @@ describe('OutboxProcessor — happy path', () => {
     for (const type of types) {
       const prisma = makePrisma();
       const processor = new OutboxProcessor(prisma as any, makeConfig() as any, makeMail() as any);
-      await (processor as any).processRow(makeRow({ type, payload: payloads[type] }));
+      await (processor as any).processRow(makeRow({ type, payload: payloads[type] as unknown as Outbox['payload'] }));
       const call = (prisma.outbox.update as any).mock.calls[0][0];
       expect(call.data.status).toBe('SENT');
     }

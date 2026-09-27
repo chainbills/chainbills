@@ -58,7 +58,7 @@ describe('submitReceivePayableUpdateViaWormhole', () => {
       walletClient as any,
       VAA_BYTES
     );
-    expect(result).toBeNull();
+    expect(result).toEqual({ txHash: '0xhash', errorName: null });
     expect(walletClient.writeContract).toHaveBeenCalled();
     expect(publicClient.waitForTransactionReceipt).toHaveBeenCalled();
   });
@@ -85,7 +85,7 @@ describe('submitReceivePayableUpdateViaCctp', () => {
       '0xmessage',
       '0xattestation'
     );
-    expect(result).toBeNull();
+    expect(result).toEqual({ txHash: '0xhash', errorName: null });
   });
 
   it('re-throws unknown errors', async () => {
@@ -111,7 +111,7 @@ describe('decodeCustomError path', () => {
       walletClient as any,
       VAA_BYTES
     );
-    expect(result).toBe('StalePayableUpdateNonce');
+    expect(result).toEqual({ txHash: null, errorName: 'StalePayableUpdateNonce' });
   });
 });
 
@@ -154,7 +154,7 @@ describe('submitReceiveForeignPaymentViaCctp', () => {
       '0xburnmsg',
       '0xatt'
     );
-    expect(result).toBeNull();
+    expect(result).toEqual({ txHash: '0xhash', errorName: null });
   });
 
   it('re-throws unknown errors', async () => {
@@ -162,5 +162,23 @@ describe('submitReceiveForeignPaymentViaCctp', () => {
     await expect(
       submitReceiveForeignPaymentViaCctp(CHAIN, publicClient as any, walletClient as any, '0xburnmsg', '0xatt')
     ).rejects.toThrow('tx failed');
+  });
+
+  it('returns the custom error name when simulation reverts with a decodable error', async () => {
+    const encoded = encodeErrorResult({
+      abi: chainbillsAbi,
+      errorName: 'StalePayableUpdateNonce',
+      args: [0n, 0n],
+    });
+    const viaError = { cause: { data: encoded } };
+    const { publicClient, walletClient } = makeClients({ simulateError: viaError });
+    const result = await submitReceiveForeignPaymentViaCctp(
+      CHAIN,
+      publicClient as any,
+      walletClient as any,
+      '0xburnmsg',
+      '0xatt'
+    );
+    expect(result).toEqual({ txHash: null, errorName: 'StalePayableUpdateNonce' });
   });
 });

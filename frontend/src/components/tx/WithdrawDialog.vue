@@ -16,9 +16,10 @@
  * <WithdrawDialog v-model:visible="showWithdraw" :payable="payable" :balance="selectedBalance" @withdrawn="onWithdrawn" />
  * ```
  */
-import { AddressChip } from '@/components/ui';
-import { contracts, parseTokenAmount, TokenAndAmount, type Payable } from '@/schemas';
-import { useAnalyticsStore, useEvmStore, useStatsStore, useWithdrawalStore } from '@/stores';
+import { AddressChip, ChainBadge } from '@/components/ui';
+import { chainNamesToChains, contracts, parseTokenAmount, TokenAndAmount, type Payable } from '@/schemas';
+import { useAnalyticsStore, useAuthStore, useEvmStore, useStatsStore, useWithdrawalStore } from '@/stores';
+import { useSwitchChain } from '@wagmi/vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import { computed, ref, watch } from 'vue';
@@ -41,10 +42,30 @@ const emit = defineEmits<{
 }>();
 
 const analytics = useAnalyticsStore();
+const auth = useAuthStore();
 const evm = useEvmStore();
 const stats = useStatsStore();
 const withdrawals = useWithdrawalStore();
+const { switchChain } = useSwitchChain();
 const { setRetry } = useTxRetry();
+
+/** The wallet's currently connected chain — the withdraw tx has to run there,
+ *  since a payable's balance only lives on the payable's own chain and can't
+ *  be spent from a foreign chain. */
+const walletChain = computed(() => auth.currentUser?.chain ?? null);
+
+/** True when the connected wallet is on the payable's home chain. When false,
+ *  a withdraw attempt would revert with `InvalidPayableId()` on the wrong chain's
+ *  contract (the payable id doesn't exist there), so the submit button is
+ *  swapped for a "Switch to <chain>" affordance instead. */
+const isOnPayableChain = computed(() => walletChain.value?.name === props.payable.chain.name);
+
+const switchToPayableChain = () => {
+  const viemChain = chainNamesToChains[props.payable.chain.name]?.viemChain;
+  if (!viemChain) return;
+  switchChain({ chainId: viemChain.id });
+  analytics.recordEvent('clicked_switch_chain', { to: props.payable.chain.name, from: 'withdraw_dialog' });
+};
 
 const amountInput = ref('');
 const isSubmitting = ref(false);
@@ -63,8 +84,9 @@ const loadFeeConfig = async () => {
     stats.getChainStats(props.payable.chain),
     tokenAddress ? evm.getTokenDetailsOnChain(tokenAddress, props.payable.chain.name) : Promise.resolve(null),
   ]);
-  feeBps.value = chainStats?.withdrawalFeePercentage ?? 0;
-  maxFee.value = tokenDetails ? BigInt(tokenDetails.maxWithdrawalFees) : 0n;
+  feeBps.value = chainStats?.withdrawalFeeBps ?? 0;
+  const tokenFee = tokenDetails?.config?.fee;
+  maxFee.value = tokenFee?.hasMaxWithdrawalFee ? BigInt(tokenFee.maxWithdrawalFee ?? 0) : 0n;
 };
 
 watch(
@@ -115,8 +137,21 @@ const setMax = () => {
 
 const close = () => emit('update:visible', false);
 
+const setupNumberInput = (el: unknown) => {
+  if (!(el instanceof HTMLInputElement)) return;
+  el.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+    },
+    { passive: false }
+  );
+  el.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+};
+
 const submit = async () => {
   if (amountError.value || rawAmount.value === null) return;
+  if (!isOnPayableChain.value) return;
   analytics.recordEvent('withdraw_submitted', {
     payable_id: props.payable.id,
     token: props.balance.name,
@@ -129,7 +164,8 @@ const submit = async () => {
   close();
   const withdrawalId = await withdrawals.exec(
     props.payable.id,
-    new TokenAndAmount(props.balance.token(), rawAmount.value)
+    new TokenAndAmount(props.balance.token(), rawAmount.value),
+    props.payable.chain
   );
   isSubmitting.value = false;
   if (withdrawalId) emit('withdrawn', withdrawalId);
@@ -158,6 +194,7 @@ const submit = async () => {
           type="number"
           min="0"
           :step="10 ** -decimals"
+          :ref="setupNumberInput"
           class="w-full rounded-xl border border-glass-border bg-glass-tint px-3 py-2 text-sm text-fg outline-none focus:border-accent"
         />
         <button type="button" class="text-xs font-medium text-accent hover:underline shrink-0" @click="setMax">
@@ -183,9 +220,30 @@ const submit = async () => {
       </div>
     </dl>
 
+    <div v-if="!isOnPayableChain && walletChain" class="mt-4 rounded-xl bg-fg/[0.03] px-3.5 py-3">
+      <p class="text-sm text-fg mb-1">
+        This payable's balances live on {{ payable.chain.displayName }}, but you're connected to
+        {{ walletChain.displayName }}. Switch chains to withdraw.
+      </p>
+      <button
+        type="button"
+        class="mt-2 rounded-full border border-glass-border bg-glass-tint px-2.5 py-1 hover:bg-fg/5"
+        @click="switchToPayableChain"
+      >
+        <ChainBadge :chain="payable.chain" size="sm" />
+      </button>
+    </div>
+
     <template #footer>
       <Button severity="secondary" @click="close">Cancel</Button>
-      <Button :disabled="!!amountError || isSubmitting" @click="submit">Withdraw</Button>
+      <Button
+        v-if="isOnPayableChain"
+        :disabled="!!amountError || isSubmitting"
+        @click="submit"
+      >
+        Withdraw
+      </Button>
+      <Button v-else @click="switchToPayableChain">Switch to {{ payable.chain.displayName }}</Button>
     </template>
   </Dialog>
 </template>

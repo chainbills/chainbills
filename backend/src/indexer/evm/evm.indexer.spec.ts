@@ -115,6 +115,11 @@ function makePrismaWithTransaction(): PrismaService & { _txMock: any } {
     outbox: { upsert: vi.fn().mockResolvedValue({}) },
     wallet: { findUnique: vi.fn().mockResolvedValue(null) },
     chainCursor: { upsert: vi.fn().mockResolvedValue({}) },
+    // Used by `resolveActivityTxHash` (source-side hint lookup) and by the
+    // PayableReceived branch to hydrate the destination-side tx hash from
+    // the completed RelayJob. Default: return null (no hint / no relay job).
+    relayTxHint: { findFirst: vi.fn().mockResolvedValue(null) },
+    relayJob: { findFirst: vi.fn().mockResolvedValue(null) },
   };
 
   return {

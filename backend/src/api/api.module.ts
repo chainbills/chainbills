@@ -1,10 +1,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — API module
 //
-// Imported by AppModule only when ROLE is "api" or "all" (SPEC.md §2.1).
-// Registers AuthModule (phase 2b), UsersModule (phase 3b), and
-// NotificationsModule (phase 3b — provides MailProvider and unsubscribe routes).
-// Public read controllers and their shared PublicApiService added in phase 4.
+// Imported by AppModule only when ROLE is "api" or "all". Registers AuthModule,
+// UsersModule, NotificationsModule (provides MailProvider and unsubscribe
+// routes), and public read controllers with their shared PublicApiService.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module } from '@nestjs/common';

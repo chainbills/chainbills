@@ -1,9 +1,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Public API service
 //
-// Business logic for all public read endpoints (SPEC.md §12.2). All methods
-// are read-only Prisma queries; no mutations happen here except for the
-// description upsert which is host-authenticated.
+// Business logic for all public read endpoints. All methods are read-only
+// Prisma queries; no mutations happen here except for the description upsert
+// which is host-authenticated.
 //
 // Invariants:
 //   - EVM addresses in responses are checksummed via viem getAddress.
@@ -37,7 +37,7 @@ export function stripHtml(input: string): string {
   return input.replace(/<[^>]*>/g, '');
 }
 
-/** Shape of an amount field in API responses (SPEC.md §12.1). */
+/** Shape of an amount field in API responses. */
 export interface AmountDto {
   token: string;
   symbol: string;
@@ -46,7 +46,7 @@ export interface AmountDto {
   formatted: string;
 }
 
-/** Shape of a chain field in API responses (SPEC.md §12.1). */
+/** Shape of a chain field in API responses. */
 export interface ChainDto {
   chainId: string;
   slug: string;
@@ -347,6 +347,17 @@ export class PublicApiService {
       if (!chain.diamondAddress) continue;
       try {
         const client = createEvmPublicClient(chain, this.chains.getRpcUrl(chain));
+        // isPayableHost returns false both when the caller is not the host AND
+        // when the payable does not live on this chain (host slot is address(0)).
+        // Read payableExists first so a "not on this chain" answer skips to the
+        // next candidate instead of throwing 403.
+        const exists = await readContract(client, {
+          address: chain.diamondAddress,
+          abi: chainbillsAbi,
+          functionName: 'payableExists',
+          args: [payableId as `0x${string}`],
+        });
+        if (!exists) continue;
         const isHost = await readContract(client, {
           address: chain.diamondAddress,
           abi: chainbillsAbi,
@@ -354,12 +365,10 @@ export class PublicApiService {
           args: [payableId as `0x${string}`, address as `0x${string}`],
         });
         if (isHost) return;
-        // isHost = false means the payable exists but caller is not the host.
         throw new ForbiddenException('caller is not the host of this payable');
       } catch (err) {
         if (err instanceof ForbiddenException) throw err;
-        // RPC/contract error — likely the payable does not exist on this chain; try next.
-        this.logger.warn({ payableId, chain: chain.slug, err }, 'isPayableHost call failed');
+        this.logger.warn({ payableId, chain: chain.slug, err }, 'payable host check failed');
       }
     }
 
@@ -874,6 +883,7 @@ export class PublicApiService {
     token: string;
     requestedAmount: { toString(): string };
     amount: { toString(): string };
+    txHash: string | null;
     timestamp: Date;
   }) {
     const payer = isEvmAddress(p.payer) ? getAddress(p.payer) : p.payer;
@@ -888,6 +898,7 @@ export class PublicApiService {
       payableChain: chainDtoFromChainId(p.payableChainId),
       requestedAmount: buildAmountDto(p.requestedAmount.toString(), p.token, p.chainId),
       amount: buildAmountDto(p.amount.toString(), p.token, p.chainId),
+      txHash: p.txHash,
       timestamp: p.timestamp.toISOString(),
     };
   }
@@ -906,6 +917,7 @@ export class PublicApiService {
     token: string;
     requestedAmount: { toString(): string };
     amount: { toString(): string };
+    txHash: string | null;
     timestamp: Date;
   }) {
     const payer = isEvmAddress(p.payer) ? getAddress(p.payer) : p.payer;
@@ -922,6 +934,7 @@ export class PublicApiService {
       payableCount: p.payableCount.toString(),
       requestedAmount: buildAmountDto(p.requestedAmount.toString(), p.token, p.chainId),
       amount: buildAmountDto(p.amount.toString(), p.token, p.chainId),
+      txHash: p.txHash,
       timestamp: p.timestamp.toISOString(),
     };
   }
@@ -938,6 +951,7 @@ export class PublicApiService {
     token: string;
     amount: { toString(): string };
     fee: { toString(): string };
+    txHash: string | null;
     timestamp: Date;
   }) {
     const host = isEvmAddress(w.host) ? getAddress(w.host) : w.host;
@@ -960,6 +974,7 @@ export class PublicApiService {
       amount: buildAmountDto(amountRaw, w.token, w.chainId),
       fee: buildAmountDto(feeRaw, w.token, w.chainId),
       netAmount: buildAmountDto(netAmount, w.token, w.chainId),
+      txHash: w.txHash,
       timestamp: w.timestamp.toISOString(),
     };
   }

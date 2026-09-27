@@ -203,6 +203,23 @@ const cbPreset = definePreset(Aura, {
       footer: { background: 'transparent', color: 'var(--fg)' },
       footerCell: { background: 'transparent', color: 'var(--fg)' },
     },
+    // Paginator sits inside a `.glass-surface .glass-frost` wrapper in every
+    // page that uses it (ActivityFeed, ScanEntityTable) — so the component
+    // itself must be transparent, and its nav / page buttons must lift off
+    // the parent's glass fill using the same `--fg` tinting as our tab
+    // control instead of Aura's opaque surface colour (which reads as a
+    // washed-out grey in dark mode against `--bg`).
+    paginator: {
+      root: { background: 'transparent', color: 'var(--fg)' },
+      navButton: {
+        background: 'transparent',
+        hoverBackground: 'rgb(var(--fg-rgb) / 0.08)',
+        selectedBackground: 'var(--fg)',
+        color: 'var(--muted)',
+        hoverColor: 'var(--fg)',
+        selectedColor: 'var(--bg)',
+      },
+    },
     // Tabs render as a segmented pill control (design-language.md §7.2)
     // instead of an underlined strip; `.p-tablist-tab-list` and `.p-tab` in
     // `main.css` add the padding/gap/radius the token system can't reach.

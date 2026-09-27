@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Auth controller
 //
-// HTTP surface for the auth flow (SPEC.md §9.1):
+// HTTP surface for the auth flow:
 //   POST /auth/nonce     — issue a nonce (@Public, throttled 10/min/IP)
 //   POST /auth/verify    — verify SIWE / SIWS, issue tokens (@Public, throttled)
 //   POST /auth/refresh   — rotate refresh token (@Public, cookie-based)
@@ -25,7 +25,7 @@ import { CurrentUser } from './current-user.decorator';
 import { NonceResponseDto, RefreshResponseDto, VerifyRequestDto, VerifyResponseDto } from './auth.dto';
 import type { AuthUser } from './jwt-auth.guard';
 
-/** Cookie name for the refresh token (SPEC.md §9.2). */
+/** Cookie name for the refresh token. */
 const REFRESH_COOKIE = 'cb_refresh';
 
 /** Auth-specific throttle: 10 requests per 60 s per IP. */
@@ -109,9 +109,9 @@ export class AuthController {
   }
 
   /**
-   * Sets the `cb_refresh` httpOnly cookie. Attributes per SPEC.md §9.2:
-   * HttpOnly, Secure (unless COOKIE_SECURE=false), SameSite=Lax, Path=/auth,
-   * Domain from COOKIE_DOMAIN (if set), maxAge = REFRESH_TOKEN_TTL in seconds.
+   * Sets the `cb_refresh` httpOnly cookie: HttpOnly, Secure (unless
+   * COOKIE_SECURE=false), SameSite=Lax, Path=/auth, Domain from COOKIE_DOMAIN
+   * (if set), maxAge = REFRESH_TOKEN_TTL in seconds.
    */
   private setRefreshCookie(res: ExpressResponse, token: string): void {
     const env = this.config.env;

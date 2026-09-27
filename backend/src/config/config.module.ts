@@ -2,9 +2,8 @@
 // Chainbills Backend — Config module
 //
 // Wraps @nestjs/config so `ConfigModule.forRoot({ validate: validateEnv })`
-// runs once at boot, before any other module initialises (SPEC.md §5.1
-// item 2). Global, so `AppConfigService` is injectable anywhere without
-// re-importing this module.
+// runs once at boot, before any other module initialises. Global, so
+// `AppConfigService` is injectable anywhere without re-importing this module.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module } from '@nestjs/common';

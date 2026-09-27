@@ -1,10 +1,9 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Health controller
 //
-// The only HTTP surface every role exposes, including "worker" (SPEC.md
-// §2.1). Returns per-chain freshness data when cursors exist. Marks 503
-// when any enabled chain's lastTickAt is older than 5× its poll interval
-// (SPEC §14).
+// The only HTTP surface every role exposes, including "worker". Returns
+// per-chain freshness data when cursors exist. Marks 503 when any enabled
+// chain's lastTickAt is older than 5x its poll interval.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Controller, Get, HttpStatus, Logger, Res } from '@nestjs/common';

@@ -125,13 +125,14 @@ contract PaymentViewsPopulatedTest is PopulatedViewsBase {
     PayablePayment memory taxed = cb.getPayablePayment(pp[5]);
     assertEq(taxed.requestedAmount, 10e18);
     assertEq(taxed.amount, 10.098e18);
-    // From chain B: 52 burned, Circle kept 1.
+    // From chain B: 52 burned, Circle kept 1, 1 surplus routed to the fee collector.
+    // The payable is credited with the exact invoiced 50 USDC.
     PayablePayment memory crossChain = cb.getPayablePayment(pp[7]);
     assertEq(crossChain.payableId, p2);
     assertEq(crossChain.payer, _toBytes32(foreignPayer));
     assertEq(crossChain.payerChainId, chainB.cbChainId);
     assertEq(crossChain.requestedAmount, 50e6);
-    assertEq(crossChain.amount, 51e6);
+    assertEq(crossChain.amount, 50e6);
     assertEq(crossChain.localChainCount, 1);
     assertEq(crossChain.payableCount, 3);
   }

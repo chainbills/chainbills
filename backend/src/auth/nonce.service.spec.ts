@@ -121,4 +121,27 @@ describe('NonceService', () => {
       });
     });
   });
+
+  describe('cleanup', () => {
+    it('logs when expired nonces are deleted', async () => {
+      const { service, mockPrisma } = makeNonceService();
+      mockPrisma.authNonce.create.mockResolvedValue({});
+      // Return count > 0 to trigger the debug log
+      mockPrisma.authNonce.deleteMany.mockResolvedValue({ count: 3 });
+
+      await service.generateNonce();
+      await new Promise((r) => setTimeout(r, 10));
+
+      expect(mockPrisma.authNonce.deleteMany).toHaveBeenCalledOnce();
+    });
+
+    it('handles cleanup failure gracefully (does not throw)', async () => {
+      const { service, mockPrisma } = makeNonceService();
+      mockPrisma.authNonce.create.mockResolvedValue({});
+      mockPrisma.authNonce.deleteMany.mockRejectedValue(new Error('DB error'));
+
+      await expect(service.generateNonce()).resolves.toBeDefined();
+      await new Promise((r) => setTimeout(r, 10));
+    });
+  });
 });

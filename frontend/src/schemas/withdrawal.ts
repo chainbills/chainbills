@@ -9,7 +9,7 @@
 // Used by: `stores/withdrawal.ts` (constructs it from `evm.fetchEntity`/
 // `solana.tryFetchEntity`), `stores/activity.ts` (resolves `Withdrew`
 // activities), `views/ReceiptView.vue`, `components/TransactionsTable.vue`.
-import { type Chain, formatTokenAmount, getTokenDetails, type Receipt, type Token } from '@/schemas';
+import { type Chain, chainNamesToChains, formatTokenAmount, getTokenDetails, type Receipt, type Token } from '@/schemas';
 
 export class Withdrawal implements Receipt {
   id: string;
@@ -64,5 +64,17 @@ export class Withdrawal implements Receipt {
 
   userChain(): Chain {
     return this.chain;
+  }
+
+  /**
+   * Restores a cache-retrieved plain object into a real `Withdrawal`: swaps
+   * the prototype back and re-inflates `chain` from the schema registry so
+   * viem-derived function tables (stripped by `sanitizeForClone`) are
+   * available again if any caller ever needs them.
+   */
+  static rehydrate(cached: any): Withdrawal {
+    const inst = Object.setPrototypeOf(cached, Withdrawal.prototype) as Withdrawal;
+    if (inst.chain?.name) inst.chain = chainNamesToChains[inst.chain.name];
+    return inst;
   }
 }

@@ -2,11 +2,10 @@
 // Chainbills Backend — Chain registry
 //
 // The single place that lists deployed chains, contract addresses, deployment
-// blocks, cbChainIds, and messaging protocol identifiers (SPEC.md §6.2).
-// Contract addresses, program ids, deployment blocks and cbChainIds are
-// reviewed and versioned with the code, not env vars — after a new deployment
-// the owner updates this file. RPC URLs are deliberately not stored here; see
-// types.ts's header comment.
+// blocks, cbChainIds, and messaging protocol identifiers. Contract addresses,
+// program ids, deployment blocks and cbChainIds are reviewed and versioned
+// with the code, not env vars — after a new deployment the owner updates this
+// file. RPC URLs are deliberately not stored here; see types.ts's header comment.
 //
 // Invariants:
 //   - Only diamond-based EVM contracts are registered. Legacy single-proxy
@@ -107,7 +106,7 @@ export const megaeth: EvmChainConfig = {
   wormholeChainId: undefined,
   circleDomain: undefined,
   pollIntervalMs: 60_000,
-  minGasBalance: parseEther('0.01'),
+  minGasBalance: parseEther('0.001'),
   isEvm: true,
   isSolana: false,
 };
@@ -143,7 +142,7 @@ export const basesepolia: EvmChainConfig = {
   wormholeChainId: 10004,
   circleDomain: 6,
   pollIntervalMs: 60_000,
-  minGasBalance: parseEther('0.01'),
+  minGasBalance: parseEther('0.001'),
   isEvm: true,
   isSolana: false,
 };
@@ -161,7 +160,7 @@ export const base: EvmChainConfig = {
   wormholeChainId: 30,
   circleDomain: 6,
   pollIntervalMs: 60_000,
-  minGasBalance: parseEther('0.01'),
+  minGasBalance: parseEther('0.001'),
   isEvm: true,
   isSolana: false,
 };

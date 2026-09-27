@@ -1,11 +1,10 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Bootstrap
 //
-// Wires the process-level HTTP concerns SPEC.md §5 and phase 1 task 7 call
-// for: pino logging, cookies, CORS, a 100 kB body limit, security headers,
-// strict request validation, Swagger, and graceful shutdown. Business logic
-// never lives here — this file only assembles Nest's HTTP adapter around
-// AppModule.
+// Wires the process-level HTTP concerns: pino logging, cookies, CORS,
+// a 100 kB body limit, security headers, strict request validation, Swagger,
+// and graceful shutdown. Business logic never lives here — this file only
+// assembles Nest's HTTP adapter around AppModule.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Logger as NestLogger, ValidationPipe } from '@nestjs/common';
@@ -19,10 +18,10 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/app-config.service';
 
-/** Every request/response body is capped at 100 kB (SPEC.md §13). */
+/** Every request/response body is capped at 100 kB. */
 const BODY_SIZE_LIMIT = '100kb';
 
-/** Refresh-token cookie name from SPEC.md §9.2 — declared here for the Swagger cookie-auth scheme. */
+/** Refresh-token cookie name — declared here for the Swagger cookie-auth scheme. */
 const REFRESH_COOKIE_NAME = 'cb_refresh';
 
 async function bootstrap(): Promise<void> {

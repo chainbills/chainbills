@@ -32,8 +32,7 @@ describe('resolveToken', () => {
     expect(resolveToken('0xdeadbeef', 'solanadevnet')).toEqual({ name: '0xdeadbeef', decimals: 0 });
   });
 
-  it('returns the raw address when the token exists but not on this chain (empty address entry)', () => {
-    // arcmainnet USDC has an empty address (TODO placeholder), so will not match anything.
+  it('returns the raw address when nothing in the registry matches on this chain', () => {
     expect(resolveToken('0xsomeaddress', 'arcmainnet')).toEqual({ name: '0xsomeaddress', decimals: 0 });
   });
 

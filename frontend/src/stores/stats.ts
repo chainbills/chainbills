@@ -29,10 +29,10 @@ export interface ChainStatsSummary {
   withdrawalsCount: number;
   activitiesCount: number;
   /** Withdrawal fee, in basis points (divide by 10_000 for a fraction). */
-  withdrawalFeePercentage: number;
-  /** True when this chain has a Wormhole core contract configured (`wormholeChainId != 0`). */
+  withdrawalFeeBps: number;
+  /** True when this chain has a Wormhole core contract configured. */
   hasWormhole: boolean;
-  /** True when this chain has a Circle CCTP transmitter configured (non-zero address). */
+  /** True when this chain has a Circle CCTP transmitter configured. */
   hasCctp: boolean;
 }
 
@@ -60,7 +60,6 @@ export interface NetworkStats {
   perChain: ChainStatsSummary[];
 }
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const CACHE_TTL_MS = 30_000;
 
 export const useStatsStore = defineStore('stats', () => {
@@ -78,13 +77,15 @@ export const useStatsStore = defineStore('stats', () => {
     return value;
   };
 
-  /** `getChainStats()` + `getConfig()` for one chain. `null` for a non-EVM chain or if either read fails. */
+  /** `getChainStats()` + `getProtocolConfig()` + `hasWormhole()` / `hasCctp()` for one chain. `null` for a non-EVM chain or if any read fails. */
   const getChainStats = async (chain: Chain): Promise<ChainStatsSummary | null> => {
     if (!chain.isEvm) return null;
     return cached(`chain-stats::${chain.name}`, async () => {
-      const [stats, config] = await Promise.all([
+      const [stats, config, hasWormhole, hasCctp] = await Promise.all([
         evm.getChainStatsOnChain(chain.name),
         evm.fetchChainConfig(chain.name),
+        evm.hasWormholeOnChain(chain.name),
+        evm.hasCctpOnChain(chain.name),
       ]);
       if (!stats || !config) return null;
       return {
@@ -96,9 +97,9 @@ export const useStatsStore = defineStore('stats', () => {
         payablePaymentsCount: Number(stats.payablePaymentsCount),
         withdrawalsCount: Number(stats.withdrawalsCount),
         activitiesCount: Number(stats.activitiesCount),
-        withdrawalFeePercentage: Number(config.withdrawalFeePercentage),
-        hasWormhole: Number(config.wormholeChainId) !== 0,
-        hasCctp: !!config.circleTransmitter && `${config.circleTransmitter}`.toLowerCase() !== ZERO_ADDRESS,
+        withdrawalFeeBps: Number(config.withdrawalFeeBps ?? 0),
+        hasWormhole: !!hasWormhole,
+        hasCctp: !!hasCctp,
       };
     });
   };
@@ -112,13 +113,14 @@ export const useStatsStore = defineStore('stats', () => {
         candidates.map(async (token): Promise<TokenVolume | null> => {
           const address = token.details[chain.name]!.address;
           const raw = await evm.getTokenDetailsOnChain(address, chain.name);
-          if (!raw || !raw.isSupported) return null;
+          if (!raw || !raw.config?.isSupported) return null;
+          const stats = raw.stats ?? {};
           return {
             token,
-            totalUserPaid: BigInt(raw.totalUserPaid),
-            totalPayableReceived: BigInt(raw.totalPayableReceived),
-            totalWithdrawn: BigInt(raw.totalWithdrawn),
-            totalWithdrawalFeesCollected: BigInt(raw.totalWithdrawalFeesCollected),
+            totalUserPaid: BigInt(stats.totalUserPaid ?? 0),
+            totalPayableReceived: BigInt(stats.totalPayableReceived ?? 0),
+            totalWithdrawn: BigInt(stats.totalWithdrawn ?? 0),
+            totalWithdrawalFeesCollected: BigInt(stats.totalWithdrawalFeesCollected ?? 0),
           };
         })
       );

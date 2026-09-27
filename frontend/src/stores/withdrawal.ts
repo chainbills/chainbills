@@ -7,7 +7,7 @@
 //
 // Used by: `views/PayableDetailView.vue`, `views/ReceiptView.vue`,
 // `views/UserActivityView.vue`, `stores/activity.ts`.
-import { chainNames, chainNamesToChains, Payable, TokenAndAmount, Withdrawal, type ChainName } from '@/schemas';
+import { chainNames, chainNamesToChains, Payable, TokenAndAmount, Withdrawal, type Chain, type ChainName } from '@/schemas';
 import {
   errorMsg,
   useAnalyticsStore,
@@ -35,8 +35,9 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
 
   const cacheKey = (chain: string, id: string) => `${chain}::withdrawal::${id}`;
 
-  /** Withdraws `details` from a payable's balance. The flow title includes the net amount after the 2% withdrawal fee, capped by `maxWithdrawalFees`. */
-  const exec = async (payableId: string, details: TokenAndAmount): Promise<string | null> => {
+  /** Withdraws `details` from a payable's balance. The flow title includes the net amount after the 2% withdrawal fee, capped by `maxWithdrawalFees`.
+   *  `payableChain` is the payable's home chain — passed through so the EVM path can refuse when the wallet is on a different network (the payable id won't exist there, and the contract would revert with `InvalidPayableId`). */
+  const exec = async (payableId: string, details: TokenAndAmount, payableChain: Chain): Promise<string | null> => {
     if (!auth.currentUser) return null;
 
     if (auth.currentUser.chain.isSolana) {
@@ -52,7 +53,8 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
       payableId,
       details,
       { sign: flow.step('sign'), confirm: flow.step('confirm') },
-      flow
+      flow,
+      payableChain
     );
     if (!result) return null; // flow is already 'failed' or 'cancelled' — evm.writeContract recorded which.
     flow.finish({ withdrawalId: result.created });
@@ -75,12 +77,8 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
   };
 
   const getFromCache = async (id: string, chainName: ChainName): Promise<Withdrawal | null> => {
-    let withdrawal = await cache.retrieve(cacheKey(chainName, id));
-    if (withdrawal) {
-      // Necessary to restore callable methods on retrieved instance
-      withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
-      return withdrawal;
-    }
+    const cached = await cache.retrieve(cacheKey(chainName, id));
+    if (cached) return Withdrawal.rehydrate(cached);
     return null;
   };
 
@@ -169,10 +167,9 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
         const missingIds: string[] = [];
 
         for (const id of ids) {
-          let withdrawal = await cache.retrieve(cacheKey(chain.name, id));
-          if (withdrawal) {
-            withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
-            withdrawals.push(withdrawal);
+          const cached = await cache.retrieve(cacheKey(chain.name, id));
+          if (cached) {
+            withdrawals.push(Withdrawal.rehydrate(cached));
           } else {
             missingIds.push(id);
             withdrawals.push(null as any);
@@ -233,10 +230,9 @@ export const useWithdrawalStore = defineStore('withdrawal', () => {
         const missingIds: string[] = [];
 
         for (const id of ids) {
-          let withdrawal = await cache.retrieve(cacheKey(chain.name, id));
-          if (withdrawal) {
-            withdrawal = Object.setPrototypeOf(withdrawal, Withdrawal.prototype);
-            withdrawals.push(withdrawal);
+          const cached = await cache.retrieve(cacheKey(chain.name, id));
+          if (cached) {
+            withdrawals.push(Withdrawal.rehydrate(cached));
           } else {
             missingIds.push(id);
             withdrawals.push(null as any);

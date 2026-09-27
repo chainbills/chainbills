@@ -25,6 +25,7 @@ function makeJob(attempts = 0, status: RelayJobStatus = RelayJobStatus.PROCESSIN
     vaa: null,
     cctpMessage: null,
     cctpAttestation: null,
+    userPaymentId: null,
     createdAt: new Date(),
     lastAttemptAt: null,
     completedAt: null,
@@ -113,28 +114,27 @@ describe('retryLater', () => {
     expect(call.data.notBefore.getTime()).toBeLessThan(after + 10 * 60 * 1000 + 1000);
   });
 
-  it('uses exponential backoff: 30s * 2^attempts', async () => {
+  it('uses exponential backoff: 10s * 2^attempts', async () => {
     const prisma = makePrisma();
-    const job = makeJob(3); // attempts = 3
+    const job = makeJob(2); // attempts = 2
     const before = Date.now();
     await retryLater(prisma, job, 'error');
     const call = (prisma.relayJob as any).update.mock.calls[0][0];
     const notBeforeMs = call.data.notBefore.getTime();
-    // Expected delay: 30000 * 2^3 = 240000ms = 4 min
-    expect(notBeforeMs - before).toBeGreaterThanOrEqual(230_000);
-    expect(notBeforeMs - before).toBeLessThanOrEqual(250_000);
+    // Expected delay: 10000 * 2^2 = 40000 ms
+    expect(notBeforeMs - before).toBeGreaterThanOrEqual(35_000);
+    expect(notBeforeMs - before).toBeLessThanOrEqual(45_000);
   });
 
-  it('caps backoff at 10 minutes', async () => {
+  it('caps backoff at 60 seconds', async () => {
     const prisma = makePrisma();
-    // attempts = 7 -> 30000 * 128 = 3840000 > 600000; should cap at 600000
+    // attempts = 7 -> 10000 * 128 = 1_280_000 > 60_000; should cap at 60_000
     const job = makeJob(7);
     const before = Date.now();
     await retryLater(prisma, job, 'error');
     const call = (prisma.relayJob as any).update.mock.calls[0][0];
     const notBeforeMs = call.data.notBefore.getTime();
-    // 10 min = 600000ms
-    expect(notBeforeMs - before).toBeLessThanOrEqual(600_000 + 100);
+    expect(notBeforeMs - before).toBeLessThanOrEqual(60_000 + 100);
   });
 
   it('marks the job FAILED after MAX_RELAY_ATTEMPTS', async () => {

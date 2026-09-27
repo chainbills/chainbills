@@ -14,7 +14,15 @@
 // `solana.fetchEntity`), `stores/activity.ts` (resolves `PayableReceived`
 // activities and cross-chain arrival), `views/ReceiptView.vue`,
 // `components/TransactionsTable.vue`.
-import { cbChainIdToChain, formatTokenAmount, getTokenDetails, type Chain, type Payment, type Token } from '@/schemas';
+import {
+  cbChainIdToChain,
+  chainNamesToChains,
+  formatTokenAmount,
+  getTokenDetails,
+  type Chain,
+  type Payment,
+  type Token,
+} from '@/schemas';
 import { denormalizeBytes } from '@/stores';
 
 export class PayablePayment implements Payment {
@@ -78,5 +86,18 @@ export class PayablePayment implements Payment {
   /** True when the payer paid from a different chain than the payable lives on. */
   get isCrossChain(): boolean {
     return this.payerChain.name !== this.chain.name;
+  }
+
+  /**
+   * Restores a cache-retrieved plain object into a real `PayablePayment`:
+   * swaps the prototype back, and re-inflates `chain` / `payerChain` from the
+   * schema registry so viem-derived function tables (stripped by
+   * `sanitizeForClone`) are available again if any caller ever needs them.
+   */
+  static rehydrate(cached: any): PayablePayment {
+    const inst = Object.setPrototypeOf(cached, PayablePayment.prototype) as PayablePayment;
+    if (inst.chain?.name) inst.chain = chainNamesToChains[inst.chain.name];
+    if (inst.payerChain?.name) inst.payerChain = chainNamesToChains[inst.payerChain.name];
+    return inst;
   }
 }

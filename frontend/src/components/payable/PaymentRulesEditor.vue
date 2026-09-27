@@ -68,15 +68,18 @@ const buildInitialRows = (): RuleRow[] =>
 
 const rows = ref<RuleRow[]>(buildInitialRows());
 
+/** True once the user has made at least one interaction; gates inline error display. */
+const dirty = ref(props.modelValue.length > 0);
+
 /** Tokens available on the payable's home chain. */
 const availableTokens = computed(() => tokens.filter((t) => !!t.details[props.homeChain.name]));
 
 /** Parses one row: `{token, amount}` when valid, `'invalid'` for bad input, `null` when still incomplete. */
 const parseRow = (row: RuleRow): { token: Token; amount: bigint } | 'invalid' | null => {
-  if (!row.token || !row.amount.trim()) return null;
+  if (!row.token || !String(row.amount).trim()) return null;
   try {
     const decimals = row.token.details[props.homeChain.name]?.decimals ?? 0;
-    const amount = parseTokenAmount(row.amount, decimals);
+    const amount = parseTokenAmount(String(row.amount), decimals);
     return amount > 0n ? { token: row.token, amount } : 'invalid';
   } catch {
     return 'invalid';
@@ -103,19 +106,52 @@ const configError = computed((): string => {
 /** The validated parsed list to emit upward. Empty while mode is 'any' or while there are errors. */
 const parsedValue = computed<TokenAndAmount[]>(() => {
   if (ruleMode.value === 'any' || configError.value) return [];
-  return rows.value.map((row) => TokenAndAmount.parse(row.token!, row.amount, props.homeChain));
+  return rows.value.map((row) => TokenAndAmount.parse(row.token!, String(row.amount), props.homeChain));
 });
 
-/** Adds an empty row and scrolls to it so the host can fill it in. */
+const addEmptyRow = () =>
+  rows.value.push({
+    token: availableTokens.value.length === 1 ? availableTokens.value[0] : null,
+    amount: '',
+  });
+
+// Whenever the home chain leaves exactly one token available (e.g. USDC on Arc),
+// keep every row's token pinned to it — the dropdown offers no other choice
+// and leaving it null just makes the user click through a one-option select.
+watch(
+  [availableTokens, () => rows.value.length],
+  () => {
+    if (availableTokens.value.length !== 1) return;
+    const only = availableTokens.value[0];
+    for (const row of rows.value) if (!row.token) row.token = only;
+  },
+  { immediate: true }
+);
+
+/** Adds an empty row (user-initiated). */
 const addRow = () => {
-  rows.value.push({ token: null, amount: '' });
+  addEmptyRow();
+  dirty.value = true;
   analytics.recordEvent('payable_rules_editor_add_row');
 };
 
 /** Removes the row at `index`. */
 const removeRow = (index: number) => {
   rows.value.splice(index, 1);
+  dirty.value = true;
   analytics.recordEvent('payable_rules_editor_remove_row');
+};
+
+const setupNumberInput = (el: unknown) => {
+  if (!(el instanceof HTMLInputElement)) return;
+  el.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+    },
+    { passive: false }
+  );
+  el.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
 };
 
 // Emit upward whenever parsed value or validation error changes.
@@ -124,7 +160,7 @@ watch(configError, (err) => emit('update:error', err), { immediate: true });
 
 watch(ruleMode, (mode) => {
   if (mode === 'any') emit('update:modelValue', []);
-  if (mode === 'specific' && rows.value.length === 0) addRow();
+  if (mode === 'specific' && rows.value.length === 0) addEmptyRow();
 });
 </script>
 
@@ -141,6 +177,7 @@ watch(ruleMode, (mode) => {
           placeholder="Token"
           class="w-32 shrink-0"
           aria-label="Token"
+          @change="dirty = true"
         />
         <input
           v-model="row.amount"
@@ -149,7 +186,9 @@ watch(ruleMode, (mode) => {
           step="any"
           placeholder="Amount"
           :aria-label="`Amount for row ${i + 1}`"
+          :ref="setupNumberInput"
           class="w-full rounded-xl border border-glass-border bg-glass-tint px-3 py-2 text-sm text-fg outline-none focus:border-accent"
+          @input="dirty = true"
         />
         <button
           type="button"
@@ -166,7 +205,7 @@ watch(ruleMode, (mode) => {
         + Add option
       </button>
 
-      <p v-if="configError" class="text-xs text-danger mt-1">{{ configError }}</p>
+      <p v-if="configError && dirty" class="text-xs text-danger mt-1">{{ configError }}</p>
     </div>
 
     <p v-else class="mt-3 text-xs text-muted">Payers can pay any supported token, in any amount.</p>

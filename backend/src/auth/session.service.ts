@@ -8,7 +8,7 @@
 // Refresh-token rotation: every /auth/refresh call issues a new token and
 // updates the stored hash. If an already-rotated token is presented, the
 // entire session is revoked immediately (theft detection: if a rotated token
-// is still in the wild, someone stole the old one — SPEC.md §9.1 step 4).
+// is still in the wild, someone stole the old one).
 //
 // Invariants:
 //   - refresh tokens are 32 random bytes encoded as base64url.
@@ -31,7 +31,7 @@ export interface RefreshTokenPair {
   refreshTokenHash: string;
 }
 
-/** Creates, rotates, and revokes refresh-token sessions with theft detection (SPEC.md §9.1). */
+/** Creates, rotates, and revokes refresh-token sessions with theft detection. */
 @Injectable()
 export class SessionService {
   private readonly logger = new Logger(SessionService.name);
@@ -112,6 +112,7 @@ export class SessionService {
       where: { id: sessionId },
       data: { revokedAt: new Date() },
     });
+    this.logger.log({ sessionId }, 'session revoked');
   }
 
   /**

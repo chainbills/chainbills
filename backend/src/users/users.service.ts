@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Users service
 //
-// Handles all /me endpoint business logic (SPEC.md §10):
+// Handles all /me endpoint business logic:
 //   - getMe: fetch user + wallets + preferences.
 //   - updatePreferences: partial-upsert NotificationPreference rows.
 //   - requestEmailVerification: rate-limit check, generate OTP, send directly
@@ -10,7 +10,7 @@
 //     timingSafeEqual, mark consumed, set User.email + emailVerifiedAt.
 //   - removeEmail: clear User.email + emailVerifiedAt.
 //
-// Rate-limit invariants (SPEC.md §10):
+// Rate-limit invariants:
 //   - >= 60 s between sends per user.
 //   - <= 5 sends per user per 24 h.
 //   - <= 5 sends per target email per 24 h.
@@ -66,7 +66,7 @@ export class UsersService {
 
   /**
    * Returns the full /me response: user id, wallets, verified email, and
-   * notification preferences (absent rows default to email: true per SPEC §7).
+   * notification preferences (absent rows default to email: true).
    */
   async getMe(userId: string): Promise<MeResponseDto> {
     const user = await this.prisma.user.findUniqueOrThrow({
@@ -295,7 +295,7 @@ export class UsersService {
 
   /**
    * Maps a Prisma User (with wallets and preferences) to the /me response shape.
-   * Absent NotificationPreference rows default to email: true (SPEC §7).
+   * Absent NotificationPreference rows default to email: true.
    */
   private mapMe(
     user: User & {

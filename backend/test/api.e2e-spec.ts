@@ -25,6 +25,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { json } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 
@@ -96,7 +97,7 @@ describe.skipIf(!hasDb)('Public API (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     await app.init();
 
-    prisma = new PrismaClient({ datasourceUrl: process.env.TEST_DATABASE_URL });
+    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.TEST_DATABASE_URL }) });
     await prisma.$connect();
 
     await seedData();
@@ -127,10 +128,10 @@ describe.skipIf(!hasDb)('Public API (e2e)', () => {
         isAutoWithdraw: false,
         createdAt: new Date('2026-06-01T00:00:00Z'),
         allowedTokens: {
-          create: [{ token: USDC_TOKEN, amount: 5_000_000n }],
+          create: [{ token: USDC_TOKEN, amount: 5_000_000 }],
         },
         balances: {
-          create: [{ token: USDC_TOKEN, amount: 4_000_000n }],
+          create: [{ token: USDC_TOKEN, amount: 4_000_000 }],
         },
       },
     });
@@ -154,8 +155,8 @@ describe.skipIf(!hasDb)('Public API (e2e)', () => {
         payableId: PAYABLE_ID,
         payableChainId: ARC_CHAIN_ID,
         token: USDC_TOKEN,
-        requestedAmount: 5_000_000n,
-        amount: 5_000_000n,
+        requestedAmount: 5_000_000,
+        amount: 5_000_000,
         timestamp: new Date('2026-06-15T00:00:00Z'),
       },
     });
@@ -173,8 +174,8 @@ describe.skipIf(!hasDb)('Public API (e2e)', () => {
         localChainCount: 1n,
         payableCount: 1n,
         token: USDC_TOKEN,
-        requestedAmount: 5_000_000n,
-        amount: 4_900_000n,
+        requestedAmount: 5_000_000,
+        amount: 4_900_000,
         timestamp: new Date('2026-06-15T00:00:00Z'),
       },
     });
@@ -190,8 +191,8 @@ describe.skipIf(!hasDb)('Public API (e2e)', () => {
         hostCount: 1n,
         payableCount: 1n,
         token: USDC_TOKEN,
-        amount: 4_900_000n,
-        fee: 98_000n,
+        amount: 4_900_000,
+        fee: 98_000,
         timestamp: new Date('2026-06-20T00:00:00Z'),
       },
     });

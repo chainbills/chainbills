@@ -26,6 +26,6 @@ export const FEATURES = {
    * on-chain. Shows richer status: attempts, failure reason, and the
    * matched PayablePayment once the relay job completes.
    */
-  relayStatus: false,
+  relayStatus: true,
   autoWithdraw: false,
 } as const;

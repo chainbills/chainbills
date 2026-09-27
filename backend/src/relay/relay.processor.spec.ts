@@ -518,7 +518,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     const prisma = makePrisma(job);
     const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
-    vi.mocked(submitReceivePayableUpdateViaWormhole).mockResolvedValue(null);
+    vi.mocked(submitReceivePayableUpdateViaWormhole).mockResolvedValue({ txHash: '0xdesttx', errorName: null });
 
     await (processor as any).handleWormholeUpdate(job, SRC_CHAIN, DEST_CHAIN, {}, {});
 
@@ -554,7 +554,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     const prisma = makePrisma(job);
     const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
-    vi.mocked(submitReceivePayableUpdateViaCctp).mockResolvedValue(null);
+    vi.mocked(submitReceivePayableUpdateViaCctp).mockResolvedValue({ txHash: '0xdesttx', errorName: null });
 
     await (processor as any).handleCctpUpdate(job, SRC_CHAIN, DEST_CHAIN, {}, {});
 
@@ -590,7 +590,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     const prisma = makePrisma(job);
     const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
 
-    vi.mocked(submitReceiveForeignPaymentViaCctp).mockResolvedValue(null);
+    vi.mocked(submitReceiveForeignPaymentViaCctp).mockResolvedValue({ txHash: '0xdesttx', errorName: null });
 
     await (processor as any).handleCctpPayment(job, SRC_CHAIN, DEST_CHAIN, {}, {});
 
@@ -618,7 +618,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     } as unknown as PrismaService & { updateCalls: any[] };
 
     const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
-    const result = await processor.processOne({} as any);
+    const result = await processor.processOne({} as any, {} as any);
     expect(result).toBe(false);
   });
 
@@ -639,7 +639,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     });
 
     const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
-    const result = await processor.processOne({} as any);
+    const result = await processor.processOne({} as any, {} as any);
     expect(result).toBe(true);
   });
 
@@ -741,7 +741,7 @@ describe('RelayProcessor — dispatch with mocked submitters', () => {
     vi.mocked(submitReceivePayableUpdateViaWormhole).mockRejectedValue(new Error('network down'));
 
     const processor = new RelayProcessor(prisma, makeChains(), makeConfig());
-    const result = await processor.processOne({} as any);
+    const result = await processor.processOne({} as any, {} as any);
     // Should still return true (a job was claimed).
     expect(result).toBe(true);
     // The error should have triggered retryLater -> PENDING.

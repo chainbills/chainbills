@@ -50,12 +50,12 @@ supported chain. Source: https://developers.circle.com/cctp/evm-smart-contracts
 
 | Chain         | Domain | TokenMessengerV2                               | MessageTransmitterV2                           | USDC                                           |
 | ------------- | ------ | ----------------------------------------------- | ----------------------------------------------- | ----------------------------------------------- |
-| Arc Mainnet   | 26     | TODO(owner): confirm from Arc docs              | TODO(owner)                                     | TODO(owner): ERC-20 interface of native USDC    |
+| Arc Mainnet   | 26     | TODO(owner): confirm from Arc docs              | TODO(owner)                                     | `0x3600000000000000000000000000000000000000`   |
 | Arc Testnet   | 26     | `0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA`   | `0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275`   | `0x3600000000000000000000000000000000000000`   |
 | Base Sepolia  | 6      | `0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA`   | `0xE737e5cEBEEBa77EFE34D4aa090756590b1CE275`   | `0x036CbD53842c5426634e7929541eC2318f3dCF7e`   |
 | Base Mainnet  | 6      | `0x28b5a0e9C621a5BadaA536219b3a228C8168cf5d`   | TODO(owner): confirm from Circle docs           | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`   |
 
-> On Arc, USDC is the native gas token; the address listed is its ERC-20 interface.
+> On Arc, USDC is the native gas token and is exposed as a 6-decimal ERC-20 at `0x3600000000000000000000000000000000000000` (`symbol() = "USDC"`, `decimals() = 6`). Chainbills allowlists that ERC-20 for payments and CCTP burns on both Arc mainnet and testnet — the native-sentinel path is not used for USDC on Arc, so pays and cross-chain burns require the same `approve()` step as any other USDC chain. Gas fees still come out of the payer's native balance.
 > `MessageTransmitterV2` is not passed to `SetupCctp` directly — it is read from the TokenMessenger's own wiring.
 
 ---

@@ -3,7 +3,7 @@
 //
 // A plain function (not a NestJS service class) that can be called inside an
 // existing Prisma transaction. Inserts one Outbox row per call — used by the
-// EVM indexer whenever an activity maps to an email notification (SPEC §11.1).
+// EVM indexer whenever an activity maps to an email notification.
 //
 // Invariants:
 //   - Called only inside a prisma.$transaction; never commits on its own.

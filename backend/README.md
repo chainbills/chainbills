@@ -48,6 +48,21 @@ pnpm start:dev
 
 Visit `http://localhost:8080/health` to confirm the service is running, or open `http://localhost:8080/docs` for the Swagger UI.
 
+### Stop the local server
+
+`pnpm start:dev` in the foreground exits cleanly on `Ctrl+C`. When it was backgrounded, left over from a crashed terminal, or a second instance is competing for `PORT`, kill it directly:
+
+```bash
+# Kill whatever owns the dev port (default 8080).
+lsof -ti :8080 | xargs kill -9
+
+# Or kill the NestJS watcher and its node child by name.
+pkill -f "nest start"
+pkill -f "chainbills/backend.*node"
+```
+
+See what's still running first with `lsof -i :8080` or `ps aux | grep -E 'nest start|node dist/main' | grep -v grep`.
+
 ### Local EVM indexing with Anvil
 
 To index the local Chainbills diamond:
@@ -67,7 +82,7 @@ Three groups matter most:
 
 **Chains** (`ENABLED_CHAINS`, `RPC_<SLUG>` per enabled chain) — required for every role; the api role needs them for on-chain signature and ownership verification.
 
-**Auth and notification secrets** (`JWT_ACCESS_SECRET`, `OTP_HMAC_SECRET`, `UNSUBSCRIBE_SECRET`, `RELAYER_PRIVATE_KEY`, `SOLANA_RELAYER_KEYPAIR`, ZeptoMail vars) — required for the roles that use them.
+**Auth and notification secrets** (`JWT_ACCESS_SECRET`, `OTP_HMAC_SECRET`, `UNSUBSCRIBE_SECRET`, `EVM_TESTNETS_RELAYER_PRIVATE_KEY`, `EVM_MAINNETS_RELAYER_PRIVATE_KEY`, `SOLANA_RELAYER_KEYPAIR`, ZeptoMail vars) — required for the roles that use them.
 
 ## Testing
 

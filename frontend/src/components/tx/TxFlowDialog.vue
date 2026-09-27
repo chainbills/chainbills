@@ -27,7 +27,7 @@ import IconOpenInNew from '@/icons/IconOpenInNew.vue';
 import { useAnalyticsStore, useTxFlowStore } from '@/stores';
 import type { TxFlow, TxStep } from '@/stores/tx-flow';
 import Button from 'primevue/button';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { primaryActionsFor, type FlowAction } from './flow-actions';
 import { useTxRetry } from './retry';
@@ -88,18 +88,27 @@ watch(
 
 /** Whether the panel is currently fading out before auto-close. */
 const fadingOut = ref(false);
+const countdownSeconds = ref<number | null>(null);
+const userReopened = ref(false);
 let collapseTimer: ReturnType<typeof setTimeout> | null = null;
 let fadeTimer: ReturnType<typeof setTimeout> | null = null;
+let countdownTimer: ReturnType<typeof setInterval> | null = null;
 
 const clearAutoTimers = () => {
   if (collapseTimer) { clearTimeout(collapseTimer); collapseTimer = null; }
   if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  countdownSeconds.value = null;
 };
 
 const close = () => {
   clearAutoTimers();
   fadingOut.value = false;
-  txFlow.dismiss();
+  // A still-running flow (a relay/sync tail the user is dismissing from the
+  // collapsed dialog) moves to the header tray so it can be re-opened; only
+  // terminal flows (succeeded/failed/cancelled) truly dismiss.
+  if (flow.value?.status === 'running') txFlow.moveToBackground(flow.value.id);
+  else txFlow.dismiss();
   shownFlow.value = null;
 };
 
@@ -121,6 +130,47 @@ const asTxStep = (step: StepperStep) => step as unknown as TxStep;
 /** When true, the panel shows only the header bar (title + status). */
 const collapsed = ref(false);
 
+/** The scrollable body element — used to auto-scroll to whichever step is currently active. */
+const bodyRef = ref<HTMLElement | null>(null);
+
+/** Index of the step the flow is currently on, matching Stepper's own definition. -1 when no step is active. */
+const activeStepIndex = computed(() => {
+  const steps = flow.value?.steps;
+  if (!steps) return -1;
+  return steps.findIndex((s) => s.status === 'active' || s.status === 'waiting');
+});
+
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * Scrolls the body so the active step sits vertically centred, but only when the
+ * step isn't already fully visible. Clamps to the container's scroll extent so
+ * we never overshoot the top or bottom — that naturally covers "no snap needed
+ * when the step lives near either edge".
+ */
+const scrollActiveStepIntoView = async () => {
+  if (activeStepIndex.value < 0) return;
+  await nextTick();
+  const container = bodyRef.value;
+  if (!container || collapsed.value) return;
+  const items = container.querySelectorAll('ol > li');
+  const el = items[activeStepIndex.value] as HTMLElement | undefined;
+  if (!el) return;
+  const cRect = container.getBoundingClientRect();
+  const eRect = el.getBoundingClientRect();
+  if (eRect.top >= cRect.top && eRect.bottom <= cRect.bottom) return;
+  const target = el.offsetTop - container.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
+  const maxScroll = container.scrollHeight - container.clientHeight;
+  const clamped = Math.max(0, Math.min(maxScroll, target));
+  container.scrollTo({ top: clamped, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+};
+
+watch([activeStepIndex, () => flow.value?.id], scrollActiveStepIntoView, { immediate: true });
+watch(collapsed, (next) => {
+  if (!next) scrollActiveStepIntoView();
+});
+
 /** Shows "Continue in background" instead of the plain "keep this window open" hint once the active step is a background-eligible wait (e.g. a relay). */
 const showBackgroundButton = computed(() => !!flow.value?.canRunInBackground && activeStep.value?.status === 'waiting');
 
@@ -130,28 +180,57 @@ const continueInBackground = () => {
   shownFlow.value = null;
 };
 
-/** Auto-collapse then fade when all steps are done (success) or the only remaining step is a background relay. */
+/** Auto-collapse and show a 10-second countdown when the flow succeeds. Cancelled permanently for this flow if the user manually expands during the countdown. Does not fire during relay (status stays 'running' until relay completes). */
 watch(
-  [() => flow.value?.status, showBackgroundButton],
-  ([status, canBackground]) => {
+  () => flow.value?.status,
+  (status) => {
     clearAutoTimers();
-    if (status === 'succeeded' || canBackground) {
+    if (status === 'succeeded' && !userReopened.value) {
       collapsed.value = true;
-      collapseTimer = setTimeout(() => {
-        fadingOut.value = true;
-        fadeTimer = setTimeout(() => {
-          if (canBackground) {
-            continueInBackground();
-          } else {
+      countdownSeconds.value = 10;
+      countdownTimer = setInterval(() => {
+        if (countdownSeconds.value !== null && countdownSeconds.value > 0) {
+          countdownSeconds.value--;
+        }
+        if (countdownSeconds.value === 0) {
+          clearInterval(countdownTimer!);
+          countdownTimer = null;
+          countdownSeconds.value = null;
+          fadingOut.value = true;
+          fadeTimer = setTimeout(() => {
+            fadingOut.value = false;
             close();
-          }
-          fadingOut.value = false;
-        }, 350);
+          }, 350);
+        }
       }, 1000);
     }
   },
   { immediate: false }
 );
+
+watch(() => flow.value?.id, (newId) => {
+  if (newId) {
+    collapsed.value = false;
+    userReopened.value = false;
+  }
+});
+
+/** Once the flow enters its background-eligible tail (a sync broadcast to other chains or a CCTP relay), auto-collapse to a header pill so the user can navigate without losing sight of it. */
+const backgroundWaitStepKeys = new Set(['sync', 'relay']);
+watch(
+  () => activeStep.value?.key,
+  (key, prev) => {
+    if (key !== prev && key && backgroundWaitStepKeys.has(key)) collapsed.value = true;
+  }
+);
+
+const toggleCollapsed = () => {
+  if (collapsed.value && countdownSeconds.value !== null) {
+    clearAutoTimers();
+    userReopened.value = true;
+  }
+  collapsed.value = !collapsed.value;
+};
 
 onBeforeUnmount(clearAutoTimers);
 
@@ -191,16 +270,18 @@ const runAction = (action: FlowAction) => {
   <Teleport to="body">
     <div
       v-if="flow"
-      class="fixed z-50 bottom-4 right-4 left-4 sm:left-auto w-auto sm:w-full sm:max-w-sm shadow-glass transition-[opacity,transform] duration-[350ms] ease-out"
+      class="fixed z-50 bottom-4 right-4 left-4 sm:left-auto w-auto sm:w-full sm:max-w-sm shadow-glass shadow-2xl transition-[opacity,transform] duration-[350ms] ease-out"
       :class="fadingOut ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'"
+      :style="{ maxHeight: 'min(max(75vh, 512px), calc(100vh - 2rem))' }"
     >
-      <div class="glass-popover rounded-2xl overflow-hidden">
+      <div class="glass-popover rounded-2xl overflow-hidden flex flex-col max-h-[inherit]">
         <!-- Panel header -->
-        <div class="flex items-start justify-between gap-3 px-4 py-3 border-b border-glass-border">
+        <div class="flex items-start justify-between gap-3 px-4 py-3 border-b border-glass-border shrink-0">
           <div class="min-w-0">
             <h2 class="font-display text-sm font-semibold text-fg leading-snug">{{ flow.title }}</h2>
-            <p v-if="flow.subtitle && !collapsed" class="text-xs text-muted mt-0.5">{{ flow.subtitle }}</p>
-            <p v-if="collapsed && activeStep" class="text-xs text-muted mt-0.5 truncate">{{ activeStep.description }}</p>
+            <p v-if="collapsed && countdownSeconds !== null" class="text-xs text-muted mt-0.5">Closing in {{ countdownSeconds }}s</p>
+            <p v-else-if="flow.subtitle && !collapsed" class="text-xs text-muted mt-0.5">{{ flow.subtitle }}</p>
+            <p v-else-if="collapsed && activeStep" class="text-xs text-muted mt-0.5 truncate">{{ activeStep.description }}</p>
           </div>
           <div class="flex items-center gap-1 shrink-0">
             <!-- Status dot (running = pulsing accent, succeeded = solid green) -->
@@ -217,7 +298,7 @@ const runAction = (action: FlowAction) => {
               :aria-label="collapsed ? 'Expand' : 'Collapse'"
               :title="collapsed ? 'Expand' : 'Collapse'"
               class="p-1.5 rounded-lg text-muted hover:text-fg hover:bg-fg/5 transition-colors"
-              @click="collapsed = !collapsed"
+              @click="toggleCollapsed"
             >
               <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4 transition-transform" :class="collapsed && 'rotate-180'" aria-hidden="true">
                 <path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -239,8 +320,17 @@ const runAction = (action: FlowAction) => {
           </div>
         </div>
 
+        <!-- Collapse/expand wrapper: grid-template-rows animates between 0fr and 1fr so any content height eases in/out without measurement. Inner div clips with overflow-hidden while the outer div shrinks/grows. -->
+        <div
+          class="grid transition-[grid-template-rows] duration-[280ms] ease-out min-h-0"
+          :class="collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'"
+        >
+          <div
+            class="overflow-hidden flex flex-col min-h-0 transition-opacity duration-[220ms] ease-out"
+            :class="collapsed ? 'opacity-0' : 'opacity-100 delay-[60ms]'"
+          >
         <!-- Expandable body -->
-        <div v-show="!collapsed" class="px-4 pt-4">
+        <div ref="bodyRef" class="px-4 pt-4 flex-1 overflow-y-auto overflow-x-auto min-h-0">
           <!-- Status banner: only shown once the flow leaves `running`. -->
           <div
             v-if="flow.status === 'failed'"
@@ -271,7 +361,7 @@ const runAction = (action: FlowAction) => {
                   :href="asTxStep(step).explorerUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1 text-accent hover:underline"
+                  class="inline-flex items-center gap-1 text-xs text-accent hover:underline"
                 >
                   <IconOpenInNew class="w-3 h-3" /> View transaction
                 </a>
@@ -300,7 +390,7 @@ const runAction = (action: FlowAction) => {
         </div>
 
         <!-- Panel footer -->
-        <div v-show="!collapsed" class="px-4 py-3">
+        <div class="px-4 py-3 shrink-0 border-t border-glass-border">
           <div v-if="flow.status === 'running'">
             <Button v-if="showBackgroundButton" severity="secondary" size="small" class="w-full" @click="continueInBackground">
               Continue in background
@@ -321,7 +411,10 @@ const runAction = (action: FlowAction) => {
           </div>
 
           <div v-else-if="flow.status === 'cancelled'" class="flex flex-wrap gap-2">
+            <Button severity="secondary" text size="small" @click="close">Dismiss</Button>
             <Button size="small" @click="tryAgain">Try again</Button>
+          </div>
+        </div>
           </div>
         </div>
       </div>

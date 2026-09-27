@@ -108,7 +108,7 @@ describe('paymentReceivedTemplate', () => {
   });
 
   it('formats the amount correctly', () => {
-    const { html } = paymentReceivedTemplate({
+    const { html, text } = paymentReceivedTemplate({
       ...BASE,
       unsubscribeUrl: '',
       paymentId: '0x1',
@@ -119,7 +119,10 @@ describe('paymentReceivedTemplate', () => {
       decimals: 6,
       payerChainId: '0xchain',
     });
-    expect(html).toContain('1 USDC');
+    // HTML renders amount and symbol separately inside the amount card
+    expect(html).toContain('>USDC<');
+    // plain-text version uses full formatted string
+    expect(text).toContain('1 USDC');
   });
 
   it('HTML-escapes symbol', () => {

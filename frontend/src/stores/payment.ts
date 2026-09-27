@@ -17,6 +17,7 @@ import { usePoller, type UsePollerHandle } from '@/composables/usePoller';
 import {
   chainNames,
   chainNamesToChains,
+  contracts,
   Payable,
   PayablePayment,
   TokenAndAmount,
@@ -27,6 +28,7 @@ import {
 } from '@/schemas';
 import {
   errorMsg,
+  isCctpChain,
   useAnalyticsStore,
   useAuthStore,
   useCacheStore,
@@ -89,21 +91,25 @@ export const usePaymentStore = defineStore('payment', () => {
     }
 
     if (isSameChain) {
+      // Native tokens skip the ERC-20 allowance/approve pair entirely — the pay
+      // itself goes through msg.value, so those steps have nothing to do.
+      const usesNativeToken = details.details[userChain.name]?.address === contracts[userChain.name];
       const flow = txFlow.start('pay', `Pay ${details.display(userChain)}`, [
-        { key: 'balance', title: 'Check balance', description: 'Checking your balance…' },
-        { key: 'allowance', title: 'Check allowance', description: 'Checking token allowance…' },
-        { key: 'approve', title: `Approve ${details.name}`, description: 'Waiting for approval…' },
+        { key: 'prepare', title: 'Prepare transaction', description: 'Setting up the on-chain call…' },
+        ...(usesNativeToken ? [] : [{ key: 'approve', title: `Approve ${details.name}`, description: 'Waiting for approval…' }]),
         { key: 'sign', title: 'Sign transaction', description: 'Waiting to sign…' },
         { key: 'confirm', title: 'Confirm on-chain', description: 'Waiting for confirmation…' },
       ]);
-      flow.step('balance').activate();
-      flow.step('balance').done();
-      flow.step('allowance').activate();
-      flow.step('allowance').done();
+      flow.step('prepare').activate();
+      flow.step('prepare').done();
       const result = await evm.pay(
         payableId,
         details,
-        { approve: flow.step('approve'), sign: flow.step('sign'), confirm: flow.step('confirm') },
+        {
+          approve: usesNativeToken ? undefined : flow.step('approve'),
+          sign: flow.step('sign'),
+          confirm: flow.step('confirm'),
+        },
         flow
       );
       if (!result) return null; // flow is already 'failed' or 'cancelled' — evm.writeContract recorded which.
@@ -115,10 +121,7 @@ export const usePaymentStore = defineStore('payment', () => {
       'pay-cross-chain',
       `Pay ${details.display(userChain)} to ${payableChain.displayName}`,
       [
-        { key: 'available', title: 'Check availability', description: 'Checking the payable is synced to your chain…' },
-        { key: 'fee', title: 'Estimate fees', description: 'Estimating bridge fees…' },
-        { key: 'balance', title: 'Check balance', description: 'Checking your balance…' },
-        { key: 'allowance', title: 'Check allowance', description: 'Checking token allowance…' },
+        { key: 'prepare', title: 'Prepare transaction', description: 'Setting up the on-chain call…' },
         { key: 'approve', title: `Approve ${details.name}`, description: 'Waiting for approval…' },
         { key: 'sign', title: 'Sign transaction', description: 'Waiting to sign (this burns your USDC via CCTP)…' },
         { key: 'confirm', title: 'Confirm on-chain', description: 'Waiting for confirmation…' },
@@ -133,20 +136,13 @@ export const usePaymentStore = defineStore('payment', () => {
       { canRunInBackground: true }
     );
 
-    flow.step('available').activate();
+    flow.step('prepare').activate();
     const foreign = await evm.fetchForeignPayable(payableId, userChain.name);
     if (!foreign) {
-      flow.step('available').fail('This payable has not synced to your chain yet.');
+      flow.step('prepare').fail('This payable has not synced to your chain yet.');
       return null;
     }
-    flow.step('available').done();
-
-    flow.step('fee').activate();
-    flow.step('fee').done(); // The actual fee estimate happens inside evm.payForeignViaCctp — surfaced here only as a step.
-    flow.step('balance').activate();
-    flow.step('balance').done();
-    flow.step('allowance').activate();
-    flow.step('allowance').done();
+    flow.step('prepare').done();
 
     const result = await evm.payForeignViaCctp(
       payableId,
@@ -156,6 +152,10 @@ export const usePaymentStore = defineStore('payment', () => {
       flow
     );
     if (!result) return null; // flow is already 'failed' or 'cancelled' — evm.writeContract recorded which.
+
+    // Fire-and-forget hint so the backend relay processor can pick up this CCTP
+    // burn immediately rather than waiting for its next getLogs scan window.
+    if (isCctpChain(result.chain.name)) server.nudgeRelay(result.chain.name, result.txHash);
 
     await auth.refreshUser();
     toast.add({
@@ -170,7 +170,6 @@ export const usePaymentStore = defineStore('payment', () => {
       is_cross_chain: true,
     });
 
-    flow.moveToBackground();
     trackArrivalForFlow(flow, result.created, userChain).catch(() => {});
 
     return result.created;
@@ -349,12 +348,9 @@ export const usePaymentStore = defineStore('payment', () => {
     // Looping through known chain names as the chain is not known (straight from browser URL)
     for (const chainName of chainNames) {
       for (const type of ['user', 'payable']) {
-        let payment = await cache.retrieve(cacheKey(chainName, type, id));
-        if (payment) {
-          // Necessary to restore callable methods on retrieved instance
-          const targetClass = type == 'user' ? UserPayment : PayablePayment;
-          payment = Object.setPrototypeOf(payment, targetClass.prototype);
-          return payment;
+        const cached = await cache.retrieve(cacheKey(chainName, type, id));
+        if (cached) {
+          return type == 'user' ? UserPayment.rehydrate(cached) : PayablePayment.rehydrate(cached);
         }
       }
     }
@@ -404,12 +400,9 @@ export const usePaymentStore = defineStore('payment', () => {
   };
 
   const getForPayable = async (id: string, chain: Chain): Promise<PayablePayment | null> => {
-    let payment = await cache.retrieve(cacheKey(chain.name, 'payable', id));
-    if (payment) {
-      // Necessary to restore callable methods on retrieved instance
-      payment = Object.setPrototypeOf(payment, PayablePayment.prototype);
-      return payment;
-    }
+    const cached = await cache.retrieve(cacheKey(chain.name, 'payable', id));
+    if (cached) return PayablePayment.rehydrate(cached);
+    let payment: PayablePayment | undefined;
 
     try {
       let raw: any;
@@ -430,12 +423,8 @@ export const usePaymentStore = defineStore('payment', () => {
   };
 
   const getForUser = async (id: string, chain: Chain): Promise<UserPayment | null> => {
-    let payment = await cache.retrieve(cacheKey(chain.name, 'user', id));
-    if (payment) {
-      // Necessary to restore callable methods on retrieved instance
-      payment = Object.setPrototypeOf(payment, UserPayment.prototype);
-      return payment;
-    }
+    const cached = await cache.retrieve(cacheKey(chain.name, 'user', id));
+    if (cached) return UserPayment.rehydrate(cached);
 
     try {
       let raw: any;
@@ -443,7 +432,7 @@ export const usePaymentStore = defineStore('payment', () => {
       else if (chain.isSolana) raw = await solana.fetchEntity('userPayment', id);
       else throw `Unknown chain: ${chain.name}`;
       if (raw) {
-        payment = new UserPayment(id, chain, raw);
+        const payment = new UserPayment(id, chain, raw);
         // Saving to Cache for retrieval at any other future time
         await cache.save(cacheKey(chain.name, 'user', id), payment);
         return payment;
@@ -480,10 +469,9 @@ export const usePaymentStore = defineStore('payment', () => {
 
         // 1. Try to load from cache first
         for (const id of ids) {
-          let payment = await cache.retrieve(cacheKey(chain.name, 'user', id));
-          if (payment) {
-            payment = Object.setPrototypeOf(payment, UserPayment.prototype);
-            payments.push(payment);
+          const cached = await cache.retrieve(cacheKey(chain.name, 'user', id));
+          if (cached) {
+            payments.push(UserPayment.rehydrate(cached));
           } else {
             missingIds.push(id);
             payments.push(null as any); // placeholder
@@ -545,10 +533,9 @@ export const usePaymentStore = defineStore('payment', () => {
         const missingIds: string[] = [];
 
         for (const id of ids) {
-          let payment = await cache.retrieve(cacheKey(chain.name, 'payable', id));
-          if (payment) {
-            payment = Object.setPrototypeOf(payment, PayablePayment.prototype);
-            payments.push(payment);
+          const cached = await cache.retrieve(cacheKey(chain.name, 'payable', id));
+          if (cached) {
+            payments.push(PayablePayment.rehydrate(cached));
           } else {
             missingIds.push(id);
             payments.push(null as any);

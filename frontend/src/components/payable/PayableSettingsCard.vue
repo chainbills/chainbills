@@ -16,41 +16,21 @@
  * <PayableSettingsCard :payable="payable" />
  * ```
  */
-import { GlassCard, Skeleton, TokenAmount } from '@/components/ui';
+import { GlassCard, TokenAmount } from '@/components/ui';
 import { FEATURES } from '@/config/features';
 import { tokens, type Payable } from '@/schemas';
-import { useStatsStore } from '@/stores';
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
 
 const props = defineProps<{
   /** The loaded payable whose settings this card displays. */
   payable: Payable;
 }>();
 
-/** Withdrawal fee in basis points loaded from chain config. Shown as a percentage. */
-const feeBps = ref<number | null>(null);
-
-const stats = useStatsStore();
-
-/** Loads the withdrawal fee once the card mounts. */
-const loadFee = async () => {
-  const chainStats = await stats.getChainStats(props.payable.chain);
-  feeBps.value = chainStats?.withdrawalFeePercentage ?? null;
-};
-
-onMounted(loadFee);
-
 /** Whether this payable accepts any token in any amount (no restriction). */
 const isAnyAmount = computed(() => props.payable.allowedTokensAndAmounts.length === 0);
 
 /** Tokens available on the home chain, for the "any amount" explanation row. */
 const homeChainTokens = computed(() => tokens.filter((t) => !!t.details[props.payable.chain.name]));
-
-/** Percentage label from the fee in basis points, e.g. "2%" or "2.5%". */
-const feeLabel = computed(() => {
-  if (feeBps.value === null) return null;
-  return `${(feeBps.value / 100).toFixed(2).replace(/\.?0+$/, '')}%`;
-});
 </script>
 
 <template>
@@ -100,18 +80,6 @@ const feeLabel = computed(() => {
         </template>
         <template v-else> Payments accumulate in the payable's balance until the owner withdraws. </template>
       </p>
-    </div>
-
-    <!-- Withdrawal fee -->
-    <div class="border-t border-fg/5 pt-3">
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-muted">Withdrawal fee</span>
-        <span class="text-fg font-medium tabular-nums">
-          <Skeleton v-if="feeBps === null" w="w-12" h="h-4" />
-          <span v-else>{{ feeLabel }}</span>
-        </span>
-      </div>
-      <p class="text-[11px] text-muted mt-1">Deducted by Chainbills at the time of withdrawal.</p>
     </div>
   </GlassCard>
 </template>

@@ -138,6 +138,10 @@ model UserPayment {
   /// Price matched against the payable's allowed amounts.
   requestedAmount Decimal @map("requested_amount") @db.Decimal(78, 0)
   amount         Decimal  @db.Decimal(78, 0)
+  /// Source-chain transaction hash of the tx that emitted `UserPaid` for this
+  /// receipt. Nullable because older rows indexed before the tx-hash column
+  /// existed do not have it. Populated by the indexer from `log.transactionHash`.
+  txHash         String?  @map("tx_hash")
   timestamp      DateTime
   indexedAt      DateTime @default(now()) @map("indexed_at")
 
@@ -171,6 +175,13 @@ model PayablePayment {
   /// Price of the payment as matched against the payable's allowed amounts.
   requestedAmount Decimal  @map("requested_amount") @db.Decimal(78, 0)
   amount          Decimal  @db.Decimal(78, 0)
+  /// Destination-chain transaction hash of the tx that emitted
+  /// `PayableReceived` for this receipt. Populated by the indexer from
+  /// `log.transactionHash`. For a same-chain payment this equals the
+  /// paired `UserPayment.txHash`; for a cross-chain payment it is the tx
+  /// hash of the relayer's `receiveForeignPaymentViaCctp` submission on
+  /// the payable's chain.
+  txHash          String?  @map("tx_hash")
   timestamp       DateTime
   indexedAt       DateTime @default(now()) @map("indexed_at")
 
@@ -198,6 +209,9 @@ model Withdrawal {
   amount        Decimal  @db.Decimal(78, 0)
   /// Portion sent to the fee collector; host receives amount minus fee.
   fee           Decimal  @db.Decimal(78, 0)
+  /// Transaction hash of the tx that emitted `Withdrew` for this receipt.
+  /// Populated by the indexer from `log.transactionHash`.
+  txHash        String?  @map("tx_hash")
   timestamp     DateTime
   indexedAt     DateTime @default(now()) @map("indexed_at")
 
@@ -236,6 +250,11 @@ model Activity {
   /// id of the related payable / payment / withdrawal this activity refers to.
   entity       String
   type         ActivityType
+  /// Transaction hash of the tx that emitted this activity's underlying event.
+  /// Populated by the indexer from `log.transactionHash` — universal per-action
+  /// coverage regardless of what kind of activity it is (payable create/close/
+  /// reopen/update-tokens/auto-withdraw, payment, receive, withdrawal).
+  txHash       String?      @map("tx_hash")
   timestamp    DateTime
   indexedAt    DateTime     @default(now()) @map("indexed_at")
 
@@ -293,6 +312,11 @@ model RelayJob {
   cctpMessage   String?  @map("cctp_message")
   /// CCTP attestation hex, persisted once fetched so a retry never refetches it.
   cctpAttestation String? @map("cctp_attestation")
+  /// Destination-chain tx hash of the relayer's submitted receive tx. Set once
+  /// `sendTransaction` returns (the tx may still be pending confirmation at
+  /// that point). Kept alongside the corresponding indexed row's tx_hash for
+  /// observability — same value, but reachable without waiting for the indexer.
+  destTxHash    String?  @map("dest_tx_hash")
   createdAt       DateTime  @default(now()) @map("created_at")
   lastAttemptAt   DateTime? @map("last_attempt_at")
   completedAt     DateTime? @map("completed_at")

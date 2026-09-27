@@ -184,14 +184,17 @@ contract CrossChainPaymentsTest is CbTestBase {
     assertEq(chainB.usdc.balanceOf(address(chainB.cb)), 100e6);
   }
 
-  function test_ReceiveForeignPaymentViaCctp_FeeExecuted_CreditsMintedAmount() public {
+  function test_ReceiveForeignPaymentViaCctp_FeeExecuted_RoutesSurplusToCollector() public {
     vm.prank(payer);
     chainA.cb.payForeignViaCctp(payableId, address(chainA.usdc), 100e6, 10e6);
-    // Circle only takes 4 of the 10 offered as fee: the payer gets the difference credited.
+    // Circle only takes 4 of the 10 offered as fee. The invoiced 100e6 is credited to
+    // the payable; the 6e6 surplus goes to the fee collector.
     (bytes memory message, bytes memory attestation) = _lastCctp(chainA, CCTP_FINALITY_FAST, 4e6, true);
+    uint256 collectorBefore = chainB.usdc.balanceOf(feeCollector);
     vm.prank(relayer);
     chainB.cb.receiveForeignPaymentViaCctp(message, attestation);
-    assertEq(chainB.usdc.balanceOf(address(chainB.cb)), 106e6);
+    assertEq(chainB.usdc.balanceOf(address(chainB.cb)), 100e6, 'payable credited exactly invoiced');
+    assertEq(chainB.usdc.balanceOf(feeCollector) - collectorBefore, 6e6, 'fee collector received surplus');
   }
 
   function test_ReceiveForeignPaymentViaCctp_ClosedPayableStillCredited() public {

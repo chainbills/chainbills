@@ -117,6 +117,40 @@ function emission(sequence: bigint) {
   };
 }
 
+/** A mock client for CCTP payable-update tests. Wormhole getter returns []. */
+function makeCctpUpdateClient(
+  cctpUpdates: Array<{ payableId: `0x${string}`; destChainId: `0x${string}`; chainbillsNonce: bigint; messageBodyHash: `0x${string}` }>
+) {
+  return {
+    readContract: vi.fn().mockImplementation(async ({ functionName, args }: any) => {
+      if (functionName === 'getEmittedWormholeMessages') return [];
+      if (functionName === 'getEmittedCctpPayableUpdateMessages') {
+        const [offset, limit] = args as [bigint, bigint];
+        return cctpUpdates.slice(Number(offset), Number(offset) + Number(limit));
+      }
+      if (functionName === 'getEmittedCctpPaymentMessages') return [];
+      return null;
+    }),
+  } as unknown as PublicClient;
+}
+
+/** A mock client for CCTP payment tests. Wormhole and update getters return []. */
+function makeCctpPaymentClient(
+  cctpPayments: Array<{ payableId: `0x${string}`; destChainId: `0x${string}`; userPaymentId: `0x${string}`; chainbillsNonce: bigint; hookDataHash: `0x${string}` }>
+) {
+  return {
+    readContract: vi.fn().mockImplementation(async ({ functionName, args }: any) => {
+      if (functionName === 'getEmittedWormholeMessages') return [];
+      if (functionName === 'getEmittedCctpPayableUpdateMessages') return [];
+      if (functionName === 'getEmittedCctpPaymentMessages') {
+        const [offset, limit] = args as [bigint, bigint];
+        return cctpPayments.slice(Number(offset), Number(offset) + Number(limit));
+      }
+      return null;
+    }),
+  } as unknown as PublicClient;
+}
+
 describe('detectRelayTriggers', () => {
   it('creates PAYABLE_UPDATE_VIA_WORMHOLE jobs for each new message', async () => {
     const prisma = makePrisma();
@@ -222,5 +256,187 @@ describe('detectRelayTriggers', () => {
     expect(createMany).toHaveBeenCalledTimes(2);
     const destIds = createMany.mock.calls.map((c: any) => c[0].data[0].destChainId);
     expect(new Set(destIds).size).toBe(2);
+  });
+
+  // CCTP payable-update path
+
+  it('returns immediately when source chain has no circleDomain (CCTP update)', async () => {
+    const chainNoCctp: EvmChainConfig = { ...TESTNET_CHAIN_A, circleDomain: undefined };
+    const prisma = makePrisma();
+    const chains = makeChains([chainNoCctp, TESTNET_CHAIN_B]);
+    const cctpStats: MessagingStats = {
+      wormholeStats: { publishedWormholeMessagesCount: 0n },
+      cctpStats: { emittedCctpPaymentMessagesCount: 0n, emittedCctpPayableUpdateMessagesCount: 5n },
+    };
+    const client = makeCctpUpdateClient([]);
+
+    const result = await detectRelayTriggers(chainNoCctp, chains, prisma, cctpStats, makeCursor(0n), client);
+
+    expect(result.cctpPayableUpdateAdvanced).toBe(false);
+    expect((prisma as any).relayJob.createMany).not.toHaveBeenCalled();
+  });
+
+  it('creates PAYABLE_UPDATE_VIA_CCTP jobs for CCTP payable update emissions', async () => {
+    const prisma = makePrisma();
+    const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B]);
+    const cctpUpdateEmissions = [
+      {
+        payableId: '0xpayable01' as `0x${string}`,
+        destChainId: TESTNET_CHAIN_B.cbChainId as `0x${string}`,
+        chainbillsNonce: 1n,
+        messageBodyHash: '0xhash01' as `0x${string}`,
+      },
+    ];
+    const cctpStats: MessagingStats = {
+      wormholeStats: { publishedWormholeMessagesCount: 0n },
+      cctpStats: { emittedCctpPaymentMessagesCount: 0n, emittedCctpPayableUpdateMessagesCount: 1n },
+    };
+    const client = makeCctpUpdateClient(cctpUpdateEmissions);
+
+    const result = await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, cctpStats, makeCursor(0n), client);
+
+    expect(result.cctpPayableUpdateAdvanced).toBe(true);
+    const createMany = (prisma as any).relayJob.createMany;
+    const cctpJobs = createMany.mock.calls.filter((c: any) => c[0].data[0]?.type === 'PAYABLE_UPDATE_VIA_CCTP');
+    expect(cctpJobs.length).toBe(1);
+    expect(cctpJobs[0][0].data[0].destChainId).toBe(TESTNET_CHAIN_B.cbChainId);
+  });
+
+  it('skips CCTP update job when dest not found in enabled chains', async () => {
+    const prisma = makePrisma();
+    const chains = makeChains([TESTNET_CHAIN_A]); // CHAIN_B not enabled
+    const cctpUpdateEmissions = [
+      {
+        payableId: '0xpayable02' as `0x${string}`,
+        destChainId: '0xunknowndest' as `0x${string}`,
+        chainbillsNonce: 1n,
+        messageBodyHash: '0xhash02' as `0x${string}`,
+      },
+    ];
+    const cctpStats: MessagingStats = {
+      wormholeStats: { publishedWormholeMessagesCount: 0n },
+      cctpStats: { emittedCctpPaymentMessagesCount: 0n, emittedCctpPayableUpdateMessagesCount: 1n },
+    };
+    const client = makeCctpUpdateClient(cctpUpdateEmissions);
+
+    const result = await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, cctpStats, makeCursor(0n), client);
+
+    expect(result.cctpPayableUpdateAdvanced).toBe(true);
+    const createMany = (prisma as any).relayJob.createMany;
+    expect(createMany).not.toHaveBeenCalled();
+  });
+
+  // CCTP payment path
+
+  it('returns immediately when source chain has no circleDomain (CCTP payment)', async () => {
+    const chainNoCctp: EvmChainConfig = { ...TESTNET_CHAIN_A, circleDomain: undefined };
+    const prisma = makePrisma();
+    const chains = makeChains([chainNoCctp, TESTNET_CHAIN_B]);
+    const cctpStats: MessagingStats = {
+      wormholeStats: { publishedWormholeMessagesCount: 0n },
+      cctpStats: { emittedCctpPaymentMessagesCount: 5n, emittedCctpPayableUpdateMessagesCount: 0n },
+    };
+    const client = makeCctpPaymentClient([]);
+
+    const result = await detectRelayTriggers(chainNoCctp, chains, prisma, cctpStats, makeCursor(0n), client);
+
+    expect(result.cctpPaymentAdvanced).toBe(false);
+    expect((prisma as any).relayJob.createMany).not.toHaveBeenCalled();
+  });
+
+  it('creates PAYMENT_VIA_CCTP jobs for CCTP payment emissions', async () => {
+    const prisma = makePrisma();
+    const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B]);
+    const cctpPaymentEmissions = [
+      {
+        payableId: '0xpayable03' as `0x${string}`,
+        destChainId: TESTNET_CHAIN_B.cbChainId as `0x${string}`,
+        userPaymentId: '0xuserpayment01' as `0x${string}`,
+        chainbillsNonce: 1n,
+        hookDataHash: '0xhook01' as `0x${string}`,
+      },
+    ];
+    const cctpStats: MessagingStats = {
+      wormholeStats: { publishedWormholeMessagesCount: 0n },
+      cctpStats: { emittedCctpPaymentMessagesCount: 1n, emittedCctpPayableUpdateMessagesCount: 0n },
+    };
+    const client = makeCctpPaymentClient(cctpPaymentEmissions);
+
+    const result = await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, cctpStats, makeCursor(0n), client);
+
+    expect(result.cctpPaymentAdvanced).toBe(true);
+    const createMany = (prisma as any).relayJob.createMany;
+    const paymentJobs = createMany.mock.calls.filter((c: any) => c[0].data[0]?.type === 'PAYMENT_VIA_CCTP');
+    expect(paymentJobs.length).toBe(1);
+    expect(paymentJobs[0][0].data[0].destChainId).toBe(TESTNET_CHAIN_B.cbChainId);
+  });
+
+  it('skips CCTP payment job when dest not found in enabled chains', async () => {
+    const prisma = makePrisma();
+    const chains = makeChains([TESTNET_CHAIN_A]);
+    const cctpPaymentEmissions = [
+      {
+        payableId: '0xpayable04' as `0x${string}`,
+        destChainId: '0xunknown' as `0x${string}`,
+        userPaymentId: '0xupay' as `0x${string}`,
+        chainbillsNonce: 1n,
+        hookDataHash: '0xhook02' as `0x${string}`,
+      },
+    ];
+    const cctpStats: MessagingStats = {
+      wormholeStats: { publishedWormholeMessagesCount: 0n },
+      cctpStats: { emittedCctpPaymentMessagesCount: 1n, emittedCctpPayableUpdateMessagesCount: 0n },
+    };
+    const client = makeCctpPaymentClient(cctpPaymentEmissions);
+
+    const result = await detectRelayTriggers(TESTNET_CHAIN_A, chains, prisma, cctpStats, makeCursor(0n), client);
+
+    expect(result.cctpPaymentAdvanced).toBe(true);
+    const createMany = (prisma as any).relayJob.createMany;
+    expect(createMany).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when cctpPayableUpdatesRelayed equals emitted count', async () => {
+    const prisma = makePrisma();
+    const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B]);
+    const cctpStats: MessagingStats = {
+      wormholeStats: { publishedWormholeMessagesCount: 0n },
+      cctpStats: { emittedCctpPaymentMessagesCount: 0n, emittedCctpPayableUpdateMessagesCount: 3n },
+    };
+    const client = makeCctpUpdateClient([]);
+
+    const result = await detectRelayTriggers(
+      TESTNET_CHAIN_A,
+      chains,
+      prisma,
+      cctpStats,
+      { wormholeRelayed: 0n, cctpPayableUpdatesRelayed: 3n, cctpPaymentsRelayed: 0n },
+      client
+    );
+
+    expect(result.cctpPayableUpdateAdvanced).toBe(false);
+    expect((prisma as any).relayJob.createMany).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when cctpPaymentsRelayed equals emitted count', async () => {
+    const prisma = makePrisma();
+    const chains = makeChains([TESTNET_CHAIN_A, TESTNET_CHAIN_B]);
+    const cctpStats: MessagingStats = {
+      wormholeStats: { publishedWormholeMessagesCount: 0n },
+      cctpStats: { emittedCctpPaymentMessagesCount: 2n, emittedCctpPayableUpdateMessagesCount: 0n },
+    };
+    const client = makeCctpPaymentClient([]);
+
+    const result = await detectRelayTriggers(
+      TESTNET_CHAIN_A,
+      chains,
+      prisma,
+      cctpStats,
+      { wormholeRelayed: 0n, cctpPayableUpdatesRelayed: 0n, cctpPaymentsRelayed: 2n },
+      client
+    );
+
+    expect(result.cctpPaymentAdvanced).toBe(false);
+    expect((prisma as any).relayJob.createMany).not.toHaveBeenCalled();
   });
 });

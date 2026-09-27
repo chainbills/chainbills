@@ -75,5 +75,22 @@ export const useTimeStore = defineStore('time', () => {
     return displayed;
   };
 
-  return { display };
+  /**
+   * Full locale-formatted date+time for `when` (unix seconds), used as the
+   * `title` attribute on any element whose visible text is the shortened
+   * `display(when)` output ("5 mins ago", "Today · 03:15"). Hovering
+   * reveals the precise timestamp without changing the visible layout.
+   */
+  const full = (when: number) =>
+    new Date(when * 1000).toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+  return { display, full };
 });

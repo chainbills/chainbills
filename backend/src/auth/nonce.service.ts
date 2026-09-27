@@ -14,16 +14,16 @@ import { randomBytes } from 'crypto';
 import bs58 from 'bs58';
 import { PrismaService } from '../prisma/prisma.service';
 
-/** Nonce expiry: 5 minutes (SPEC.md §9.1). */
+/** Nonce expiry: 5 minutes. */
 const NONCE_TTL_MS = 5 * 60 * 1_000;
 
 /** Rows expired more than this long ago are deleted on each nonce issue. */
 const CLEANUP_AGE_MS = 60 * 60 * 1_000;
 
-/** Number of random bytes to generate per nonce (≥16 per SPEC.md §9.1). */
+/** Number of random bytes to generate per nonce. */
 const NONCE_BYTES = 16;
 
-/** Generates and validates single-use sign-in nonces (SPEC.md §9.1). */
+/** Generates and validates single-use sign-in nonces. */
 @Injectable()
 export class NonceService {
   private readonly logger = new Logger(NonceService.name);

@@ -84,10 +84,20 @@ exports[`paymentReceiptTemplate > matches snapshot 2`] = `
         <tr>
           <td style="padding:32px;">
             
-    <h2 style="margin:0 0 16px;color:#1a1a2e;font-size:20px;">Payment receipt</h2>
-    <p style="margin:0 0 8px;color:#333;font-size:15px;line-height:1.6;">
-      Your payment of <strong>2 USDC</strong> was successful.
+    <h2 style="margin:0 0 8px;color:#1a1a2e;font-size:20px;">Payment receipt</h2>
+    <p style="margin:0;color:#333;font-size:15px;line-height:1.6;">
+      Your payment went through.
     </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 24px;border-collapse:separate;">
+    <tr>
+      <td align="center" style="background:#faf7f0;border:1px solid #efe6d3;border-radius:12px;padding:24px 20px;">
+        <div style="color:#7a6c4a;font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;">You paid</div>
+        <div style="color:#1a1a2e;font-size:34px;font-weight:700;line-height:1;letter-spacing:-0.5px;font-family:Arial,Helvetica,sans-serif;">
+          2<span style="color:#5b6474;font-size:18px;font-weight:600;margin-left:6px;">USDC</span>
+        </div>
+      </td>
+    </tr>
+  </table>
     <p style="margin:0 0 4px;color:#555;font-size:14px;">Payable: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">0xpay012</code></p>
     <p style="margin:0;color:#555;font-size:14px;">Payment ID: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">0xpmt789</code></p>
     <a href="https://chainbills.xyz/receipt/0xpmt789" style="display:inline-block;margin-top:24px;padding:12px 24px;background:#1a1a2e;color:#e8d5b7;text-decoration:none;border-radius:6px;font-weight:600;font-size:15px;">View Receipt</a>
@@ -145,10 +155,20 @@ exports[`paymentReceivedTemplate > matches snapshot 2`] = `
         <tr>
           <td style="padding:32px;">
             
-    <h2 style="margin:0 0 16px;color:#1a1a2e;font-size:20px;">Payment received</h2>
-    <p style="margin:0 0 8px;color:#333;font-size:15px;line-height:1.6;">
-      Your payable received a payment of <strong>1.5 USDC</strong>.
+    <h2 style="margin:0 0 8px;color:#1a1a2e;font-size:20px;">Payment received</h2>
+    <p style="margin:0;color:#333;font-size:15px;line-height:1.6;">
+      Your payable just received a new payment.
     </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 24px;border-collapse:separate;">
+    <tr>
+      <td align="center" style="background:#faf7f0;border:1px solid #efe6d3;border-radius:12px;padding:24px 20px;">
+        <div style="color:#7a6c4a;font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;">You received</div>
+        <div style="color:#1a1a2e;font-size:34px;font-weight:700;line-height:1;letter-spacing:-0.5px;font-family:Arial,Helvetica,sans-serif;">
+          1.5<span style="color:#5b6474;font-size:18px;font-weight:600;margin-left:6px;">USDC</span>
+        </div>
+      </td>
+    </tr>
+  </table>
     <p style="margin:0 0 4px;color:#555;font-size:14px;">Payable: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">0xpay456</code></p>
     <p style="margin:0;color:#555;font-size:14px;">Payment: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">0xpmt123</code></p>
     <a href="https://chainbills.xyz/receipt/0xpmt123" style="display:inline-block;margin-top:24px;padding:12px 24px;background:#1a1a2e;color:#e8d5b7;text-decoration:none;border-radius:6px;font-weight:600;font-size:15px;">View Receipt</a>
@@ -270,10 +290,20 @@ exports[`withdrawalCompletedTemplate > matches snapshot 2`] = `
         <tr>
           <td style="padding:32px;">
             
-    <h2 style="margin:0 0 16px;color:#1a1a2e;font-size:20px;">Withdrawal completed</h2>
-    <p style="margin:0 0 8px;color:#333;font-size:15px;line-height:1.6;">
-      Your withdrawal of <strong>5 USDC</strong> has been completed.
+    <h2 style="margin:0 0 8px;color:#1a1a2e;font-size:20px;">Withdrawal completed</h2>
+    <p style="margin:0;color:#333;font-size:15px;line-height:1.6;">
+      Your withdrawal has landed.
     </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 24px;border-collapse:separate;">
+    <tr>
+      <td align="center" style="background:#faf7f0;border:1px solid #efe6d3;border-radius:12px;padding:24px 20px;">
+        <div style="color:#7a6c4a;font-size:11px;font-weight:700;letter-spacing:0.09em;text-transform:uppercase;margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;">You withdrew</div>
+        <div style="color:#1a1a2e;font-size:34px;font-weight:700;line-height:1;letter-spacing:-0.5px;font-family:Arial,Helvetica,sans-serif;">
+          5<span style="color:#5b6474;font-size:18px;font-weight:600;margin-left:6px;">USDC</span>
+        </div>
+      </td>
+    </tr>
+  </table>
     <p style="margin:0 0 4px;color:#555;font-size:14px;">Payable: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">0xpay678</code></p>
     <p style="margin:0;color:#555;font-size:14px;">Withdrawal: <code style="background:#f4f4f4;padding:2px 6px;border-radius:4px;">0xwdr345</code></p>
     <a href="https://chainbills.xyz/payable/0xpay678" style="display:inline-block;margin-top:24px;padding:12px 24px;background:#1a1a2e;color:#e8d5b7;text-decoration:none;border-radius:6px;font-weight:600;font-size:15px;">View Payable</a>

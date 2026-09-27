@@ -26,6 +26,8 @@ export interface KeyValueItem {
   value?: string;
   /** Renders `value`/the slot content in monospace — use for ids, hashes and addresses. */
   mono?: boolean;
+  /** Renders the row's value across the full width with no label column and no right-alignment — for embedded visual strips (e.g. a cross-chain route indicator) that don't fit the two-column layout. */
+  fullWidth?: boolean;
 }
 
 defineProps<{
@@ -36,15 +38,19 @@ defineProps<{
 
 <template>
   <dl class="divide-y divide-fg/5">
-    <div
-      v-for="item in items"
-      :key="item.key"
-      class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-    >
-      <dt class="text-sm text-muted shrink-0">{{ item.label }}</dt>
-      <dd :class="['text-sm text-fg sm:text-right', item.mono && 'font-mono text-xs']">
+    <template v-for="item in items" :key="item.key">
+      <div v-if="item.fullWidth" class="py-3">
         <slot :name="item.key" :item="item">{{ item.value }}</slot>
-      </dd>
-    </div>
+      </div>
+      <div
+        v-else
+        class="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+      >
+        <dt class="text-sm text-muted shrink-0">{{ item.label }}</dt>
+        <dd :class="['text-sm text-fg sm:text-right', item.mono && 'font-mono text-xs']">
+          <slot :name="item.key" :item="item">{{ item.value }}</slot>
+        </dd>
+      </div>
+    </template>
   </dl>
 </template>

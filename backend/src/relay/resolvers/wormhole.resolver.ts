@@ -40,11 +40,13 @@ export async function fetchVaa(
   const emitter = diamondAddress.replace(/^0x/i, '').toLowerCase().padStart(64, '0');
   const url = `${baseUrl(network)}/api/v1/vaas/${wormholeChainId}/${emitter}/${sequence.toString()}`;
 
+  logger.log({ wormholeChainId, sequence: sequence.toString(), network }, 'fetching VAA');
   try {
     const res = await fetch(url);
 
     if (res.status === 404) {
       // VAA not yet available; caller retries on the next processor tick.
+      logger.log({ wormholeChainId, sequence: sequence.toString() }, 'VAA not yet available');
       return null;
     }
 
@@ -63,7 +65,7 @@ export async function fetchVaa(
     }
 
     const bytes = Buffer.from(b64, 'base64');
-    logger.debug({ wormholeChainId, sequence: sequence.toString() }, 'fetched VAA');
+    logger.log({ wormholeChainId, sequence: sequence.toString() }, 'VAA fetched');
     return new Uint8Array(bytes);
   } catch (err) {
     logger.warn({ url, err }, 'WormholeScan request failed');

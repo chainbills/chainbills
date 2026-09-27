@@ -10,7 +10,7 @@
 //     unique key (type, txHash, destChainId) deduplicates across retries.
 //   - claimJob picks the oldest PENDING/PROCESSING job whose notBefore <= now()
 //     and sets it PROCESSING atomically. Returns null when none are ready.
-//   - retryLater backoff: now() + 30s × 2^attempts, capped at 10 min.
+//   - retryLater backoff: now() + 10s * 2^attempts, capped at 60s.
 //   - After 8 attempts retryLater marks the job FAILED directly.
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -37,8 +37,8 @@ export interface JobArtefacts {
   cctpAttestation?: string;
 }
 
-const MAX_BACKOFF_MS = 10 * 60 * 1000; // 10 minutes
-const BACKOFF_BASE_MS = 30_000; // 30 seconds per attempt factor
+const MAX_BACKOFF_MS = 60_000; // 1 minute cap
+const BACKOFF_BASE_MS = 10_000; // 10 seconds per attempt factor
 
 /** Max attempts before a job is permanently marked FAILED. */
 export const MAX_RELAY_ATTEMPTS = 8;
@@ -124,11 +124,20 @@ export async function patchArtefacts(prisma: PrismaService, id: string, artefact
   await prisma.relayJob.update({ where: { id }, data });
 }
 
-/** Marks a job as successfully completed. */
-export async function markDone(prisma: PrismaService, id: string): Promise<void> {
+/**
+ * Marks a job as successfully completed. When `destTxHash` is provided (EVM
+ * submitters), it's persisted for observability and for the indexer to hydrate
+ * `PayablePayment.tx_hash` on the destination chain when it later picks up the
+ * `PayableReceived` event.
+ */
+export async function markDone(prisma: PrismaService, id: string, destTxHash?: string | null): Promise<void> {
   await prisma.relayJob.update({
     where: { id },
-    data: { status: RelayJobStatus.DONE, completedAt: new Date() },
+    data: {
+      status: RelayJobStatus.DONE,
+      completedAt: new Date(),
+      ...(destTxHash ? { destTxHash } : {}),
+    },
   });
 }
 
@@ -158,6 +167,10 @@ export async function retryLater(prisma: PrismaService, job: RelayJob, error: st
 
   const backoffMs = Math.min(BACKOFF_BASE_MS * Math.pow(2, job.attempts), MAX_BACKOFF_MS);
   const notBefore = new Date(Date.now() + backoffMs);
+  logger.log(
+    { jobId: job.id, type: job.type, attempt: job.attempts, retryAt: notBefore.toISOString(), error },
+    'relay job retry scheduled'
+  );
 
   await prisma.relayJob.update({
     where: { id: job.id },

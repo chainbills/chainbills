@@ -153,18 +153,16 @@ export const tokens: Token[] = [
     name: 'USDC',
     details: {
       arcmainnet: {
-        // USDC is Arc's native gas token, so payments go through the msg.value
-        // path (no approve step) — the diamond address is the "native token"
-        // sentinel Chainbills uses on every EVM chain. Arc's native USDC uses
-        // 18 decimals (its ERC-20 interface at 0x3600... reports 6, but that
-        // path would need an approve; we deliberately trade decimal-uniformity
-        // for the single-tx flow that makes Arc feel instant).
-        address: contracts.arcmainnet,
-        decimals: 18,
+        // Arc's native gas token is USDC, but Chainbills treats it as a plain
+        // ERC-20 via the 6-decimal view at 0x3600... — same shape as every
+        // other chain's USDC. CCTP, Circle Iris fee math and destination
+        // decimals all line up without any per-chain scaling.
+        address: '0x3600000000000000000000000000000000000000',
+        decimals: 6,
       },
       arctestnet: {
-        address: contracts.arctestnet,
-        decimals: 18,
+        address: '0x3600000000000000000000000000000000000000',
+        decimals: 6,
       },
       base: {
         address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',

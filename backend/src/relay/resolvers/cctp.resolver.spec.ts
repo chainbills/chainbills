@@ -2,7 +2,9 @@
 // Chainbills Backend — CCTP resolver tests
 //
 // Covers: pending -> null, complete with correct dest domain, wrong dest domain,
-// non-200 response, network error, mainnet vs sandbox URL selection.
+// non-200 response, network error, mainnet vs sandbox URL selection. Fixtures
+// mirror Iris v2's actual shape — `destinationDomain` is nested under
+// `decodedMessage` as a string, not top-level as a number.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { fetchCctpAttestation } from './cctp.resolver';
@@ -10,6 +12,21 @@ import { fetchCctpAttestation } from './cctp.resolver';
 const SOURCE_DOMAIN = 0; // Sepolia
 const DEST_DOMAIN = 26; // Arc
 const TX_HASH = '0xdeadbeef';
+
+/** Builds one entry of `body.messages` in the Iris v2 shape. */
+function irisMessage(opts: {
+  status: string;
+  destinationDomain: number | string;
+  message?: string;
+  attestation?: string;
+}) {
+  return {
+    status: opts.status,
+    message: opts.message,
+    attestation: opts.attestation,
+    decodedMessage: { destinationDomain: String(opts.destinationDomain) },
+  };
+}
 
 describe('fetchCctpAttestation', () => {
   afterEach(() => {
@@ -22,7 +39,7 @@ describe('fetchCctpAttestation', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         json: vi.fn().mockResolvedValue({
-          messages: [{ status: 'pending', destinationDomain: DEST_DOMAIN }],
+          messages: [irisMessage({ status: 'pending', destinationDomain: DEST_DOMAIN })],
         }),
       })
     );
@@ -37,12 +54,12 @@ describe('fetchCctpAttestation', () => {
         ok: true,
         json: vi.fn().mockResolvedValue({
           messages: [
-            {
+            irisMessage({
               status: 'complete',
               destinationDomain: 999,
               message: '0xmessage',
               attestation: '0xattestation',
-            },
+            }),
           ],
         }),
       })
@@ -58,8 +75,13 @@ describe('fetchCctpAttestation', () => {
         ok: true,
         json: vi.fn().mockResolvedValue({
           messages: [
-            { status: 'complete', destinationDomain: 999, message: '0xwrong', attestation: '0xwrong' },
-            { status: 'complete', destinationDomain: DEST_DOMAIN, message: '0xmessage', attestation: '0xattestation' },
+            irisMessage({ status: 'complete', destinationDomain: 999, message: '0xwrong', attestation: '0xwrong' }),
+            irisMessage({
+              status: 'complete',
+              destinationDomain: DEST_DOMAIN,
+              message: '0xmessage',
+              attestation: '0xattestation',
+            }),
           ],
         }),
       })
@@ -68,6 +90,29 @@ describe('fetchCctpAttestation', () => {
     expect(result).not.toBeNull();
     expect(result!.message).toBe('0xmessage');
     expect(result!.attestation).toBe('0xattestation');
+  });
+
+  it('tolerates a numeric destinationDomain (defensive against a future Iris shape change)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          messages: [
+            {
+              status: 'complete',
+              message: '0xmessage',
+              attestation: '0xattestation',
+              // Numeric variant, not the string form Iris currently returns.
+              decodedMessage: { destinationDomain: DEST_DOMAIN },
+            },
+          ],
+        }),
+      })
+    );
+    const result = await fetchCctpAttestation('testnet', SOURCE_DOMAIN, TX_HASH, DEST_DOMAIN);
+    expect(result).not.toBeNull();
+    expect(result!.message).toBe('0xmessage');
   });
 
   it('returns null on non-200 response', async () => {

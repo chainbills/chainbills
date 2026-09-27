@@ -884,7 +884,7 @@ contract ChainbillsHandler is Test {
     }
   }
 
-  /// Every payable payment record matches its ghost; cross-chain credits equal minted amounts, delivered once.
+  /// Every payable payment record matches its ghost; cross-chain credits equal invoiced amounts (any CCTP fee surplus is routed to the collector), delivered once.
   function checkReceipts() external view {
     for (uint8 c; c < 2; c++) {
       IChainbills cb = chains[c].cb;
@@ -902,7 +902,7 @@ contract ChainbillsHandler is Test {
         assertEq(payerChainId, expected[i].payerChainId, 'receipt payer chain');
         if (payerChainId != chains[c].cbChainId) crossChainSum += amount;
       }
-      assertEq(crossChainSum, chainGhosts[c].crossChainCredited, 'cross-chain credited != minted');
+      assertEq(crossChainSum, chainGhosts[c].crossChainCredited, 'cross-chain credited != invoiced');
       assertEq(chains[c].usdc.balanceOf(circleFeeRecipient), chainGhosts[c].circleFees, 'Circle fees != executed fees');
     }
     for (uint256 i; i < payments.length; i++) {
@@ -1097,9 +1097,12 @@ contract ChainbillsHandler is Test {
     deliveredPayments.push(index);
     uint8 d = uint8(1 - m.src);
     chainGhosts[d].paymentsReceived++;
-    chainGhosts[d].crossChainCredited += minted;
+    // Only the invoiced amount lands in the payable's balance; any surplus (unused
+    // CCTP fee buffer) is transferred to the fee collector by the destination facet.
+    chainGhosts[d].crossChainCredited += m.amount;
+    if (minted > m.amount) tokenGhosts[d][USDC].collectorReceived += minted - m.amount;
     chainGhosts[d].circleFees += feeExecuted;
-    _recordPayablePayment(d, m.payableId, USDC, m.amount, minted, chains[m.src].cbChainId);
+    _recordPayablePayment(d, m.payableId, USDC, m.amount, m.amount, chains[m.src].cbChainId);
     return true;
   }
 

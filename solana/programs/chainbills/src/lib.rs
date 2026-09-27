@@ -5,8 +5,8 @@
 //! Hosts withdraw funds. 2% fee on withdrawals. Full audit trail on-chain.
 //!
 //! ## Architecture
-//! See `solana/DESIGN.md` for full design, PDA scheme, cross-chain flows,
-//! wire format compatibility with EVM, and stack management strategies.
+//! PDA scheme, cross-chain flows, wire format compatibility with EVM, and
+//! stack management strategies are documented in the repo design notes.
 //!
 //! ## Cross-chain compatibility
 //! `PaymentPayload` (251 bytes) and `PayablePayload` (variable) are
@@ -15,7 +15,7 @@
 //!
 //! ## Program IDs
 //! - Devnet:  see `Anchor.toml`
-//! - Mainnet: see `solana/DEPLOYED.md` after deployment
+//! - Mainnet: deployed address is in `Anchor.toml` after deployment
 
 use anchor_lang::prelude::*;
 

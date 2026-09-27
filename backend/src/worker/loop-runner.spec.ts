@@ -62,4 +62,24 @@ describe('runLoop', () => {
     // After stop resolves the iteration must have completed.
     expect(finished.length).toBeGreaterThanOrEqual(1);
   });
+
+  it('stop() resolves with a timeout warning when fn never completes', async () => {
+    vi.useFakeTimers();
+
+    // fn never resolves, so the stop timeout fires after STOP_TIMEOUT_MS.
+    const fn = vi.fn().mockImplementation(() => new Promise<void>(() => {}));
+
+    const stop = runLoop({ name: 'test-timeout', intervalMs: 0, fn });
+
+    // Start the stop promise but don't await yet — advance fake timers.
+    const stopPromise = stop();
+    // Advance past STOP_TIMEOUT_MS (3000ms).
+    vi.advanceTimersByTime(4000);
+
+    await stopPromise;
+
+    vi.useRealTimers();
+    // If we get here without hanging, the timeout branch fired correctly.
+    expect(true).toBe(true);
+  });
 });

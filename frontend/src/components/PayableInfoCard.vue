@@ -106,7 +106,7 @@ onMounted(fetchPayable);
           <span
             v-for="(bal, i) in balsDisplay"
             :key="i"
-            class="rounded-full border border-glass-border bg-bg/30 px-2.5 py-1"
+            class="rounded-full border border-glass-border bg-bg/30 px-2.5 pt-1"
           >
             <TokenAmount :amount="bal" :chain="payable.chain" size="sm" />
           </span>

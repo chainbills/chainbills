@@ -26,9 +26,9 @@ import WithdrawDialog from '@/components/tx/WithdrawDialog.vue';
 import { EmptyState, GlassCard, TokenAmount } from '@/components/ui';
 import IconCopy from '@/icons/IconCopy.vue';
 import { type Payable, type TokenAndAmount } from '@/schemas';
-import { useAnalyticsStore } from '@/stores';
+import { useAnalyticsStore, useStatsStore } from '@/stores';
 import Button from 'primevue/button';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 const props = defineProps<{
   /** The loaded payable whose balances this card displays. */
@@ -41,6 +41,15 @@ const emit = defineEmits<{
 }>();
 
 const analytics = useAnalyticsStore();
+const stats = useStatsStore();
+
+/** Withdrawal fee, in bps, read from the payable chain's protocol config. Falls back to the 2% default when the chain has no stats (Solana) or the read hasn't landed yet. */
+const feeBps = ref<number>(200);
+onMounted(async () => {
+  const chainStats = await stats.getChainStats(props.payable.chain);
+  if (chainStats?.withdrawalFeeBps) feeBps.value = chainStats.withdrawalFeeBps;
+});
+const feePercentLabel = computed(() => `${(feeBps.value / 100).toFixed(2).replace(/\.?0+$/, '')}%`);
 
 /** Balances ordered/merged per the `getBalsDisplay` logic in the `Payable` class. */
 const balsDisplay = computed(() => props.payable.getBalsDisplay());
@@ -107,6 +116,10 @@ const onWithdrawn = (withdrawalId: string) => emit('withdrawn', withdrawalId);
         <Button class="shrink-0 text-sm px-4 py-1.5" @click="openWithdraw(balance)">Withdraw</Button>
       </li>
     </ul>
+
+    <p v-if="nonZeroBalances.length" class="text-[11px] text-muted mt-3">
+      Chainbills charges {{ feePercentLabel }} on every withdrawal.
+    </p>
   </GlassCard>
 
   <!-- Withdraw dialog -->

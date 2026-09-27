@@ -3,10 +3,7 @@
 //
 // Wires the always-on infrastructure (config, Prisma, chains, logging,
 // throttling, the global exception filter, health) and gates WorkerModule /
-// ApiModule by ROLE, per SPEC.md §2.1: "worker-side providers are registered
-// by a WorkerModule that AppModule imports only when ROLE is worker or all;
-// HTTP controllers other than HealthController are registered only when
-// ROLE is api or all."
+// ApiModule by ROLE.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Module } from '@nestjs/common';

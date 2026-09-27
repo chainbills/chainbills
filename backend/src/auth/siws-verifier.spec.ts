@@ -154,4 +154,22 @@ describe('SiwsVerifier', () => {
       expect(result.parsed.domain).toBe('evil.com');
     });
   });
+
+  describe('address decoding failures', () => {
+    it('rejects when address is not valid base58', () => {
+      const message = buildMessage({ address: 'not$valid!base58@' });
+      const sig = bs58.encode(new Uint8Array(64).fill(1));
+
+      expect(() => verifier.verify(message, sig)).toThrow(BadRequestException);
+    });
+
+    it('rejects when address decodes to wrong byte length (not 32 bytes)', () => {
+      // base58-encode a 16-byte array to produce a valid base58 string that decodes to != 32 bytes
+      const shortAddress = bs58.encode(new Uint8Array(16).fill(1));
+      const message = buildMessage({ address: shortAddress });
+      const sig = bs58.encode(new Uint8Array(64).fill(1));
+
+      expect(() => verifier.verify(message, sig)).toThrow(BadRequestException);
+    });
+  });
 });

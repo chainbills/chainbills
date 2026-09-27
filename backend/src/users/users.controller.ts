@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Users controller
 //
-// HTTP surface for user self-service (SPEC.md §10):
+// HTTP surface for user self-service:
 //   GET    /me                 — profile, wallets, email, preferences
 //   PATCH  /me/preferences     — partial update of notification preferences
 //   POST   /me/email           — start email verification (sends OTP)

@@ -71,8 +71,8 @@ contract ChainbillsInvariantTest is CbTestBase {
     handler.checkCounters();
   }
 
-  /// Every payable payment record matches its ghost; cross-chain credits equal minted amounts; each burn is
-  /// consumed exactly when it was relayed.
+  /// Every payable payment record matches its ghost; cross-chain credits equal invoiced amounts (any CCTP fee
+  /// surplus is routed to the collector); each burn is consumed exactly when it was relayed.
   function invariant_CrossChainPaymentsCreditedOnce() public view {
     handler.checkReceipts();
   }

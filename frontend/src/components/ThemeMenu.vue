@@ -11,7 +11,7 @@
  */
 import IconMoon from '@/icons/IconMoon.vue';
 import IconSun from '@/icons/IconSun.vue';
-import IconSystem from '@/icons/IconSystem.vue';
+import IconDevices from '@/icons/IconDevices.vue';
 import { themes, useSidebarStore, useThemeStore, type ThemeMode } from '@/stores';
 import Menu from 'primevue/menu';
 import { ref } from 'vue';
@@ -21,7 +21,7 @@ const { full = false } = defineProps<{ full?: boolean }>();
 const icons = () => ({
   'Dark Theme': IconMoon,
   'Light Theme': IconSun,
-  'System Mode': IconSystem,
+  'System Mode': IconDevices,
 });
 const items = ref(
   themes.map((mode) => ({

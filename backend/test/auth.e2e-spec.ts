@@ -23,6 +23,7 @@ import { json } from 'express';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const hasDb = Boolean(process.env.TEST_DATABASE_URL);
 
@@ -75,7 +76,7 @@ describe.skipIf(!hasDb)('Auth (e2e)', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     await app.init();
 
-    prisma = new PrismaClient({ datasourceUrl: process.env.TEST_DATABASE_URL });
+    prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.TEST_DATABASE_URL }) });
     await prisma.$connect();
 
     // Clean up auth tables before tests.

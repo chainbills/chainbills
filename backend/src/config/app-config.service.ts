@@ -4,8 +4,7 @@
 // Thin wrapper around Nest's `ConfigService<Env, true>` so the rest of the
 // app injects one typed service and reads `.env` instead of scattering
 // stringly-typed `configService.get('some.path')` calls everywhere. This —
-// not `process.env` — is how every other module reads configuration
-// (WORKER_RULES.md §3).
+// not `process.env` — is how every other module reads configuration.
 // ──────────────────────────────────────────────────────────────────────────────
 
 import { Injectable } from '@nestjs/common';
@@ -42,7 +41,8 @@ export class AppConfigService {
       cookieDomain: config.get('cookieDomain', { infer: true }),
       cookieSecure: config.get('cookieSecure', { infer: true }),
       signInMessageTtlMs: config.get('signInMessageTtlMs', { infer: true }),
-      relayerPrivateKey: config.get('relayerPrivateKey', { infer: true }),
+      evmTestnetsRelayerPrivateKey: config.get('evmTestnetsRelayerPrivateKey', { infer: true }),
+      evmMainnetsRelayerPrivateKey: config.get('evmMainnetsRelayerPrivateKey', { infer: true }),
       solanaRelayerKeypair: config.get('solanaRelayerKeypair', { infer: true }),
       pollIntervalMsOverride: config.get('pollIntervalMsOverride', { infer: true }),
       indexerBatchFlushMs: config.get('indexerBatchFlushMs', { infer: true }),

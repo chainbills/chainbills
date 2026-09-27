@@ -29,11 +29,12 @@
  * <PayableHero :payable="payable" :payer-payment-count="2" @manage="scrollToControls" />
  * ```
  */
-import { AddressChip, ChainBadge, GlassCard, PayableAvatar, QrCode, StatusPill } from '@/components/ui';
+import { AddressChip, ChainBadge, GlassCard, QrCode, StatusPill } from '@/components/ui';
 import { FEATURES } from '@/config/features';
 import IconCopy from '@/icons/IconCopy.vue';
-import IconGlobe from '@/icons/IconGlobe.vue';
-import IconHorizontalAdjustments from '@/icons/IconHorizontalAdjustments.vue';
+import IconOpenInNew from '@/icons/IconOpenInNew.vue';
+import IconQRCode from '@/icons/IconQRCode.vue';
+import IconWallet from '@/icons/IconWallet.vue';
 import { type Payable } from '@/schemas';
 import { useAnalyticsStore, useAuthStore } from '@/stores';
 import Dialog from 'primevue/dialog';
@@ -46,11 +47,6 @@ const props = defineProps<{
   payerPaymentCount: number;
 }>();
 
-const emit = defineEmits<{
-  /** Emitted when the host clicks "Manage" so the parent can scroll to host controls. */
-  manage: [];
-}>();
-
 const analytics = useAnalyticsStore();
 const auth = useAuthStore();
 
@@ -61,15 +57,6 @@ const isHost = computed(
 
 /** The payment link for this payable. */
 const payUrl = computed(() => `${window.location.origin}/pay/${props.payable.id}`);
-
-/** Short id shown in the hero (first 6 + last 4 chars). */
-const shortId = computed(() => {
-  const id = props.payable.id;
-  return `${id.slice(0, 6)}...${id.slice(-4)}`;
-});
-
-/** Whether the full id is shown in the expand panel. */
-const showFullId = ref(false);
 
 /** Whether the QR dialog is open. */
 const showQr = ref(false);
@@ -124,80 +111,67 @@ const share = async () => {
 </script>
 
 <template>
-  <GlassCard variant="refract">
+  <GlassCard variant="refract" class="max-w-5xl">
     <!-- Identity row -->
-    <div class="flex flex-wrap items-start gap-4 mb-5">
-      <PayableAvatar :id="payable.id" class="shrink-0" />
+    <div class="flex flex-wrap items-start gap-4 mb-4">
+      <!-- Neutral-tinted wallet-icon tile — replaces the payable-avatar so the
+           panel reads as "a payable / wallet slot", not "an entity portrait". -->
+      <div
+        class="shrink-0 w-12 h-10 rounded-xl bg-fg/5 ring-1 ring-glass-border flex items-center justify-center text-muted"
+        aria-hidden="true"
+      >
+        <IconWallet class="w-7 h-7" />
+      </div>
 
-      <div class="flex-1 min-w-0">
-        <!-- Short id + copy + expand -->
-        <div class="flex items-center gap-2 flex-wrap mb-1.5">
-          <span class="font-mono text-sm text-fg font-medium">{{ shortId }}</span>
-          <button
-            type="button"
-            class="text-xs text-accent hover:underline"
-            @click="showFullId = !showFullId"
-            :aria-expanded="showFullId"
-            aria-label="Toggle full payable id"
-          >
-            {{ showFullId ? 'Hide' : 'Show full id' }}
-          </button>
+      <div class="flex-1 min-w-0 flex flex-wrap gap-2">
+        <div class="min-w-0">
+          <!-- Full payable id, always visible, in muted mono. -->
+           
+          <p class="font-mono text-[10px] text-muted break-all select-all mb-1">{{ payable.id }}</p>
+
+          <div v-if="payable.isClosed" class="flex flex-wrap items-center gap-2 mb-1">
+            <StatusPill tone="danger" label="Closed" />
+          </div>
+
+          <!-- Owner label + address chip. The chip renders its address in `text-fg` by default;
+               the arbitrary-selector override forces it to `text-muted` here per design. -->
+          <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
+            <span class="shrink-0"> Owner:<span v-if="isHost" class="ml-1 text-fg font-medium">(mine)</span> </span>
+            <AddressChip
+              :value="payable.host"
+              :chain="payable.chain"
+              kind="address"
+              :to="FEATURES.scan ? `/scan/address/${payable.host}` : undefined"
+              class="[&_.text-fg]:!text-muted"
+            />
+          </div>
         </div>
 
-        <!-- Full id, shown when expanded -->
-        <div v-if="showFullId" class="mb-2">
-          <span class="font-mono text-xs text-muted break-all select-all">{{ payable.id }}</span>
-        </div>
-
-        <!-- Network + status + auto-withdraw badges -->
-        <div class="flex flex-wrap items-center gap-2 mb-2">
+        <div class="flex flex-col items-end gap-3 ml-auto">
           <ChainBadge :chain="payable.chain" size="sm" />
-          <StatusPill
-            :tone="payable.isClosed ? 'danger' : 'success'"
-            :label="payable.isClosed ? 'Closed' : 'Open'"
-            :pulse="!payable.isClosed"
-          />
-          <span
-            v-if="FEATURES.autoWithdraw && payable.isAutoWithdraw"
-            class="inline-flex items-center rounded-full bg-accent/15 text-accent text-[11px] font-medium px-2.5 py-1 ring-1 ring-accent/30"
-          >
-            Auto-withdraw
-          </span>
-        </div>
 
-        <!-- Host address + created date -->
-        <div class="flex flex-wrap items-center gap-3 text-xs text-muted">
-          <span class="shrink-0">Owner:</span>
-          <AddressChip
-            :value="payable.host"
-            :chain="payable.chain"
-            kind="address"
-            :to="FEATURES.scan ? `/scan/address/${payable.host}` : undefined"
-          />
-          <span class="shrink-0 tabular-nums" :title="relativeTimeStr">Created {{ createdDateStr }}</span>
+          <span class="flex flex-wrap items-center gap-3 text-[10px] text-muted mr-1" :title="relativeTimeStr"
+            >Created {{ createdDateStr }}</span
+          >
         </div>
       </div>
     </div>
 
     <!-- Actions row -->
     <div class="flex flex-wrap items-center gap-2 pt-4 border-t border-fg/5">
-      <!-- Pay CTA: hidden for host, disabled when closed -->
-      <router-link
-        v-if="!isHost"
-        :to="payable.isClosed ? '' : `/pay/${payable.id}`"
-        :class="['inline-flex', payable.isClosed && 'pointer-events-none']"
+      <a
+        :href="`/pay/${payable.id}`"
+        target="_blank"
+        rel="noopener noreferrer"
         :aria-disabled="payable.isClosed"
-        @click="analytics.recordEvent('clicked_pay_from_hero', { payable_id: payable.id })"
+        v-if="!payable.isClosed"
+        class="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-sm text-accent-fg hover:bg-accent/70 transition-colors"
+        :title="payable.isClosed ? 'This payable is closed' : 'Open the pay page in a new tab'"
+        @click="analytics.recordEvent('clicked_pay_now_from_hero_header', { payable_id: payable.id })"
       >
-        <button
-          type="button"
-          :disabled="payable.isClosed"
-          :title="payable.isClosed ? 'This payable is closed' : 'Pay this payable'"
-          class="rounded-full bg-accent text-accent-fg px-5 py-2.5 text-sm font-medium shadow-lg shadow-accent/30 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Pay this payable
-        </button>
-      </router-link>
+        <IconOpenInNew class="w-4 h-4" />
+        Pay now
+      </a>
 
       <!-- Copy link -->
       <button
@@ -220,13 +194,19 @@ const share = async () => {
         aria-label="Share payable link"
       >
         <svg viewBox="0 0 24 24" fill="none" class="w-4 h-4" aria-hidden="true">
-          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          <path
+            d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
         Share
       </button>
 
       <!-- QR (temporarily disabled) -->
-      <!--
+
       <button
         type="button"
         @click="showQr = true"
@@ -234,20 +214,8 @@ const share = async () => {
         title="Show QR code"
         aria-label="Show QR code for this payable"
       >
-        QR
-      </button>
-      -->
-
-      <!-- Host: Manage scroll anchor -->
-      <button
-        v-if="isHost"
-        type="button"
-        @click="emit('manage')"
-        class="inline-flex items-center gap-1.5 rounded-full border border-accent/50 bg-accent/10 text-accent px-4 py-2 text-sm font-medium hover:bg-accent/20"
-        aria-label="Scroll to host management controls"
-      >
-        <IconHorizontalAdjustments class="w-4 h-4 stroke-current" />
-        Manage
+        <IconQRCode class="w-4 h-4" />
+        QR Code
       </button>
     </div>
 
@@ -262,7 +230,12 @@ const share = async () => {
   <!-- QR code dialog -->
   <Dialog v-model:visible="showQr" modal header="Payment QR code" class="w-full max-w-xs max-sm:m-4">
     <div class="flex flex-col items-center gap-4 py-2">
-      <QrCode :value="payUrl" :size="200" />
+      <QrCode
+        :value="payUrl"
+        :size="200"
+        :downloadable="true"
+        :download-name="`chainbills-payable-qr-${payable.id.slice(2, 10)}`"
+      />
       <p class="text-xs text-muted text-center break-all">{{ payUrl }}</p>
     </div>
   </Dialog>

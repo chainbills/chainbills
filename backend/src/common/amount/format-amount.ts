@@ -2,11 +2,11 @@
 // Chainbills Backend — Amount formatting
 //
 // Raw on-chain amounts are uint256 integers, stored as `Decimal @db.Decimal(78, 0)`
-// (SPEC.md §7) and surfaced as strings everywhere (SPEC.md §12.1) — never a
-// JS `number`, which loses precision above 2^53 and cannot represent typical
-// 18-decimal token amounts safely. This module does the raw-integer-string +
-// decimals -> human decimal-string conversion with plain string arithmetic,
-// so it is exact for amounts of any size.
+// and surfaced as strings everywhere — never a JS `number`, which loses
+// precision above 2^53 and cannot represent typical 18-decimal token amounts
+// safely. This module does the raw-integer-string + decimals -> human
+// decimal-string conversion with plain string arithmetic, so it is exact for
+// amounts of any size.
 // ──────────────────────────────────────────────────────────────────────────────
 
 const INTEGER_STRING = /^-?\d+$/;

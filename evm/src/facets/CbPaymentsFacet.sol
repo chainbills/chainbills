@@ -108,14 +108,13 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
     returns (bytes32 userPaymentId)
   {
     // outer: payableId(p), token(p), amount(p), maxFee(p), userPaymentId(ret),
-    //        chainId, burnAmount, nonce, finality = 9 slots across all phases.
+    //        chainId, burnAmount = 7 slots across all phases.
+    // nonce and finality are scoped inside Phase 3 alongside the emit.
     bytes32 chainId;
     uint256 burnAmount;
-    uint64 nonce;
-    uint32 finality;
 
     // Phase 1a: payable + chain validation, capture chainId.
-    // 9 outer + foreignPayables, foreignPayable, chain = 12 simultaneous slots.
+    // 7 outer + foreignPayables, foreignPayable, chain = 10 simultaneous slots.
     {
       LibRelayGuard.enforceCctpEnabled();
       if (LibTokenTransfer.isNative(token)) revert NativeTokenNotBridgeable();
@@ -137,8 +136,7 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
       }
     }
 
-    // Phase 1b: token validation. foreignPayable and chain freed; 9 outer + foreignPayables, tokens = 11 total.
-    // The 5-arg _requireAllowedForeignTokenAndAmount call's deepest arg reaches DUP14 at most.
+    // Phase 1b: token validation. foreignPayable and chain freed; 7 outer + foreignPayables, tokens = 9 total.
     {
       LibForeignPayableStorage.Layout storage foreignPayables = LibForeignPayableStorage.layout();
       LibTokenRegistryStorage.Layout storage tokens = LibTokenRegistryStorage.layout();
@@ -150,17 +148,17 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
       }
     }
 
-    // Phase 2: transfer. 9 outer + received = 10 total.
+    // Phase 2: transfer. 7 outer + received = 8 total.
     {
       burnAmount = amount + maxFee;
       uint256 received = LibTokenTransfer.pullMeasured(token, msg.sender, burnAmount);
       if (received != burnAmount) revert UnexpectedAmountReceived(received, burnAmount);
     }
 
-    // Phase 3: state changes + message. 9 outer + payload = 10 total.
+    // Phase 3: state changes + message + emit. 7 outer + nonce, payload, finality = 10 total.
     {
       userPaymentId = CbLedger.recordUserPayment(msg.sender, payableId, chainId, token, amount, burnAmount);
-      nonce = uint64(LibUserStorage.layout().users[msg.sender].paymentsCount);
+      uint64 nonce = uint64(LibUserStorage.layout().users[msg.sender].paymentsCount);
       PaymentPayload memory payload = PaymentPayload({
         payloadType: PAYMENT_PAYLOAD_TYPE,
         version: PAYLOAD_VERSION,
@@ -177,10 +175,9 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
         payerChainId: LibConfigStorage.layout().cbChainId,
         payerPaymentId: userPaymentId
       });
-      finality = CbCctpMessaging.burnWithPayment(chainId, token, amount, maxFee, payload);
+      uint32 finality = CbCctpMessaging.burnWithPayment(chainId, token, amount, maxFee, payload);
+      emit SentForeignPaymentViaCctp(payableId, chainId, userPaymentId, nonce, burnAmount, maxFee, finality);
     }
-
-    emit SentForeignPaymentViaCctp(payableId, chainId, userPaymentId, nonce, burnAmount, maxFee, finality);
   }
 
   /// @inheritdoc ICbPayments
@@ -192,16 +189,14 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
     returns (bytes32 payablePaymentId)
   {
     // `bytes calldata` params each occupy 2 stack slots (offset + length).
-    // outer: burnMessage(2), attestation(2), payablePaymentId(ret,1), payload(1), burn(1), src(1), token(1), minted(1)
-    // = 10 slots across all phases.
+    // outer: burnMessage(2), attestation(2), payablePaymentId(ret,1), payload(1), burn(1), src(1) = 8 slots.
+    // token and minted are scoped inside the merged Phase 2+3 block to keep outer count at 8.
     PaymentPayload memory payload;
     CctpBurnMessage memory burn;
     bytes32 src;
-    address token;
-    uint256 minted;
 
     // Phase 1: decode, validate payable, check and mark nonces.
-    // 10 outer + payable_, messaging = 12 simultaneous slots.
+    // 8 outer + payable_, messaging = 10 simultaneous slots.
     {
       (payload, burn, src) = CbCctpMessaging.verifyInboundPayment(burnMessage);
       Payable storage payable_ = LibPayableStorage.layout().payables[payload.payableId];
@@ -217,27 +212,38 @@ contract CbPaymentsFacet is CbFacetBase, ICbPayments {
       messaging.isPaymentNonceConsumed[src][payload.payer][payload.nonce] = true;
     }
 
-    // Phase 2: receive minted tokens. 10 outer + balanceBefore = 11 simultaneous slots;
-    // burnMessage sits at DUP12 during the receiveMessage call, well within limits.
+    // Phase 2+3: receive tokens, route any surplus to the fee collector, record,
+    // emit, auto-withdraw. 8 outer + token, minted = 10. balanceBefore and surplus
+    // are each in their own scope so they are freed before the record call.
+    // payable_ gets its own inner scope to keep the peak at 11.
     {
-      token = payload.payableChainToken.toAddress();
-      uint256 balanceBefore = LibTokenTransfer.balanceOfSelf(token);
-      CbCctpMessaging.receiveMessage(burnMessage, attestation);
-      minted = LibTokenTransfer.balanceOfSelf(token) - balanceBefore;
-      if (minted < payload.amount) revert CircleMintedLessThanAmount(minted, payload.amount);
-    }
-
-    // Phase 3: record, emit, auto-withdraw. 10 outer + payable_(re-read) = 11 simultaneous slots.
-    {
+      address token = payload.payableChainToken.toAddress();
+      uint256 minted;
+      {
+        uint256 balanceBefore = LibTokenTransfer.balanceOfSelf(token);
+        CbCctpMessaging.receiveMessage(burnMessage, attestation);
+        minted = LibTokenTransfer.balanceOfSelf(token) - balanceBefore;
+        if (minted < payload.amount) revert CircleMintedLessThanAmount(minted, payload.amount);
+      }
+      // When Circle takes less than `maxFee`, the diamond ends up holding the
+      // difference. Push it to the fee collector so the payable is credited with
+      // exactly the invoiced amount.
+      if (minted > payload.amount) {
+        uint256 surplus = minted - payload.amount;
+        LibTokenTransfer.push(token, LibConfigStorage.layout().feeCollector, surplus);
+        emit CctpFeeSurplusRouted(payload.payableId, src, token, surplus);
+      }
       payablePaymentId = CbLedger.recordPayablePayment(
-        payload.payableId, payload.payer, src, token, payload.amount, minted, payload.payerPaymentId
+        payload.payableId, payload.payer, src, token, payload.amount, payload.amount, payload.payerPaymentId
       );
       LibMessagingStorage.layout().cctpStats.receivedCctpPaymentMessagesCount++;
       emit ReceivedForeignPaymentViaCctp(
         payload.payableId, src, payablePaymentId, burn.header.nonce, minted, burn.header.finalityThresholdExecuted
       );
-      Payable storage payable_ = LibPayableStorage.layout().payables[payload.payableId];
-      _autoWithdrawIfNeeded(payable_, payload.payableId, token, minted);
+      {
+        Payable storage payable_ = LibPayableStorage.layout().payables[payload.payableId];
+        _autoWithdrawIfNeeded(payable_, payload.payableId, token, payload.amount);
+      }
     }
   }
 

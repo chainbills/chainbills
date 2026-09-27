@@ -1,8 +1,8 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // Chainbills Backend — Pagination query DTO
 //
-// Shared `?limit=&cursor=` query shape for every list endpoint (SPEC.md
-// §12.1). class-validator enforces the 1-100 limit range under the global
+// Shared `?limit=&cursor=` query shape for every list endpoint.
+// class-validator enforces the 1-100 limit range under the global
 // `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })`.
 // ──────────────────────────────────────────────────────────────────────────────
 

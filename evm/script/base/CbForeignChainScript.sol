@@ -42,10 +42,10 @@ abstract contract CbForeignChainScript is CbAdminScript {
     p.isInboundUpdateEnabled = vm.envOr('SWITCH_INBOUND_UPDATE', true);
     p.isOutboundPaymentEnabled = vm.envOr('SWITCH_OUTBOUND_PAYMENT', true);
     p.isInboundPaymentEnabled = vm.envOr('SWITCH_INBOUND_PAYMENT', true);
-    p.outboundUpdateFinality = uint32(vm.envOr('FINALITY_OUTBOUND_UPDATE', uint256(2000)));
-    p.outboundPaymentFinality = uint32(vm.envOr('FINALITY_OUTBOUND_PAYMENT', uint256(2000)));
-    p.minInboundUpdateFinality = uint32(vm.envOr('FINALITY_MIN_INBOUND_UPDATE', uint256(2000)));
-    p.minInboundPaymentFinality = uint32(vm.envOr('FINALITY_MIN_INBOUND_PAYMENT', uint256(2000)));
+    p.outboundUpdateFinality = uint32(vm.envOr('FINALITY_OUTBOUND_UPDATE', uint256(1000)));
+    p.outboundPaymentFinality = uint32(vm.envOr('FINALITY_OUTBOUND_PAYMENT', uint256(1000)));
+    p.minInboundUpdateFinality = uint32(vm.envOr('FINALITY_MIN_INBOUND_UPDATE', uint256(1000)));
+    p.minInboundPaymentFinality = uint32(vm.envOr('FINALITY_MIN_INBOUND_PAYMENT', uint256(1000)));
     p.hasMaxOutboundCctpFeeBps = vm.envExists('MAX_OUTBOUND_CCTP_FEE_BPS');
     if (p.hasMaxOutboundCctpFeeBps) p.maxOutboundCctpFeeBps = uint16(vm.envUint('MAX_OUTBOUND_CCTP_FEE_BPS'));
   }

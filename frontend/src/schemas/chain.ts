@@ -81,7 +81,7 @@ export const arcmainnet: Chain = {
   brandColor: '#00d2ff',
   viemChain: viemArc,
   contractAddress: '0xa837c89d3550Eb0D18c3988c689509EB2c3A5695',
-  explorerBase: 'https://mainnet.arcscan.app',
+  explorerBase: 'https://explorer.arc.io',
   logoSlug: 'ARC',
 };
 
